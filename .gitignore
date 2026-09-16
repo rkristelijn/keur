@@ -37,3 +37,5 @@ eval/metrics.csv
 eval/history/
 eval/loop.log
 eval/corpus/repos/
+compile_commands.json
+eval/.run/
