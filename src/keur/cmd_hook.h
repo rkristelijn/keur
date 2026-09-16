@@ -10,7 +10,9 @@
 #include <string>
 #include <vector>
 
+#include "fs.h"
 #include "git.h"
+#include "proc.h"
 
 namespace keur {
 
@@ -21,6 +23,17 @@ struct HookOptions {
   bool        global   = false;  // applies to --remove --global
 };
 
+/**
+ * Bundle of injectable adapters for the hook subcommand.
+ * Defaults are the real git / filesystem / process implementations.
+ * Tests assign fakes to any member so nothing real is touched.
+ */
+struct HookDeps {
+    Git  git{};
+    Fs   fs{};
+    Proc proc{};
+};
+
 /** Parse --install / --global / --status / --remove [--global] from argv. */
 HookOptions cmd_hook_parse(const std::vector<std::string>& args);
 
@@ -28,25 +41,24 @@ HookOptions cmd_hook_parse(const std::vector<std::string>& args);
  * Run the hook subcommand. Returns 0 on success, 1 on error.
  *
  * @param opts  Parsed options.
- * @param git   Git adapter — defaults to the real git CLI. Tests inject a fake
- *              so no real repository or global config is touched.
+ * @param deps  Injectable adapters (git / fs / proc). Defaults are real;
+ *              tests inject fakes so no repo, files, or processes are touched.
  */
-int cmd_hook(const HookOptions& opts, const Git& git = Git{});
+int cmd_hook(const HookOptions& opts, const HookDeps& deps = HookDeps{});
 
 /**
- * Write hook stubs into a directory.
- * Creates parent directories if they do not exist.
- *
- * @param hooks_dir  Destination directory (e.g. .git/hooks or
- *                   ~/.config/git/hooks).
+ * Write hook stubs into a directory (via the Fs adapter).
+ * @param hooks_dir  Destination directory.
+ * @param fs         Filesystem adapter (injectable for tests).
  * @returns true if all hooks were written successfully.
  */
-bool hooks_install(const std::string& hooks_dir);
+bool hooks_install(const std::string& hooks_dir, const Fs& fs = Fs{});
 
 /**
  * Remove keur hook stubs from a directory (silently succeeds if absent).
+ * @param fs  Filesystem adapter (injectable for tests).
  */
-void hooks_remove(const std::string& hooks_dir);
+void hooks_remove(const std::string& hooks_dir, const Fs& fs = Fs{});
 
 /**
  * Return the path of the global git hooks directory.

@@ -37,8 +37,10 @@
 #include "cmd_hook.h"
 #include "cmd_policy.h"
 #include "cmd_scan.h"
+#include "fs.h"
 #include "git.h"
 #include "keur_utils.h"
+#include "proc.h"
 #include "report.h"
 
 // ---------------------------------------------------------------------------
@@ -119,6 +121,28 @@ static std::string stage_fixture(const std::string& fixture_rel,
     std::string dest = out_dir + "/" + dest_name;
     write_file(dest, content);
     return dest;
+}
+
+// An in-memory fake filesystem for fully-spoofed hook tests: no real files.
+// Records writes/removes in a set so assertions can inspect what "happened".
+struct FakeFsState {
+    std::vector<std::string> written;
+    std::vector<std::string> removed;
+    std::vector<std::string> made_dirs;
+};
+
+static keur::Fs make_fake_fs(FakeFsState& st) {
+    keur::Fs fs;
+    fs.mkdir_p = [&st](const std::string& p) { st.made_dirs.push_back(p); return true; };
+    fs.write_executable = [&st](const std::string& p, const std::string&) {
+        st.written.push_back(p); return true;
+    };
+    fs.remove = [&st](const std::string& p) { st.removed.push_back(p); };
+    fs.exists = [&st](const std::string& p) {
+        for (auto& w : st.written) if (w == p) return true;
+        return false;
+    };
+    return fs;
 }
 
 // ============================================================================
@@ -420,6 +444,21 @@ SCENARIO("[feature:git] git_repo_hooks_dir empty outside a repo") {
     CHECK(keur::git_repo_hooks_dir(fake).empty());
 }
 
+SCENARIO("[feature:git] default_run trims output and runs real git") {
+    // Safe, repo-independent git query.
+    keur::Git git;  // real implementation
+    auto out = git.run("--version");
+    CHECK(out.find("git") != std::string::npos);
+    // Trimmed: no trailing newline.
+    CHECK((out.empty() || out.back() != '\n'));
+}
+
+SCENARIO("[feature:git] default_run returns empty for a bogus subcommand") {
+    keur::Git git;
+    // stderr is suppressed by the adapter; a failing command yields empty stdout.
+    CHECK(git.run("this-is-not-a-git-command-xyz").empty());
+}
+
 // --- [feature:report] output provider ---------------------------------------
 
 SCENARIO("[feature:report] finding_to_json emits the canonical shape") {
@@ -507,6 +546,58 @@ SCENARIO("[feature:report] use_color Auto respects NO_COLOR") {
     setenv("NO_COLOR", "1", 1);
     CHECK(!keur::use_color(keur::ColorMode::Auto, true));
     unsetenv("NO_COLOR");
+}
+
+// --- [feature:fs] filesystem adapter (real impl over a tempdir) -------------
+
+SCENARIO("[feature:fs] default_mkdir_p / write_executable / exists / remove") {
+    keur::Fs fs;  // real implementation
+    std::string base = create_temp_dir();
+    REQUIRE(!base.empty());
+
+    std::string nested = base + "/a/b/c";
+    CHECK(fs.mkdir_p(nested));
+    CHECK(fs.exists(nested));
+
+    std::string file = nested + "/hook";
+    CHECK(fs.write_executable(file, "#!/bin/sh\n"));
+    CHECK(fs.exists(file));
+
+    // Written file is executable.
+    struct stat stt{};
+    stat(file.c_str(), &stt);
+    CHECK((stt.st_mode & S_IXUSR) != 0);
+
+    fs.remove(file);
+    CHECK(!fs.exists(file));
+
+    cleanup_dir(base);
+}
+
+SCENARIO("[feature:fs] default_exists is false for a missing path") {
+    keur::Fs fs;
+    CHECK(!fs.exists("/tmp/keur_definitely_missing_xyz_123"));
+}
+
+// --- [feature:proc] process adapter (real impl, safe commands) --------------
+
+SCENARIO("[feature:proc] default_run returns 0 for true, non-zero for false") {
+    keur::Proc proc;
+    CHECK(proc.run("true") == 0);
+    CHECK(proc.run("false") != 0);
+}
+
+SCENARIO("[feature:proc] default_capture captures stdout and exit code") {
+    keur::Proc proc;
+    auto r = proc.capture("echo hello");
+    CHECK(r.exit_code == 0);
+    CHECK(r.stdout_text.find("hello") != std::string::npos);
+}
+
+SCENARIO("[feature:proc] default_has finds sh but not a bogus binary") {
+    keur::Proc proc;
+    CHECK(proc.has("sh"));
+    CHECK(!proc.has("keur_bogus_binary_xyz_123"));
 }
 
 } // TEST_SUITE("unit")
@@ -683,45 +774,107 @@ SCENARIO("[feature:scan] cmd_scan on clean dir returns 0") {
 
 // --- orchestrator coverage: cmd_hook with an INJECTED fake Git ---------------
 // No real git, no chdir, no global-config side effects. The fake Git points the
-// hooks dir at a tempdir; we assert files land there.
+// --- orchestrator coverage: cmd_hook with FULLY SPOOFED adapters -------------
+// git + fs + proc are all injected fakes. No real repo, no real files, no
+// process spawns. Every branch — including --global — is exercised safely.
 
-SCENARIO("[feature:hook] cmd_hook install writes stubs to the fake git hooks dir") {
-    std::string repo = create_temp_dir();
-    REQUIRE(!repo.empty());
-
-    keur::Git fake;
-    fake.run = [&](const std::string& args) -> std::string {
-        if (args == "rev-parse --git-dir") return repo + "/.git";
-        return "";  // no global core.hooksPath
+SCENARIO("[feature:hook] cmd_hook install writes stubs via the fake fs") {
+    FakeFsState st;
+    keur::HookDeps deps;
+    deps.git.run = [](const std::string& args) -> std::string {
+        return args == "rev-parse --git-dir" ? "/repo/.git" : "";
     };
+    deps.fs = make_fake_fs(st);
 
     keur::HookOptions install; install.action = keur::HookAction::Install;
-    CHECK(keur::cmd_hook(install, fake) == 0);
-    CHECK(file_exists_at(repo + "/.git/hooks/pre-commit"));
-    CHECK(file_exists_at(repo + "/.git/hooks/pre-push"));
+    CHECK(keur::cmd_hook(install, deps) == 0);
+    REQUIRE(st.written.size() == 2);
+    CHECK(st.written[0] == "/repo/.git/hooks/pre-commit");
+    CHECK(st.written[1] == "/repo/.git/hooks/pre-push");
+}
 
+SCENARIO("[feature:hook] cmd_hook status queries fs.exists via the fake") {
+    FakeFsState st;
+    keur::HookDeps deps;
+    deps.git.run = [](const std::string& args) -> std::string {
+        return args == "rev-parse --git-dir" ? "/repo/.git" : "";
+    };
+    deps.fs = make_fake_fs(st);
     keur::HookOptions status; status.action = keur::HookAction::Status;
-    CHECK(keur::cmd_hook(status, fake) == 0);
+    CHECK(keur::cmd_hook(status, deps) == 0);
+}
 
+SCENARIO("[feature:hook] cmd_hook remove deletes via the fake fs") {
+    FakeFsState st;
+    // Pretend the stubs already exist so remove() is called.
+    st.written = {"/repo/.git/hooks/pre-commit", "/repo/.git/hooks/pre-push"};
+    keur::HookDeps deps;
+    deps.git.run = [](const std::string& args) -> std::string {
+        return args == "rev-parse --git-dir" ? "/repo/.git" : "";
+    };
+    deps.fs = make_fake_fs(st);
     keur::HookOptions remove; remove.action = keur::HookAction::Remove;
-    CHECK(keur::cmd_hook(remove, fake) == 0);
-    CHECK(!file_exists_at(repo + "/.git/hooks/pre-commit"));
+    CHECK(keur::cmd_hook(remove, deps) == 0);
+    REQUIRE(st.removed.size() == 2);
+}
 
-    cleanup_dir(repo);
+SCENARIO("[feature:hook] cmd_hook --global installs and sets hooksPath via fake proc") {
+    FakeFsState st;
+    std::vector<std::string> proc_calls;
+    keur::HookDeps deps;
+    deps.git.run = [](const std::string&) -> std::string {
+        return "";  // no existing core.hooksPath
+    };
+    deps.fs = make_fake_fs(st);
+    deps.proc.run = [&proc_calls](const std::string& cmd) {
+        proc_calls.push_back(cmd);  // capture instead of executing
+        return 0;
+    };
+
+    keur::HookOptions g; g.action = keur::HookAction::Global;
+    CHECK(keur::cmd_hook(g, deps) == 0);
+    // Stubs written to the global dir + git config invoked via proc (not run).
+    REQUIRE(st.written.size() == 2);
+    REQUIRE(proc_calls.size() == 1);
+    CHECK(proc_calls[0].find("core.hooksPath") != std::string::npos);
+}
+
+SCENARIO("[feature:hook] cmd_hook --global leaves an existing hooksPath alone") {
+    FakeFsState st;
+    std::vector<std::string> proc_calls;
+    keur::HookDeps deps;
+    deps.git.run = [](const std::string&) -> std::string {
+        return "/some/other/hooks";  // already set to a different dir
+    };
+    deps.fs = make_fake_fs(st);
+    deps.proc.run = [&proc_calls](const std::string& cmd) {
+        proc_calls.push_back(cmd);
+        return 0;
+    };
+    keur::HookOptions g; g.action = keur::HookAction::Global;
+    CHECK(keur::cmd_hook(g, deps) == 0);
+    // Must NOT reconfigure git when a different hooksPath is already set.
+    CHECK(proc_calls.empty());
 }
 
 SCENARIO("[feature:hook] cmd_hook install returns 1 when fake git reports no repo") {
-    keur::Git fake;
-    fake.run = [](const std::string&) -> std::string { return ""; };  // not a repo
+    keur::HookDeps deps;
+    deps.git.run = [](const std::string&) -> std::string { return ""; };
     keur::HookOptions install; install.action = keur::HookAction::Install;
-    CHECK(keur::cmd_hook(install, fake) == 1);
+    CHECK(keur::cmd_hook(install, deps) == 1);
 }
 
 SCENARIO("[feature:hook] cmd_hook remove returns 1 when fake git reports no repo") {
-    keur::Git fake;
-    fake.run = [](const std::string&) -> std::string { return ""; };
+    keur::HookDeps deps;
+    deps.git.run = [](const std::string&) -> std::string { return ""; };
     keur::HookOptions remove; remove.action = keur::HookAction::Remove;
-    CHECK(keur::cmd_hook(remove, fake) == 1);
+    CHECK(keur::cmd_hook(remove, deps) == 1);
+}
+
+SCENARIO("[feature:hook] hooks_install returns false when fake fs mkdir fails") {
+    keur::Fs fs;
+    fs.mkdir_p = [](const std::string&) { return false; };  // simulate failure
+    CHECK(!keur::hooks_install("/whatever", fs));
 }
 
 SCENARIO("[feature:check] staged_files uses the injected fake git") {
