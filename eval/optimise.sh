@@ -135,7 +135,7 @@ iterate_once() {
     if ! printf '%s' "$candidate" | grep -q '^id:'; then
         echo "[iter $iter] Ollama did not return a valid rule; reject"
         record "$iter" reject "$b_recall" "$b_prec" "no-rule"
-        return 0
+        return 2
     fi
 
     # give the candidate a unique id (Ollama often leaves the NNN placeholder or
@@ -150,7 +150,7 @@ iterate_once() {
     if ! regex_generalises "$candidate"; then
         echo "[iter $iter] REJECT (anti-overfit: regex is too literal/specific)"
         record "$iter" reject "$b_recall" "$b_prec" "overfit-regex"
-        return 0
+        return 2
     fi
 
     # write candidate to a temp rules dir and re-measure
@@ -179,11 +179,12 @@ print('yes' if (train_ok and holdout_ok) else 'no')")"
         cp "$tmpd/candidate.rule" "$LEARNED/${id:-learned-$iter}.rule"
         echo "[iter $iter] ACCEPT -> rules/learned/${id:-learned-$iter}.rule (holdout recall=$h_recall)"
         record "$iter" accept "$c_recall" "$c_prec" "${id} holdout_recall=$h_recall"
+        rm -rf "$tmpd"; return 0
     else
         echo "[iter $iter] REJECT (gate: train or holdout criteria not met)"
         record "$iter" reject "$c_recall" "$c_prec" "gate holdout_prec=$h_prec"
+        rm -rf "$tmpd"; return 2
     fi
-    rm -rf "$tmpd"
 }
 
 record() {
@@ -197,8 +198,21 @@ case "${1:-iterate}" in
     ;;
   iterate)
     N="${2:-1}"
+    # Convergence: stop after this many consecutive rejects (no accepted change).
+    # Re-proposing the same FN cluster without progress just burns time/tokens.
+    MAX_STALL="${KEUR_MAX_STALL:-8}"
+    stall=0
     for i in $(seq 1 "$N"); do
-      iterate_once "$i" || break
+      iterate_once "$i"; rc=$?
+      case "$rc" in
+        0) stall=0 ;;                         # accepted: progress
+        1) echo "converged: nothing left to learn"; break ;;
+        *) stall=$((stall+1)) ;;              # rejected
+      esac
+      if [ "$stall" -ge "$MAX_STALL" ]; then
+        echo "converged: $stall consecutive rejects (no improvement); stopping"
+        break
+      fi
     done
     ;;
   *) echo "usage: eval/optimise.sh {iterate [N]|baseline}"; exit 1 ;;
