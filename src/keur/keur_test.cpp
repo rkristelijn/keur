@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
@@ -36,7 +37,9 @@
 #include "cmd_hook.h"
 #include "cmd_policy.h"
 #include "cmd_scan.h"
+#include "git.h"
 #include "keur_utils.h"
+#include "report.h"
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -400,6 +403,112 @@ SCENARIO("[feature:rule-engine] rule_dirs splits KEUR_RULES_DIRS on colon") {
     unsetenv("KEUR_RULES_DIRS");
 }
 
+// --- [feature:git] git adapter (injected fake, no real git) -----------------
+
+SCENARIO("[feature:git] git_repo_hooks_dir appends /hooks to git-dir") {
+    keur::Git fake;
+    fake.run = [](const std::string& args) -> std::string {
+        if (args == "rev-parse --git-dir") return "/repo/.git";
+        return "";
+    };
+    CHECK(keur::git_repo_hooks_dir(fake) == "/repo/.git/hooks");
+}
+
+SCENARIO("[feature:git] git_repo_hooks_dir empty outside a repo") {
+    keur::Git fake;
+    fake.run = [](const std::string&) -> std::string { return ""; };
+    CHECK(keur::git_repo_hooks_dir(fake).empty());
+}
+
+// --- [feature:report] output provider ---------------------------------------
+
+SCENARIO("[feature:report] finding_to_json emits the canonical shape") {
+    keur::RuleFinding f;
+    f.rule_id = "KEUR-SEC-001";
+    f.title = "Private key";
+    f.category = "secret";
+    f.severity = "critical";
+    f.action = "block";
+    f.confidence = "0.98";
+    f.file = "id_rsa.pem";
+    f.line = 1;
+    f.message = "key found";
+    auto json = keur::finding_to_json(f);
+    CHECK(json.find("\"rule\":\"KEUR-SEC-001\"") != std::string::npos);
+    CHECK(json.find("\"action\":\"block\"") != std::string::npos);
+    CHECK(json.find("\"line\":1") != std::string::npos);
+    CHECK(json.find("\"confidence\":0.98") != std::string::npos);
+    CHECK(json.front() == '{');
+    CHECK(json.back() == '}');
+}
+
+SCENARIO("[feature:report] finding_to_json defaults confidence to 0.5") {
+    keur::RuleFinding f;
+    f.rule_id = "X";
+    f.line = 3;
+    // confidence empty
+    CHECK(keur::finding_to_json(f).find("\"confidence\":0.5") != std::string::npos);
+}
+
+SCENARIO("[feature:report] report_findings JSONL emits one line per finding") {
+    std::vector<keur::RuleFinding> fs(2);
+    fs[0].rule_id = "A"; fs[0].line = 1;
+    fs[1].rule_id = "B"; fs[1].line = 2;
+    std::ostringstream out;
+    keur::ReportOptions ro; ro.format = keur::OutputFormat::Jsonl;
+    auto n = keur::report_findings(out, fs, ro);
+    CHECK(n == 2);
+    std::string s = out.str();
+    CHECK(std::count(s.begin(), s.end(), '\n') == 2);
+    CHECK(s.find("\"rule\":\"A\"") != std::string::npos);
+    CHECK(s.find("\"rule\":\"B\"") != std::string::npos);
+}
+
+SCENARIO("[feature:report] report_findings compact emits file:line RULE") {
+    std::vector<keur::RuleFinding> fs(1);
+    fs[0].rule_id = "R"; fs[0].file = "a.txt"; fs[0].line = 7; fs[0].message = "msg";
+    std::ostringstream out;
+    keur::ReportOptions ro; ro.format = keur::OutputFormat::Compact;
+    ro.color = keur::ColorMode::Never;
+    keur::report_findings(out, fs, ro);
+    std::string s = out.str();
+    CHECK(s.find("a.txt:7 R") != std::string::npos);
+    CHECK(s.find("msg") != std::string::npos);
+}
+
+SCENARIO("[feature:report] report_findings verbose includes action and title") {
+    std::vector<keur::RuleFinding> fs(1);
+    fs[0].rule_id = "R"; fs[0].action = "warn"; fs[0].title = "T";
+    fs[0].file = "a"; fs[0].line = 1; fs[0].message = "m"; fs[0].confidence = "0.6";
+    std::ostringstream out;
+    keur::ReportOptions ro; ro.format = keur::OutputFormat::Verbose;
+    ro.color = keur::ColorMode::Never;
+    keur::report_findings(out, fs, ro);
+    std::string s = out.str();
+    CHECK(s.find("[warn] R") != std::string::npos);
+    CHECK(s.find("- T") != std::string::npos);
+    CHECK(s.find("confidence: 0.6") != std::string::npos);
+}
+
+SCENARIO("[feature:report] use_color Never is always false") {
+    CHECK(!keur::use_color(keur::ColorMode::Never, true));
+}
+
+SCENARIO("[feature:report] use_color Always is true") {
+    CHECK(keur::use_color(keur::ColorMode::Always, false));
+}
+
+SCENARIO("[feature:report] use_color Auto is false without a tty") {
+    unsetenv("NO_COLOR");
+    CHECK(!keur::use_color(keur::ColorMode::Auto, false));
+}
+
+SCENARIO("[feature:report] use_color Auto respects NO_COLOR") {
+    setenv("NO_COLOR", "1", 1);
+    CHECK(!keur::use_color(keur::ColorMode::Auto, true));
+    unsetenv("NO_COLOR");
+}
+
 } // TEST_SUITE("unit")
 
 
@@ -572,55 +681,58 @@ SCENARIO("[feature:scan] cmd_scan on clean dir returns 0") {
     cleanup_dir(base);
 }
 
-// --- orchestrator coverage: cmd_hook install/status/remove (repo-scoped) -----
-// These run against a temp git repo so they never touch global config.
+// --- orchestrator coverage: cmd_hook with an INJECTED fake Git ---------------
+// No real git, no chdir, no global-config side effects. The fake Git points the
+// hooks dir at a tempdir; we assert files land there.
 
-SCENARIO("[feature:hook] cmd_hook install then status then remove in temp repo") {
+SCENARIO("[feature:hook] cmd_hook install writes stubs to the fake git hooks dir") {
     std::string repo = create_temp_dir();
     REQUIRE(!repo.empty());
-    // Init a git repo in the tempdir
-    std::string init = "cd " + repo + " && git init -q && "
-                       "git config user.email t@t.t && git config user.name t";
-    REQUIRE(system(init.c_str()) == 0);
 
-    char orig[4096];
-    REQUIRE(getcwd(orig, sizeof(orig)) != nullptr);
-    chdir(repo.c_str());
+    keur::Git fake;
+    fake.run = [&](const std::string& args) -> std::string {
+        if (args == "rev-parse --git-dir") return repo + "/.git";
+        return "";  // no global core.hooksPath
+    };
 
     keur::HookOptions install; install.action = keur::HookAction::Install;
-    CHECK(keur::cmd_hook(install) == 0);
+    CHECK(keur::cmd_hook(install, fake) == 0);
     CHECK(file_exists_at(repo + "/.git/hooks/pre-commit"));
+    CHECK(file_exists_at(repo + "/.git/hooks/pre-push"));
 
     keur::HookOptions status; status.action = keur::HookAction::Status;
-    CHECK(keur::cmd_hook(status) == 0);
+    CHECK(keur::cmd_hook(status, fake) == 0);
 
     keur::HookOptions remove; remove.action = keur::HookAction::Remove;
-    CHECK(keur::cmd_hook(remove) == 0);
+    CHECK(keur::cmd_hook(remove, fake) == 0);
     CHECK(!file_exists_at(repo + "/.git/hooks/pre-commit"));
 
-    chdir(orig);
     cleanup_dir(repo);
 }
 
-SCENARIO("[feature:hook] cmd_hook install outside a git repo returns 1") {
-    char orig[4096];
-    REQUIRE(getcwd(orig, sizeof(orig)) != nullptr);
-    chdir("/tmp");
+SCENARIO("[feature:hook] cmd_hook install returns 1 when fake git reports no repo") {
+    keur::Git fake;
+    fake.run = [](const std::string&) -> std::string { return ""; };  // not a repo
     keur::HookOptions install; install.action = keur::HookAction::Install;
-    // /tmp is not a git repo → repo_hooks_dir empty → return 1
-    int rc = keur::cmd_hook(install);
-    chdir(orig);
-    CHECK(rc == 1);
+    CHECK(keur::cmd_hook(install, fake) == 1);
 }
 
-SCENARIO("[feature:hook] cmd_hook remove outside a git repo returns 1") {
-    char orig[4096];
-    REQUIRE(getcwd(orig, sizeof(orig)) != nullptr);
-    chdir("/tmp");
+SCENARIO("[feature:hook] cmd_hook remove returns 1 when fake git reports no repo") {
+    keur::Git fake;
+    fake.run = [](const std::string&) -> std::string { return ""; };
     keur::HookOptions remove; remove.action = keur::HookAction::Remove;
-    int rc = keur::cmd_hook(remove);
-    chdir(orig);
-    CHECK(rc == 1);
+    CHECK(keur::cmd_hook(remove, fake) == 1);
+}
+
+SCENARIO("[feature:check] staged_files uses the injected fake git") {
+    keur::Git fake;
+    fake.staged_files = []() {
+        return std::vector<std::string>{"a.txt", "b.txt"};
+    };
+    auto files = keur::staged_files(fake);
+    REQUIRE(files.size() == 2);
+    CHECK(files[0] == "a.txt");
+    CHECK(files[1] == "b.txt");
 }
 
 } // TEST_SUITE("integration")

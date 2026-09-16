@@ -2,8 +2,8 @@
  * @file cmd_scan.cpp
  * @brief keur scan — run the deterministic scanner pipeline over a directory.
  *
- * SRP: this file only orchestrates scan + print.
- * jesc() and rule_dirs() come from keur_utils.h (single definition).
+ * SRP: this file only orchestrates scan + emit. The findings-to-output logic
+ * lives in the report provider (report.h); rule dirs in keur_utils.h.
  */
 #include "cmd_scan.h"
 
@@ -13,12 +13,9 @@
 
 #include "../rules/rule_engine.h"
 #include "keur_utils.h"
+#include "report.h"
 
 namespace keur {
-
-// ---------------------------------------------------------------------------
-// Arg parser
-// ---------------------------------------------------------------------------
 
 ScanOptions cmd_scan_parse(const std::vector<std::string>& args) {
     ScanOptions o;
@@ -30,12 +27,7 @@ ScanOptions cmd_scan_parse(const std::vector<std::string>& args) {
     return o;
 }
 
-// ---------------------------------------------------------------------------
-// Orchestrator
-// ---------------------------------------------------------------------------
-
 int cmd_scan(const ScanOptions& opts) {
-    // Load rules from all configured directories
     std::vector<Rule> rules;
     for (auto& d : rule_dirs()) {
         auto rs = rules_load(d);
@@ -48,24 +40,12 @@ int cmd_scan(const ScanOptions& opts) {
         return 0;
     }
 
-    // Scan directory in-process
     auto findings = rules_scan_dir(rules, opts.target);
 
-    // Emit JSONL — same shape as keur-rules output
-    for (auto& f : findings) {
-        std::cout << "{\"source\":\"keur-rules\""
-                  << ",\"rule\":\""      << jesc(f.rule_id)  << "\""
-                  << ",\"title\":\""     << jesc(f.title)    << "\""
-                  << ",\"category\":\"" << jesc(f.category) << "\""
-                  << ",\"severity\":\"" << jesc(f.severity) << "\""
-                  << ",\"action\":\""   << jesc(f.action)   << "\""
-                  << ",\"confidence\":" << (f.confidence.empty() ? "0.5" : f.confidence)
-                  << ",\"deterministic\":true"
-                  << ",\"file\":\""     << jesc(f.file)     << "\""
-                  << ",\"line\":"       << f.line
-                  << ",\"message\":\""  << jesc(f.message)  << "\"}"
-                  << "\n";
-    }
+    // Single output touch point — the report provider owns the format.
+    ReportOptions ro;
+    ro.format = OutputFormat::Jsonl;  // scan defaults to machine-readable
+    report_findings(std::cout, findings, ro);
 
     std::cerr << "keur scan: " << findings.size() << " finding(s) in "
               << opts.target << "\n";

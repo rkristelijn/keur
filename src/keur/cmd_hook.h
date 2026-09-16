@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "git.h"
+
 namespace keur {
 
 enum class HookAction { Install, Global, Status, Remove };
@@ -22,8 +24,14 @@ struct HookOptions {
 /** Parse --install / --global / --status / --remove [--global] from argv. */
 HookOptions cmd_hook_parse(const std::vector<std::string>& args);
 
-/** Run the hook subcommand. Returns 0 on success, 1 on error. */
-int cmd_hook(const HookOptions& opts);
+/**
+ * Run the hook subcommand. Returns 0 on success, 1 on error.
+ *
+ * @param opts  Parsed options.
+ * @param git   Git adapter — defaults to the real git CLI. Tests inject a fake
+ *              so no real repository or global config is touched.
+ */
+int cmd_hook(const HookOptions& opts, const Git& git = Git{});
 
 /**
  * Write hook stubs into a directory.
@@ -49,7 +57,8 @@ std::string global_hooks_dir();
 /**
  * Return the per-repo git hooks directory for the current working directory.
  * Returns an empty string when not inside a git repository.
+ * @param git  Git adapter (injectable for tests).
  */
-std::string repo_hooks_dir();
+std::string repo_hooks_dir(const Git& git = Git{});
 
 }  // namespace keur
