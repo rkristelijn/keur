@@ -71,17 +71,34 @@ evaluator + the AI-context filter). Any team can promote/demote per repo via con
 
 ## How cpm and KEUR relate (three responsibilities)
 
+The cleanest mental model — **where each one runs**:
+
 ```text
-cpm            — the laboratory + rule authoring: "how well do we detect / how mature?"
-keur           — the product: "may this code pass?" (guard + policy + hooks + AI boundary)
-keur-eval / CPM-Eval — the yardstick: immutable corpus that proves KEUR improves
+cpm      → an ANALYZER. Runs in the pipeline / on-demand.   "how mature / how good is this?"
+keur     → a HOOK MANAGER. Runs on commit / push.           "may this code pass?"
+keur-eval / CPM-Eval → the yardstick (immutable corpus).    "is KEUR getting better?"
 ```
 
-KEUR **reuses** cpm's rule corpus and detection knowledge; it does not fork cpm's
-purpose. cpm stays the place where rules are written and quality is measured. KEUR is
-where the guard decision is made.
+- **cpm belongs in the pipeline / analysis phase.** It is a maturity *analyzer*
+  (quality, complexity, coverage, a11y, style). You run it in CI or ad-hoc to judge a
+  repo. It produces a rich picture + a score. That work is allowed to take time — you
+  do NOT want it on every commit.
+- **KEUR is the hook-management layer.** Its whole job is to manage your git hooks —
+  configurable, global and per-repo — and answer one question at commit/push time:
+  *may this pass?* (PASS/WARN/BLOCK). Fast, deterministic, focused on "keep AI in
+  check, no rubbish."
 
-## One-line test for "is this in scope?"
+Nuance: KEUR is **not only pre-commit**. It manages *tiers* — a fast pre-commit
+(secrets/PII/slop), a fuller pre-push (deps/SAST/IaC), and it can invoke the same
+gate in CI. But its reason for existing is **managing the hooks**: the exact gap of
+"configurable global + in-repo pre-commit/pre-push hook management".
+
+Where they touch: KEUR **reuses** cpm's rule knowledge (the 1004 rules) as an
+evidence source. KEUR is *not* cpm. cpm stays the analyzer/pipeline tool and the
+place where rules are authored; KEUR is the gatekeeper on the hooks.
+
+
+## One-line test
 
 > Does it stop dangerous code or AI rubbish from being committed?
 > **Yes → gate (block/warn).  No but useful → advisory evidence.  No → out of scope (cpm).**
