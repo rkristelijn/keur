@@ -10,6 +10,22 @@ repo — that run a pipeline of deterministic scanners (secrets, deps, SAST, PII
 rules) and turn their findings into a reproducible policy decision. AI is an optional
 *escalation layer*, never the referee.
 
+## Scope: guard, not coach
+
+KEUR's job is narrow on purpose: **keep AI in check, stop rubbish from being
+committed.** It is a deterministic *guard*, not a quality *coach*.
+
+- **In scope (gates a commit):** secrets, private keys, live credentials, PII leaks,
+  dangerous shell, vulnerable deps, insecure IaC, and **AI slop** patterns.
+- **Advisory evidence (never blocks by default):** quality, style, complexity, a11y,
+  docs, test coverage, language idioms.
+- **Out of scope:** being a maturity/quality/style tool (that is **cpm**), a Sonar
+  clone, a rule-authoring platform, or an AI that decides the verdict.
+
+KEUR brings **all** of cpm's rule knowledge, but routes it by intent: only the
+safety- and slop-relevant subset blocks; the rest runs as advisory evidence. Full
+definition + the "is this in scope?" test: `docs/design/scope.md`.
+
 ## Why KEUR exists (and how it relates to cpm)
 
 `cpm` (github.com/rkristelijn/cpm) is the **laboratory**: benchmarks, corpus,
