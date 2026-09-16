@@ -1,0 +1,127 @@
+# keur.toml — KEUR configuration
+#
+# Resolution order (later overrides earlier):
+#   1. built-in defaults
+#   2. ~/.config/keur/keur.toml        (global)
+#   3. <repo>/keur.toml                (repo)
+#   4. <dir>/.keur.toml                (directory-local)
+#
+# Every value here is a documented default. Nothing is hardcoded in the engine.
+
+[project]
+name = "keur"
+version = "0.1.0"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tiers — what runs where. Keep pre-commit fast; push heavier work down the line.
+# ─────────────────────────────────────────────────────────────────────────────
+[tiers.pre-commit]
+budget-ms = 3000
+scanners = ["secrets", "pii", "custom-rules"]   # fast, deterministic only
+ai = false
+
+[tiers.pre-push]
+budget-ms = 30000
+scanners = ["secrets", "pii", "deps", "sast", "custom-rules"]
+ai = "optional"                                  # off | optional | on
+
+[tiers.ci]
+budget-ms = 0                                    # 0 = unlimited
+scanners = ["secrets", "pii", "deps", "sast", "custom-rules", "cross-file"]
+ai = "on"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Scanners — each is an evidence source. `bin` is resolved on PATH; missing tools
+# are skipped gracefully (never block). Base confidence is the starting evidence
+# strength before calibration.
+# ─────────────────────────────────────────────────────────────────────────────
+[scanners.secrets]
+bin = "gitleaks"
+base-confidence = 0.99
+deterministic = true
+default-action = "block"
+
+[scanners.deps]
+bin = "trivy"
+base-confidence = 0.95
+deterministic = true
+default-action = "warn"
+
+[scanners.sast]
+bin = "semgrep"
+base-confidence = 0.80
+deterministic = true
+default-action = "warn"
+
+[scanners.pii]
+bin = "keur-pii"           # built-in regex detector (rules/pii/*.rule)
+base-confidence = 0.65
+deterministic = true
+default-action = "warn"
+
+[scanners.custom-rules]
+bin = "keur-rules"         # built-in rule engine (rules/**/*.rule)
+base-confidence = 0.60
+deterministic = true
+default-action = "warn"
+
+# Evidence-only sources (not gates). Used to corroborate + to feed the evaluator.
+[scanners.sonar]
+enabled = false
+base-confidence = 0.80
+role = "evidence"
+
+[scanners.coderabbit]
+enabled = false
+base-confidence = 0.70
+role = "evidence"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Policy — how evidence becomes a verdict. Weights are explicit + stable.
+# ─────────────────────────────────────────────────────────────────────────────
+[policy]
+# Verdict thresholds on calibrated confidence (0..1).
+block-at = 0.85            # >= block-at and a blocking source → BLOCK
+warn-at = 0.50             # >= warn-at → WARN
+# below warn-at → PASS (still logged)
+
+# Corroboration bonus when N independent tools agree on the same fingerprint.
+corroboration-bonus = 0.10
+corroboration-cap = 0.99
+
+# Hard rules that override confidence (a live secret always blocks).
+block-categories = ["secret"]
+never-block-categories = []
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI escalation (optional). Ollama proposes/classifies; it never sets the verdict.
+# ─────────────────────────────────────────────────────────────────────────────
+[ai]
+provider = "ollama"
+model = "qwen2.5-coder"
+endpoint = "http://localhost:11434"
+# Only escalate findings whose confidence lands in the ambiguous band.
+escalate-band-low = 0.40
+escalate-band-high = 0.75
+timeout-ms = 10000
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Hooks
+# ─────────────────────────────────────────────────────────────────────────────
+[hooks]
+pre-commit = true
+pre-push = true
+block-commit-on-main = true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Optimiser (laboratory loop) — safety controls. See docs/design/evaluator.md.
+# ─────────────────────────────────────────────────────────────────────────────
+[optimiser]
+enabled = false
+weight-precision = 0.45
+weight-recall = 0.35
+weight-regression-safety = 0.20
+max-iterations = 100
+max-runtime-min = 60
+convergence-no-improve = 10
+convergence-epsilon = 0.002

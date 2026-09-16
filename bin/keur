@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# keur — deterministic guardrails for AI-generated code (git-hook gate).
+# Usage: keur <command> [args]
+set -euo pipefail
+
+# Resolve KEUR_HOME to this script's parent dir (portable: no realpath dependency).
+KEUR_BIN="$(cd "$(dirname "$0")" && pwd -P)"
+KEUR_HOME="$(cd "$KEUR_BIN/.." && pwd -P)"
+export KEUR_HOME
+
+# Config resolution order: builtin defaults → global → repo → dir-local.
+KEUR_GLOBAL_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/keur/keur.toml"
+KEUR_DEFAULT_CONFIG="$KEUR_HOME/config/keur.toml"
+
+# shellcheck source=/dev/null
+[ -f "$KEUR_HOME/lib/common.sh" ] && . "$KEUR_HOME/lib/common.sh"
+
+usage() {
+  cat <<'EOF'
+keur — deterministic guardrails for AI-generated code
+
+Commands:
+  hook --install            Install per-repo hooks (.git/hooks) in the current repo
+  hook --global             Install global hooks (~/.config/git/hooks) for all repos
+  hook --status             Show which hooks/checks are active
+  hook --remove [--global]  Uninstall hooks
+  scan [path]               Run the deterministic scanner pipeline over a path
+  check [--tier T] [--ai M] Gate the staged diff (used by hooks). T=pre-commit|pre-push
+  policy explain            Print the resolved policy + thresholds
+  version                   Print version
+
+Design: findings are evidence; the policy engine decides PASS/WARN/BLOCK.
+AI (--ai=ollama) is an optional escalation layer, never the referee.
+EOF
+}
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+  hook)          "$KEUR_HOME/lib/hook.sh" "$@" ;;
+  scan)          "$KEUR_HOME/lib/scan.sh" "$@" ;;
+  check)         "$KEUR_HOME/lib/check.sh" "$@" ;;
+  policy)        "$KEUR_HOME/lib/policy.sh" "$@" ;;
+  version|--version|-v)
+                 grep -E '^version' "$KEUR_DEFAULT_CONFIG" | head -1 | sed 's/.*= *//; s/"//g' ;;
+  help|--help|-h) usage ;;
+  *)             echo "Unknown command: $cmd" >&2; usage >&2; exit 1 ;;
+esac

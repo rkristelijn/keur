@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# KEUR pre-commit hook (fast tier). Installed by `keur hook`.
+# Keep this fast (<~3s): secrets + pii + custom rules over the staged diff.
+set -euo pipefail
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+  echo "  ✗ Commit on $BRANCH blocked (KEUR). Use a feature branch." >&2
+  exit 1
+fi
+
+if command -v keur >/dev/null 2>&1; then
+  keur check --tier pre-commit
+else
+  echo "  ! keur not on PATH — skipping KEUR pre-commit checks" >&2
+fi

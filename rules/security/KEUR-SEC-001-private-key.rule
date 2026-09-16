@@ -1,0 +1,17 @@
+id: KEUR-SEC-001
+title: Private key committed to source
+category: secret
+severity: critical
+engine: pattern
+action: block
+target:
+  extensions: .pem .key .txt .env .json .yml .yaml
+  exclude_paths: test/ tests/ fixtures/ eval/datasets/ .git/
+# A private key in the repo is a live-credential exposure. This is a deterministic,
+# high-confidence block. Gitleaks covers most cases; this rule is the built-in
+# fallback so the gate still blocks when gitleaks is not installed.
+patterns:
+  - regex: -----BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----
+    message: "Private key material committed. Remove it, rotate the key, and store secrets in a vault."
+confidence: 0.98
+fix: "Remove the key from the working tree AND history (it is compromised once committed), rotate it at the provider, and load it from a secret store / env var instead."

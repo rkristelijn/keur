@@ -1,0 +1,19 @@
+.DS_Store
+*.log
+.tmp/
+.cache/
+node_modules/
+
+# Generated scan output
+*.sarif
+*.findings.jsonl
+reports/
+
+# Optimiser run artifacts (keep index.json + accepted patches; ignore scratch)
+eval/history/**/scratch/
+eval/history/**/*.raw
+
+# Local, never push
+.env
+*.key
+*.pem
