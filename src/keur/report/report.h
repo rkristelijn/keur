@@ -1,5 +1,5 @@
 /**
- * @file report.h
+ * @file report/report.h
  * @brief Output / reporting provider — the single touch point for findings output.
  *
  * Every finding that reaches a user goes through here. One place owns:

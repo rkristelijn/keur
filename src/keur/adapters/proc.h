@@ -1,5 +1,5 @@
 /**
- * @file proc.h
+ * @file adapters/proc.h
  * @brief Process adapter — the single touch point for spawning external tools.
  *
  * Any external command keur runs (git config side effects now; semgrep,

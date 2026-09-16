@@ -19,10 +19,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cmd/cmd_check.h"
-#include "cmd/cmd_hook.h"
-#include "cmd/cmd_policy.h"
-#include "cmd/cmd_scan.h"
+#include "cmd/check.h"
+#include "cmd/hook.h"
+#include "cmd/policy.h"
+#include "cmd/scan.h"
 
 // ---------------------------------------------------------------------------
 // Type alias for a subcommand handler

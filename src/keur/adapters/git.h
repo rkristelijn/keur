@@ -1,5 +1,5 @@
 /**
- * @file git.h
+ * @file adapters/git.h
  * @brief Git adapter — the single touch point for git queries.
  *
  * Every git interaction goes through this adapter. Centralising it means:

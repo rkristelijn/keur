@@ -1,5 +1,5 @@
 /**
- * @file fs.h
+ * @file adapters/fs.h
  * @brief Filesystem adapter — the single touch point for file I/O side effects.
  *
  * Every filesystem mutation (mkdir, write, chmod, remove) and the queries that

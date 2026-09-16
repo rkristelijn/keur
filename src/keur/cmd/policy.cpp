@@ -1,8 +1,8 @@
 /**
- * @file cmd_policy.cpp
+ * @file cmd/policy.cpp
  * @brief keur policy — explain the resolved policy and thresholds.
  */
-#include "cmd/cmd_policy.h"
+#include "cmd/policy.h"
 
 #include <cstdlib>
 #include <fstream>

@@ -1,5 +1,5 @@
 /**
- * @file git.cpp
+ * @file adapters/git.cpp
  * @brief Git adapter implementation — the only place keur spawns git.
  */
 #include "adapters/git.h"

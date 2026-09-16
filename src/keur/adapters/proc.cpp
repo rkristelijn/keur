@@ -1,5 +1,5 @@
 /**
- * @file proc.cpp
+ * @file adapters/proc.cpp
  * @brief Process adapter implementation — the only place keur spawns external
  *        tools (side effects + captured runs).
  */

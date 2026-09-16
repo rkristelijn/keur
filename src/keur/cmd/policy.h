@@ -1,5 +1,5 @@
 /**
- * @file cmd_policy.h
+ * @file cmd/policy.h
  * @brief keur policy — explain the resolved policy and thresholds.
  *
  * Reads keur.toml from the config resolution chain and prints the effective

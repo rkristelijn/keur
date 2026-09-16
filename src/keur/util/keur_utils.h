@@ -1,5 +1,5 @@
 /**
- * @file keur_utils.h
+ * @file util/keur_utils.h
  * @brief Shared helpers used across keur subcommands.
  *
  * Keeping these in one place prevents duplication between cmd_check.cpp,
