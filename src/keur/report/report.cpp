@@ -52,6 +52,20 @@ bool use_color(ColorMode mode, bool is_tty) {
     return is_tty;
 }
 
+OutputFormat parse_format(const std::string& s, OutputFormat fallback) {
+    if (s == "jsonl")   return OutputFormat::Jsonl;
+    if (s == "compact") return OutputFormat::Compact;
+    if (s == "verbose") return OutputFormat::Verbose;
+    return fallback;
+}
+
+ColorMode parse_color(const std::string& s, ColorMode fallback) {
+    if (s == "auto")   return ColorMode::Auto;
+    if (s == "always") return ColorMode::Always;
+    if (s == "never")  return ColorMode::Never;
+    return fallback;
+}
+
 std::size_t report_findings(std::ostream& out,
                             const std::vector<RuleFinding>& findings,
                             const ReportOptions& opts) {

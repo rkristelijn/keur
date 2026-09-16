@@ -64,3 +64,7 @@ Status legend: [x] done · [~] partially done · [ ] open
 4. Docs track (parallel, subagent): README + CONTRIBUTING + C4/diagrams.
 5. pluggable rules docs + man page.
 6. ollama optimiser loop.
+
+- [ ] Why do we have multipe Makefiles
+- [ ] why is rules apart from keur in src? what isthe pupose?
+- [ ] 
