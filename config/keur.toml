@@ -17,55 +17,122 @@ version = "0.1.0"
 # ─────────────────────────────────────────────────────────────────────────────
 [tiers.pre-commit]
 budget-ms = 3000
-scanners = ["secrets", "pii", "custom-rules"]   # fast, deterministic only
+# Fast, deterministic only. Secrets + PII + gap-filler rules over the staged diff.
+scanners = ["gitleaks", "pii", "keur-rules"]
 ai = false
 
 [tiers.pre-push]
 budget-ms = 30000
-scanners = ["secrets", "pii", "deps", "sast", "custom-rules"]
+# Add corroborating secrets (trufflehog), deps, SAST, IaC.
+scanners = ["gitleaks", "trufflehog", "pii", "trivy", "semgrep", "checkov", "keur-rules"]
 ai = "optional"                                  # off | optional | on
 
 [tiers.ci]
 budget-ms = 0                                    # 0 = unlimited
-scanners = ["secrets", "pii", "deps", "sast", "custom-rules", "cross-file"]
+# Everything, incl. second-source corroboration (grype, osv-scanner, tfsec).
+scanners = ["gitleaks", "trufflehog", "pii", "presidio", "trivy", "grype", "osv-scanner", "semgrep", "checkov", "tfsec", "keur-rules"]
 ai = "on"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Scanners — each is an evidence source. `bin` is resolved on PATH; missing tools
-# are skipped gracefully (never block). Base confidence is the starting evidence
-# strength before calibration.
+# Scanners — each is an evidence source (a thin adapter over PROVEN tooling).
+# `bin` is resolved on PATH; missing tools are skipped gracefully (never block).
+# base-confidence is the starting evidence strength before calibration.
+# Corroboration: tools in the same `group` that agree on a fingerprint raise
+# confidence (see [policy].corroboration-bonus). KEUR's own rule engine is a
+# gap-filler for what these proven tools don't cover — never the primary layer.
+# Full inventory + rationale: docs/design/proven-baseline.md
 # ─────────────────────────────────────────────────────────────────────────────
-[scanners.secrets]
+
+# — Secrets (2 independent tools) —
+[scanners.gitleaks]
 bin = "gitleaks"
+group = "secrets"
 base-confidence = 0.99
 deterministic = true
 default-action = "block"
 
-[scanners.deps]
+[scanners.trufflehog]
+bin = "trufflehog"
+group = "secrets"
+base-confidence = 0.99          # can VERIFY a secret is live → strongest evidence
+deterministic = true
+default-action = "block"
+
+# — Dependencies / SBOM / CVE (3 independent tools) —
+[scanners.trivy]
 bin = "trivy"
+group = "deps"
 base-confidence = 0.95
 deterministic = true
 default-action = "warn"
 
-[scanners.sast]
+[scanners.grype]
+bin = "grype"
+group = "deps"
+base-confidence = 0.90
+deterministic = true
+default-action = "warn"
+
+[scanners.osv-scanner]
+bin = "osv-scanner"
+group = "deps"
+base-confidence = 0.90
+deterministic = true
+default-action = "warn"
+
+[scanners.syft]
+bin = "syft"
+group = "sbom"
+role = "support"                # generates SBOM consumed by grype/trivy
+
+# — SAST (code patterns) —
+[scanners.semgrep]
 bin = "semgrep"
+group = "sast"
 base-confidence = 0.80
 deterministic = true
 default-action = "warn"
 
-[scanners.pii]
-bin = "keur-pii"           # built-in regex detector (rules/pii/*.rule)
-base-confidence = 0.65
+# — IaC (2 independent tools) —
+[scanners.checkov]
+bin = "checkov"
+group = "iac"
+base-confidence = 0.85
 deterministic = true
 default-action = "warn"
 
-[scanners.custom-rules]
-bin = "keur-rules"         # built-in rule engine (rules/**/*.rule)
+[scanners.tfsec]
+bin = "tfsec"
+group = "iac"
+base-confidence = 0.85
+deterministic = true
+default-action = "warn"
+
+# — PII / sensitive data (proven, reused verbatim — NOT reimplemented) —
+# Deterministic: BSN 11-proef, IBAN mod-97, validated email/phone, APS SENSITIVE
+# patterns (internal hostnames, RFC1918, internal domains — kept private).
+# Source: ~/tooling/src/tools/ticket-audit/pii-sensitive-scan.sh
+[scanners.pii]
+bin = "pii-sensitive-scan.sh"
+group = "pii"
+base-confidence = 0.90          # validated identifiers, not dumb regex
+deterministic = true
+default-action = "warn"
+
+[scanners.presidio]
+enabled = false                 # optional higher-fidelity PII (local venv)
+group = "pii"
+base-confidence = 0.75
+role = "evidence"
+
+# — KEUR's own rule engine: GAP-FILLER ONLY (domain/APS patterns no tool covers) —
+[scanners.keur-rules]
+bin = "keur-rules"              # built-in engine over rules/**/*.rule
 base-confidence = 0.60
 deterministic = true
 default-action = "warn"
 
-# Evidence-only sources (not gates). Used to corroborate + to feed the evaluator.
+# — Evidence-only sources (not gates; corroborate + feed the evaluator) —
 [scanners.sonar]
 enabled = false
 base-confidence = 0.80
