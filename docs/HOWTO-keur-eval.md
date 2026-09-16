@@ -1,5 +1,12 @@
 # HOWTO — build and maintain the keur-eval corpus
 
+> Note: there are two training corpora. This document covers the **fictional**
+> keur-eval corpus (hand/LLM-authored cases with exact expected rule IDs). The
+> newer, complementary approach trains against **real repositories** with proven
+> tools (gitleaks, semgrep) as the ground truth. See
+> `docs/design/learning-loop.md` for that pipeline (corpus.sh, buildgt.sh,
+> measure.sh, optimise.sh, supervise.sh).
+
 `keur-eval` is KEUR's ground truth: an immutable set of **fictional**, annotated
 test cases used to score the detector (precision/recall/regressions). This guide
 covers generating, reviewing, and indexing cases.
