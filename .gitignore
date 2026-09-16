@@ -41,3 +41,5 @@ compile_commands.json
 eval/.run/
 eval/corpus/groundtruth.jsonl
 eval/corpus/measure.json
+rules/learned/
+eval/history/optimiser.jsonl
