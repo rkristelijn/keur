@@ -29,4 +29,11 @@ clean_out="$("$BINARY" scan "$FIX/clean" 2>/dev/null)"
 echo "$clean_out" | grep -q "KEUR-SEC-001" \
   && fail "clean dir should not emit KEUR-SEC-001" || ok "clean dir emits no KEUR-SEC-001"
 
+# --format compact emits "file:line RULE" lines, not JSON
+compact="$("$BINARY" scan "$FIX/secrets" --format compact --color never 2>/dev/null)"
+echo "$compact" | grep -qE '^[^:]+:[0-9]+ KEUR-SEC-001' \
+  && ok "--format compact emits file:line RULE lines" || fail "compact format wrong"
+echo "$compact" | grep -q '{' \
+  && fail "compact format leaked JSON" || ok "compact format is not JSON"
+
 summary

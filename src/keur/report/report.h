@@ -51,4 +51,17 @@ std::size_t report_findings(std::ostream& out,
 /** Resolve whether colour should be used, honouring ColorMode + TTY + NO_COLOR. */
 bool use_color(ColorMode mode, bool is_tty);
 
+/**
+ * Parse a format name ("jsonl" | "compact" | "verbose") into an OutputFormat.
+ * Unknown values fall back to `fallback`. One parser so every subcommand that
+ * takes --format behaves identically.
+ */
+OutputFormat parse_format(const std::string& s, OutputFormat fallback = OutputFormat::Jsonl);
+
+/**
+ * Parse a colour mode ("auto" | "always" | "never") into a ColorMode.
+ * Unknown values fall back to `fallback`.
+ */
+ColorMode parse_color(const std::string& s, ColorMode fallback = ColorMode::Auto);
+
 }  // namespace keur::report

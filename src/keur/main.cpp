@@ -43,6 +43,8 @@ static void usage() {
         "  hook  --status             Show which hooks are active\n"
         "  hook  --remove [--global]  Uninstall hooks\n"
         "  scan  [path]               Run the scanner pipeline over a directory\n"
+        "        [--format F]         F = jsonl (default) | compact | verbose\n"
+        "        [--color C]          C = auto (default) | always | never\n"
         "  check [--tier T]           Gate the staged diff (used by hooks)\n"
         "                             T = pre-commit (default) | pre-push\n"
         "  policy explain             Print the resolved policy and thresholds\n"

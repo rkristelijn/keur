@@ -20,9 +20,16 @@ namespace keur::cmd {
 ScanOptions scan_parse(const std::vector<std::string>& args) {
     ScanOptions o;
     for (std::size_t i = 0; i < args.size(); ++i) {
-        if (args[i] == "--json")                              o.json   = true;
-        else if (args[i] == "--config" && i + 1 < args.size()) o.config = args[++i];
-        else if (args[i][0] != '-')                           o.target = args[i];
+        if (args[i] == "--format" && i + 1 < args.size())
+            o.format = report::parse_format(args[++i]);
+        else if (args[i] == "--color" && i + 1 < args.size())
+            o.color = report::parse_color(args[++i]);
+        else if (args[i] == "--json")  // back-compat alias for --format jsonl
+            o.format = report::OutputFormat::Jsonl;
+        else if (args[i] == "--config" && i + 1 < args.size())
+            o.config = args[++i];
+        else if (args[i][0] != '-')
+            o.target = args[i];
     }
     return o;
 }
@@ -44,7 +51,8 @@ int scan(const ScanOptions& opts) {
 
     // Single output touch point — the report provider owns the format.
     report::ReportOptions ro;
-    ro.format = report::OutputFormat::Jsonl;  // scan defaults to machine-readable
+    ro.format = opts.format;
+    ro.color  = opts.color;
     report::report_findings(std::cout, findings, ro);
 
     std::cerr << "keur scan: " << findings.size() << " finding(s) in "

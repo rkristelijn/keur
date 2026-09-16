@@ -10,12 +10,15 @@
 #include <string>
 #include <vector>
 
+#include "report/report.h"
+
 namespace keur::cmd {
 
 struct ScanOptions {
-  std::string target = ".";   // directory or file to scan
-  std::string config;         // path to keur.toml (empty = auto-resolve)
-  bool        json   = false; // force JSON output even when writing to a tty
+  std::string        target = ".";     // directory or file to scan
+  std::string        config;           // path to keur.toml (empty = auto-resolve)
+  report::OutputFormat format = report::OutputFormat::Jsonl;  // --format
+  report::ColorMode    color  = report::ColorMode::Auto;      // --color
 };
 
 /** Parse [path] and flags from argv. */

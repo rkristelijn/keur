@@ -279,15 +279,31 @@ SCENARIO("[feature:check] staged_files returns empty outside a git repo") {
 SCENARIO("[feature:scan] cmd_scan_parse defaults to current dir") {
     auto o = keur::cmd::scan_parse({});
     CHECK(o.target == ".");
-    CHECK(!o.json);
+    CHECK(o.format == keur::report::OutputFormat::Jsonl);
+    CHECK(o.color  == keur::report::ColorMode::Auto);
 }
 
 SCENARIO("[feature:scan] cmd_scan_parse positional path") {
     CHECK(keur::cmd::scan_parse({"/repo"}).target == "/repo");
 }
 
-SCENARIO("[feature:scan] cmd_scan_parse --json") {
-    CHECK(keur::cmd::scan_parse({"--json"}).json);
+SCENARIO("[feature:scan] cmd_scan_parse --json aliases to jsonl format") {
+    CHECK(keur::cmd::scan_parse({"--json"}).format == keur::report::OutputFormat::Jsonl);
+}
+
+SCENARIO("[feature:scan] cmd_scan_parse --format compact") {
+    CHECK(keur::cmd::scan_parse({"--format", "compact"}).format
+          == keur::report::OutputFormat::Compact);
+}
+
+SCENARIO("[feature:scan] cmd_scan_parse --format verbose") {
+    CHECK(keur::cmd::scan_parse({"--format", "verbose"}).format
+          == keur::report::OutputFormat::Verbose);
+}
+
+SCENARIO("[feature:scan] cmd_scan_parse --color never") {
+    CHECK(keur::cmd::scan_parse({"--color", "never"}).color
+          == keur::report::ColorMode::Never);
 }
 
 SCENARIO("[feature:scan] cmd_scan_parse --config") {
@@ -546,6 +562,22 @@ SCENARIO("[feature:report] use_color Auto respects NO_COLOR") {
     setenv("NO_COLOR", "1", 1);
     CHECK(!keur::report::use_color(keur::report::ColorMode::Auto, true));
     unsetenv("NO_COLOR");
+}
+
+SCENARIO("[feature:report] parse_format maps names, falls back on unknown") {
+    CHECK(keur::report::parse_format("jsonl")   == keur::report::OutputFormat::Jsonl);
+    CHECK(keur::report::parse_format("compact") == keur::report::OutputFormat::Compact);
+    CHECK(keur::report::parse_format("verbose") == keur::report::OutputFormat::Verbose);
+    CHECK(keur::report::parse_format("bogus")   == keur::report::OutputFormat::Jsonl);
+    CHECK(keur::report::parse_format("bogus", keur::report::OutputFormat::Compact)
+          == keur::report::OutputFormat::Compact);
+}
+
+SCENARIO("[feature:report] parse_color maps names, falls back on unknown") {
+    CHECK(keur::report::parse_color("auto")   == keur::report::ColorMode::Auto);
+    CHECK(keur::report::parse_color("always") == keur::report::ColorMode::Always);
+    CHECK(keur::report::parse_color("never")  == keur::report::ColorMode::Never);
+    CHECK(keur::report::parse_color("bogus")  == keur::report::ColorMode::Auto);
 }
 
 // --- [feature:fs] filesystem adapter (real impl over a tempdir) -------------
