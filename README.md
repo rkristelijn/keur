@@ -9,7 +9,7 @@ PASS, WARN, or BLOCK. Findings are evidence. The policy engine is the referee.
 
 The core rule, never broken:
 
-```
+```text
 staged files -> rule engine -> findings -> deterministic policy -> PASS / WARN / BLOCK
 ```
 
@@ -57,7 +57,7 @@ install -m 755 bin/keur /usr/local/bin/keur
 
 ## Subcommands
 
-```
+```text
 keur hook   [--install | --global | --status | --remove [--global]]
 keur scan   [path]
 keur check  [--tier pre-commit|pre-push] [--ai off] [--config <file>]
@@ -141,7 +141,7 @@ keur policy explain
 
 Output:
 
-```
+```text
 keur policy (resolved from: /path/to/keur.toml)
 
   version  : 0.1.0
@@ -168,7 +168,7 @@ The verdict is a pure function of the findings the rule engine produces. In
 `keur check`, each finding contributes to three boolean signals: any finding at
 all, a blocking secret, or a blocking rule. The policy is:
 
-```
+```text
 any finding with action = block   -> BLOCK   (exit 1)
 otherwise, any finding at all      -> WARN    (exit 0)
 otherwise                          -> PASS    (exit 0)

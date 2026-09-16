@@ -65,6 +65,7 @@ one-liner (`exclude_paths: adapters/ ...`) instead of a fragile per-file list.
 ## Consequences
 
 **Positive:**
+
 - Duplication removed: one git spawn, one findings emitter, one TOML reader.
 - Testability: subcommands take providers as parameters; fakes need no git repo.
 - A new output mode (e.g. SARIF) is one change in the output provider, not N.
@@ -72,6 +73,7 @@ one-liner (`exclude_paths: adapters/ ...`) instead of a fragile per-file list.
   findings model and emitter.
 
 **Negative / cost:**
+
 - A little indirection (`std::function` members) over direct calls. Acceptable:
   the call sites are cold (once per invocation), not the hot scan loop.
 

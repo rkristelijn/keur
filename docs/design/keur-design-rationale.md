@@ -3,6 +3,7 @@
 > Design reasoning for KEUR: deterministic guardrails for AI-generated code.
 >
 > Three repos, three responsibilities:
+>
 > - **keur** (this repo) — the product: scanners, evidence normalisation, policy
 >   engine, hooks, optional local-LLM escalation.
 > - **keur-eval** — the benchmark/ground truth: fictional, hand-authored test
@@ -11,13 +12,16 @@
 > - (optional) reference tools (gitleaks/semgrep/trivy/Sonar) as evidence sources.
 
 ## One-line positioning
+
 KEUR — deterministic code verification before AI-generated code reaches your repo.
 `detectors → evidence → deterministic policy → ALLOW / WARN / BLOCK`.
 AI may add evidence; AI may never be the referee.
 
 ## Ground truth lives in keur-eval (not in the detector)
+
 The optimisation/measurement never modifies its own ground truth. `keur-eval`
 holds:
+
 - **Positive cases** — fictional code snippets containing a defect KEUR must
   detect. Each annotated in a comment with an expected rule/flag, e.g.
   `// KEUR-EXPECT: SQLI-001` or `// KEUR-EXPECT: SECRET-002`.
@@ -30,7 +34,8 @@ proprietary data in the corpus — it is safe to keep in a normal repo, and the
 expected-flag comments make it self-describing and machine-checkable.
 
 Layout:
-```
+
+```text
 keur-eval/
   positive/     # must-detect cases (// KEUR-EXPECT: <RULE>)
   negative/     # must-NOT-detect (// KEUR-EXPECT: none)
@@ -39,6 +44,7 @@ keur-eval/
 ```
 
 ## Core principles (non-negotiable)
+
 1. **The benchmark decides improvement, not the LLM.** Hypothesis (LLM) is
    strictly separated from empirical acceptance (deterministic evaluator against
    keur-eval). This stops the system becoming an LLM-driven regex mutation engine.
@@ -57,6 +63,7 @@ keur-eval/
    pre-commit fast (<3s), pre-push fuller (<30s), CI unlimited + cross-file + AI.
 
 ## Repo layout (keur, already scaffolded)
+
 - `scanners/` — adapters: gitleaks, trivy, semgrep, custom detectors.
 - `lib/` — uniform Finding type, fingerprinting, evidence normalisation.
 - `policy/` — deterministic decision engine (evidence → ALLOW/WARN/BLOCK).
@@ -67,6 +74,7 @@ keur-eval/
 - `bin/` — `keur scan|check|diff|fix|hook|ci`.
 
 ## Honest pushback (before over-building)
+
 1. **No ground truth = no measurement.** Build `keur-eval` FIRST (even 100–200
    hand-authored cases). Everything is ceilinged by label quality. Optimising
    without it = optimising toward noise.
@@ -79,6 +87,7 @@ keur-eval/
    let it earn expansion. Do not build the optimiser before the benchmark exists.
 
 ## Staged plan (build small → prove → expand)
+
 1. **KEUR MVP (no AI):** scanner adapters → normalised Finding → policy engine →
    git hooks. Immediate value as a vibe-coding guard.
 2. **keur-eval corpus:** hand-authored positive/negative/regression cases with
@@ -92,6 +101,7 @@ keur-eval/
    MAX_ITERATIONS / MAX_RUNTIME / MAX_LOG_SIZE caps.
 
 ## Reference tools & Sonar
+
 Treat gitleaks / trivy / semgrep / Sonar / CodeRabbit / Copilot as **evidence
 sources and benchmark references**, not truth. Corroboration raises evidence
 strength, but shared blind spots exist → agreement ≠ ground truth. Do NOT
@@ -101,16 +111,19 @@ keur-eval; the disagreements are the gold (FN candidates, new-detector
 candidates, calibration cases).
 
 ## Best operational metric
+
 **AI-invocation-rate / tokens-avoided** — e.g. "9,420/10,000 files resolved
 deterministically, 580 needed AI → 94.2% handled without AI." How KEUR
 out-performs pure-AI on reliability + cost, with AI as escalation only.
 
 ## Detector evolution (benchmark stays constant)
+
 L0 regex → L1 regex+context → L2 AST rules → L3 AST+semantic heuristics →
 L4 local-LLM classification → L5 hybrid. Same keur-eval benchmark + acceptance
 gate throughout — the benchmark is the stable foundation while the detector
 implementation evolves.
 
 ## The one rule to never break
+
 `detectors → evidence → deterministic policy → ALLOW/WARN/BLOCK`.
 AI may add evidence. AI may never be the referee.

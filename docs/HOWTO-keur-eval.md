@@ -12,7 +12,7 @@ covers generating, reviewing, and indexing cases.
 
 ## Layout
 
-```
+```text
 keur-eval/
   positive/<category>/    cases that MUST be detected
   negative/<category>/    look-alikes that must NOT be flagged
@@ -25,7 +25,7 @@ keur-eval/
 
 Every case file starts with a comment (style adapts to the language):
 
-```
+```text
 KEUR-EXPECT: SECRET-AWS-001            # positive: this rule must fire
 KEUR-EXPECT: none                      # negative: nothing must fire
 KEUR-EXPECT-NOT: SECRET-AWS-001        # this rule must NOT fire (was a false positive)

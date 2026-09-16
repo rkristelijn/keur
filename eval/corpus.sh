@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# eval/corpus.sh — build a local corpus of real git repositories to train
+# keur's rules against a proven-tool ground truth.
+#
+# The corpus is the raw material: real code with real (and realistically absent)
+# security issues. Proven tools (semgrep, gitleaks, ...) produce the ground
+# truth; keur's rule engine is then trained to approach that baseline.
+#
+# Usage:
+#   eval/corpus.sh clone [N]     clone the first N repos from the list (default: all)
+#   eval/corpus.sh list          show the repo list
+#   eval/corpus.sh status        show what is cloned + sizes
+#   eval/corpus.sh clean         remove the clone cache
+#
+# Repos are shallow-cloned (--depth 1) into eval/corpus/repos/ which is
+# gitignored (large, reproducible from this list).
+set -euo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd -P)"
+CACHE="$HERE/corpus/repos"
+LIST="$HERE/corpus/repos.txt"
+
+# ---------------------------------------------------------------------------
+# Repo list: diverse, popular, security-relevant. Kept small and shallow so a
+# first run is minutes not hours. Format: one "owner/name" per line (GitHub).
+# Chosen for a mix of languages and known secret/injection/config surface.
+# ---------------------------------------------------------------------------
+default_list() {
+    cat <<'REPOS'
+OWASP/NodeGoat
+OWASP/railsgoat
+digininja/DVWA
+juice-shop/juice-shop
+bkimminich/juice-shop-ctf
+appsecco/dvna
+snyk-labs/nodejs-goof
+we45/DVFaaS-Damn-Vulnerable-Functions-as-a-Service
+payloadbox/sql-injection-payload-list
+swisskyrepo/PayloadsAllTheThings
+REPOS
+}
+
+mkdir -p "$HERE/corpus"
+[ -f "$LIST" ] || default_list > "$LIST"
+
+cmd="${1:-status}"
+case "$cmd" in
+  list)
+    cat "$LIST"
+    ;;
+
+  clone)
+    n="${2:-0}"   # 0 = all
+    mkdir -p "$CACHE"
+    i=0
+    while IFS= read -r repo; do
+      [ -z "$repo" ] && continue
+      case "$repo" in \#*) continue ;; esac
+      i=$((i+1))
+      [ "$n" -gt 0 ] && [ "$i" -gt "$n" ] && break
+      name="$(echo "$repo" | tr '/' '__')"
+      dest="$CACHE/$name"
+      if [ -d "$dest/.git" ]; then
+        echo "  have  $repo"
+        continue
+      fi
+      echo "  clone $repo ..."
+      if git clone --depth 1 --quiet "https://github.com/$repo.git" "$dest" 2>/dev/null; then
+        echo "  ok    $repo"
+      else
+        echo "  FAIL  $repo (skipped)"
+        rm -rf "$dest"
+      fi
+    done < "$LIST"
+    echo "corpus: $(find "$CACHE" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') repo(s) in $CACHE"
+    ;;
+
+  status)
+    if [ ! -d "$CACHE" ]; then echo "corpus: not built (run: eval/corpus.sh clone)"; exit 0; fi
+    count="$(find "$CACHE" -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ')"
+    size="$(du -sh "$CACHE" 2>/dev/null | awk '{print $1}')"
+    echo "corpus: $count repo(s), $size in $CACHE"
+    find "$CACHE" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | sed 's/^/  /'
+    ;;
+
+  clean)
+    rm -rf "$CACHE"
+    echo "removed $CACHE"
+    ;;
+
+  *)
+    echo "usage: eval/corpus.sh {clone [N]|list|status|clean}"; exit 1 ;;
+esac

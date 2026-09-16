@@ -27,12 +27,13 @@ Status legend: [x] done · [~] partially done · [ ] open
       and `--color auto|always|never` (one shared parser). Still to wire: same
       flags on `keur check` if a human-readable gate report is wanted.
 - [~] cleanup root folders — src/keur is clean; still to remove: empty dirs
-      (test/ optimiser/ policy/), deprecated shell (lib/ scanners/ hooks/),
-      and decide on config/ -> .config/. Clarify rules/ (data) vs src/rules/ (engine).
+  (test/ optimiser/ policy/), deprecated shell (lib/ scanners/ hooks/),
+  and decide on config/ -> .config/. Clarify rules/ (data) vs src/rules/ (engine).
 
 ## Open
 
 ### Features
+
 - [ ] libmode: run external scanners (semgrep, gitleaks, trivy, ...) via the
       Proc adapter, OR ruleengine mode, or both — normalise into one findings
       report. (Proc adapter seam is ready.)
@@ -41,6 +42,7 @@ Status legend: [x] done · [~] partially done · [ ] open
       in the binary, so an AI/agent can discover how to add custom rules.
 
 ### Docs (DONE this cycle)
+
 - [x] README with basic user stuff
 - [x] CONTRIBUTING with links to the docs
 - [x] docs/c4.md with C4 diagrams (Context / Container / Component, mermaid)
@@ -49,6 +51,7 @@ Status legend: [x] done · [~] partially done · [ ] open
 - [ ] ability to regenerate the 'model' split from the view (auto-gen) — not done
 
 ### Quality / research
+
 - [ ] rules: do they follow an ISO *ilities structure? would that be applicable?
 - [ ] run cpm in extreme mode here + semgrep — dead code, dead docs, links
       between code and docs; all should be green.
@@ -67,4 +70,4 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 - [ ] Why do we have multipe Makefiles
 - [ ] why is rules apart from keur in src? what isthe pupose?
-- [ ] 
+- [ ]

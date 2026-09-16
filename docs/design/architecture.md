@@ -106,4 +106,5 @@ moves down the line where latency is acceptable.
 Patterns adopted from `github.com/rkristelijn/cpm`: two-mode hooks, phased
 autofix→block→warn execution, tiered gates, `.rule` file format, findings-as-evidence,
 JUnit/SARIF output, persistent findings history. KEUR narrows these to hook management
+
 + AI-boundary determinism rather than general project maturity.

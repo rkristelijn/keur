@@ -97,8 +97,7 @@ Where they touch: KEUR **reuses** cpm's rule knowledge (the 1004 rules) as an
 evidence source. KEUR is *not* cpm. cpm stays the analyzer/pipeline tool and the
 place where rules are authored; KEUR is the gatekeeper on the hooks.
 
-
 ## One-line test
 
 > Does it stop dangerous code or AI rubbish from being committed?
-> **Yes → gate (block/warn).  No but useful → advisory evidence.  No → out of scope (cpm).**
+> **Yes → gate (block/warn). No but useful → advisory evidence. No → out of scope (cpm).**
