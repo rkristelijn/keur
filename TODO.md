@@ -22,9 +22,10 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ## Partially done
 
-- [~] output consistent / json / compact / verbose / colour — the report
-      PROVIDER supports all modes; still to wire: a `--format` / `--color` flag
-      through `keur scan` and `keur check` so users can pick the mode.
+- [x] output consistent / json / compact / verbose / colour — report provider
+      supports all modes AND `keur scan` exposes `--format jsonl|compact|verbose`
+      and `--color auto|always|never` (one shared parser). Still to wire: same
+      flags on `keur check` if a human-readable gate report is wanted.
 - [~] cleanup root folders — src/keur is clean; still to remove: empty dirs
       (test/ optimiser/ policy/), deprecated shell (lib/ scanners/ hooks/),
       and decide on config/ -> .config/. Clarify rules/ (data) vs src/rules/ (engine).
@@ -39,13 +40,13 @@ Status legend: [x] done · [~] partially done · [ ] open
 - [ ] pluggable private rules: loadable (KEUR_RULES_DIRS works) + docs + man page
       in the binary, so an AI/agent can discover how to add custom rules.
 
-### Docs (independent track — can run in parallel via subagent)
-- [ ] README with basic user stuff
-- [ ] CONTRIBUTING with links to the docs
-- [ ] docs/c4.md with C4 diagrams
-- [ ] dataflow diagrams
-- [ ] class diagram + ability to regenerate the 'model' split from the view
-- [ ] sequence diagrams for the complex flows
+### Docs (DONE this cycle)
+- [x] README with basic user stuff
+- [x] CONTRIBUTING with links to the docs
+- [x] docs/c4.md with C4 diagrams (Context / Container / Component, mermaid)
+- [x] dataflow diagrams (docs/dataflow.md)
+- [x] class diagram + sequence diagrams (docs/diagrams.md, mermaid)
+- [ ] ability to regenerate the 'model' split from the view (auto-gen) — not done
 
 ### Quality / research
 - [ ] rules: do they follow an ISO *ilities structure? would that be applicable?
@@ -56,14 +57,13 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ## Next up (recommended order)
 
-1. Finish output track: expose `--format jsonl|compact|verbose` and
-   `--color auto|always|never` on scan + check (small, high-value, provider ready).
-2. Root cleanup: delete empty/dead dirs, remove deprecated shell, document
-   rules/ vs src/rules/. Then run cpm extreme + semgrep green.
-3. libmode: external-scanner adapters over Proc, unified report.
-4. Docs track (parallel, subagent): README + CONTRIBUTING + C4/diagrams.
-5. pluggable rules docs + man page.
-6. ollama optimiser loop.
+1. Root cleanup: delete empty/dead dirs (test/ optimiser/ policy/), remove
+   deprecated shell (lib/ scanners/ hooks/), document rules/ vs src/rules/.
+   Then run cpm extreme + semgrep green.
+2. libmode: external-scanner adapters over Proc, unified report.
+3. pluggable rules docs + man page (in the binary, discoverable by an AI).
+4. ollama optimiser loop.
+5. (optional) --format/--color on `keur check`; model auto-gen for diagrams.
 
 - [ ] Why do we have multipe Makefiles
 - [ ] why is rules apart from keur in src? what isthe pupose?
