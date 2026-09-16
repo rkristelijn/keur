@@ -17,3 +17,8 @@ eval/history/**/*.raw
 .env
 *.key
 *.pem
+
+# eval run output (generated)
+eval/metrics.csv
+eval/history/
+eval/loop.log
