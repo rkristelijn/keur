@@ -47,10 +47,14 @@ measure() {
     python3 -c "import json;d=json.load(open('$HERE/corpus/measure.json'));print(d['recall'],d['precision'],d['f1'],d['fn'])"
 }
 
-# one missed finding + its category, for the prompt (from the train split)
+# sample_fn <rules-dir> <index> -> one missed finding, ROTATING through the
+# distinct missed clusters so each iteration attacks a different one instead of
+# re-proposing rules for the same hard case forever.
 sample_fn() {
+    local idx="${2:-0}"
     KEUR_SPLIT="$TRAIN_SPLIT" KEUR_RULES_DIRS="$1" "$HERE/measure.sh" --fn 2>/dev/null \
-      | awk '/sample missed/{f=1;next} f&&NF{print;exit}'
+      | awk '/sample missed/{f=1;next} f&&NF{print}' \
+      | awk -v n="$idx" 'NR>=1{a[NR]=$0} END{if(NR==0)exit; print a[(n % NR)+1]}'
 }
 
 # regex_generalises <candidate-rule-text> -> exit 0 if the regex is a
@@ -117,7 +121,7 @@ iterate_once() {
     echo "[iter $iter] baseline: recall=$b_recall precision=$b_prec f1=$b_f1 fn=$b_fn"
     if [ "$b_fn" = "0" ]; then echo "[iter $iter] no FN left; nothing to learn"; return 1; fi
 
-    local fn; fn="$(sample_fn "$dirs")"
+    local fn; fn="$(sample_fn "$dirs" "$iter")"
     [ -z "$fn" ] && { echo "[iter $iter] no FN sample"; return 1; }
     echo "[iter $iter] target FN: $fn"
 
