@@ -92,7 +92,7 @@ both and prints install guidance if either is missing. See
 The binary is organised in layers. Each layer maps 1:1 onto a C++ namespace and
 onto a directory under `src/keur`.
 
-```
+```text
 src/
   rules/              shared rule engine (ADR-001)
     rule_engine.h     Rule / RulePattern / RuleTarget / RuleFinding + API

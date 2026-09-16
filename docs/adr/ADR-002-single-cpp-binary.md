@@ -35,7 +35,7 @@ keur will be a single compiled C++ binary: `bin/keur`.
 
 Layout:
 
-```
+```text
 src/
   rules/            existing rule engine (ADR-001, unchanged)
     rule_engine.h
@@ -72,6 +72,7 @@ rule engine).
 ## Consequences
 
 **Positive:**
+
 - No Python, no shell logic in the core.
 - `keur check` exit latency: from ~300ms (fork+exec chain) to <10ms (in-process,
   pre-compiled RE2).
@@ -82,6 +83,7 @@ rule engine).
 - KEUR_HOME no longer required (binary resolves its own prefix from `argv[0]`).
 
 **Negative / risk:**
+
 - RE2 + abseil are build dependencies (already present from ADR-001).
 - Windows build requires adaptation (same approach as cpm: `platform_win32.cpp`).
   Out of scope for now; keur targets macOS + Linux.

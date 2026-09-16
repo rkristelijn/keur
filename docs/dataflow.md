@@ -63,7 +63,7 @@ gate: use `keur check` for a verdict.
 
 The decision is the pure function `policy_evaluate`:
 
-```
+```text
 if (has_secret_block || has_rule_block) -> Block
 else if (has_any_finding)               -> Warn
 else                                    -> Pass

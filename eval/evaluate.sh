@@ -115,7 +115,10 @@ json.dump({"ts":ts,"tier":tier,"n":n,"tp":TP,"fp":FP,"fn":FN,"tn":TN,
           open(detail,"w"), indent=2)
 
 # append time-series row (create header if new)
-csv = os.path.join(os.path.dirname(os.path.dirname(detail)), "eval", "metrics.csv")
+# detail lives in eval/history/run-*.json → repo root is three dirs up; metrics
+# sits at eval/metrics.csv. Env METRICS_CSV overrides.
+repo_root = os.path.dirname(os.path.dirname(os.path.dirname(detail)))
+csv = os.path.join(repo_root, "eval", "metrics.csv")
 csv = os.environ.get("METRICS_CSV", csv)
 newfile = not os.path.exists(csv)
 with open(csv,"a") as fh:

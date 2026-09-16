@@ -93,12 +93,22 @@ PolicySettings policy_load(const std::string& config_path) {
 
     auto block = toml_scalar(config_path, "block-at");
     if (!block.empty()) {
-        try { s.block_at = std::stod(block); } catch (...) {}
+        // A malformed value in a user config must not crash the gate. Parse it;
+        // on error keep the safe default that is already in `s`.
+        try {
+            s.block_at = std::stod(block);
+        } catch (const std::exception&) {
+            std::cerr << "keur: ignoring malformed block-at in " << config_path << "\n";
+        }
     }
 
     auto warn = toml_scalar(config_path, "warn-at");
     if (!warn.empty()) {
-        try { s.warn_at = std::stod(warn); } catch (...) {}
+        try {
+            s.warn_at = std::stod(warn);
+        } catch (const std::exception&) {
+            std::cerr << "keur: ignoring malformed warn-at in " << config_path << "\n";
+        }
     }
 
     s.version = toml_scalar(config_path, "version");

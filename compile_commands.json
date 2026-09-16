@@ -1,0 +1,61 @@
+[
+  {
+    "directory": "/Users/nlrxk0145/git/hub/keur/src/keur",
+    "command": "c++ -std=c++20 -I. -I.. -I../.. -I/opt/homebrew/opt/re2/include -I/opt/homebrew/opt/abseil/include -c main.cpp",
+    "file": "/Users/nlrxk0145/git/hub/keur/src/keur/main.cpp"
+  }
+  ,
+  {
+    "directory": "/Users/nlrxk0145/git/hub/keur/src/keur",
+    "command": "c++ -std=c++20 -I. -I.. -I../.. -I/opt/homebrew/opt/re2/include -I/opt/homebrew/opt/abseil/include -c keur_test.cpp",
+    "file": "/Users/nlrxk0145/git/hub/keur/src/keur/keur_test.cpp"
+  }
+  ,
+  {
+    "directory": "/Users/nlrxk0145/git/hub/keur/src/keur",
+    "command": "c++ -std=c++20 -I. -I.. -I../.. -I/opt/homebrew/opt/re2/include -I/opt/homebrew/opt/abseil/include -c cmd/check.cpp",
+    "file": "/Users/nlrxk0145/git/hub/keur/src/keur/cmd/check.cpp"
+  }
+  ,
+  {
+    "directory": "/Users/nlrxk0145/git/hub/keur/src/keur",
+    "command": "c++ -std=c++20 -I. -I.. -I../.. -I/opt/homebrew/opt/re2/include -I/opt/homebrew/opt/abseil/include -c cmd/hook.cpp",
+    "file": "/Users/nlrxk0145/git/hub/keur/src/keur/cmd/hook.cpp"
+  }
+  ,
+  {
+    "directory": "/Users/nlrxk0145/git/hub/keur/src/keur",
+    "command": "c++ -std=c++20 -I. -I.. -I../.. -I/opt/homebrew/opt/re2/include -I/opt/homebrew/opt/abseil/include -c cmd/scan.cpp",
+    "file": "/Users/nlrxk0145/git/hub/keur/src/keur/cmd/scan.cpp"
+  }
+  ,
+  {
+    "directory": "/Users/nlrxk0145/git/hub/keur/src/keur",
+    "command": "c++ -std=c++20 -I. -I.. -I../.. -I/opt/homebrew/opt/re2/include -I/opt/homebrew/opt/abseil/include -c cmd/policy.cpp",
+    "file": "/Users/nlrxk0145/git/hub/keur/src/keur/cmd/policy.cpp"
+  }
+  ,
+  {
+    "directory": "/Users/nlrxk0145/git/hub/keur/src/keur",
+    "command": "c++ -std=c++20 -I. -I.. -I../.. -I/opt/homebrew/opt/re2/include -I/opt/homebrew/opt/abseil/include -c adapters/git.cpp",
+    "file": "/Users/nlrxk0145/git/hub/keur/src/keur/adapters/git.cpp"
+  }
+  ,
+  {
+    "directory": "/Users/nlrxk0145/git/hub/keur/src/keur",
+    "command": "c++ -std=c++20 -I. -I.. -I../.. -I/opt/homebrew/opt/re2/include -I/opt/homebrew/opt/abseil/include -c adapters/fs.cpp",
+    "file": "/Users/nlrxk0145/git/hub/keur/src/keur/adapters/fs.cpp"
+  }
+  ,
+  {
+    "directory": "/Users/nlrxk0145/git/hub/keur/src/keur",
+    "command": "c++ -std=c++20 -I. -I.. -I../.. -I/opt/homebrew/opt/re2/include -I/opt/homebrew/opt/abseil/include -c adapters/proc.cpp",
+    "file": "/Users/nlrxk0145/git/hub/keur/src/keur/adapters/proc.cpp"
+  }
+  ,
+  {
+    "directory": "/Users/nlrxk0145/git/hub/keur/src/keur",
+    "command": "c++ -std=c++20 -I. -I.. -I../.. -I/opt/homebrew/opt/re2/include -I/opt/homebrew/opt/abseil/include -c report/report.cpp",
+    "file": "/Users/nlrxk0145/git/hub/keur/src/keur/report/report.cpp"
+  }
+]

@@ -50,7 +50,7 @@ MAIN_OBJ   = $(BINDIR)/keur_main.o
 TEST_OBJ   = $(BINDIR)/keur_test.o
 TEST_BIN   = $(BINDIR)/keur-test
 
-.PHONY: all build test test-unit test-integration perf e2e coverage mutate clean help
+.PHONY: all build test test-unit test-integration perf e2e coverage mutate compile-commands lint clean help
 .DEFAULT_GOAL := build
 
 help: ## Show targets
@@ -165,6 +165,45 @@ mutate: ## Run mutation testing with mull (needs mull + clang IR plugin)
 	   -o ../../.tmp/mull/keur-test-mull $(COV_SRCS) $(RE2_LDFLAGS) && \
 	 MULL_RUNNER=$$(command -v mull-runner-18 || command -v mull-runner); \
 	 $$MULL_RUNNER ../../.tmp/mull/keur-test-mull --test-program-arg=--test-suite-exclude=perf
+
+## ---- Compilation database (for clang tooling / IDEs / cpm) ----------------
+
+# Generate ../../compile_commands.json describing how each source is compiled,
+# including our -I include paths. Any clang-based tool (clang-tidy, clangd, cpm,
+# an IDE) reads this and needs no per-tool include config. No extra dependency:
+# we know our own sources and flags, so we emit the JSON directly.
+# Works identically on macOS and Linux.
+compile-commands: ## Write compile_commands.json at the repo root
+	@echo "generating $(REPO_ROOT)/compile_commands.json"
+	@dir="$(CURDIR)"; \
+	 flags="-std=c++20 $(INCLUDES) $(RE2_CFLAGS)"; \
+	 { echo "["; \
+	   first=1; \
+	   for src in main.cpp keur_test.cpp $(IMPL_SRCS); do \
+	     [ $$first -eq 1 ] || echo "  ,"; first=0; \
+	     printf '  {\n'; \
+	     printf '    "directory": "%s",\n' "$$dir"; \
+	     printf '    "command": "c++ %s -c %s",\n' "$$flags" "$$src"; \
+	     printf '    "file": "%s/%s"\n' "$$dir" "$$src"; \
+	     printf '  }\n'; \
+	   done; \
+	   echo "]"; \
+	 } > "$(REPO_ROOT)/compile_commands.json"
+	@echo "wrote $$(grep -c '"file"' "$(REPO_ROOT)/compile_commands.json") entries"
+
+## ---- Lint (clang-tidy if available; else compiler warnings) ---------------
+
+lint: ## Run clang-tidy if installed; otherwise a -Wall -Wextra syntax check
+	@if command -v clang-tidy >/dev/null 2>&1; then \
+	   echo "clang-tidy:"; \
+	   clang-tidy --quiet $(IMPL_SRCS) main.cpp -- -std=c++20 $(INCLUDES) $(RE2_CFLAGS); \
+	 else \
+	   echo "clang-tidy not found; falling back to compiler warnings (-Wall -Wextra)"; \
+	   for src in $(IMPL_SRCS) main.cpp; do \
+	     c++ -std=c++20 -Wall -Wextra $(INCLUDES) $(RE2_CFLAGS) -fsyntax-only "$$src" || exit 1; \
+	   done; \
+	   echo "syntax + warning check clean"; \
+	 fi
 
 clean: ## Remove build artifacts
 	rm -f $(BIN) $(TEST_BIN) $(MAIN_OBJ) $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ)

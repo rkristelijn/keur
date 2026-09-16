@@ -1,0 +1,10 @@
+OWASP/NodeGoat
+OWASP/railsgoat
+digininja/DVWA
+juice-shop/juice-shop
+bkimminich/juice-shop-ctf
+appsecco/dvna
+snyk-labs/nodejs-goof
+we45/DVFaaS-Damn-Vulnerable-Functions-as-a-Service
+payloadbox/sql-injection-payload-list
+swisskyrepo/PayloadsAllTheThings
