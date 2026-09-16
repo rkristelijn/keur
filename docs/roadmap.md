@@ -65,9 +65,18 @@ degrades gracefully when not.*
   per-repo overrides) — replace the current grep-for-"block" stub · 🔴
 - **T-205** JSON + JUnit + (later) SARIF output, reusing the consolidated-scan contract · 🔴
 - **T-206** tier budgets enforced (time-box pre-commit; skip slow tools when over budget) · 🔴
+- **T-207** **easy, auditable FP suppression** — inline `keur:ignore <RULE-ID>` on the
+  offending line (taught in each rule's own message), so a false positive is a
+  one-line, in-diff, reviewable escape hatch. NOT a config file people forget. · 🔴
+- **T-208** repo-level suppression + baseline: `.keur/allowlist` for accepted
+  findings (accept existing debt once, block only NEW) + `disabled`/`advisory`
+  promotion per repo (the `.config/scan.toml` blocking/disabled pattern) · 🔴
+- **T-209** suppressions feed the corpus: a `keur:ignore` that is really a FP can be
+  promoted into keur-eval `expect_not`, so the FP is measured + never returns · 🔴
 
-**DoD:** `keur doctor --install-all` sets up the toolchain; the gate runs the right
-tools per tier; corroborated findings score higher; missing tools skip with a note.
+**DoD (updated):** `keur doctor --install-all` sets up the toolchain; the gate runs
+the right tools per tier; corroborated findings score higher; missing tools skip;
+**a false positive is suppressible in one auditable in-diff line.**
 
 ## Milestone 3 — Train to reduce native dependency 🔴
 
