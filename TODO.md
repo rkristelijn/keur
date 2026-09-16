@@ -1,19 +1,66 @@
 # TODO
 
-- [ ] Update README with basis user stuff
-- [ ] create CONTRIBUTION with all the links to the docs
-- [ ] create a docs/c4.md file with diagrams with c4
-- [ ] create dataflow diagrams
-- [ ] create class diagram and ability to regenerate the 'model' split from the view
-- [ ] create sequeince diagrams for the complex stuff
-- [ ] analyse the literals, do we have duplicate stuff that can be cntralized? e.g. output stuff, can we centralize that so we can have themes or something 
-- [ ] see repeating patterns, workdir queried mulitpe times maybe even different, write central libs with themed utils, e.g. one 
-- [ ] what about srp, doe we have violations
-- [ ] the rules, do they follow the iso * iliies structure, would that be applicable
-- [ ] run cpm here, do we have dead code, dead docs, do we have links back end forth between code and docs? > run cpm in extreme mode, all should be ok. run semgrep too
-- [ ] do we have implicit design choices that we didn't document?
-- [ ] do we need all files and folders in the root, can we clean up? like docs/src/rules? can we centraise configs in .config (rename config) is er een standaard voor folder structure voor cpp?
-- [ ] kunnen we 'libmode' draaien (semgrep, gitleaks, ...) of 'ruleengine' mode, of allebei? en de results, juiste format zodat we een rapport hebben?
-- [ ] kunnen we loopen/leren met ollama? zoals we bedacht hebben?
-- [ ] tui/a11y/design, zijn er tui designs, zijn we accessbile? zie knowledge in cpm kunnen we all uitvoer consistent houden en netjes, json output, compact, verbose, 'mooi met kleurtjes' of combi's die logisch zijn?
-- [ ] is de rules pluggable, zodat je je private rules kan laden? is de documentatie daarvoor voldoende? zit die in de binary? is er een man pages? dus kan ai dit ook vinden dat je custom rules kan maken
+Status legend: [x] done · [~] partially done · [ ] open
+
+## Done (this cycle)
+
+- [x] analyse the literals / duplicate stuff — centralised: git+fs+proc adapters,
+      one report/output provider, one TOML reader. (ADR-003)
+- [x] see repeating patterns, workdir/git queried multiple times — one Git adapter
+      (single git touch point), one Fs adapter, one Proc adapter.
+- [x] SRP violations — policy_evaluate is pure; orchestrators take injectable
+      providers; I/O isolated in adapters/.
+- [x] output stuff centralised so we can have themes — report provider does
+      jsonl / compact / verbose + themeable colour (TTY / NO_COLOR aware).
+- [x] do we need all files/folders in the root, folder structure for C++ —
+      src/keur split into cmd/ adapters/ report/ util/; namespaces mirror it.
+- [x] document implicit design choices — ADR-002 (single binary), ADR-003
+      (provider architecture + enforcement).
+- [x] BONUS: self-enforcing architecture controls — KEUR-ARCH-001 (I/O only in
+      adapters), KEUR-ARCH-002..004 (namespace matches layer), verified by
+      tests/e2e/test_selfcheck.sh (dogfooding).
+
+## Partially done
+
+- [~] output consistent / json / compact / verbose / colour — the report
+      PROVIDER supports all modes; still to wire: a `--format` / `--color` flag
+      through `keur scan` and `keur check` so users can pick the mode.
+- [~] cleanup root folders — src/keur is clean; still to remove: empty dirs
+      (test/ optimiser/ policy/), deprecated shell (lib/ scanners/ hooks/),
+      and decide on config/ -> .config/. Clarify rules/ (data) vs src/rules/ (engine).
+
+## Open
+
+### Features
+- [ ] libmode: run external scanners (semgrep, gitleaks, trivy, ...) via the
+      Proc adapter, OR ruleengine mode, or both — normalise into one findings
+      report. (Proc adapter seam is ready.)
+- [ ] ollama learn/loop as designed (eval/ harness exists; optimiser missing).
+- [ ] pluggable private rules: loadable (KEUR_RULES_DIRS works) + docs + man page
+      in the binary, so an AI/agent can discover how to add custom rules.
+
+### Docs (independent track — can run in parallel via subagent)
+- [ ] README with basic user stuff
+- [ ] CONTRIBUTING with links to the docs
+- [ ] docs/c4.md with C4 diagrams
+- [ ] dataflow diagrams
+- [ ] class diagram + ability to regenerate the 'model' split from the view
+- [ ] sequence diagrams for the complex flows
+
+### Quality / research
+- [ ] rules: do they follow an ISO *ilities structure? would that be applicable?
+- [ ] run cpm in extreme mode here + semgrep — dead code, dead docs, links
+      between code and docs; all should be green.
+- [ ] TUI / a11y / design: are there TUI designs, are we accessible? (see cpm
+      knowledge). Tie into the report provider's output modes.
+
+## Next up (recommended order)
+
+1. Finish output track: expose `--format jsonl|compact|verbose` and
+   `--color auto|always|never` on scan + check (small, high-value, provider ready).
+2. Root cleanup: delete empty/dead dirs, remove deprecated shell, document
+   rules/ vs src/rules/. Then run cpm extreme + semgrep green.
+3. libmode: external-scanner adapters over Proc, unified report.
+4. Docs track (parallel, subagent): README + CONTRIBUTING + C4/diagrams.
+5. pluggable rules docs + man page.
+6. ollama optimiser loop.
