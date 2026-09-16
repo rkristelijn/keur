@@ -20,6 +20,17 @@ HERE="$(cd "$(dirname "$0")" && pwd -P)"
 CACHE="$HERE/corpus/repos"
 LIST="$HERE/corpus/repos.txt"
 
+# --- resource guards --------------------------------------------------------
+# Skip a repo whose working tree exceeds this after clone (keeps one outlier
+# from filling the disk). Override with KEUR_CORPUS_MAX_MB.
+MAX_REPO_MB="${KEUR_CORPUS_MAX_MB:-100}"
+# Refuse to clone when free disk drops below this (MB). Override with
+# KEUR_CORPUS_MIN_FREE_MB.
+MIN_FREE_MB="${KEUR_CORPUS_MIN_FREE_MB:-5000}"
+
+free_mb() { df -m "$1" 2>/dev/null | awk 'NR==2{print $4}'; }
+dir_mb()  { du -sm "$1" 2>/dev/null | awk '{print $1}'; }
+
 # ---------------------------------------------------------------------------
 # Repo list: diverse, popular, security-relevant. Kept small and shallow so a
 # first run is minutes not hours. Format: one "owner/name" per line (GitHub).
@@ -64,15 +75,28 @@ case "$cmd" in
         echo "  have  $repo"
         continue
       fi
+      # disk guard: stop before we run the volume dry.
+      free="$(free_mb "$CACHE")"
+      if [ -n "$free" ] && [ "$free" -lt "$MIN_FREE_MB" ]; then
+        echo "  STOP  free disk ${free}MB < ${MIN_FREE_MB}MB threshold; aborting clone" >&2
+        break
+      fi
       echo "  clone $repo ..."
-      if git clone --depth 1 --quiet "https://github.com/$repo.git" "$dest" 2>/dev/null; then
-        echo "  ok    $repo"
+      if git clone --depth 1 --single-branch --quiet "https://github.com/$repo.git" "$dest" 2>/dev/null; then
+        # size cap: drop an oversized outlier so it cannot fill the disk.
+        sz="$(dir_mb "$dest")"
+        if [ -n "$sz" ] && [ "$sz" -gt "$MAX_REPO_MB" ]; then
+          echo "  SKIP  $repo (${sz}MB > ${MAX_REPO_MB}MB cap) — removed"
+          rm -rf "$dest"
+        else
+          echo "  ok    $repo (${sz}MB)"
+        fi
       else
         echo "  FAIL  $repo (skipped)"
         rm -rf "$dest"
       fi
     done < "$LIST"
-    echo "corpus: $(find "$CACHE" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') repo(s) in $CACHE"
+    echo "corpus: $(find "$CACHE" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') repo(s), $(du -sh "$CACHE" 2>/dev/null | awk '{print $1}') in $CACHE"
     ;;
 
   status)

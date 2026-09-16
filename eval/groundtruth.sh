@@ -48,8 +48,17 @@ PY
 # --- semgrep: SAST (code patterns) ------------------------------------------
 run_semgrep() {
     have semgrep || { echo "groundtruth: semgrep absent, skipped" >&2; return; }
-    # p/default is fast and broad; --quiet keeps stderr clean.
-    semgrep --config=p/default --json --quiet "$TARGET" 2>/dev/null | python3 - "$TARGET" <<'PY'
+    # Resource guards so a big repo cannot exhaust RAM or hang:
+    #   --jobs 1        one worker (predictable memory, composes with Ollama)
+    #   --max-memory    hard cap in MB per rule (override KEUR_SEMGREP_MAX_MB)
+    #   --timeout       per-rule-per-file seconds (override KEUR_SEMGREP_TIMEOUT)
+    #   --max-target-bytes  skip huge files
+    local maxmb="${KEUR_SEMGREP_MAX_MB:-2048}"
+    local tmo="${KEUR_SEMGREP_TIMEOUT:-30}"
+    semgrep --config=p/default --json --quiet \
+            --jobs 1 --max-memory "$maxmb" --timeout "$tmo" \
+            --max-target-bytes 1000000 \
+            "$TARGET" 2>/dev/null | python3 - "$TARGET" <<'PY'
 import json, sys, os
 try:
     data = json.load(sys.stdin)
