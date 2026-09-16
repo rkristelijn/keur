@@ -1,0 +1,2 @@
+This file has no license marker at the top.
+It should trigger the absence rule because the required token is absent.

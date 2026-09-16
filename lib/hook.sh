@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# DEPRECATED (ADR-002): superseded by the compiled binary bin/keur. Reference only.
 # lib/hook.sh — install/manage KEUR git hooks (per-repo and global).
 set -euo pipefail
 # shellcheck source=/dev/null

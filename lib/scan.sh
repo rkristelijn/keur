@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# DEPRECATED (ADR-002): superseded by the compiled binary bin/keur. Reference only.
 # lib/scan.sh — run the deterministic scanner pipeline over a path (not just the
 # staged diff). Full-repo/ad-hoc scanning; shares the scanner adapters with check.sh.
 set -euo pipefail

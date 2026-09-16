@@ -1,0 +1,10 @@
+id: TEST-ABS-001
+title: Test absence rule - missing required header
+category: quality
+severity: error
+engine: absence
+target:
+  extensions: .txt
+patterns:
+  - regex: REQUIRED_HEADER
+    message: Missing required header (test fixture)

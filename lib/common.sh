@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# DEPRECATED (ADR-002): superseded by the compiled binary bin/keur. Reference only.
 # lib/common.sh — shared helpers. Sourced by the keur subcommands.
 # Platform-safe: no grep -P, no realpath. Works on macOS + Linux/WSL.
 
