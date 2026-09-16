@@ -31,12 +31,13 @@ RULES_SRC = ../rules/rule_engine.cpp
 RULES_OBJ = $(BINDIR)/rule_engine.o
 
 # keur binary object files
-KEUR_SRCS = main.cpp cmd_check.cpp cmd_hook.cpp cmd_scan.cpp cmd_policy.cpp
+KEUR_SRCS = main.cpp cmd_check.cpp cmd_hook.cpp cmd_scan.cpp cmd_policy.cpp git.cpp report.cpp
 KEUR_OBJS = $(patsubst %.cpp,$(BINDIR)/keur_%.o,$(KEUR_SRCS))
 
 # The subcommand implementations, minus main.cpp — shared by binary + tests.
 IMPL_OBJS = $(BINDIR)/keur_cmd_check.o $(BINDIR)/keur_cmd_hook.o \
-            $(BINDIR)/keur_cmd_scan.o $(BINDIR)/keur_cmd_policy.o
+            $(BINDIR)/keur_cmd_scan.o $(BINDIR)/keur_cmd_policy.o \
+            $(BINDIR)/keur_git.o $(BINDIR)/keur_report.o
 
 TEST_BIN  = $(BINDIR)/keur-test
 
@@ -61,16 +62,22 @@ $(RULES_OBJ): $(RULES_SRC) ../rules/rule_engine.h | $(BINDIR)
 $(BINDIR)/keur_main.o: main.cpp cmd_check.h cmd_hook.h cmd_scan.h cmd_policy.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_check.o: cmd_check.cpp cmd_check.h cmd_policy.h keur_utils.h | $(BINDIR)
+$(BINDIR)/keur_cmd_check.o: cmd_check.cpp cmd_check.h cmd_policy.h git.h keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_hook.o: cmd_hook.cpp cmd_hook.h | $(BINDIR)
+$(BINDIR)/keur_cmd_hook.o: cmd_hook.cpp cmd_hook.h git.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_scan.o: cmd_scan.cpp cmd_scan.h keur_utils.h | $(BINDIR)
+$(BINDIR)/keur_cmd_scan.o: cmd_scan.cpp cmd_scan.h report.h keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_cmd_policy.o: cmd_policy.cpp cmd_policy.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_git.o: git.cpp git.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_report.o: report.cpp report.h keur_utils.h ../rules/rule_engine.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BIN): $(KEUR_OBJS) $(RULES_OBJ)
@@ -83,7 +90,7 @@ $(BIN): $(KEUR_OBJS) $(RULES_OBJ)
 # tests/fixtures/ and rules/ regardless of the working directory.
 REPO_ROOT := $(shell cd ../.. && pwd -P)
 
-$(BINDIR)/keur_test.o: keur_test.cpp cmd_check.h cmd_hook.h cmd_scan.h cmd_policy.h keur_utils.h ../../vendor/doctest.h | $(BINDIR)
+$(BINDIR)/keur_test.o: keur_test.cpp cmd_check.h cmd_hook.h cmd_scan.h cmd_policy.h git.h report.h keur_utils.h ../../vendor/doctest.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
 
 $(TEST_BIN): $(BINDIR)/keur_test.o $(IMPL_OBJS) $(RULES_OBJ)
@@ -116,7 +123,7 @@ coverage: ## Build test binary with coverage and report (gcov)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) --coverage -O0 \
 	  -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' \
 	  -o ../../.tmp/cov/keur-test-cov \
-	  keur_test.cpp cmd_check.cpp cmd_hook.cpp cmd_scan.cpp cmd_policy.cpp \
+	  keur_test.cpp cmd_check.cpp cmd_hook.cpp cmd_scan.cpp cmd_policy.cpp git.cpp report.cpp \
 	  ../rules/rule_engine.cpp $(RE2_LDFLAGS)
 	cd ../../.tmp/cov && ./keur-test-cov --test-suite-exclude=perf >/dev/null 2>&1 || true
 	@echo ""
@@ -142,7 +149,7 @@ mutate: ## Run mutation testing with mull (needs mull + clang IR plugin)
 	   -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' \
 	   -fpass-plugin=$$MULL_PLUGIN \
 	   -o ../../.tmp/mull/keur-test-mull \
-	   keur_test.cpp cmd_check.cpp cmd_hook.cpp cmd_scan.cpp cmd_policy.cpp \
+	   keur_test.cpp cmd_check.cpp cmd_hook.cpp cmd_scan.cpp cmd_policy.cpp git.cpp report.cpp \
 	   ../rules/rule_engine.cpp $(RE2_LDFLAGS) && \
 	 MULL_RUNNER=$$(command -v mull-runner-18 || command -v mull-runner); \
 	 $$MULL_RUNNER ../../.tmp/mull/keur-test-mull --test-program-arg=--test-suite-exclude=perf

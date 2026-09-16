@@ -12,6 +12,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "git.h"
+
 namespace keur {
 
 // ---------------------------------------------------------------------------
@@ -55,19 +57,6 @@ static bool write_executable(const std::string& path, const std::string& content
     return true;
 }
 
-static std::string run_git(const char* args) {
-    std::string cmd = std::string("git ") + args + " 2>/dev/null";
-    FILE* p = popen(cmd.c_str(), "r");
-    if (!p) return "";
-    std::string out;
-    char buf[256];
-    while (fgets(buf, sizeof(buf), p)) out += buf;
-    pclose(p);
-    // Strip trailing newline
-    while (!out.empty() && (out.back() == '\n' || out.back() == '\r')) out.pop_back();
-    return out;
-}
-
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -79,13 +68,10 @@ std::string global_hooks_dir() {
     return base + "/git/hooks";
 }
 
-std::string repo_hooks_dir() {
-    // Use --git-dir + "/hooks" rather than --git-path hooks: the latter honours
-    // a global core.hooksPath, which would send per-repo installs to the global
-    // directory. We always want the actual .git/hooks of the current repo.
-    std::string git_dir = run_git("rev-parse --git-dir");
-    if (git_dir.empty()) return "";
-    return git_dir + "/hooks";
+std::string repo_hooks_dir(const Git& git) {
+    // Delegate to the git adapter (single git touch point). Uses --git-dir so
+    // a global core.hooksPath does not redirect per-repo installs.
+    return git_repo_hooks_dir(git);
 }
 
 bool hooks_install(const std::string& hooks_dir) {
@@ -146,10 +132,10 @@ HookOptions cmd_hook_parse(const std::vector<std::string>& args) {
 // cmd_hook
 // ---------------------------------------------------------------------------
 
-int cmd_hook(const HookOptions& opts) {
+int cmd_hook(const HookOptions& opts, const Git& git) {
     switch (opts.action) {
         case HookAction::Install: {
-            std::string dir = repo_hooks_dir();
+            std::string dir = repo_hooks_dir(git);
             if (dir.empty()) {
                 std::cerr << "keur hook: not inside a git repository\n";
                 return 1;
@@ -165,7 +151,7 @@ int cmd_hook(const HookOptions& opts) {
             std::cout << "Installing global KEUR hooks...\n";
             if (!hooks_install(dir)) return 1;
             // Configure git core.hooksPath if not already set to this dir
-            std::string current = run_git("config --global core.hooksPath");
+            std::string current = git.run("config --global core.hooksPath");
             if (!current.empty() && current != dir) {
                 std::cerr << "keur hook: core.hooksPath already set to: " << current << "\n";
                 std::cerr << "  Leaving it unchanged. Merge KEUR hooks into that dir, or unset it.\n";
@@ -180,8 +166,8 @@ int cmd_hook(const HookOptions& opts) {
 
         case HookAction::Status: {
             std::string gdir = global_hooks_dir();
-            std::string rdir = repo_hooks_dir();
-            std::cout << "Global core.hooksPath : " << run_git("config --global core.hooksPath") << "\n";
+            std::string rdir = repo_hooks_dir(git);
+            std::cout << "Global core.hooksPath : " << git.run("config --global core.hooksPath") << "\n";
             std::cout << "Global hooks dir      : " << gdir << "\n";
             for (auto* name : k_hook_names) {
                 std::string p = gdir + "/" + name;
@@ -202,7 +188,7 @@ int cmd_hook(const HookOptions& opts) {
                 std::cerr << "keur: Left core.hooksPath unchanged. Unset with: "
                              "git config --global --unset core.hooksPath\n";
             } else {
-                std::string dir = repo_hooks_dir();
+                std::string dir = repo_hooks_dir(git);
                 if (dir.empty()) {
                     std::cerr << "keur hook: not inside a git repository\n";
                     return 1;

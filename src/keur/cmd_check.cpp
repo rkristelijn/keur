@@ -15,32 +15,18 @@
 
 #include "../rules/rule_engine.h"
 #include "cmd_policy.h"
+#include "git.h"
 #include "keur_utils.h"
 
 namespace keur {
 
 // ---------------------------------------------------------------------------
-// I/O boundary: git staged files
+// I/O boundary: git staged files — delegates to the git adapter so there is
+// exactly one place in the codebase that spawns git.
 // ---------------------------------------------------------------------------
 
-std::vector<std::string> staged_files() {
-    std::vector<std::string> files;
-    FILE* p = popen(
-        "git diff --cached --name-only --diff-filter=ACM -z 2>/dev/null", "r");
-    if (!p) return files;
-
-    std::string cur;
-    int c;
-    while ((c = fgetc(p)) != EOF) {
-        if (c == '\0') {
-            if (!cur.empty()) { files.push_back(cur); cur.clear(); }
-        } else {
-            cur += static_cast<char>(c);
-        }
-    }
-    if (!cur.empty()) files.push_back(cur);
-    pclose(p);
-    return files;
+std::vector<std::string> staged_files(const Git& git) {
+    return git.staged_files();
 }
 
 // ---------------------------------------------------------------------------
@@ -80,7 +66,9 @@ int cmd_check(const CheckOptions& opts, FileSource file_src) {
     const char* tier_str =
         (opts.tier == Tier::PrePush) ? "pre-push" : "pre-commit";
 
-    // 1. File discovery (injectable — tests pass a lambda)
+    // 1. File discovery (injectable — tests pass a lambda). When no source is
+    //    given, fall back to staged_files() over the real git adapter.
+    if (!file_src) file_src = []() { return staged_files(); };
     auto files = file_src();
     if (files.empty()) {
         std::cerr << "KEUR (" << tier_str << "): no staged files -- PASS\n";

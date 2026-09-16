@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+#include "git.h"
+
 namespace keur {
 
 // ---------------------------------------------------------------------------
@@ -66,9 +68,10 @@ Verdict policy_evaluate(const PolicyInput& input);
 /**
  * Return staged files from git (added/copied/modified).
  * Returns empty vector when not in a git repo or nothing is staged.
- * This is the I/O boundary — inject a fake in tests.
+ * This is the I/O boundary — inject a fake Git in tests.
+ * @param git  Git adapter (defaults to the real git CLI).
  */
-std::vector<std::string> staged_files();
+std::vector<std::string> staged_files(const Git& git = Git{});
 
 /**
  * A FileSource is any callable that returns a list of files to check.
@@ -84,11 +87,11 @@ using FileSource = std::function<std::vector<std::string>()>;
  * Run the check subcommand.
  *
  * @param opts       Parsed options.
- * @param file_src   File source (defaults to staged_files — injectable for
- *                   tests without touching git).
+ * @param file_src   File source. When empty (default), staged_files() over the
+ *                   real git is used. Tests inject a lambda with fixed data so
+ *                   no git repository is required.
  * @returns 0 (PASS/WARN) or 1 (BLOCK).
  */
-int cmd_check(const CheckOptions& opts,
-              FileSource file_src = staged_files);
+int cmd_check(const CheckOptions& opts, FileSource file_src = {});
 
 }  // namespace keur
