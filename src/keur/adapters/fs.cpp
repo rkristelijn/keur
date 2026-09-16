@@ -3,7 +3,7 @@
  * @brief Filesystem adapter implementation (POSIX) — the only place keur
  *        performs mutating filesystem operations.
  */
-#include "fs.h"
+#include "adapters/fs.h"
 
 #include <cerrno>
 #include <fstream>

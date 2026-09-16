@@ -5,15 +5,15 @@
  * SRP: this file only orchestrates scan + emit. The findings-to-output logic
  * lives in the report provider (report.h); rule dirs in keur_utils.h.
  */
-#include "cmd_scan.h"
+#include "cmd/cmd_scan.h"
 
 #include <iostream>
 #include <string>
 #include <vector>
 
-#include "../rules/rule_engine.h"
-#include "keur_utils.h"
-#include "report.h"
+#include "rules/rule_engine.h"
+#include "util/keur_utils.h"
+#include "report/report.h"
 
 namespace keur {
 

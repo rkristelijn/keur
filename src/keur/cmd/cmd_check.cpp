@@ -7,16 +7,16 @@
  *   2. policy_evaluate() — pure logic: signals → verdict (no I/O)
  *   3. cmd_check()       — orchestrator: wires 1+2+rule engine, prints result
  */
-#include "cmd_check.h"
+#include "cmd/cmd_check.h"
 
 #include <iostream>
 #include <string>
 #include <vector>
 
-#include "../rules/rule_engine.h"
-#include "cmd_policy.h"
-#include "git.h"
-#include "keur_utils.h"
+#include "rules/rule_engine.h"
+#include "cmd/cmd_policy.h"
+#include "adapters/git.h"
+#include "util/keur_utils.h"
 
 namespace keur {
 

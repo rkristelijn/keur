@@ -2,14 +2,14 @@
  * @file report.cpp
  * @brief Output / reporting provider implementation.
  */
-#include "report.h"
+#include "report/report.h"
 
 #include <cstdlib>
 #include <ostream>
 #include <string>
 #include <vector>
 
-#include "keur_utils.h"
+#include "util/keur_utils.h"
 
 namespace keur {
 

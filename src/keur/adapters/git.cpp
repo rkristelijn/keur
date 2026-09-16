@@ -2,7 +2,7 @@
  * @file git.cpp
  * @brief Git adapter implementation — the only place keur spawns git.
  */
-#include "git.h"
+#include "adapters/git.h"
 
 #include <cstdio>
 #include <string>
