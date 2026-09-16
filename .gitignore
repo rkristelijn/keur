@@ -15,8 +15,22 @@ eval/history/**/*.raw
 
 # Local, never push
 .env
+
+# Secrets anywhere EXCEPT test fixtures (fixtures contain fake keys by design,
+# needed by the integration test suite).
 *.key
 *.pem
+!tests/fixtures/**/*.key
+!tests/fixtures/**/*.pem
+
+# Compiled build artifacts — source + Makefile are committed; binaries are built.
+bin/keur
+bin/keur-rules
+bin/keur-test
+*.o
+*.gcda
+*.gcno
+*.gcov
 
 # eval run output (generated)
 eval/metrics.csv

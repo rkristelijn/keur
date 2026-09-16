@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# DEPRECATED (ADR-002): superseded by the compiled binary bin/keur. Reference only.
 # lib/check.sh — gate the staged diff for a tier. Called by the hooks.
 # Exit: 0 = PASS/WARN (allowed), 1 = BLOCK. Findings are evidence; policy decides.
 set -euo pipefail

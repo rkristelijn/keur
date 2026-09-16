@@ -1,0 +1,10 @@
+id: TEST-PAT-001
+title: Test pattern rule - bad function call
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .txt .c .cpp .h
+patterns:
+  - regex: KEUR_TEST_BAD_CALL\s*\(
+    message: Bad function call detected (test fixture)

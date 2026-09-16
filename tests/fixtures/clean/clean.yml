@@ -1,0 +1,12 @@
+# clean.yml — no secrets, no private key material.
+# Expected findings: ZERO.
+# Used as negative test: the scanner must NOT fire on clean input.
+
+database:
+  host: localhost
+  port: 5432
+
+# Public certificate is fine (not a private key):
+# -----BEGIN CERTIFICATE-----
+# MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIIBCgKCAQEA...
+# -----END CERTIFICATE-----

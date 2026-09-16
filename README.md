@@ -1,101 +1,106 @@
 # KEUR
 
-**Deterministic guardrails for AI-generated code — a configurable git-hook gate.**
+**Deterministic guardrails for AI-generated code.**
 
-> Dutch *keuren* = to inspect, to approve/reject. KEUR decides whether code may pass:
-> **PASS / WARN / BLOCK**.
+KEUR verifies code before it reaches your repository. It runs a set of
+deterministic scanners, normalises their findings into one evidence model, and a
+policy engine decides **ALLOW / WARN / BLOCK**. A local LLM may be used as an
+optional escalation layer for uncertain cases — but the policy engine, never the
+LLM, is the referee.
 
-KEUR manages configurable git `pre-commit` and `pre-push` hooks — globally and per
-repo — that run a pipeline of deterministic scanners (secrets, deps, SAST, PII, custom
-rules) and turn their findings into a reproducible policy decision. AI is an optional
-*escalation layer*, never the referee.
+> Status: early / experimental. The design is settled; the implementation is
+> being built incrementally. See `docs/design/`.
 
-## Scope: guard, not coach
+## Why
 
-KEUR's job is narrow on purpose: **keep AI in check, stop rubbish from being
-committed.** It is a deterministic *guard*, not a quality *coach*.
+Half of code-quality and security work is the same shape: *input comes in →
+classify what it is → gather context → decide → sometimes escalate*, with a
+privacy boundary. KEUR makes that shape composable and deterministic, so it can
+run on a git hook (pre-commit / pre-push) or as a filter in front of an AI.
 
-- **In scope (gates a commit):** secrets, private keys, live credentials, PII leaks,
-  dangerous shell, vulnerable deps, insecure IaC, and **AI slop** patterns.
-- **Advisory evidence (never blocks by default):** quality, style, complexity, a11y,
-  docs, test coverage, language idioms.
-- **Out of scope:** being a maturity/quality/style tool (that is **cpm**), a Sonar
-  clone, a rule-authoring platform, or an AI that decides the verdict.
+The core rule, never broken:
 
-KEUR brings **all** of cpm's rule knowledge, but routes it by intent: only the
-safety- and slop-relevant subset blocks; the rest runs as advisory evidence. Full
-definition + the "is this in scope?" test: `docs/design/scope.md`.
-
-## Why KEUR exists (and how it relates to cpm)
-
-`cpm` (github.com/rkristelijn/cpm) is the **laboratory**: benchmarks, corpus,
-rule-authoring, experiments — "how well do we detect problems?" KEUR is the
-**product**: "may this code pass?" — the CLI, the hooks, the finding engine, the
-policy engine, the AI integration, the SARIF/JSON output.
-
-KEUR reuses cpm's strongest patterns:
-
-- **Two hook modes** — per-repo (`.git/hooks/`) and global (`~/.config/git/hooks/`).
-- **Phased execution** — autofix → block → warn → commit-msg.
-- **Tiered gates** — fast `pre-commit` (<3s), fuller `pre-push` (<30s), unlimited CI.
-- **Declarative `.rule` files** — configurable, per language/domain.
-- **Findings as evidence, not truth** — normalise, fingerprint, calibrate confidence.
-- **Persistent history** — every run/iteration is recorded for trend + regression.
-
-## Two core ideas
-
-### 1. Deterministic gate (the product)
-
-```text
-git diff → file filter → [gitleaks · trivy · semgrep · pii · custom rules]
-        → evidence aggregator (fingerprint + confidence)
-        → certain? → POLICY        uncertain? → OLLAMA (structured result)
-        → POLICY ENGINE → PASS / WARN / BLOCK
+```
+detectors → evidence → deterministic policy → ALLOW / WARN / BLOCK
 ```
 
-- **You cannot make AI deterministic. You can make the AI boundary deterministic.**
-  Ollama may say "this looks like SQL injection". Ollama may **not** decide "therefore
-  the pipeline passed". The policy engine decides. That is what makes it reproducible.
-- External tools (gitleaks, trivy, semgrep, sonar, coderabbit, copilot) are
-  **evidence sources**, not absolute ground truth. Corroboration raises confidence;
-  agreement is not proof (tools share blind spots).
+AI may add evidence. AI may **not** be the referee. That separation is what makes
+KEUR trustworthy enough to gate a commit.
 
-### 2. Self-improving evaluator (the laboratory loop)
+## How it fits together
 
-An optimisation loop where existing tools are *noisy oracles*, a curated corpus is
-*ground truth*, and Ollama is a **local meta-optimiser** that proposes the smallest
-possible change. The **benchmark decides** whether it is an improvement — never the LLM.
-
-- Optimise for **classification quality** (precision/recall/regression-safety), never
-  "number of findings".
-- **Immutable evaluation set** — the optimiser may never see or modify the final
-  evaluation corpus (prevents overfitting / learning-to-pass-its-own-tests).
-- **Acceptance gate** with hard constraints; Pareto tracking (recall +x%, precision
-  −y%, critical-FN −z) instead of collapsing everything into one number too early.
-
-See `docs/design/` for the full architecture.
-
-## Status
-
-Early scaffold. Deterministic gate first (works fully without AI); the optimiser and
-the CPM-Eval bridge come after the gate is solid.
-
-## Quick start (planned CLI)
-
-```bash
-keur hook --install            # per-repo hooks
-keur hook --global             # global hooks (all repos)
-keur scan [path]               # run the deterministic pipeline
-keur check                     # gate the current staged diff (used by hooks)
-keur check --ai=ollama         # opt in to the AI escalation layer
-keur policy explain            # show the active policy + thresholds
+```
+        git diff
+           │
+           ▼
+   ┌───────────────┐
+   │  scanners     │  gitleaks · trivy · semgrep · PII/CBI · custom rules
+   └──────┬────────┘
+          ▼
+   ┌───────────────┐
+   │ evidence      │  one Finding model + fingerprint + per-source confidence
+   │ normalisation │
+   └──────┬────────┘
+          ▼
+   ┌───────────────┐        uncertain?
+   │ policy engine │◄───────  optional local LLM (escalation only)
+   └──────┬────────┘
+          ▼
+   ALLOW / WARN / BLOCK
 ```
 
-## Design principles (non-negotiable)
+Tiered by speed:
+- **pre-commit** — fast deterministic checks (<~3s)
+- **pre-push** — fuller analysis (<~30s)
+- **CI** — full repo, cross-file, optional LLM, benchmark regression
 
-1. Works fully **without AI**. AI is `--ai` opt-in, default off on pre-commit.
-2. **Findings are evidence**; the policy engine makes the decision.
-3. **Reproducible**: same input + same config + same rule versions → same verdict.
-4. **Configurable everywhere**: global → repo → directory override hierarchy.
-5. **Fast by tier**: pre-commit stays sub-second-ish; heavy analysis moves to push/CI.
-6. **No hardcoded paths**; portable across macOS and Linux/WSL.
+## Repositories
+
+- **keur** (this repo) — the product: scanners, evidence model, policy engine,
+  hooks, CLI, optional LLM escalation.
+- **keur-eval** — the immutable evaluation corpus (ground truth): fictional,
+  annotated test cases KEUR is scored against. See `docs/HOWTO-keur-eval.md`.
+
+## Design docs
+
+- `docs/design/keur-design-rationale.md` — architecture, principles, staged plan.
+- `docs/design/keur-eval-convention.md` — the evaluation-corpus contract.
+- `docs/design/lessons-from-cpm.md` — what to carry in / avoid, and the
+  ISO/IEC 25010 quality attributes mapped to KEUR.
+
+## Principles (short)
+
+1. Findings are **evidence, not truth**.
+2. The **benchmark decides** whether the detector improved — not the LLM.
+3. **Config as data** — detection rules live in data files, not code.
+4. KEUR **works without AI**; the LLM is an optional accelerator.
+5. Optimise **classification quality** (precision/recall), not finding count.
+
+## Layout
+
+```
+scanners/   tool adapters (gitleaks, trivy, semgrep, …)
+lib/        Finding model, fingerprinting, evidence normalisation
+policy/     deterministic decision engine
+rules/      KEUR detection rules (data)
+optimiser/  LLM hypothesis generator + acceptance gate (later)
+eval/       harness that runs KEUR (and reference tools) vs keur-eval
+hooks/      pre-commit / pre-push / CI entry points
+bin/        keur scan | check | diff | fix | hook | ci
+docs/       design + how-to
+```
+
+## Status of the pieces
+
+| Piece | State |
+|---|---|
+| Design + conventions | ✅ documented |
+| keur-eval corpus + generator | 🟡 generating (draft cases, needs review) |
+| Scanner adapters / Finding model | ⬜ next |
+| Policy engine | ⬜ next |
+| Evaluator (score vs keur-eval) | ⬜ next |
+| Optimiser loop | ⬜ only after evaluator + corpus are proven |
+
+## License
+
+See `LICENSE`.

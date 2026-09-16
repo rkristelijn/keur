@@ -1,0 +1,2 @@
+REQUIRED_HEADER
+This file has the required header. The absence rule should NOT fire.

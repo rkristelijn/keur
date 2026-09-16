@@ -1,0 +1,3 @@
+// trigger.txt — triggers TEST-PAT-001 (pattern rule)
+// Expected finding: line 3, rule TEST-PAT-001
+KEUR_TEST_BAD_CALL(some_arg);

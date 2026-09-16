@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# DEPRECATED (ADR-002): superseded by the compiled binary bin/keur. Reference only.
 # lib/policy.sh — inspect the resolved policy.
 set -euo pipefail
 # shellcheck source=/dev/null

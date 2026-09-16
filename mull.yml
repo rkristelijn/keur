@@ -1,0 +1,35 @@
+# mull.yml — mutation testing configuration for keur.
+# @see https://mull.readthedocs.io/  and  docs/adr/ADR-002-single-cpp-binary.md
+#
+# Run with:  make -C src/keur mutate
+#
+# Mutators inject deliberate faults; a good test suite "kills" them (a test
+# fails when the mutant runs). Surviving mutants = gaps in the tests.
+#
+# We start with a focused, high-signal mutator set (arithmetic, logic, and
+# comparison operators) rather than the full catalogue, to keep the run fast
+# and the results actionable.
+
+mutators:
+  - cxx_add_to_sub          # +  -> -
+  - cxx_sub_to_add          # -  -> +
+  - cxx_logical_and_to_or   # && -> ||
+  - cxx_logical_or_to_and   # || -> &&
+  - cxx_eq_to_ne            # == -> !=
+  - cxx_ne_to_eq            # != -> ==
+  - cxx_gt_to_le            # >  -> <=
+  - cxx_lt_to_ge            # <  -> >=
+  - cxx_ge_to_lt            # >= -> <
+  - cxx_le_to_gt            # <= -> >
+  - cxx_remove_negation     # !x -> x
+
+# Only mutate keur's own subcommand logic — not the vendored doctest header,
+# not the rule engine (that has its own test suite in src/rules).
+excludePaths:
+  - .*vendor/.*
+  - .*doctest.*
+  - .*rule_engine.*
+
+# Fail the build if the mutation score drops below this threshold.
+# Start conservative; raise as the suite matures.
+# (mull-runner reports the score; CI can gate on it.)
