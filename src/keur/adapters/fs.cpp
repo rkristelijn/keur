@@ -1,5 +1,5 @@
 /**
- * @file fs.cpp
+ * @file adapters/fs.cpp
  * @brief Filesystem adapter implementation (POSIX) — the only place keur
  *        performs mutating filesystem operations.
  */

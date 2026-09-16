@@ -1,5 +1,5 @@
 /**
- * @file cmd_check.cpp
+ * @file cmd/check.cpp
  * @brief keur check — gate the staged diff (called by git hooks).
  *
  * Layers (SRP):
@@ -7,14 +7,14 @@
  *   2. policy_evaluate() — pure logic: signals → verdict (no I/O)
  *   3. cmd_check()       — orchestrator: wires 1+2+rule engine, prints result
  */
-#include "cmd/cmd_check.h"
+#include "cmd/check.h"
 
 #include <iostream>
 #include <string>
 #include <vector>
 
 #include "rules/rule_engine.h"
-#include "cmd/cmd_policy.h"
+#include "cmd/policy.h"
 #include "adapters/git.h"
 #include "util/keur_utils.h"
 

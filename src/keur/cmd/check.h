@@ -1,5 +1,5 @@
 /**
- * @file cmd_check.h
+ * @file cmd/check.h
  * @brief keur check — gate the staged diff (called by git hooks).
  *
  * SRP breakdown:

@@ -1,5 +1,5 @@
 /**
- * @file cmd_hook.h
+ * @file cmd/hook.h
  * @brief keur hook — install / manage keur git hooks.
  *
  * Writes minimal one-line stubs into .git/hooks/ (per-repo) or the global

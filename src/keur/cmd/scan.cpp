@@ -1,11 +1,11 @@
 /**
- * @file cmd_scan.cpp
+ * @file cmd/scan.cpp
  * @brief keur scan — run the deterministic scanner pipeline over a directory.
  *
  * SRP: this file only orchestrates scan + emit. The findings-to-output logic
  * lives in the report provider (report.h); rule dirs in keur_utils.h.
  */
-#include "cmd/cmd_scan.h"
+#include "cmd/scan.h"
 
 #include <iostream>
 #include <string>

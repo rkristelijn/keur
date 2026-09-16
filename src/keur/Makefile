@@ -42,9 +42,9 @@ RULES_OBJ = $(BINDIR)/rule_engine.o
 
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
-IMPL_SRCS  = cmd/cmd_check.cpp cmd/cmd_hook.cpp cmd/cmd_scan.cpp cmd/cmd_policy.cpp \
+IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp \
              adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp
-# Object files: flatten path (cmd/cmd_check.cpp -> keur_cmd_cmd_check.o) via subst
+# Object files: flatten path (cmd/check.cpp -> keur_cmd_check.o) via subst
 IMPL_OBJS  = $(patsubst %.cpp,$(BINDIR)/keur_%.o,$(subst /,_,$(IMPL_SRCS)))
 MAIN_OBJ   = $(BINDIR)/keur_main.o
 TEST_OBJ   = $(BINDIR)/keur_test.o
@@ -69,19 +69,19 @@ $(RULES_OBJ): $(RULES_SRC) ../rules/rule_engine.h | $(BINDIR)
 
 # Generic pattern: compile any keur source to a flattened object name.
 # $* is the stem with slashes turned to underscores by the explicit rules below.
-$(MAIN_OBJ): main.cpp cmd/cmd_check.h cmd/cmd_hook.h cmd/cmd_scan.h cmd/cmd_policy.h | $(BINDIR)
+$(MAIN_OBJ): main.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_cmd_check.o: cmd/cmd_check.cpp cmd/cmd_check.h cmd/cmd_policy.h adapters/git.h util/keur_utils.h | $(BINDIR)
+$(BINDIR)/keur_cmd_check.o: cmd/check.cpp cmd/check.h cmd/policy.h adapters/git.h util/keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_cmd_hook.o: cmd/cmd_hook.cpp cmd/cmd_hook.h adapters/git.h adapters/fs.h adapters/proc.h | $(BINDIR)
+$(BINDIR)/keur_cmd_hook.o: cmd/hook.cpp cmd/hook.h adapters/git.h adapters/fs.h adapters/proc.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_cmd_scan.o: cmd/cmd_scan.cpp cmd/cmd_scan.h report/report.h util/keur_utils.h | $(BINDIR)
+$(BINDIR)/keur_cmd_scan.o: cmd/scan.cpp cmd/scan.h report/report.h util/keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_cmd_policy.o: cmd/cmd_policy.cpp cmd/cmd_policy.h | $(BINDIR)
+$(BINDIR)/keur_cmd_policy.o: cmd/policy.cpp cmd/policy.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_adapters_git.o: adapters/git.cpp adapters/git.h | $(BINDIR)
@@ -102,7 +102,7 @@ $(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ)
 
 ## ---- Test binary ----------------------------------------------------------
 
-$(TEST_OBJ): keur_test.cpp cmd/cmd_check.h cmd/cmd_hook.h cmd/cmd_scan.h cmd/cmd_policy.h \
+$(TEST_OBJ): keur_test.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h \
              adapters/git.h adapters/fs.h adapters/proc.h report/report.h util/keur_utils.h \
              ../../vendor/doctest.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
@@ -133,7 +133,7 @@ e2e: build ## Run end-to-end tests (binary + git repos)
 ## ---- Coverage -------------------------------------------------------------
 
 # Coverage sources (flat list for the single-command coverage build).
-COV_SRCS = keur_test.cpp cmd/cmd_check.cpp cmd/cmd_hook.cpp cmd/cmd_scan.cpp cmd/cmd_policy.cpp \
+COV_SRCS = keur_test.cpp cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp \
            adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp ../rules/rule_engine.cpp
 
 coverage: ## Build test binary with coverage and report (gcov)

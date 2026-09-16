@@ -1,5 +1,5 @@
 /**
- * @file cmd_scan.h
+ * @file cmd/scan.h
  * @brief keur scan — run the deterministic scanner pipeline over a directory.
  *
  * Full-repo / ad-hoc scanning.  Walks the target path, runs the rule engine
