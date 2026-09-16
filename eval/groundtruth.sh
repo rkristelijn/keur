@@ -55,16 +55,21 @@ run_semgrep() {
     #   --max-target-bytes  skip huge files
     local maxmb="${KEUR_SEMGREP_MAX_MB:-2048}"
     local tmo="${KEUR_SEMGREP_TIMEOUT:-30}"
+    # Write semgrep JSON to a temp file and pass it as an ARG. We must not pipe
+    # it to `python3 - <<'PY'`: the heredoc already claims stdin, so a piped
+    # payload is discarded (silent 0 findings). Read from a file, like gitleaks.
+    local sg; sg="$(mktemp)"
     semgrep --config=p/default --json --quiet \
             --jobs 1 --max-memory "$maxmb" --timeout "$tmo" \
             --max-target-bytes 1000000 \
-            "$TARGET" 2>/dev/null | python3 - "$TARGET" <<'PY'
+            "$TARGET" > "$sg" 2>/dev/null || true
+    python3 - "$sg" "$TARGET" <<'PY'
 import json, sys, os
 try:
-    data = json.load(sys.stdin)
+    data = json.load(open(sys.argv[1]))
 except Exception:
     data = {"results": []}
-root = sys.argv[1].rstrip("/")
+root = sys.argv[2].rstrip("/")
 def categorise(check_id):
     c = check_id.lower()
     if "sql" in c: return "sqli"
@@ -81,6 +86,7 @@ for r in data.get("results", []):
         "file": rel, "line": r.get("start", {}).get("line", 0),
     }))
 PY
+    rm -f "$sg"
 }
 
 case "$TOOL" in
