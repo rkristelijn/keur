@@ -19,7 +19,15 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd -P)"
 KEUR_HOME="$(cd "$HERE/.." && pwd -P)"; export KEUR_HOME
-MODEL="${MODEL:-qwen2.5-coder:14b-instruct-q5_K_M}"
+# Prefer the expertise-primed model (eval/Modelfile) when it exists; fall back
+# to the base coder model otherwise. Override with MODEL=...
+if [ -z "${MODEL:-}" ]; then
+    if curl -sf "${OLLAMA_URL:-http://localhost:11434}/api/tags" 2>/dev/null | grep -q '"keur-rule-engineer'; then
+        MODEL="keur-rule-engineer"
+    else
+        MODEL="qwen2.5-coder:14b-instruct-q5_K_M"
+    fi
+fi
 OLLAMA_URL="${OLLAMA_URL:-http://localhost:11434}"
 MIN_PRECISION="${KEUR_MIN_PRECISION:-0.50}"
 
@@ -81,38 +89,23 @@ ollama() {
       | python3 -c "import json,sys;print(json.load(sys.stdin).get('response','').strip())"
 }
 
-# build the rule-authoring prompt from a missed finding + an example file
+# build the rule-authoring prompt from a missed finding + an example file.
+# The deep expertise (RE2, .rule format, generalise-don't-memorise) lives in the
+# model's SYSTEM prompt (eval/Modelfile -> keur-rule-engineer), so this per-call
+# prompt only has to state the concrete task.
 build_prompt() {
     local fn_line="$1"
     local cat; cat=$(echo "$fn_line" | awk '{print $2}')
     cat <<EOF
-You are improving a deterministic security rule engine. It loads .rule files
-(YAML-ish) and matches regex patterns against source files. A proven tool found
-a "$cat" issue that our engine MISSED.
+A proven security tool found a "$cat" issue that our rule engine MISSED.
+Write ONE keur .rule that catches this class of "$cat" issue and generalises to
+other repos (not a memorised literal).
 
-Rule file format (respond with ONLY a rule file, no markdown fences, no prose):
-id: LEARNED-$(echo "$cat" | tr a-z A-Z)-NNN
-title: short title
-category: $cat
-severity: warning
-engine: pattern
-target:
-  extensions: .js .php .rb .py .env .yml
-patterns:
-  - regex: A_SINGLE_RE2_REGEX_HERE
-    message: what was found
-confidence: 0.7
+Start the file with:  id: LEARNED-$(echo "$cat" | tr a-z A-Z)-NNN
+Use category: $cat, engine: pattern, and target these extensions:
+  .js .php .rb .py .env .yml .json .ts .go .java
 
-Constraints:
-- Use ONE regex, RE2 syntax (no backreferences, no lookahead).
-- Secrets appear as an assignment to a key whose name contains key/token/
-  secret/password/apikey, in EITHER style:
-      apiKey = "long-value"      (equals, e.g. .py .rb .env)
-      apiKey: "long-value"       (colon, e.g. .js .json .yml objects)
-  So allow BOTH separators: a regex like
-      (?i)(key|token|secret|password|apikey)\s*[:=]\s*["'][^"']{12,}["']
-  Adjust as needed but keep it ONE regex and specific enough to avoid ordinary code.
-- Output ONLY the rule file content, starting with "id:". No trailing spaces.
+Output ONLY the rule file, starting with "id:". No markdown fences, no prose.
 EOF
 }
 
@@ -130,8 +123,16 @@ iterate_once() {
 
     # ask Ollama for a candidate rule
     local candidate; candidate="$(ollama "$(build_prompt "$fn")")"
-    # strip markdown fences and trailing whitespace (Ollama often adds both)
-    candidate="$(printf '%s\n' "$candidate" | sed -E '/^```/d; s/[[:space:]]+$//')"
+    # Clean the candidate:
+    #  - strip markdown fences (```yaml / ```), trailing whitespace
+    #  - collapse double-escaped backslashes (\\s -> \s): the model sometimes
+    #    over-escapes for JSON; RE2 needs single backslashes in the .rule file.
+    #  - strip surrounding quotes the model may wrap around the regex value
+    #    (keur's parser wants the regex raw/unquoted).
+    candidate="$(printf '%s\n' "$candidate" \
+        | sed -E '/^[[:space:]]*```/d; s/[[:space:]]+$//' \
+        | sed -E 's/\\\\/\\/g' \
+        | sed -E "s/^([[:space:]]*- regex: )'(.*)'$/\1\2/; s/^([[:space:]]*- regex: )\"(.*)\"$/\1\2/")"
     if ! printf '%s' "$candidate" | grep -q '^id:'; then
         echo "[iter $iter] Ollama did not return a valid rule; reject"
         record "$iter" reject "$b_recall" "$b_prec" "no-rule"
