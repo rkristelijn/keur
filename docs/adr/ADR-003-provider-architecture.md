@@ -47,6 +47,21 @@ Principles:
 4. **Themeable output.** The output provider owns format + colour, so every
    subcommand's output is consistent and a single flag switches the theme.
 
+## Enforcement (keur guards itself)
+
+The layering is not just a convention — it is a control. keur enforces its own
+architecture by dogfooding:
+
+- **Rule `KEUR-ARCH-001`** (`rules/keur-internal/`) is a `block` rule that fires
+  on raw `popen` / `system` / `mkdir` / `unlink` anywhere except `adapters/` and
+  tests. External I/O outside the adapter layer fails the gate.
+- **`tests/e2e/test_selfcheck.sh`** runs that rule over `src/keur` on every test
+  run and asserts zero findings, then injects a temporary violation to prove the
+  control actually fires (guards against a dead rule).
+
+Isolating the adapters in `src/keur/adapters/` is what makes the rule a clean
+one-liner (`exclude_paths: adapters/ ...`) instead of a fragile per-file list.
+
 ## Consequences
 
 **Positive:**

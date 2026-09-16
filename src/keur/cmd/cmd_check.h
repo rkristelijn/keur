@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "git.h"
+#include "adapters/git.h"
 
 namespace keur {
 

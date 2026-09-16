@@ -6,7 +6,7 @@
  * fully spoofable: tests exercise every branch (including --global) without a
  * real repo, real files, or real process spawns.
  */
-#include "cmd_hook.h"
+#include "cmd/cmd_hook.h"
 
 #include <array>
 #include <cstdlib>

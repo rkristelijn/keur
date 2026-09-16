@@ -3,7 +3,7 @@
  * @brief Process adapter implementation — the only place keur spawns external
  *        tools (side effects + captured runs).
  */
-#include "proc.h"
+#include "adapters/proc.h"
 
 #include <cstdio>
 #include <cstdlib>

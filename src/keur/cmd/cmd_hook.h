@@ -10,9 +10,9 @@
 #include <string>
 #include <vector>
 
-#include "fs.h"
-#include "git.h"
-#include "proc.h"
+#include "adapters/fs.h"
+#include "adapters/git.h"
+#include "adapters/proc.h"
 
 namespace keur {
 

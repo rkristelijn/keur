@@ -2,7 +2,7 @@
  * @file cmd_policy.cpp
  * @brief keur policy — explain the resolved policy and thresholds.
  */
-#include "cmd_policy.h"
+#include "cmd/cmd_policy.h"
 
 #include <cstdlib>
 #include <fstream>

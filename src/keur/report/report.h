@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-#include "../rules/rule_engine.h"
+#include "rules/rule_engine.h"
 
 namespace keur {
 

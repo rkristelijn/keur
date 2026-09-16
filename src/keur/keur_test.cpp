@@ -32,16 +32,16 @@
 #include <vector>
 
 #include "../../vendor/doctest.h"
-#include "../rules/rule_engine.h"
-#include "cmd_check.h"
-#include "cmd_hook.h"
-#include "cmd_policy.h"
-#include "cmd_scan.h"
-#include "fs.h"
-#include "git.h"
-#include "keur_utils.h"
-#include "proc.h"
-#include "report.h"
+#include "rules/rule_engine.h"
+#include "cmd/cmd_check.h"
+#include "cmd/cmd_hook.h"
+#include "cmd/cmd_policy.h"
+#include "cmd/cmd_scan.h"
+#include "adapters/fs.h"
+#include "adapters/git.h"
+#include "util/keur_utils.h"
+#include "adapters/proc.h"
+#include "report/report.h"
 
 // ---------------------------------------------------------------------------
 // Test helpers

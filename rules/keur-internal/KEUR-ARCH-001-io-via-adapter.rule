@@ -1,0 +1,28 @@
+id: KEUR-ARCH-001
+title: Direct I/O must go through an adapter, not raw syscalls
+category: architecture
+severity: error
+engine: pattern
+action: block
+# keur's own architecture control (ADR-003): external I/O (process spawning,
+# filesystem mutation) belongs in the adapters (src/keur/adapters/) and nowhere
+# else. Orchestrators (cmd/) and main.cpp must depend on the injectable Git /
+# Fs / Proc adapters so every branch stays spoofable and testable.
+#
+# This rule is keur guarding its own codebase. It fires on raw popen/system/
+# mkdir/unlink calls made OUTSIDE the adapters directory (and outside tests,
+# which legitimately exercise the real implementations).
+target:
+  extensions: .cpp .h
+  exclude_paths: adapters/ _test.cpp test/ tests/ vendor/ ../rules/
+patterns:
+  - regex: \bpopen\s*\(
+    message: "Raw popen() outside an adapter. Spawn tools via the Proc adapter (adapters/proc.h) or query git via the Git adapter (adapters/git.h)."
+  - regex: \bstd::system\s*\(|(^|[^.\w])system\s*\(
+    message: "Raw system() outside an adapter. Use the Proc adapter (adapters/proc.h) so the call is injectable and testable."
+  - regex: \bmkdir\s*\(
+    message: "Raw mkdir() outside an adapter. Use the Fs adapter (adapters/fs.h)."
+  - regex: \bunlink\s*\(
+    message: "Raw unlink() outside an adapter. Use the Fs adapter (adapters/fs.h)."
+confidence: 0.95
+fix: "Move the syscall into src/keur/adapters/ (git.cpp / fs.cpp / proc.cpp) and call it through the injectable adapter struct, so orchestrators stay spoofable."
