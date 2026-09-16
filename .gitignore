@@ -39,3 +39,5 @@ eval/loop.log
 eval/corpus/repos/
 compile_commands.json
 eval/.run/
+eval/corpus/groundtruth.jsonl
+eval/corpus/measure.json
