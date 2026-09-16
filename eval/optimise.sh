@@ -106,6 +106,10 @@ iterate_once() {
         return 0
     fi
 
+    # give the candidate a unique id (Ollama often leaves the NNN placeholder or
+    # reuses an id); use the iteration number so learned rules never collide.
+    candidate="$(printf '%s\n' "$candidate" | sed -E "s/^id:.*/id: LEARNED-$(date +%s)-${iter}/")"
+
     # write candidate to a temp rules dir and re-measure
     local tmpd; tmpd="$(mktemp -d)"; cp -r "$LEARNED/." "$tmpd/" 2>/dev/null || true
     printf '%s\n' "$candidate" > "$tmpd/candidate.rule"

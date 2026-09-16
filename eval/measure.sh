@@ -54,8 +54,11 @@ import json, sys, collections, os
 gt_path, keur_path, out_path, mode = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 
 def key(f):
-    # file basename + category: robust across tool path/line differences
-    return (f.get("repo",""), os.path.basename(f.get("file","")), f.get("category",""))
+    # repo + category (Option A): a ground-truth "secret" in a repo is reproduced
+    # if keur flags ANY secret in that repo. This measures category coverage, not
+    # exact file overlap, because proven tools and keur detect by different
+    # mechanisms (entropy/context vs keyword regex) and rarely hit the same file.
+    return (f.get("repo",""), f.get("category",""))
 
 gt = collections.defaultdict(list)
 for line in open(gt_path):
@@ -81,18 +84,18 @@ f1        = safe(2*precision*recall, precision+recall)
 
 if mode == "fn":
     # FN clusters grouped by category: this is what the optimiser targets.
-    by_cat = collections.Counter(k[2] for k in fn)
+    by_cat = collections.Counter(k[1] for k in fn)
     print("FN clusters (ground truth keur misses), by category:")
     for cat, n in by_cat.most_common():
         print(f"  {n:4d}  {cat}")
     print("\nsample missed findings:")
     for k in list(fn)[:10]:
         ex = gt[k][0]
-        print(f"  {ex.get('tool')}  {k[2]:8s}  {k[0]}/{ex.get('file')}")
+        print(f"  {ex.get('tool')}  {k[1]:8s}  {k[0]}/{ex.get('file')}")
 else:
     result = {"tp":len(tp),"fn":len(fn),"fp":len(fp),
               "recall":round(recall,4),"precision":round(precision,4),"f1":round(f1,4),
-              "fn_by_category": dict(collections.Counter(k[2] for k in fn))}
+              "fn_by_category": dict(collections.Counter(k[1] for k in fn))}
     json.dump(result, open(out_path,"w"), indent=2)
     print(f"keur vs ground truth:  TP={len(tp)} FN={len(fn)} FP={len(fp)}")
     print(f"  recall    {recall:.3f}  (baseline reproduced)")
