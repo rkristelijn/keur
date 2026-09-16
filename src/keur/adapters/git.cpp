@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace keur {
+namespace keur::adapters {
 
 std::string Git::default_run(const std::string& args) {
     std::string cmd = "git " + args + " 2>/dev/null";
@@ -49,4 +49,4 @@ std::string git_repo_hooks_dir(const Git& git) {
     return git_dir + "/hooks";
 }
 
-}  // namespace keur
+}  // namespace keur::adapters

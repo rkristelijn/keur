@@ -1,0 +1,17 @@
+id: KEUR-ARCH-003
+title: Cmd layer must use namespace keur::cmd
+category: architecture
+severity: error
+engine: absence
+action: block
+# Sibling of KEUR-ARCH-002 for the cmd/ layer (ADR-003).
+# Scope precisely by scanning src/keur/cmd; the exclude list keeps a repo-wide
+# run safe. Every .cpp/.h under cmd/ must declare `namespace keur::cmd`.
+target:
+  extensions: .cpp .h
+  exclude_paths: adapters/ report/ util/ rules/ main.cpp _test.cpp test/ tests/ vendor/
+patterns:
+  - regex: namespace keur::cmd
+    message: "File under cmd/ must declare 'namespace keur::cmd' (namespace mirrors the directory layer). See ADR-003."
+confidence: 0.9
+fix: "Wrap the file in 'namespace keur::cmd { ... }  // namespace keur::cmd'."

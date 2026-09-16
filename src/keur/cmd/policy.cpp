@@ -11,11 +11,11 @@
 #include <string>
 #include <vector>
 
-namespace keur {
+namespace keur::cmd {
 
 // ---------------------------------------------------------------------------
 // Minimal TOML scalar reader — same approach as cpm's toml.cpp but self-
-// contained so cmd_policy has no external dependencies beyond the STL.
+// contained so policy has no external dependencies beyond the STL.
 // ---------------------------------------------------------------------------
 
 static std::string toml_scalar(const std::string& path, const std::string& key) {
@@ -106,16 +106,16 @@ PolicySettings policy_load(const std::string& config_path) {
 }
 
 // ---------------------------------------------------------------------------
-// cmd_policy_parse
+// policy_parse
 // ---------------------------------------------------------------------------
 
-PolicyOptions cmd_policy_parse(const std::vector<std::string>& args) {
+PolicyOptions policy_parse(const std::vector<std::string>& args) {
     PolicyOptions o;
     for (std::size_t i = 0; i < args.size(); ++i) {
         if (args[i] == "--config" && i + 1 < args.size()) {
             o.config = args[++i];
         } else if (args[i][0] != '-') {
-            // Any positional token is the subcommand (validated in cmd_policy).
+            // Any positional token is the subcommand (validated in policy).
             o.subcommand = args[i];
         }
     }
@@ -123,10 +123,10 @@ PolicyOptions cmd_policy_parse(const std::vector<std::string>& args) {
 }
 
 // ---------------------------------------------------------------------------
-// cmd_policy
+// policy
 // ---------------------------------------------------------------------------
 
-int cmd_policy(const PolicyOptions& opts) {
+int policy(const PolicyOptions& opts) {
     if (opts.subcommand != "explain") {
         std::cerr << "keur policy: unknown subcommand '" << opts.subcommand
                   << "' (supported: explain)\n";
@@ -149,4 +149,4 @@ int cmd_policy(const PolicyOptions& opts) {
     return 0;
 }
 
-}  // namespace keur
+}  // namespace keur::cmd

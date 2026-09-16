@@ -2,7 +2,7 @@
  * @file cmd/hook.cpp
  * @brief keur hook — install / manage keur git hooks.
  *
- * All I/O goes through injectable adapters (git / fs / proc), so cmd_hook is
+ * All I/O goes through injectable adapters (git / fs / proc), so hook is
  * fully spoofable: tests exercise every branch (including --global) without a
  * real repo, real files, or real process spawns.
  */
@@ -13,7 +13,7 @@
 #include <cstring>
 #include <iostream>
 
-namespace keur {
+namespace keur::cmd {
 
 // ---------------------------------------------------------------------------
 // Hook stub templates
@@ -38,16 +38,16 @@ std::string global_hooks_dir() {
     return base + "/git/hooks";
 }
 
-std::string repo_hooks_dir(const Git& git) {
+std::string repo_hooks_dir(const adapters::Git& git) {
     // --git-dir so a global core.hooksPath does not redirect per-repo installs.
-    return git_repo_hooks_dir(git);
+    return adapters::git_repo_hooks_dir(git);
 }
 
 // ---------------------------------------------------------------------------
-// Install / remove (via the Fs adapter)
+// Install / remove (via the adapters::Fs adapter)
 // ---------------------------------------------------------------------------
 
-bool hooks_install(const std::string& hooks_dir, const Fs& fs) {
+bool hooks_install(const std::string& hooks_dir, const adapters::Fs& fs) {
     if (!fs.mkdir_p(hooks_dir)) {
         std::cerr << "keur: could not create hooks directory: " << hooks_dir << "\n";
         return false;
@@ -65,7 +65,7 @@ bool hooks_install(const std::string& hooks_dir, const Fs& fs) {
     return ok;
 }
 
-void hooks_remove(const std::string& hooks_dir, const Fs& fs) {
+void hooks_remove(const std::string& hooks_dir, const adapters::Fs& fs) {
     for (auto* name : k_hook_names) {
         std::string path = hooks_dir + "/" + name;
         if (fs.exists(path)) {
@@ -76,10 +76,10 @@ void hooks_remove(const std::string& hooks_dir, const Fs& fs) {
 }
 
 // ---------------------------------------------------------------------------
-// cmd_hook_parse
+// hook_parse
 // ---------------------------------------------------------------------------
 
-HookOptions cmd_hook_parse(const std::vector<std::string>& args) {
+HookOptions hook_parse(const std::vector<std::string>& args) {
     HookOptions o;
     for (std::size_t i = 0; i < args.size(); ++i) {
         if (args[i] == "--install")        { o.action = HookAction::Install; }
@@ -100,13 +100,13 @@ HookOptions cmd_hook_parse(const std::vector<std::string>& args) {
 }
 
 // ---------------------------------------------------------------------------
-// cmd_hook — orchestrator over the injected adapters
+// hook — orchestrator over the injected adapters
 // ---------------------------------------------------------------------------
 
-int cmd_hook(const HookOptions& opts, const HookDeps& deps) {
-    const Git&  git  = deps.git;
-    const Fs&   fs   = deps.fs;
-    const Proc& proc = deps.proc;
+int hook(const HookOptions& opts, const HookDeps& deps) {
+    const adapters::Git&  git  = deps.git;
+    const adapters::Fs&   fs   = deps.fs;
+    const adapters::Proc& proc = deps.proc;
 
     switch (opts.action) {
         case HookAction::Install: {
@@ -174,4 +174,4 @@ int cmd_hook(const HookOptions& opts, const HookDeps& deps) {
     return 0;
 }
 
-}  // namespace keur
+}  // namespace keur::cmd

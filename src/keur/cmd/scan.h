@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-namespace keur {
+namespace keur::cmd {
 
 struct ScanOptions {
   std::string target = ".";   // directory or file to scan
@@ -19,13 +19,13 @@ struct ScanOptions {
 };
 
 /** Parse [path] and flags from argv. */
-ScanOptions cmd_scan_parse(const std::vector<std::string>& args);
+ScanOptions scan_parse(const std::vector<std::string>& args);
 
 /**
  * Run the scan subcommand.
  * Prints findings as JSONL to stdout.
  * Returns 0 always (scan never blocks; use `keur check` for gating).
  */
-int cmd_scan(const ScanOptions& opts);
+int scan(const ScanOptions& opts);
 
-}  // namespace keur
+}  // namespace keur::cmd

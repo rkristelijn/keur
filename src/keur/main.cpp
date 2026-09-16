@@ -60,15 +60,15 @@ static void usage() {
 // Command dispatch table
 // ---------------------------------------------------------------------------
 static const std::unordered_map<std::string, Handler> k_commands = {
-    {"hook",   [](const Args& a) { return keur::cmd_hook(keur::cmd_hook_parse(a)); }},
-    {"scan",   [](const Args& a) { return keur::cmd_scan(keur::cmd_scan_parse(a)); }},
-    {"check",  [](const Args& a) { return keur::cmd_check(keur::cmd_check_parse(a)); }},
-    {"policy", [](const Args& a) { return keur::cmd_policy(keur::cmd_policy_parse(a)); }},
+    {"hook",   [](const Args& a) { return keur::cmd::hook(keur::cmd::hook_parse(a)); }},
+    {"scan",   [](const Args& a) { return keur::cmd::scan(keur::cmd::scan_parse(a)); }},
+    {"check",  [](const Args& a) { return keur::cmd::check(keur::cmd::check_parse(a)); }},
+    {"policy", [](const Args& a) { return keur::cmd::policy(keur::cmd::policy_parse(a)); }},
     {"version",  [](const Args&) {
         // Prefer the version from a resolved keur.toml; fall back to the
         // compile-time KEUR_VERSION baked in by the Makefile.
-        auto cfg  = keur::resolve_config("");
-        auto poly = keur::policy_load(cfg);
+        auto cfg  = keur::cmd::resolve_config("");
+        auto poly = keur::cmd::policy_load(cfg);
         if (!poly.version.empty()) std::cout << poly.version << "\n";
 #ifdef KEUR_VERSION
         else std::cout << KEUR_VERSION << "\n";

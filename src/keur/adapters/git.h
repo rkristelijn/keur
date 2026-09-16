@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace keur {
+namespace keur::adapters {
 
 /**
  * Git queries used by keur. Implemented once in git.cpp over the real git CLI;
@@ -47,4 +47,4 @@ struct Git {
  */
 std::string git_repo_hooks_dir(const Git& git = Git{});
 
-}  // namespace keur
+}  // namespace keur::adapters

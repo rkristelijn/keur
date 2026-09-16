@@ -144,7 +144,7 @@ coverage: ## Build test binary with coverage and report (gcov)
 	cd ../../.tmp/cov && ./keur-test-cov --test-suite-exclude=perf >/dev/null 2>&1 || true
 	@echo ""
 	@echo "Coverage (keur sources):"
-	@cd ../../.tmp/cov && for src in cmd_check cmd_hook cmd_scan cmd_policy git fs proc report; do \
+	@cd ../../.tmp/cov && for src in check hook scan policy git fs proc report; do \
 	  line=$$(gcov "keur-test-cov-$$src" 2>/dev/null | grep -A1 "File '.*$$src.cpp'" | grep "Lines executed" | head -1); \
 	  printf "  %-16s %s\n" "$$src.cpp" "$$line"; \
 	done

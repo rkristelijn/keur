@@ -1,0 +1,26 @@
+id: KEUR-ARCH-002
+title: Adapters layer must use namespace keur::adapters
+category: architecture
+severity: error
+engine: absence
+action: block
+# keur's layers map 1:1 onto namespaces (ADR-003):
+#   src/keur/adapters/  -> namespace keur::adapters
+#   src/keur/cmd/       -> namespace keur::cmd
+#   src/keur/report/    -> namespace keur::report
+#
+# The rule engine targets by extension + exclude_paths (it has no positive
+# path-include), so this rule scopes to the adapters layer by EXCLUDING every
+# other location. Any remaining .cpp/.h that lacks `namespace keur::adapters`
+# is flagged by the absence engine.
+#
+# NOTE: run this rule scoped at src/keur/adapters (keur scan src/keur/adapters)
+# for a precise check; the exclude list makes it safe to run repo-wide too.
+target:
+  extensions: .cpp .h
+  exclude_paths: cmd/ report/ util/ rules/ main.cpp _test.cpp test/ tests/ vendor/
+patterns:
+  - regex: namespace keur::adapters
+    message: "File under adapters/ must declare 'namespace keur::adapters' (namespace mirrors the directory layer). See ADR-003."
+confidence: 0.9
+fix: "Wrap the file in 'namespace keur::adapters { ... }  // namespace keur::adapters'."

@@ -5,10 +5,10 @@
  * SRP breakdown:
  *   - staged_files()     : reads git state (injectable for tests)
  *   - policy_evaluate()  : pure function — input struct → verdict
- *   - cmd_check()        : orchestrates the above; injectable file source
+ *   - check()        : orchestrates the above; injectable file source
  *
  * Testability: the heavy lifting (policy_evaluate) is a pure function.
- * cmd_check accepts an optional file-source function so tests can inject
+ * check accepts an optional file-source function so tests can inject
  * a fixed file list without touching git or the filesystem.
  */
 #pragma once
@@ -18,7 +18,7 @@
 
 #include "adapters/git.h"
 
-namespace keur {
+namespace keur::cmd {
 
 // ---------------------------------------------------------------------------
 // Types
@@ -52,7 +52,7 @@ struct CheckOptions {
 // ---------------------------------------------------------------------------
 
 /** Parse --tier / --ai / --config from an argv slice. */
-CheckOptions cmd_check_parse(const std::vector<std::string>& args);
+CheckOptions check_parse(const std::vector<std::string>& args);
 
 /**
  * Pure policy evaluation: no I/O, no globals.
@@ -68,10 +68,10 @@ Verdict policy_evaluate(const PolicyInput& input);
 /**
  * Return staged files from git (added/copied/modified).
  * Returns empty vector when not in a git repo or nothing is staged.
- * This is the I/O boundary — inject a fake Git in tests.
- * @param git  Git adapter (defaults to the real git CLI).
+ * This is the I/O boundary — inject a fake adapters::Git in tests.
+ * @param git  adapters::Git adapter (defaults to the real git CLI).
  */
-std::vector<std::string> staged_files(const Git& git = Git{});
+std::vector<std::string> staged_files(const adapters::Git& git = adapters::Git{});
 
 /**
  * A FileSource is any callable that returns a list of files to check.
@@ -92,6 +92,6 @@ using FileSource = std::function<std::vector<std::string>()>;
  *                   no git repository is required.
  * @returns 0 (PASS/WARN) or 1 (BLOCK).
  */
-int cmd_check(const CheckOptions& opts, FileSource file_src = {});
+int check(const CheckOptions& opts, FileSource file_src = {});
 
-}  // namespace keur
+}  // namespace keur::cmd

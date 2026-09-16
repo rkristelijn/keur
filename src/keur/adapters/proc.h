@@ -17,7 +17,7 @@
 #include <functional>
 #include <string>
 
-namespace keur {
+namespace keur::adapters {
 
 /** Result of running an external command. */
 struct ProcResult {
@@ -50,4 +50,4 @@ struct Proc {
     static bool        default_has(const std::string& bin);
 };
 
-}  // namespace keur
+}  // namespace keur::adapters

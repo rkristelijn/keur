@@ -15,9 +15,9 @@
 #include "util/keur_utils.h"
 #include "report/report.h"
 
-namespace keur {
+namespace keur::cmd {
 
-ScanOptions cmd_scan_parse(const std::vector<std::string>& args) {
+ScanOptions scan_parse(const std::vector<std::string>& args) {
     ScanOptions o;
     for (std::size_t i = 0; i < args.size(); ++i) {
         if (args[i] == "--json")                              o.json   = true;
@@ -27,7 +27,7 @@ ScanOptions cmd_scan_parse(const std::vector<std::string>& args) {
     return o;
 }
 
-int cmd_scan(const ScanOptions& opts) {
+int scan(const ScanOptions& opts) {
     std::vector<Rule> rules;
     for (auto& d : rule_dirs()) {
         auto rs = rules_load(d);
@@ -43,13 +43,13 @@ int cmd_scan(const ScanOptions& opts) {
     auto findings = rules_scan_dir(rules, opts.target);
 
     // Single output touch point — the report provider owns the format.
-    ReportOptions ro;
-    ro.format = OutputFormat::Jsonl;  // scan defaults to machine-readable
-    report_findings(std::cout, findings, ro);
+    report::ReportOptions ro;
+    ro.format = report::OutputFormat::Jsonl;  // scan defaults to machine-readable
+    report::report_findings(std::cout, findings, ro);
 
     std::cerr << "keur scan: " << findings.size() << " finding(s) in "
               << opts.target << "\n";
     return 0;
 }
 
-}  // namespace keur
+}  // namespace keur::cmd

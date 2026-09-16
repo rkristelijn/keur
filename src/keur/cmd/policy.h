@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace keur {
+namespace keur::cmd {
 
 struct PolicyOptions {
   std::string config;    // path to keur.toml (empty = auto-resolve)
@@ -17,13 +17,13 @@ struct PolicyOptions {
 };
 
 /** Parse [explain] and flags from argv. */
-PolicyOptions cmd_policy_parse(const std::vector<std::string>& args);
+PolicyOptions policy_parse(const std::vector<std::string>& args);
 
 /**
  * Run the policy subcommand.
  * Returns 0 on success.
  */
-int cmd_policy(const PolicyOptions& opts);
+int policy(const PolicyOptions& opts);
 
 /**
  * Resolved policy settings loaded from keur.toml.
@@ -52,4 +52,4 @@ PolicySettings policy_load(const std::string& config_path);
  */
 std::string resolve_config(const std::string& hint = "");
 
-}  // namespace keur
+}  // namespace keur::cmd

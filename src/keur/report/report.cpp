@@ -11,7 +11,7 @@
 
 #include "util/keur_utils.h"
 
-namespace keur {
+namespace keur::report {
 
 // ANSI colour codes (only emitted when use_color() says so).
 namespace {
@@ -88,4 +88,4 @@ std::size_t report_findings(std::ostream& out,
     return findings.size();
 }
 
-}  // namespace keur
+}  // namespace keur::report

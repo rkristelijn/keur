@@ -16,7 +16,7 @@
 
 #include "rules/rule_engine.h"
 
-namespace keur {
+namespace keur::report {
 
 /** How findings are rendered. */
 enum class OutputFormat {
@@ -51,4 +51,4 @@ std::size_t report_findings(std::ostream& out,
 /** Resolve whether colour should be used, honouring ColorMode + TTY + NO_COLOR. */
 bool use_color(ColorMode mode, bool is_tty);
 
-}  // namespace keur
+}  // namespace keur::report
