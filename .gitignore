@@ -43,3 +43,4 @@ eval/corpus/groundtruth.jsonl
 eval/corpus/measure.json
 rules/learned/
 eval/history/optimiser.jsonl
+eval/corpus/split.txt

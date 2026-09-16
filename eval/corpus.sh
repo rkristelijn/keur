@@ -82,7 +82,16 @@ case "$cmd" in
         break
       fi
       echo "  clone $repo ..."
-      if git clone --depth 1 --single-branch --quiet "https://github.com/$repo.git" "$dest" 2>/dev/null; then
+      # SSH clone: uses your configured SSH key, never prompts the macOS
+      # keychain for credentials (as an HTTPS clone would). Set KEUR_CLONE_PROTO
+      # to "https" if you prefer HTTPS on a machine without an SSH key.
+      case "${KEUR_CLONE_PROTO:-ssh}" in
+        https) url="https://github.com/$repo.git" ;;
+        *)     url="git@github.com:$repo.git" ;;
+      esac
+      # GIT_TERMINAL_PROMPT=0 + BatchMode: fail fast instead of hanging on a prompt.
+      if GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="ssh -o BatchMode=yes" \
+         git clone --depth 1 --single-branch --quiet "$url" "$dest" 2>/dev/null; then
         # size cap: drop an oversized outlier so it cannot fill the disk.
         sz="$(dir_mb "$dest")"
         if [ -n "$sz" ] && [ "$sz" -gt "$MAX_REPO_MB" ]; then

@@ -28,17 +28,49 @@ HIST="$HERE/history/optimiser.jsonl"
 BASE_RULES="$KEUR_HOME/rules"               # keur's own rules (always loaded)
 mkdir -p "$LEARNED" "$HERE/history"
 
-# measure with a given rules dir -> echoes "recall precision f1" (space-sep)
+# Which split the optimiser trains on. Holdout stays unseen during training and
+# is only measured for a generalisation report (overfitting check).
+TRAIN_SPLIT="${KEUR_TRAIN_SPLIT:-train}"
+
+# measure with a given rules dir -> echoes "recall precision f1 fn" (space-sep)
 measure() {
-    local dirs="$1"
-    KEUR_RULES_DIRS="$dirs" "$HERE/measure.sh" >/dev/null 2>&1
+    local dirs="$1"; local split="${2:-$TRAIN_SPLIT}"
+    KEUR_SPLIT="$split" KEUR_RULES_DIRS="$dirs" "$HERE/measure.sh" >/dev/null 2>&1
     python3 -c "import json;d=json.load(open('$HERE/corpus/measure.json'));print(d['recall'],d['precision'],d['f1'],d['fn'])"
 }
 
-# one missed finding + its category, for the prompt
+# one missed finding + its category, for the prompt (from the train split)
 sample_fn() {
-    KEUR_RULES_DIRS="$1" "$HERE/measure.sh" --fn 2>/dev/null \
+    KEUR_SPLIT="$TRAIN_SPLIT" KEUR_RULES_DIRS="$1" "$HERE/measure.sh" --fn 2>/dev/null \
       | awk '/sample missed/{f=1;next} f&&NF{print;exit}'
+}
+
+# regex_generalises <candidate-rule-text> -> exit 0 if the regex is a
+# generalising matcher, 1 if it looks like a memorised literal (overfit).
+# Guards against Ollama pasting the secret value into the pattern.
+regex_generalises() {
+    printf '%s\n' "$1" | python3 -c '
+import sys, re
+text = sys.stdin.read()
+# extract the regex: line(s)
+patterns = re.findall(r"^\s*-\s*regex:\s*(.+?)\s*$", text, re.M)
+if not patterns:
+    sys.exit(1)
+for pat in patterns:
+    # 1. Must contain at least one quantifier or character class — i.e. it
+    #    matches a FAMILY of strings, not one fixed value.
+    has_class = bool(re.search(r"\[[^\]]+\]|\\[dwsDWS]", pat))
+    has_quant = bool(re.search(r"[+*]|\{\d+(,\d*)?\}|\?", pat))
+    if not (has_class or has_quant):
+        sys.exit(1)   # pure literal like "1234" or "AKIA..." -> overfit
+    # 2. Reject a long alphanumeric literal run (>=10) embedded in the pattern:
+    #    that is almost certainly a copied secret value, not a matcher.
+    #    Strip regex metachar groups first so we only see literal runs.
+    literal = re.sub(r"\\.|\[[^\]]*\]|\([^)]*\)|[.*+?{}|^$]", "", pat)
+    if re.search(r"[A-Za-z0-9]{10,}", literal):
+        sys.exit(1)   # long literal run -> memorised value
+sys.exit(0)
+'
 }
 
 ollama() {
@@ -110,27 +142,46 @@ iterate_once() {
     # reuses an id); use the iteration number so learned rules never collide.
     candidate="$(printf '%s\n' "$candidate" | sed -E "s/^id:.*/id: LEARNED-$(date +%s)-${iter}/")"
 
+    # ANTI-OVERFIT: reject a regex that just memorises the training value.
+    # A rule like `regex: AKIAIOSFODNN7EXAMPLE` or `regex: 1234` would "find" the
+    # one training case and generalise to nothing. Require the pattern to be a
+    # GENERALISING matcher (character classes + quantifiers), not a long literal
+    # copied from the secret, and not present verbatim in the corpus.
+    if ! regex_generalises "$candidate"; then
+        echo "[iter $iter] REJECT (anti-overfit: regex is too literal/specific)"
+        record "$iter" reject "$b_recall" "$b_prec" "overfit-regex"
+        return 0
+    fi
+
     # write candidate to a temp rules dir and re-measure
     local tmpd; tmpd="$(mktemp -d)"; cp -r "$LEARNED/." "$tmpd/" 2>/dev/null || true
     printf '%s\n' "$candidate" > "$tmpd/candidate.rule"
     read -r c_recall c_prec c_f1 c_fn < <(measure "$BASE_RULES:$tmpd")
     echo "[iter $iter] candidate: recall=$c_recall precision=$c_prec f1=$c_f1 fn=$c_fn"
 
-    # THE GATE (benchmark decides): recall must rise, precision stay >= floor and
-    # not collapse, no new FN. Never trust the LLM's own opinion.
+    # THE GATE (benchmark decides): recall must rise on train, precision stay
+    # >= floor, AND the candidate must not collapse on the holdout split (which
+    # Ollama never saw). A rule that helps train but not holdout is overfitting.
+    read -r h_recall h_prec _ _ < <(measure "$BASE_RULES:$tmpd" holdout)
+    echo "[iter $iter] holdout:   recall=$h_recall precision=$h_prec"
     local accept
     accept="$(python3 -c "
 b_r,b_p,c_r,c_p = float('$b_recall'),float('$b_prec'),float('$c_recall'),float('$c_prec')
-print('yes' if (c_r > b_r and c_p >= min($MIN_PRECISION, b_p) ) else 'no')")"
+h_r,h_p        = float('$h_recall'),float('$h_prec')
+train_ok = c_r > b_r and c_p >= min($MIN_PRECISION, b_p)
+# generalisation: holdout precision must not fall below the floor (a rule that
+# fires as noise on unseen repos is rejected even if it lifts train recall).
+holdout_ok = h_p >= $MIN_PRECISION
+print('yes' if (train_ok and holdout_ok) else 'no')")"
 
     if [ "$accept" = "yes" ]; then
         local id; id="$(printf '%s' "$candidate" | awk -F': *' '/^id:/{print $2;exit}')"
         cp "$tmpd/candidate.rule" "$LEARNED/${id:-learned-$iter}.rule"
-        echo "[iter $iter] ACCEPT -> rules/learned/${id:-learned-$iter}.rule"
-        record "$iter" accept "$c_recall" "$c_prec" "$id"
+        echo "[iter $iter] ACCEPT -> rules/learned/${id:-learned-$iter}.rule (holdout recall=$h_recall)"
+        record "$iter" accept "$c_recall" "$c_prec" "${id} holdout_recall=$h_recall"
     else
-        echo "[iter $iter] REJECT (gate: recall/precision not improved)"
-        record "$iter" reject "$c_recall" "$c_prec" "gate"
+        echo "[iter $iter] REJECT (gate: train or holdout criteria not met)"
+        record "$iter" reject "$c_recall" "$c_prec" "gate holdout_prec=$h_prec"
     fi
     rm -rf "$tmpd"
 }

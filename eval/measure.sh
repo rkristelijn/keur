@@ -31,11 +31,27 @@ NATIVE="$KEUR_HOME/bin/keur-rules"
 
 MODE="metrics"; [ "${1:-}" = "--fn" ] && MODE="fn"
 
-# 1. Run keur over every repo, collect its findings as JSONL tagged with repo.
+# Split filter (Option: repo-level held-out set). KEUR_SPLIT = train|holdout|all
+# (default all). The assignment lives in eval/corpus/split.txt as "repo<TAB>split";
+# a repo not listed is treated as train. This lets the optimiser train on `train`
+# while `holdout` is measured periodically to catch overfitting (Ollama never
+# sees holdout during optimisation).
+SPLIT="${KEUR_SPLIT:-all}"
+SPLIT_FILE="$HERE/corpus/split.txt"
+in_split() {
+    # in_split <repo-name> -> 0 if it belongs to the active split
+    [ "$SPLIT" = "all" ] && return 0
+    local want; want="$(awk -v r="$1" '$1==r{print $2}' "$SPLIT_FILE" 2>/dev/null)"
+    want="${want:-train}"   # unlisted repos default to train
+    [ "$want" = "$SPLIT" ]
+}
+
+# 1. Run keur over every repo (in the active split), tag findings with repo.
 KEUR_FINDINGS="$(mktemp)"; trap 'rm -f "$KEUR_FINDINGS"' EXIT
 for repo in "$CACHE"/*/; do
     [ -d "$repo" ] || continue
     name="$(basename "$repo")"
+    in_split "$name" || continue
     "$NATIVE" --dir "$repo" 2>/dev/null | \
       python3 -c "import json,sys
 for line in sys.stdin:
@@ -47,11 +63,23 @@ for line in sys.stdin:
     print(json.dumps(f))" >> "$KEUR_FINDINGS"
 done
 
-# 2. Join keur findings with ground truth at (repo,file,category) granularity.
-python3 - "$GT" "$KEUR_FINDINGS" "$OUT" "$MODE" <<'PY'
+# 2. Join keur findings with ground truth at (repo,category) granularity.
+# Pass the split so the ground truth is filtered to the same repos as keur's.
+python3 - "$GT" "$KEUR_FINDINGS" "$OUT" "$MODE" "$SPLIT" "$SPLIT_FILE" <<'PY'
 import json, sys, collections, os
 
 gt_path, keur_path, out_path, mode = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+split, split_file = sys.argv[5], sys.argv[6]
+
+# repo -> split assignment (unlisted = train)
+assign = {}
+if os.path.exists(split_file):
+    for line in open(split_file):
+        parts = line.split()
+        if len(parts) >= 2: assign[parts[0]] = parts[1]
+def in_split(repo):
+    if split == "all": return True
+    return assign.get(repo, "train") == split
 
 def key(f):
     # repo + category (Option A): a ground-truth "secret" in a repo is reproduced
@@ -64,7 +92,9 @@ gt = collections.defaultdict(list)
 for line in open(gt_path):
     line=line.strip()
     if not line: continue
-    f=json.loads(line); gt[key(f)].append(f)
+    f=json.loads(line)
+    if not in_split(f.get("repo","")): continue   # only this split's repos
+    gt[key(f)].append(f)
 
 keur = collections.defaultdict(list)
 for line in open(keur_path):
