@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-namespace keur {
+namespace keur::adapters {
 
 bool Fs::default_exists(const std::string& path) {
     struct stat st{};
@@ -43,4 +43,4 @@ void Fs::default_remove(const std::string& path) {
     unlink(path.c_str());
 }
 
-}  // namespace keur
+}  // namespace keur::adapters

@@ -1,0 +1,15 @@
+id: KEUR-ARCH-004
+title: Report layer must use namespace keur::report
+category: architecture
+severity: error
+engine: absence
+action: block
+# Sibling of KEUR-ARCH-002 for the report/ layer (ADR-003).
+target:
+  extensions: .cpp .h
+  exclude_paths: adapters/ cmd/ util/ rules/ main.cpp _test.cpp test/ tests/ vendor/
+patterns:
+  - regex: namespace keur::report
+    message: "File under report/ must declare 'namespace keur::report' (namespace mirrors the directory layer). See ADR-003."
+confidence: 0.9
+fix: "Wrap the file in 'namespace keur::report { ... }  // namespace keur::report'."

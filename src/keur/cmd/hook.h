@@ -14,7 +14,7 @@
 #include "adapters/git.h"
 #include "adapters/proc.h"
 
-namespace keur {
+namespace keur::cmd {
 
 enum class HookAction { Install, Global, Status, Remove };
 
@@ -29,13 +29,13 @@ struct HookOptions {
  * Tests assign fakes to any member so nothing real is touched.
  */
 struct HookDeps {
-    Git  git{};
-    Fs   fs{};
-    Proc proc{};
+    adapters::Git  git{};
+    adapters::Fs   fs{};
+    adapters::Proc proc{};
 };
 
 /** Parse --install / --global / --status / --remove [--global] from argv. */
-HookOptions cmd_hook_parse(const std::vector<std::string>& args);
+HookOptions hook_parse(const std::vector<std::string>& args);
 
 /**
  * Run the hook subcommand. Returns 0 on success, 1 on error.
@@ -44,21 +44,21 @@ HookOptions cmd_hook_parse(const std::vector<std::string>& args);
  * @param deps  Injectable adapters (git / fs / proc). Defaults are real;
  *              tests inject fakes so no repo, files, or processes are touched.
  */
-int cmd_hook(const HookOptions& opts, const HookDeps& deps = HookDeps{});
+int hook(const HookOptions& opts, const HookDeps& deps = HookDeps{});
 
 /**
- * Write hook stubs into a directory (via the Fs adapter).
+ * Write hook stubs into a directory (via the adapters::Fs adapter).
  * @param hooks_dir  Destination directory.
  * @param fs         Filesystem adapter (injectable for tests).
  * @returns true if all hooks were written successfully.
  */
-bool hooks_install(const std::string& hooks_dir, const Fs& fs = Fs{});
+bool hooks_install(const std::string& hooks_dir, const adapters::Fs& fs = adapters::Fs{});
 
 /**
  * Remove keur hook stubs from a directory (silently succeeds if absent).
  * @param fs  Filesystem adapter (injectable for tests).
  */
-void hooks_remove(const std::string& hooks_dir, const Fs& fs = Fs{});
+void hooks_remove(const std::string& hooks_dir, const adapters::Fs& fs = adapters::Fs{});
 
 /**
  * Return the path of the global git hooks directory.
@@ -69,8 +69,8 @@ std::string global_hooks_dir();
 /**
  * Return the per-repo git hooks directory for the current working directory.
  * Returns an empty string when not inside a git repository.
- * @param git  Git adapter (injectable for tests).
+ * @param git  adapters::Git adapter (injectable for tests).
  */
-std::string repo_hooks_dir(const Git& git = Git{});
+std::string repo_hooks_dir(const adapters::Git& git = adapters::Git{});
 
-}  // namespace keur
+}  // namespace keur::cmd

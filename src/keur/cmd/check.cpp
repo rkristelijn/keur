@@ -5,7 +5,7 @@
  * Layers (SRP):
  *   1. staged_files()    — I/O: asks git for staged files
  *   2. policy_evaluate() — pure logic: signals → verdict (no I/O)
- *   3. cmd_check()       — orchestrator: wires 1+2+rule engine, prints result
+ *   3. check()       — orchestrator: wires 1+2+rule engine, prints result
  */
 #include "cmd/check.h"
 
@@ -18,14 +18,14 @@
 #include "adapters/git.h"
 #include "util/keur_utils.h"
 
-namespace keur {
+namespace keur::cmd {
 
 // ---------------------------------------------------------------------------
 // I/O boundary: git staged files — delegates to the git adapter so there is
 // exactly one place in the codebase that spawns git.
 // ---------------------------------------------------------------------------
 
-std::vector<std::string> staged_files(const Git& git) {
+std::vector<std::string> staged_files(const adapters::Git& git) {
     return git.staged_files();
 }
 
@@ -43,7 +43,7 @@ Verdict policy_evaluate(const PolicyInput& input) {
 // Arg parser
 // ---------------------------------------------------------------------------
 
-CheckOptions cmd_check_parse(const std::vector<std::string>& args) {
+CheckOptions check_parse(const std::vector<std::string>& args) {
     CheckOptions o;
     for (std::size_t i = 0; i < args.size(); ++i) {
         if (args[i] == "--tier" && i + 1 < args.size()) {
@@ -62,7 +62,7 @@ CheckOptions cmd_check_parse(const std::vector<std::string>& args) {
 // Orchestrator
 // ---------------------------------------------------------------------------
 
-int cmd_check(const CheckOptions& opts, FileSource file_src) {
+int check(const CheckOptions& opts, FileSource file_src) {
     const char* tier_str =
         (opts.tier == Tier::PrePush) ? "pre-push" : "pre-commit";
 
@@ -113,4 +113,4 @@ int cmd_check(const CheckOptions& opts, FileSource file_src) {
     return 0;
 }
 
-}  // namespace keur
+}  // namespace keur::cmd

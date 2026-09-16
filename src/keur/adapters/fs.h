@@ -18,7 +18,7 @@
 #include <functional>
 #include <string>
 
-namespace keur {
+namespace keur::adapters {
 
 /**
  * Filesystem operations used by keur orchestrators. Implemented once in fs.cpp
@@ -46,4 +46,4 @@ struct Fs {
     static void default_remove(const std::string& path);
 };
 
-}  // namespace keur
+}  // namespace keur::adapters

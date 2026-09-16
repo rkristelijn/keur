@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <string>
 
-namespace keur {
+namespace keur::adapters {
 
 int Proc::default_run(const std::string& cmd) {
     int rc = std::system(cmd.c_str());  // NOLINT(cert-env33-c)
@@ -42,4 +42,4 @@ bool Proc::default_has(const std::string& bin) {
     return std::system(cmd.c_str()) == 0;  // NOLINT(cert-env33-c)
 }
 
-}  // namespace keur
+}  // namespace keur::adapters
