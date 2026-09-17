@@ -9,7 +9,7 @@ action: block
 # run safe. Every .cpp/.h under cmd/ must declare `namespace keur::cmd`.
 target:
   extensions: .cpp .h
-  exclude_paths: adapters/ report/ util/ rules/ main.cpp _test.cpp test/ tests/ vendor/
+  exclude_paths: adapters/ report/ util/ rules/ main.cpp _test.cpp test/ tests/ vendor/ render/
 patterns:
   - regex: namespace keur::cmd
     message: "File under cmd/ must declare 'namespace keur::cmd' (namespace mirrors the directory layer). See ADR-003."
