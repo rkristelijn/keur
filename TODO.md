@@ -63,6 +63,17 @@ Status legend: [x] done · [~] partially done · [ ] open
       policy-engine work — do it as a deliberate step, not a quick patch.
 - [ ] pluggable private rules: loadable (KEUR_RULES_DIRS works) + docs + man page
       in the binary, so an AI/agent can discover how to add custom rules.
+- [ ] SARIF output format — the ecosystem lingua franca (GitHub/GitLab code
+      scanning ingest it). From the tool study (docs/design/lessons-from-
+      existing-tools.md): every serious SAST tool emits SARIF; add it as a
+      report format alongside jsonl/compact/verbose so keur interoperates.
+- [ ] more ground-truth adapters, reusing proven tools instead of reimplementing
+      their detections: bandit (Python), gosec (Go), brakeman (Rails),
+      gitleaks/trufflehog (secrets) — same pattern as groundtruth-cpm/awssec.
+- [ ] if/when a structural rule type lands (ADR-004 stage 5): copy Semgrep's
+      ergonomics — patterns that LOOK like source code + metavariables ($X) +
+      ellipsis (...), not a new query language. Optimise for "a dev with no
+      program-analysis background can write a rule".
 - [ ] LEARN PROVIDER PATTERN — make the rule-PROPOSER pluggable (default Ollama).
       Today eval/optimise.sh has one hard-coded ollama() function that POSTs a
       prompt to localhost:11434 and gets a candidate rule back. Abstract it to a
@@ -99,6 +110,23 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ### Quality / research
 
+- [ ] BASICS as enforced norms (candidate for KEUR-ARCH self-check rules):
+      * no source file > ~300 NET lines (comments/blank excluded);
+      * no dir > ~10 files;
+      * name conventions, logical layout, one clear responsibility per file (SRP);
+      * little copy-paste; build once in a lib/module, then reuse.
+      Current violations to address:
+      * src/keur/cmd/learn.cpp (~411 net lines, 4 responsibilities: JSONL parse +
+        resource read + TUI render + orchestration) — SPLIT into
+        learn/history.{h,cpp} (parse), learn/sysinfo (resources; also the
+        cross-platform adapter TODO), learn/monitor (render), cmd/learn.cpp
+        (orchestration only). This is fresh debt from this cycle.
+      * src/keur/keur_test.cpp (~858 net) — split per suite/feature.
+      * src/rules/rule_engine.cpp (~358 net) — watch as ADR-004 stages land;
+        split engines (pattern/presence/absence/block/extract) into siblings.
+      * src/keur/cmd (12 files) and eval/ (21 shell scripts) — over the folder
+        cap; regroup (eval/ into subdirs: corpus/, groundtruth/, loop/, report/).
+      Consider making these checks KEUR's OWN dogfooding rules once measurable.
 - [ ] rules: do they follow an ISO *ilities structure? would that be applicable?
 - [ ] run cpm in extreme mode here + semgrep — dead code, dead docs, links
       between code and docs; all should be green.
