@@ -1,0 +1,26 @@
+id: SEC-039
+title: Weak cryptographic protocols and disabled certificate verification
+category: security
+severity: error
+engine: presence
+target:
+  extensions: .ts .js .py .java .go .cpp .h .rb .cs
+  exclude_paths: test/ node_modules/ vendor/ _test.go
+patterns:
+  - regex: SSLv2
+    message: "SSLv2 is fundamentally broken — all ciphersuites are vulnerable (CVE-2016-0800 DROWN)"
+  - regex: SSLv3
+    message: "SSLv3 is vulnerable to POODLE attack (CVE-2014-3566) — use TLS 1.2+"
+  - regex: TLSv1[_.]0
+    message: "TLS 1.0 is deprecated (RFC 8996) — use TLS 1.2 or 1.3"
+  - regex: TLSv1[_.]1
+    message: "TLS 1.1 is deprecated (RFC 8996) — use TLS 1.2 or 1.3"
+  - regex: rejectUnauthorized\s*:\s*false
+    message: "Disabling TLS certificate verification allows MITM attacks"
+  - regex: VERIFY_NONE
+    message: "SSL VERIFY_NONE disables certificate validation — allows MITM attacks"
+  - regex: InsecureSkipVerify\s*:\s*true
+    message: "InsecureSkipVerify disables TLS certificate verification — allows MITM attacks"
+  - regex: verify\s*=\s*False
+    message: "verify=False disables TLS certificate verification — allows MITM attacks"
+fix: Use TLS 1.2+ (preferably 1.3) and always verify certificates. Remove rejectUnauthorized:false, VERIFY_NONE, InsecureSkipVerify:true, or verify=False.

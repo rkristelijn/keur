@@ -1,0 +1,12 @@
+id: SC-SEC-011
+title: Suspicious npm lifecycle scripts (ua-parser-js/event-stream attacks)
+category: security
+severity: warning
+engine: pattern
+target:
+  filenames: package.json
+  exclude_paths: node_modules/ .git/
+patterns:
+  - regex: "(?:pre|post)?install"\s*:\s*"(?:node|bash|sh|curl|wget|eval|powershell)
+    message: "Lifecycle script executes shell/network command — common supply chain attack vector (ua-parser-js, event-stream)"
+fix: Review lifecycle scripts carefully. Use --ignore-scripts during install. Audit with npm audit signatures.

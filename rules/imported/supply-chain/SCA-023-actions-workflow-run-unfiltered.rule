@@ -1,0 +1,13 @@
+id: SCA-023
+title: GitHub Actions workflow_run without branch filtering
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: workflow_run
+patterns:
+  - regex: workflow_run:\s*$
+    message: workflow_run without branch/event filtering can be triggered by any fork workflow, granting access to secrets.
+fix: Always filter workflow_run by branch and conclusion. Validate the triggering workflow origin before using its artifacts.

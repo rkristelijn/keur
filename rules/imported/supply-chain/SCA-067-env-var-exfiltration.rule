@@ -1,0 +1,14 @@
+id: SCA-067
+title: Environment variable exfiltration pattern
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  extensions: .sh .bash .py .js .ts .rb
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (curl|wget)\s+.*(\$ENV|\$\{.*TOKEN|process\.env|os\.environ|ENV\[)
+    message: Environment variables (often containing secrets, tokens, CI credentials) being sent to external server via curl/wget — strong indicator of credential theft.
+  - regex: (requests|fetch|http)\s*.*(\$ENV|process\.env|os\.environ|ENV\[)
+    message: Environment variables being sent via HTTP — possible credential exfiltration.
+fix: Environment variables should never be sent to external hosts. This is a strong indicator of credential theft. Investigate immediately.

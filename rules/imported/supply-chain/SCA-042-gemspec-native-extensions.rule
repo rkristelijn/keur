@@ -1,0 +1,12 @@
+id: SCA-042
+title: Gemspec with native extensions
+category: supply-chain
+severity: info
+engine: pattern
+target:
+  extensions: .gemspec
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: extensions\s*=.*\[
+    message: Gems with native extensions compile C code during install. A malicious extension can execute arbitrary code with the installing user privileges.
+fix: Audit gems with native extensions. Prefer pure-Ruby alternatives when available. Review the extconf.rb or Rakefile that compiles the extension.

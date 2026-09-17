@@ -1,0 +1,13 @@
+id: SCA-048
+title: Cargo.toml proc-macro from git source
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  filenames: Cargo.toml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: proc-macro
+patterns:
+  - regex: proc-macro.*git\s*=
+    message: Procedural macros execute at compile time with full build machine access. A git-sourced proc-macro bypasses crates.io review.
+fix: Only use proc-macros from crates.io. If a git source is necessary, pin to a specific rev and audit the macro code thoroughly.

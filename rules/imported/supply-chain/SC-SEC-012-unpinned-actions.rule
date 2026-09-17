@@ -1,0 +1,13 @@
+id: SC-SEC-012
+title: Unpinned GitHub Actions (supply chain risk)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: .git/ node_modules/
+  content_contains: uses:
+patterns:
+  - regex: uses:\s+[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+@(main|master|latest|v\d+)\s*$
+    message: "Action pinned to mutable ref (branch/tag) — supply chain risk. Pin to full commit SHA."
+fix: Pin actions to full SHA: uses: actions/checkout@a81bbbf8298c0fa03ea29cdc473d45769f953675 # v3.3.0

@@ -1,0 +1,13 @@
+id: SCA-022
+title: GitHub Actions checkout of PR head ref
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: pull_request
+patterns:
+  - regex: ref:\s*\$\{\{\s*github\.event\.pull_request\.head\.(sha|ref)
+    message: Checking out PR head ref in a pull_request_target workflow runs attacker code with elevated privileges and secret access. This was the TanStack attack vector.
+fix: Never checkout PR head ref in a pull_request_target workflow. Use pull_request event for untrusted code. If you must use pull_request_target, only checkout the base branch.

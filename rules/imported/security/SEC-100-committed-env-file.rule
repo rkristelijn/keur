@@ -1,0 +1,10 @@
+# @see ADR-166
+id: SEC-100
+title: Committed .env file
+category: security
+severity: error
+engine: file-presence
+target:
+  filenames: .env .env.local .env.production
+  exclude_paths: .env.example .env.template
+fix: Remove .env files from the repository and add them to .gitignore. Use environment variables or a secrets manager instead.

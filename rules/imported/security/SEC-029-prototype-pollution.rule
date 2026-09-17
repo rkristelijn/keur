@@ -1,0 +1,14 @@
+id: SEC-029
+title: JavaScript prototype pollution (CVE-2019-10744 lodash)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .js .ts .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (?:deepmerge|merge|extend|defaultsDeep|assign)\(.*req\.body
+    message: "Deep merge with req.body — prototype pollution enables property injection on all JS objects (CVE-2019-10744)"
+  - regex: \[\s*(?:key|prop|name|field)\s*\]\s*=.*req\.
+    message: "Dynamic property assignment from user input — prototype pollution risk via __proto__/constructor"
+fix: Use Object.create(null) for maps, or validate that keys are not '__proto__', 'constructor', or 'prototype'.

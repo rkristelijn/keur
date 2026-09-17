@@ -1,0 +1,12 @@
+id: SCA-015
+title: Gemfile source pointing to non-rubygems registry
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: Gemfile
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: source\s+['"]https?://[^'"]*['"]
+    message: Non-default gem source detected — verify this is a trusted registry. Custom gem sources can serve trojanized versions of legitimate gems.
+fix: Only use https://rubygems.org as a gem source. If a private registry is needed, document it in your security policy.

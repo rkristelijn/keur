@@ -1,0 +1,14 @@
+id: SEC-034
+title: Overly permissive file permissions (CWE-732)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .py .js .ts .rb .java .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (?:os\.chmod|chmod|fs\.chmod|File\.chmod).*0?o?777
+    message: "World-writable file permissions (777) — any user can read/write/execute"
+  - regex: (?:os\.chmod|chmod|fs\.chmod|File\.chmod).*0?o?666
+    message: "World-writable file permissions (666) — any user can read/write"
+fix: Use minimal permissions (0644 for files, 0755 for directories). Never use 777/666.

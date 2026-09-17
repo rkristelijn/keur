@@ -1,0 +1,22 @@
+id: SEC-044
+title: Hardcoded /tmp path (predictable temp file — race/symlink risk)
+category: security
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .cpp .c .h .py .ts .js .go .java .rb .sh
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ _test.go
+  content_contains: /tmp/
+# A hardcoded, predictable path under /tmp is a classic temp-file
+# vulnerability: an attacker who can guess the name can pre-create it as a
+# symlink (CWE-377/CWE-378) or race the open. Use the platform's secure temp
+# API instead. exclude_names suppresses the finding when a secure temp helper
+# is used on the same line. Migrated from the native `owasp-tmp-hardcoded`
+# grep check — the rule engine adds per-language targeting, comment-stripping,
+# and cpm:ignore suppression the shell grep lacked.
+patterns:
+  - regex: (["'`])/tmp/[A-Za-z0-9._-]
+    message: "Hardcoded /tmp path — predictable temp names invite symlink/race attacks (CWE-377). Use a secure temp API (mkstemp, tempfile.NamedTemporaryFile, os.CreateTemp, Files.createTempFile, mktemp)."
+exclude_names: mkstemp mkdtemp NamedTemporaryFile TemporaryDirectory CreateTemp MkdirTemp createTempFile createTempDirectory mktemp
+fix: "Create temp files with the platform API: `mkstemp()` (C), `tempfile.NamedTemporaryFile()` (Python), `os.CreateTemp()` (Go), `Files.createTempFile()` (Java), `mktemp` (shell). Reviewed exception: add `cpm:ignore SEC-044` on the line."

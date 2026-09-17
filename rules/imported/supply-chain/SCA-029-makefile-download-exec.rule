@@ -1,0 +1,12 @@
+id: SCA-029
+title: Makefile downloading and executing binaries
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: Makefile GNUmakefile makefile
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (curl|wget)\s+.*-[oO]\s+\S+.*&&.*chmod.*\+x
+    message: Makefile downloads and marks binary as executable — compromised URL serves malicious binaries. Verify with checksums.
+fix: Verify downloads with checksums (sha256sum). Pin URLs to specific versions. Prefer package managers over direct downloads.

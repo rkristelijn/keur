@@ -1,0 +1,13 @@
+id: SCA-059
+title: GitHub Actions cache poisoning risk
+category: supply-chain
+severity: info
+engine: presence
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: actions/cache
+patterns:
+  - regex: actions/cache
+    message: Actions cache is shared across workflow runs. A fork PR workflow can poison the cache and the poisoned cache affects subsequent runs with secrets.
+fix: Use unique cache keys that include the PR number. Consider actions/cache/restore (read-only) for PR workflows. Never share cache between fork PRs and trusted workflows.

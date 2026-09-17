@@ -1,0 +1,16 @@
+id: SEC-032
+title: Secrets/PII logged in plaintext (CWE-532)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .js .ts .py .java .kt .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: console\.log\(.*(?:password|token|secret|apiKey|api_key|credit.?card|ssn|authorization)
+    message: "Logging sensitive data — secrets in logs get shipped to Splunk/ELK/CloudWatch where they're widely accessible"
+  - regex: logger\.(info|warn|error|debug)\(.*(?:password|token|secret|api.?key|credit.?card|ssn)
+    message: "Logging sensitive data — mask or redact before logging"
+  - regex: print\(.*(?:password|token|secret|api.?key|credit.?card|ssn)
+    message: "Printing sensitive data — may appear in logs or stdout capture"
+fix: Redact sensitive fields before logging. Use structured logging with field masking.

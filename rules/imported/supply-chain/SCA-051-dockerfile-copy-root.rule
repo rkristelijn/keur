@@ -1,0 +1,14 @@
+id: SCA-051
+title: Dockerfile multi-stage copying root directory
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: Dockerfile
+  extensions: .dockerfile
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: COPY --from
+patterns:
+  - regex: COPY\s+--from=\S+\s+/\s+/
+    message: Copying entire root from a build stage that may have had secrets can leak secret files into the final image.
+fix: Copy only specific files/directories needed from build stages. Never copy root (/) from a build stage.

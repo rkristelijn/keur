@@ -1,0 +1,18 @@
+id: SEC-015
+title: Open redirect via user-controlled input (CVE-2025-4123)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .js .ts .jsx .tsx .py .php .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: res\.redirect\(req\.(query|params|body)
+    message: Redirect target from user input — open redirect enables phishing and OAuth token theft
+  - regex: redirect\(request\.(GET|POST|args)\.get\(
+    message: Django/Flask redirect with user input — open redirect risk
+  - regex: header\(\s*['"]Location.*\$_(GET|POST|REQUEST)
+    message: PHP redirect from user input — open redirect vulnerability
+  - regex: redirect_to\s+params\[
+    message: Rails redirect with params — open redirect vulnerability
+fix: Validate redirect URLs against an allowlist of trusted paths/domains.

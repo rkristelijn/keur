@@ -1,0 +1,20 @@
+id: SEC-028
+title: Server-Side Request Forgery via user URL (Capital One 2019)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py .js .ts .java .kt .php
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/ .venv/
+patterns:
+  - regex: requests?\.get\(.*request\.(args|form|data|json)
+    message: "Python requests.get() with user URL — SSRF to cloud metadata (169.254.169.254) → credential theft (Capital One 2019)"
+  - regex: fetch\(.*req\.(body|query|params)
+    message: "fetch() with user-supplied URL — SSRF enables access to internal services and cloud metadata"
+  - regex: HttpClient.*request\.getParameter
+    message: "Java HttpClient with user parameter — SSRF vulnerability"
+  - regex: file_get_contents\(.*\$_(GET|POST|REQUEST)
+    message: "PHP file_get_contents with user URL — SSRF/LFI vulnerability"
+  - regex: urllib\.request\.urlopen\(.*request
+    message: "Python urllib with user input — SSRF risk"
+fix: Validate URLs against an allowlist. Block internal IPs (10.x, 172.16-31.x, 192.168.x, 169.254.x). Use a URL proxy service.

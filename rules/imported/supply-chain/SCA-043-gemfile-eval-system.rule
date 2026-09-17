@@ -1,0 +1,12 @@
+id: SCA-043
+title: Gemfile with eval or system call
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  filenames: Gemfile
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: \b(eval|system|exec)\b\s*[\(\(]
+    message: Dynamic code execution in Gemfile — can execute arbitrary commands during bundle install. Gemfile is Ruby code that runs at dependency resolution time.
+fix: Gemfile should only contain source, gem, and group declarations. Remove any dynamic code execution.

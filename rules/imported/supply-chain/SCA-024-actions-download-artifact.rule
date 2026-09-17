@@ -1,0 +1,13 @@
+id: SCA-024
+title: GitHub Actions download-artifact poisoning risk
+category: supply-chain
+severity: info
+engine: presence
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: download-artifact
+patterns:
+  - regex: actions/download-artifact
+    message: Downloading artifacts from untrusted workflow runs can introduce malicious files. Combined with workflow_run, a fork artifact can poison a trusted workflow.
+fix: Validate artifact integrity (checksums) after download. Be especially careful when combining download-artifact with workflow_run from forks.

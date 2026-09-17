@@ -1,0 +1,13 @@
+id: SCA-045
+title: Risky go generate directive with network calls
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: go:generate
+patterns:
+  - regex: //go:generate\s+.*(curl|wget|bash|sh\s+-c|go\s+run\s+\S+\.\S+/)
+    message: go:generate directive downloads or executes remote code — supply chain risk during code generation.
+fix: go:generate commands should only run local tools. Pin tool versions. Avoid downloading anything during code generation.

@@ -1,0 +1,12 @@
+id: SCA-016
+title: Cargo.toml build script declaration
+category: supply-chain
+severity: info
+engine: pattern
+target:
+  filenames: Cargo.toml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: build\s*=\s*"build\.rs"
+    message: Cargo build scripts execute arbitrary code during compilation. The arrayref/onering Rust attacks used build.rs to exfiltrate source code.
+fix: Audit every build.rs file for network calls, encoded payloads, or file access outside the build directory. Pin build dependencies to exact versions.

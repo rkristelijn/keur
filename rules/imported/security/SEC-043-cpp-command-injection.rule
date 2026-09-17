@@ -1,0 +1,18 @@
+id: SEC-043
+title: Potential command injection in C/C++ shell execution
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc .cxx .h .hpp .hh
+  exclude_paths: test/ tests/ vendor/
+patterns:
+  # A shell command built with %s interpolation — the interpolated value is
+  # passed unescaped to a shell. Classic command-injection sink.
+  - regex: (system|popen|cpm_exec)\s*\([^)]*"[^"]*%s
+    message: "Variable interpolated (%s) into a shell command passed to system()/popen()/cpm_exec() — risk of command injection. Validate against an allowlist or use an argv-based exec API."
+  # snprintf building a command string that starts with a shell/interpreter,
+  # with %s interpolation (the value later reaches system()/cpm_exec()).
+  - regex: snprintf\s*\([^,]+,[^,]+,\s*"(bash|sh|/bin/sh|git|cmd|powershell)\s[^"]*%s
+    message: "Shell command built via snprintf with %s interpolation — the interpolated value is unescaped. Validate against an allowlist or use an argv-based exec API (command injection risk)."
+fix: "Do not build shell command strings with untrusted or variable %s interpolation. Prefer an argument-vector process API (posix_spawn/execv) so arguments are never re-parsed by a shell. If a shell is unavoidable, validate the value against a strict allowlist of permitted names before interpolation."

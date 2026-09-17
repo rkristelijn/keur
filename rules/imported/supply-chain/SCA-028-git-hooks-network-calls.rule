@@ -1,0 +1,13 @@
+id: SCA-028
+title: Committed git hooks with network calls
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: hooks
+patterns:
+  - regex: (curl|wget|nc\s|ncat\s|python\s+-c|ruby\s+-e|perl\s+-e|base64\s+--?d)
+    message: Committed hook script contains network call or encoded payload. Hooks execute on git operations and can run arbitrary code when core.hooksPath is set.
+fix: Audit all committed hook scripts. Hooks should only run project-standard tools (linters, formatters). Remove any network calls or encoded payloads.

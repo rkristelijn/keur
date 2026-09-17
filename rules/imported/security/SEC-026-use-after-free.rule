@@ -1,0 +1,14 @@
+id: SEC-026
+title: Use-after-free / double-free patterns (Chrome V8 CVEs)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: test/ tests/ vendor/ .git/ build/
+patterns:
+  - regex: free\(\s*\w+\s*\)
+    message: "free() without nulling pointer — use-after-free risk. Set pointer to NULL after free."
+  - regex: delete\s+\w+;
+    message: "delete without nulling pointer — use-after-free risk. Set to nullptr after delete."
+fix: Set pointer to NULL/nullptr after free/delete. Better: use smart pointers (unique_ptr, shared_ptr) or RAII.

@@ -1,0 +1,18 @@
+id: SEC-022
+title: Non-cryptographic PRNG for security values (CVE-2025-66565)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .js .ts .jsx .tsx .py .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: Math\.random\(\).*(?:token|secret|key|session|nonce|salt|password|otp|code|csrf)
+    message: "Math.random() for security value — predictable, enables session hijacking"
+  - regex: (?:token|secret|key|session|nonce|salt|password|otp|code|csrf).*Math\.random\(\)
+    message: "Math.random() for security value — use crypto.randomUUID() or crypto.getRandomValues()"
+  - regex: random\.randint.*(?:token|secret|key|otp|code|nonce|csrf)
+    message: "Python random module for security — use secrets.token_hex() or secrets.randbelow()"
+  - regex: java\.util\.Random\(\).*(?:token|secret|key|session|nonce|csrf)
+    message: "java.util.Random for security — use java.security.SecureRandom"
+fix: Use crypto.randomUUID() (JS), secrets module (Python), SecureRandom (Java), crypto/rand (Go), RNGCryptoServiceProvider (C#).

@@ -1,0 +1,14 @@
+id: SC-SEC-013
+title: Obfuscated build system payload pattern (CVE-2024-3094 XZ)
+category: security
+severity: warning
+engine: pattern
+target:
+  filenames: Makefile Makefile.am configure.ac CMakeLists.txt
+  exclude_paths: .git/ node_modules/
+patterns:
+  - regex: (?:sed|tr|head|tail).*\|.*(?:eval|sh|bash)
+    message: "Build script piping through text tools into eval/sh — matches XZ backdoor pattern (CVE-2024-3094 CVSS 10.0)"
+  - regex: test.*\|.*(?:xz|gzip|bzip2).*\|.*(?:eval|sh)
+    message: "Test data piped through compression into shell execution — XZ backdoor pattern"
+fix: Build scripts should not extract and execute binary data from test fixtures. Review any sed|eval chains carefully.
