@@ -53,6 +53,7 @@ static void usage() {
         "  rules list [--winners]     Show the resolved rule cascade (layers + specificity)\n"
         "  learn [--stop|--status]    Spin the optimise loop + live TUI monitor\n"
         "        [--source S]         S = corpus (default) | keureval\n"
+        "        [--model M]          Ollama model for the loop (default: keur-rule-engineer)\n"
         "  version                    Print version\n"
         "  help                       Show this message\n"
         "\n"

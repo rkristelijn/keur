@@ -25,6 +25,7 @@ struct LearnOptions {
   bool no_spin = false;   // --no-spin: attach monitor only, do not start a loop
   int refresh_secs = 2;   // monitor refresh interval
   std::string source = "corpus";  // KEUR_EVAL_SOURCE for a freshly spun loop
+  std::string model;      // --model: Ollama model for a freshly spun loop (empty = optimise.sh default)
 };
 
 LearnOptions learn_parse(const std::vector<std::string>& args);
