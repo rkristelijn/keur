@@ -134,7 +134,9 @@ Status legend: [x] done · [~] partially done · [ ] open
       * no dir > ~10 files;
       * name conventions, logical layout, one clear responsibility per file (SRP);
       * little copy-paste; build once in a lib/module, then reuse.
-      Current violations to address:
+      Status: file-size violations RESOLVED (learn.cpp + rule_engine.cpp split).
+      cmd/ folder count resolved by counting logical units (.h+.cpp = 1 unit).
+      check-basics is GREEN. Historical notes:
       * src/keur/cmd/learn.cpp (~411 net lines, 4 responsibilities: JSONL parse +
         resource read + TUI render + orchestration) — SPLIT into
         learn/history.{h,cpp} (parse), learn/sysinfo (resources; also the
