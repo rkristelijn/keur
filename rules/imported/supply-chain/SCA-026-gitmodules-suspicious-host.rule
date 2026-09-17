@@ -1,0 +1,14 @@
+id: SCA-026
+title: Git submodule from suspicious host
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: .gitmodules
+  exclude_paths: .git/
+patterns:
+  - regex: url\s*=\s*http://
+    message: Submodule uses insecure HTTP — vulnerable to MITM attacks. CVE-2024-32002 demonstrated how crafted submodules can achieve RCE during clone.
+  - regex: url\s*=\s*https?://[^/]
+    message: Verify submodule host is trusted. Submodules from unknown hosts may serve malicious code. Pin submodules to specific commits.
+fix: Only use submodules from trusted hosts (github.com, gitlab.com, bitbucket.org). Pin submodules to specific commits. Use HTTPS only.

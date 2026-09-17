@@ -1,0 +1,27 @@
+id: SEC-038
+title: Weak cryptographic algorithms (MD5, SHA-1, DES, RC4)
+category: security
+severity: error
+engine: pattern
+skip_comments: true
+skip_strings: true
+target:
+  extensions: .ts .js .py .java .go .cpp .h .rb .cs .php
+  exclude_paths: test/ node_modules/ vendor/ _test.go
+patterns:
+  - regex: createHash\(\s*['"]md5['"]\s*\)
+    message: "MD5 is cryptographically broken — collision attacks are practical (CVE-2004-2761)"
+  - regex: MessageDigest\.getInstance\(\s*"MD5"\s*\)
+    message: "MD5 is cryptographically broken — use SHA-256 or higher"
+  - regex: hashlib\.md5
+    message: "MD5 is cryptographically broken — use hashlib.sha256 or higher"
+  - regex: createHash\(\s*['"]sha1['"]\s*\)
+    message: "SHA-1 is deprecated — collision attacks demonstrated (SHAttered, 2017)"
+  - regex: \b(md5|MD5|sha1|SHA1)\s*\(
+    message: "MD5/SHA-1 hashing call — cryptographically broken for security use. Use SHA-256+ (a non-security checksum is a reviewed exception: cpm:ignore SEC-038)."
+  - regex: \bDES\b
+    message: "DES uses 56-bit keys — brute-force breakable in hours, use AES"
+  - regex: \bRC4\b
+    message: "RC4 has systematic biases — prohibited by RFC 7465, use AES-GCM"
+exclude_names: md5sum sha1sum
+fix: Replace MD5/SHA-1 with SHA-256+. Replace DES/RC4 with AES-GCM or ChaCha20-Poly1305. For a non-security checksum/etag/cache-key, add `cpm:ignore SEC-038` on the line.

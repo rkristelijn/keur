@@ -1,0 +1,13 @@
+id: SCA-074
+title: GitHub Actions GITHUB_TOKEN exposed to workflows
+category: supply-chain
+severity: info
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: secrets.GITHUB_TOKEN
+patterns:
+  - regex: \$\{\{\s*secrets\.(GITHUB_TOKEN|github_token)\s*\}\}
+    message: GITHUB_TOKEN passed explicitly — if used with third-party actions, gives them full API access. Prefer permissions over explicit token passing.
+fix: Use permissions to limit GITHUB_TOKEN scope. Pass secrets only to trusted first-party actions. Review what each third-party action does with provided secrets.

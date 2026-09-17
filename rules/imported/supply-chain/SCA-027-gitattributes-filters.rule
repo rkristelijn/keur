@@ -1,0 +1,16 @@
+id: SCA-027
+title: Git attributes filter/smudge/clean commands
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: .gitattributes
+  exclude_paths: .git/
+patterns:
+  - regex: filter\s*=
+    message: Git filter driver executes commands on checkout/stage — can run arbitrary code whenever files are processed.
+  - regex: smudge\s*=
+    message: Git smudge filter executes on checkout — can inject malicious content into working directory files.
+  - regex: clean\s*=
+    message: Git clean filter executes on stage — can exfiltrate file contents or modify staged data.
+fix: Audit all filter definitions in .gitattributes and .git/config. Remove any that execute scripts or binaries you did not write.

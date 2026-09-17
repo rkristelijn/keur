@@ -1,0 +1,14 @@
+id: SC-SEC-010
+title: Dependency confusion attack surface (Birsan 2021)
+category: security
+severity: warning
+engine: pattern
+target:
+  filenames: .npmrc pip.conf pyproject.toml
+  exclude_paths: test/ .git/ node_modules/
+patterns:
+  - regex: registry\s*=\s*https://registry\.npmjs\.org
+    message: "Public registry as primary — if you use private packages, configure scoped registries to prevent dependency confusion"
+  - regex: extra-index-url
+    message: "extra-index-url without --index-url restriction — pip may fetch from public PyPI instead of private registry"
+fix: Scope private packages with @org/pkg and configure scoped registries in .npmrc. For pip, pin index-url to private registry.

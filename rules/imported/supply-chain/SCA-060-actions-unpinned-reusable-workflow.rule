@@ -1,0 +1,13 @@
+id: SCA-060
+title: Unpinned reusable workflow reference
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: .yml@
+patterns:
+  - regex: uses:\s+[^@]+\.yml@(main|master|HEAD|latest|v[0-9]+)\s*$
+    message: Reusable workflow pinned to mutable ref — executes with caller permissions and secrets. An unpinned ref allows the workflow to change maliciously.
+fix: Pin reusable workflows to a full SHA — uses: org/repo/.github/workflows/file.yml@<sha>.

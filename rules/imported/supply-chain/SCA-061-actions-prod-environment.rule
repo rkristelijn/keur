@@ -1,0 +1,13 @@
+id: SCA-061
+title: GitHub Actions production environment reference
+category: supply-chain
+severity: info
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: environment
+patterns:
+  - regex: environment:\s*(production|prod|live|release)\b
+    message: Production environment referenced — ensure environment protection rules are configured in GitHub Settings. Without branch protection, any workflow can deploy to production.
+fix: Configure environment protection rules in GitHub Settings > Environments. Require reviewers for production deployments. Enable branch protection on main.

@@ -1,0 +1,14 @@
+id: SCA-068
+title: DNS exfiltration pattern
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  extensions: .sh .bash .py .js .ts
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (dig|nslookup|host)\s+.*\$
+    message: DNS query with interpolated variable — attackers encode stolen data (tokens, credentials) as DNS query labels, exfiltrating through DNS which bypasses firewalls.
+  - regex: \.burpcollaborator\.net|\.oast\.|\.interact\.sh
+    message: Known exfiltration domain detected — burpcollaborator.net, oast, and interact.sh are used for out-of-band data exfiltration.
+fix: DNS queries with interpolated variables are a strong exfiltration indicator. Remove and investigate. Block known exfiltration domains at the network level.

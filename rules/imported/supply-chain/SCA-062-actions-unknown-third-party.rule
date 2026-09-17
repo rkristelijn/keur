@@ -1,0 +1,13 @@
+id: SCA-062
+title: GitHub Actions unknown third-party action
+category: supply-chain
+severity: info
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: uses:
+patterns:
+  - regex: uses:\s+[a-z][a-z0-9_-]*/[a-z0-9_-]+@
+    message: Third-party action detected — verify the org is trusted. Composite actions run in caller context with access to repository and secrets. Prefer official actions from actions/, github/, aws-actions/.
+fix: Vet third-party actions. Pin to SHA. Prefer official actions from actions/, github/, aws-actions/, etc.

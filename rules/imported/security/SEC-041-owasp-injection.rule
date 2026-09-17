@@ -1,0 +1,24 @@
+id: SEC-041
+title: OWASP Top 10 — A05 Injection (SQL, XSS, Template)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .cpp .h
+  exclude_paths: test/ node_modules/ vendor/ _test.go
+patterns:
+  - regex: ` \+ req\.
+    message: "A05 SQL concatenation with request data — use parameterized queries to prevent SQL injection"
+  - regex: \" \+ req\.
+    message: "A05 SQL concatenation with request data — use parameterized queries to prevent SQL injection"
+  - regex: f\"SELECT
+    message: "A05 SQL f-string interpolation — use parameterized queries, not string formatting"
+  - regex: \$\{req\.
+    message: "A05 Template injection — user input in template literal enables code execution"
+  - regex: innerHTML
+    message: "A05 XSS via innerHTML — use textContent or a sanitizer (DOMPurify) instead"
+  - regex: dangerouslySetInnerHTML
+    message: "A05 XSS in React — dangerouslySetInnerHTML bypasses React's XSS protection. Sanitize with DOMPurify"
+  - regex: document\.write
+    message: "A05 XSS via document.write — use DOM APIs (createElement/textContent) instead"
+fix: Use parameterized queries for SQL. Use textContent instead of innerHTML. Sanitize HTML with DOMPurify. Never interpolate user input into templates or queries.

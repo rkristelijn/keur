@@ -1,0 +1,18 @@
+id: SCA-065
+title: Encoded payload execution (decode + eval/exec)
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  extensions: .sh .bash .py .js .ts .rb .php
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: base64\s+(-d|--decode).*\|\s*(ba)?sh
+    message: Base64 decoded content piped to shell — definitive indicator of obfuscated supply chain payload.
+  - regex: echo\s+[A-Za-z0-9+/=]{40,}\s*\|\s*base64
+    message: Long base64 string being decoded — likely obfuscated malicious payload.
+  - regex: eval\s*\(\s*(atob|Buffer\.from|base64)
+    message: JavaScript eval of base64-decoded content — almost certainly malicious code execution.
+  - regex: exec\s*\(\s*(base64\.b64decode|decode)
+    message: Python exec of decoded content — near-certain supply chain attack payload.
+fix: This is almost certainly malicious. Remove immediately and investigate the source. Report to the package registry.

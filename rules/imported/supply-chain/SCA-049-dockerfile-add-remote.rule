@@ -1,0 +1,13 @@
+id: SCA-049
+title: Dockerfile ADD with remote URL
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: Dockerfile
+  extensions: .dockerfile
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: ^ADD\s+https?://
+    message: ADD fetches remote URLs at build time and auto-extracts archives. An attacker who compromises the URL serves malicious content.
+fix: Use COPY with a separate RUN curl that verifies checksums. Or use multi-stage builds with ADD --checksum=sha256:<hash> (BuildKit).

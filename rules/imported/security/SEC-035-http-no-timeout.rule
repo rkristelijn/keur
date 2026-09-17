@@ -1,0 +1,14 @@
+id: SEC-035
+title: HTTP client without timeout (CWE-400)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .py .js .ts .java .kt
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: requests\.(?:get|post|put|delete|patch)\([^)]*\)
+    message: "Python requests call without explicit timeout — hung connections can exhaust resources and cause cascading failures"
+  - regex: HttpClient\.newBuilder\(\)
+    message: "Java HttpClient — verify connectTimeout is set, missing timeout can hang indefinitely"
+fix: Always set explicit timeouts. Python: requests.get(url, timeout=30). Java: HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).

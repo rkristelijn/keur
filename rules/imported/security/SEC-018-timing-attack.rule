@@ -1,0 +1,12 @@
+id: SEC-018
+title: Timing-unsafe secret comparison (CWE-208)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .js .ts .py .rb .go .java
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (hmac|signature|token|digest|hash)\s*={2,3}\s*
+    message: "String comparison of secret/HMAC value — timing side-channel leaks correct value byte by byte"
+fix: Use crypto.timingSafeEqual() (Node), hmac.compare_digest() (Python), SecureComparator (Java), or secure_compare (Ruby).

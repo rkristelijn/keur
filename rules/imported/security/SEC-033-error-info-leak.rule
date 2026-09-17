@@ -1,0 +1,16 @@
+id: SEC-033
+title: Stack trace / internal error exposure to users (CWE-209)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .js .ts .py .java .kt .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: res\.status\(500\)\.send\(err
+    message: "Sending raw error to client — exposes stack trace, internal paths, library versions"
+  - regex: res\.json\(.*error.*\.stack
+    message: "Sending error stack to client — reveals internal architecture to attackers"
+  - regex: traceback\.format_exc\(\).*(?:return|jsonify|Response)
+    message: "Returning Python traceback to client — exposes internal paths and library versions"
+fix: Return generic error messages to users. Log full errors server-side only. Use error middleware for consistent handling.

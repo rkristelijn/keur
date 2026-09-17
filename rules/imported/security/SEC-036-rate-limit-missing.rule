@@ -1,0 +1,12 @@
+id: SEC-036
+title: Missing rate limiting on auth endpoints (OWASP API4)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .js .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (?:app|router)\.post\(['"].*(?:login|signin|auth|password|reset|register|otp|verify)['"]
+    message: "Auth endpoint without visible rate limiting — brute-force, credential stuffing, and OTP abuse risk"
+fix: Add rate limiting middleware (express-rate-limit, rate-limiter-flexible) to auth endpoints.

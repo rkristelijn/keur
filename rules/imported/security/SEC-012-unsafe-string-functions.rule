@@ -1,0 +1,18 @@
+id: SEC-012
+title: Unsafe C string functions
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/
+patterns:
+  - regex: \bstrcpy\s*\(
+    message: "strcpy() has no bounds checking — buffer overflow risk. Use snprintf(dst, sizeof(dst), \"%s\", src)"
+  - regex: \bstrcat\s*\(
+    message: "strcat() has no bounds checking — buffer overflow risk. Use snprintf() with position tracking"
+  - regex: \bsprintf\s*\(
+    message: "sprintf() has no bounds checking — buffer overflow risk. Use snprintf(buf, sizeof(buf), ...)"
+  - regex: \bgets\s*\(
+    message: "gets() is always unsafe (removed in C11). Use fgets(buf, sizeof(buf), stdin)"
+fix: Replace with bounded alternatives (snprintf, fgets, strlcat)

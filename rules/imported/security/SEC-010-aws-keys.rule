@@ -1,0 +1,13 @@
+id: SEC-010
+title: Hardcoded AWS Access Key
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .cpp .java .yaml .json .env .sh
+  exclude_paths: test/ vendor/ node_modules/ .git/
+  content_contains: AKIA
+patterns:
+  - regex: AKIA[A-Z0-9]{16}
+    message: AWS Access Key ID detected — use environment variable
+fix: Use AWS_ACCESS_KEY_ID environment variable or secrets manager

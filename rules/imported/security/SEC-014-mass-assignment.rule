@@ -1,0 +1,16 @@
+id: SEC-014
+title: Mass assignment / unfiltered parameter binding
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .js .ts .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: Model\.create\(req\.body
+    message: "Passing req.body directly to Model.create() — mass assignment enables privilege escalation"
+  - regex: new\s+\w+\(req\.body\)
+    message: "Constructing model from req.body — mass assignment risk. Use allowlisted fields."
+  - regex: Object\.assign\(\w+,\s*req\.body\)
+    message: "Object.assign with req.body — mass assignment enables setting admin/role fields"
+fix: Always allowlist fields explicitly. Use DTOs or pick specific properties from req.body.

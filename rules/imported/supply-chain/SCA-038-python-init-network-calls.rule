@@ -1,0 +1,12 @@
+id: SCA-038
+title: Python conftest.py or __init__.py with network calls
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: conftest.py __init__.py
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (requests\.(get|post)|urllib\.request\.urlopen|http\.client|socket\.connect|subprocess\.(call|run|Popen))\s*\(
+    message: conftest.py and __init__.py execute at import time. Malicious packages hide payload execution in these files to run on first import.
+fix: __init__.py and conftest.py should contain imports and configuration only, not network calls or subprocess execution.

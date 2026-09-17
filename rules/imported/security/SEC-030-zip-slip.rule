@@ -1,0 +1,16 @@
+id: SEC-030
+title: Archive extraction path traversal (CVE-2018-1002200 Zip Slip)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .java .kt .py .js .ts .go .rb .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ZipInputStream.*getNextEntry
+    message: "ZipInputStream extraction — validate entry names don't contain '..' to prevent Zip Slip (CVE-2018-1002200)"
+  - regex: zipfile\.ZipFile.*extractall
+    message: "Python zipfile.extractall — no built-in path traversal protection. Validate entry paths first."
+  - regex: adm-zip.*extractAllTo|yauzl.*openReadStream
+    message: "Archive extraction — validate entry paths don't contain '..' before writing"
+fix: Before extracting, resolve the full path and verify it starts with the intended destination directory.

@@ -1,0 +1,13 @@
+id: SCA-039
+title: Python base64 decode combined with exec
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  filenames: setup.py
+  extensions: .py
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: base64\.(b64decode|decodebytes).*\b(exec|eval|compile|os\.system|subprocess)\b
+    message: Base64-encoded payload decoded and executed — signature pattern of TeamPCP/Shai-Hulud supply chain attacks.
+fix: Remove any base64-decode-to-exec pattern. This is a near-certain indicator of malicious code. Report the package.

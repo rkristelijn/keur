@@ -1,0 +1,14 @@
+id: SEC-024
+title: Log4j JNDI lookup injection (CVE-2021-44228 — Log4Shell)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .java .kt .xml .properties
+  exclude_paths: test/ tests/ vendor/ .git/ target/ build/
+patterns:
+  - regex: \$\{jndi:
+    message: "JNDI lookup string detected — Log4Shell (CVE-2021-44228 CVSS 10.0) RCE vector"
+  - regex: log4j-(core|api).*['"]2\.(0|1|2|3|4|5|6|7|8|9|1[0-5])\.
+    message: "Log4j version 2.0-2.15 vulnerable to Log4Shell — upgrade to 2.17.1+"
+fix: Upgrade log4j to 2.17.1+. Set log4j2.formatMsgNoLookups=true as immediate mitigation.

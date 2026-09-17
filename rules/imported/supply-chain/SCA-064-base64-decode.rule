@@ -1,0 +1,18 @@
+id: SCA-064
+title: Base64 decode operation in code
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  extensions: .sh .bash .py .js .ts .rb .php
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: base64\s+(-d|--decode)
+    message: Shell base64 decode — investigate if output feeds into eval/exec/sh. Primary obfuscation technique in supply chain attacks.
+  - regex: atob\s*\(
+    message: JavaScript base64 decode (atob) — investigate if result is executed. Used in cross-ecosystem supply chain attacks.
+  - regex: b64decode
+    message: Python base64 decode — investigate if result feeds into exec/eval/compile/subprocess.
+  - regex: Base64\.decode
+    message: Base64 decode operation — investigate if decoded content is executed.
+fix: Investigate any base64 decode that feeds into eval/exec/system. Legitimate uses (images, JWT) should be documented.

@@ -1,0 +1,20 @@
+id: SCA-069
+title: Reverse shell pattern detected
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  extensions: .sh .bash .py .js .rb .php
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: /dev/tcp/
+    message: Bash /dev/tcp reverse shell — connects back to attacker machine for interactive access.
+  - regex: bash\s+-i\s+>&
+    message: Bash interactive reverse shell — grants full remote access to attacker.
+  - regex: nc\s+-[elp]|ncat\s+-[elp]
+    message: Netcat listener/reverse shell — used to establish remote access in compromised packages.
+  - regex: python.*socket.*connect.*subprocess
+    message: Python socket reverse shell — creates network connection with subprocess execution.
+  - regex: php.*fsockopen.*exec
+    message: PHP reverse shell — establishes socket connection with command execution.
+fix: Reverse shells are always malicious in application code. Remove immediately, rotate all credentials, and investigate how the code entered the repository.

@@ -1,0 +1,12 @@
+id: SCA-041
+title: Gemfile git source without ref pin
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: Gemfile
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: gem\s+['"][^'"]+['"],\s*git:\s*['"][^'"]+['"]
+    message: Git-sourced gem without a pinned ref/tag/commit gets latest code from branch at install time. A compromised repo delivers malicious code silently.
+fix: Always pin git-sourced gems to a specific commit — gem 'name', git: 'url', ref: '<sha>'.

@@ -1,0 +1,13 @@
+id: SCA-032
+title: CMake file(DOWNLOAD) without hash verification
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: CMakeLists.txt
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: DOWNLOAD
+patterns:
+  - regex: file\s*\(\s*DOWNLOAD\s+
+    message: CMake file(DOWNLOAD) fetches files at configure time. Without EXPECTED_HASH, a compromised server can deliver malicious content.
+fix: Always use file(DOWNLOAD url file EXPECTED_HASH SHA256=<hash>). Pin the hash of every downloaded file.

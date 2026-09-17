@@ -1,0 +1,16 @@
+id: SEC-025
+title: Format string with user-controlled input (CWE-134)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: test/ tests/ vendor/ .git/ build/
+patterns:
+  - regex: printf\(\s*[a-zA-Z_]\w*\s*\)
+    message: "printf() with variable as format string — enables arbitrary memory read/write (CVE-2012-0809)"
+  - regex: fprintf\(\s*\w+\s*,\s*[a-zA-Z_]\w*\s*\)
+    message: "fprintf() with variable format string — format string vulnerability"
+  - regex: syslog\(\s*\w+\s*,\s*[a-zA-Z_]\w*\s*\)
+    message: "syslog() with variable format string — format string vulnerability"
+fix: Always use a literal format string: printf("%s", user_data) instead of printf(user_data).

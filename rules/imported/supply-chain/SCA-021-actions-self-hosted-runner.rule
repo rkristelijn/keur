@@ -1,0 +1,13 @@
+id: SCA-021
+title: GitHub Actions uses self-hosted runner
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: self-hosted
+patterns:
+  - regex: runs-on:.*self-hosted
+    message: Self-hosted runners persist between jobs. A malicious PR can plant backdoors, modify PATH, or steal credentials that affect subsequent workflow runs.
+fix: Use ephemeral self-hosted runners (e.g., actions-runner-controller with ephemeral mode). Never run untrusted PR workflows on self-hosted runners.

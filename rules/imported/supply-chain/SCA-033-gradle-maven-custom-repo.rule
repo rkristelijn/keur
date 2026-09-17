@@ -1,0 +1,12 @@
+id: SCA-033
+title: Gradle/Maven non-standard repository source
+category: supply-chain
+severity: info
+engine: pattern
+target:
+  filenames: build.gradle build.gradle.kts pom.xml settings.gradle settings.gradle.kts
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: url\s*['"]https?://[^'"]+['"]
+    message: Build file uses custom repository URL — verify it is a trusted source. Non-standard repositories can serve trojanized artifacts.
+fix: Document all custom Maven/Gradle repositories. Prefer Maven Central. Use repository mirroring with integrity verification.

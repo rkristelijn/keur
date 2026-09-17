@@ -1,0 +1,12 @@
+id: SCA-052
+title: Suspicious npm lockfile with non-standard resolved URL
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: package-lock.json
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: "resolved"\s*:\s*"https?://
+    message: Verify resolved URL points to registry.npmjs.org. Tampered lockfiles redirect package downloads to attacker-controlled registries.
+fix: Run npm ci (strict lockfile install). Regenerate lockfile if URLs point to unexpected registries. Use npm audit signatures to verify provenance.

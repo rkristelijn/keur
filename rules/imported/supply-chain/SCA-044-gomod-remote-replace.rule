@@ -1,0 +1,12 @@
+id: SCA-044
+title: Suspicious go.mod replace directive pointing to remote
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: go.mod
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: replace\s+\S+\s+=>\s+(github\.com|gitlab\.com|bitbucket\.org|[a-z]+\.[a-z]+/)
+    message: Remote replace directive can redirect a trusted module to an attacker-controlled repository, serving backdoored code transparently.
+fix: Remote replace directives should only be used temporarily during development. Remove before merging. Use go mod tidy to clean up.

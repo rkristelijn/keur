@@ -1,0 +1,16 @@
+id: SEC-019
+title: Server-Side Template Injection (CVE-2025-23211)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py .java .kt .php
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/ .venv/
+patterns:
+  - regex: render_template_string\(.*request
+    message: "User input in render_template_string() — Jinja2 SSTI enables RCE"
+  - regex: Template\(.*request\.
+    message: "User input in Template constructor — SSTI enables arbitrary code execution"
+  - regex: Environment.*from_string.*request
+    message: "Jinja2 Environment.from_string with request data — SSTI RCE risk"
+fix: Never pass user input directly into template strings. Use render_template() with separate template files.

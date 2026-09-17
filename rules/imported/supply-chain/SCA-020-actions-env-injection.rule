@@ -1,0 +1,13 @@
+id: SCA-020
+title: GitHub Actions environment variable injection
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: GITHUB_
+patterns:
+  - regex: >>\s*\$GITHUB_(ENV|OUTPUT|PATH)
+    message: Writing to GITHUB_ENV/OUTPUT/PATH can allow environment variable injection if untrusted input is included. Multi-line injection via delimiter manipulation is possible.
+fix: Sanitize all input before writing to GITHUB_ENV. Use a fixed delimiter. Never write raw untrusted content to environment files.

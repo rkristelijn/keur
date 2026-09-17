@@ -1,0 +1,12 @@
+id: SCA-073
+title: Wildcard or any-version dependency
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  filenames: package.json composer.json
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: [^"]+"\s*:\s*"(\*|latest|>=0\.0\.0)
+    message: Wildcard/latest version constraint means any published version (including malicious ones) can be installed.
+fix: Always pin dependency versions. Use exact versions or tight ranges. Never use * or latest in production dependencies.

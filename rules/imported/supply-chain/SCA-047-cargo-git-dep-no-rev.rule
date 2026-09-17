@@ -1,0 +1,12 @@
+id: SCA-047
+title: Cargo.toml git dependency without rev pin
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: Cargo.toml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: git\s*=\s*"[^"]+"
+    message: Git dependency without pinned revision gets the latest commit. A compromised repo silently delivers malicious code.
+fix: Pin git dependencies to a specific rev — package = { git = "url", rev = "abc123" }. Prefer crates.io packages over git dependencies.

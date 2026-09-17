@@ -1,0 +1,12 @@
+id: SCA-031
+title: CMake execute_process with network command
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  filenames: CMakeLists.txt
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: execute_process\s*\(.*COMMAND.*(curl|wget|python|bash|sh\s)
+    message: execute_process runs commands during CMake configure step with developer full privileges. Network calls here are a supply chain risk.
+fix: Avoid network calls in CMake configure step. Use FetchContent or ExternalProject with hash verification instead.

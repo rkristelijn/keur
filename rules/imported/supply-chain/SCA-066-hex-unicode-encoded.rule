@@ -1,0 +1,14 @@
+id: SCA-066
+title: Hex or Unicode encoded shell commands
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  extensions: .sh .bash .py .js .rb
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (\\x[0-9a-fA-F]{2}){8,}
+    message: Long hex escape sequence — attackers use hex encoding to obfuscate malicious commands like curl/wget.
+  - regex: (\\u[0-9a-fA-F]{4}){6,}
+    message: Long unicode escape sequence — used to obfuscate malicious commands and evade static analysis.
+fix: Investigate long hex/unicode escape sequences. Decode and review the content. Legitimate uses (binary protocols) should be documented.

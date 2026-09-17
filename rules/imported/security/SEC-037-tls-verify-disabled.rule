@@ -1,0 +1,18 @@
+id: SEC-037
+title: TLS certificate verification disabled (MitM risk)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .go .java .php .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: rejectUnauthorized\s*:\s*false
+    message: "Node.js TLS verification disabled — man-in-the-middle attacks possible"
+  - regex: NODE_TLS_REJECT_UNAUTHORIZED.*['"]0['"]
+    message: "TLS rejection disabled via env var — all HTTPS connections are insecure"
+  - regex: ssl_verify\s*[=:]\s*(?:false|False|0)
+    message: "SSL verification disabled — connections vulnerable to interception"
+  - regex: SSL_VERIFYPEER\s*,\s*(?:false|FALSE|0)
+    message: "PHP SSL peer verification disabled — HTTPS connections insecure"
+fix: Never disable TLS verification in production. Use proper CA certificates or a custom CA bundle.

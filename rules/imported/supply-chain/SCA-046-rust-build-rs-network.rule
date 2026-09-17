@@ -1,0 +1,14 @@
+id: SCA-046
+title: Rust build.rs with network calls
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  filenames: build.rs
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (reqwest|hyper|curl|ureq|attohttpc|std::net::TcpStream)
+    message: Cargo build script contains network library — build scripts execute during compilation. The onering crate used build.rs to exfiltrate git data via HTTP.
+  - regex: std::process::Command.*(curl|wget|nc)
+    message: Build script spawns network command — critical supply chain risk. The arrayref attack used build.rs to download remote payloads.
+fix: Build scripts should only use cc, pkg-config, or file I/O. Network calls in build.rs are a critical red flag. Report the crate.

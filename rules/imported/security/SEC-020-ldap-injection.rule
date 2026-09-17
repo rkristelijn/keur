@@ -1,0 +1,17 @@
+id: SEC-020
+title: LDAP filter injection (CVE-2017-8028)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .java .kt .cs .php .py
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: ldap
+patterns:
+  - regex: ldap_search\(.*\$_(GET|POST|REQUEST)
+    message: User input in ldap_search() — LDAP injection enables auth bypass and data exfiltration
+  - regex: search_s\(.*format\(
+    message: Python format string in LDAP search — LDAP injection risk
+  - regex: search_s\(.*\+\s*['"]
+    message: String concatenation in LDAP search — LDAP injection risk
+fix: Use parameterized LDAP filters. Escape special chars with ldap_filter_encode (PHP) or ldap3.utils.dn.escape_rdn (Python).

@@ -1,0 +1,15 @@
+id: SCA-076
+title: GitHub Actions shell injection via untrusted inputs
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: "${{" 
+patterns:
+  - regex: run:.*\$\{\{\s*github\.event\.(inputs|comment|review|head_commit)
+    message: Workflow dispatch inputs interpolated directly in run block — allows shell command injection via crafted input values.
+  - regex: run:.*\$\{\{\s*github\.event\.pull_request\.(title|body|head\.ref)
+    message: PR title/body/ref interpolated in run block — attacker-controlled content enables shell injection.
+fix: Never interpolate untrusted inputs directly in run blocks. Assign to an env variable first — env: TITLE: ${{ github.event.pull_request.title }}, then use "$TITLE" in run.

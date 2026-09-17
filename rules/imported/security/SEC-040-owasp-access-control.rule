@@ -1,0 +1,28 @@
+id: SEC-040
+title: OWASP Top 10 — A01 Broken Access Control + A02 Security Misconfiguration
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .cpp .h
+  exclude_paths: test/ node_modules/ vendor/ _test.go
+patterns:
+  - regex: role\s*===?\s*[\"']admin[\"']
+    message: "A01 Hardcoded role check — use RBAC or permission system instead of string comparison"
+  - regex: isAdmin\s*=\s*true
+    message: "A01 Hardcoded admin flag — use proper authorization middleware, not boolean flags"
+  - regex: debug:\s*true
+    message: "A02 Debug mode enabled — exposes stack traces, config, and internal state in production"
+  - regex: DEBUG\s*=\s*True
+    message: "A02 Debug mode enabled (Python) — Django/Flask DEBUG=True leaks sensitive info in error pages"
+  - regex: Access-Control-Allow-Origin:\s*\*
+    message: "A02 CORS wildcard — allows any origin to read responses, leaking data cross-site"
+  - regex: cors\(\{\s*origin:\s*[\"']\*[\"']
+    message: "A02 CORS wildcard in Express/Node — restrict to specific trusted origins"
+  - regex: cors\(origins=\[[\"']\*[\"']\]
+    message: "A02 CORS wildcard in Python — restrict origins to trusted domains"
+  - regex: X-Powered-By
+    message: "A02 Server info leak — X-Powered-By header reveals framework/version to attackers"
+  - regex: stack\s*trace
+    message: "A02 Verbose error — stack traces in responses reveal internals to attackers"
+fix: Use RBAC for access control. Disable debug mode in production. Restrict CORS origins. Remove X-Powered-By header (use helmet in Express). Never expose stack traces to users.

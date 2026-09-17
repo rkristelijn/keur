@@ -1,0 +1,12 @@
+id: SCA-040
+title: Custom pip.conf with non-PyPI index
+category: supply-chain
+severity: info
+engine: pattern
+target:
+  filenames: pip.conf pip.ini
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: index-url\s*=\s*https?://
+    message: pip.conf has custom index-url — verify this is a trusted registry. Non-PyPI indexes can serve trojaned packages.
+fix: Document and audit custom pip indexes. Use a repository proxy (Artifactory, Nexus) that mirrors PyPI with vulnerability scanning.

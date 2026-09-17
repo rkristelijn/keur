@@ -1,0 +1,14 @@
+id: SCA-050
+title: Dockerfile COPY from untrusted image
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: Dockerfile
+  extensions: .dockerfile
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: COPY --from
+patterns:
+  - regex: COPY\s+--from=[a-zA-Z]
+    message: COPY --from references named external image. If the image is compromised or unversioned, malicious files enter the build. Numbered stages (--from=0) are safer.
+fix: Use numbered build stages (--from=0) or named stages defined in this Dockerfile. For external images, pin by digest — image@sha256:...

@@ -1,0 +1,12 @@
+id: SCA-037
+title: Python .pth file with import (auto-execution on startup)
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  extensions: .pth
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: ^import\s
+    message: Python executes code in .pth files starting with import on every interpreter startup — silently, with no opt-in. The Hades/Shai-Hulud PyPI campaigns used this vector.
+fix: Audit all .pth files in your environment. They should only contain directory paths, never import statements. Remove any .pth file with executable code.

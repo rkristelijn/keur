@@ -1,0 +1,16 @@
+id: SEC-021
+title: ECB block cipher mode (preserves plaintext patterns)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .java .kt .py .cs .go .js .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: AES/ECB
+    message: "ECB mode preserves patterns in plaintext — complete failure of confidentiality"
+  - regex: MODE_ECB
+    message: "ECB cipher mode — preserves data patterns, breaks confidentiality"
+  - regex: CipherMode\.ECB
+    message: ".NET ECB cipher mode — use CBC or GCM instead"
+fix: Use AES-GCM (authenticated encryption) or AES-CBC with HMAC. Never use ECB mode.

@@ -1,0 +1,12 @@
+id: SCA-030
+title: Makefile download without checksum verification
+category: supply-chain
+severity: info
+engine: pattern
+target:
+  filenames: Makefile GNUmakefile makefile
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (curl|wget)\s+.*https?://
+    message: Downloading files without verifying integrity allows MITM or server compromise to deliver malicious payloads.
+fix: Always verify downloaded files with sha256sum --check checksums.txt. Store expected hashes in version control.

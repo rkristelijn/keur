@@ -1,0 +1,15 @@
+id: SCA-071
+title: PATH manipulation to shadow system binaries
+category: supply-chain
+severity: info
+engine: pattern
+target:
+  extensions: .sh .bash
+  filenames: Makefile .bashrc .zshrc .profile
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: export\s+PATH\s*=\s*[^$]*:\$PATH
+    message: Prepending directory to PATH can shadow system binaries (git, node, etc.), causing subsequent commands to execute attacker version.
+  - regex: PATH=.*:\$PATH.*export
+    message: PATH modification prepends untrusted directory — may shadow system binaries with malicious versions.
+fix: Audit all PATH modifications. Ensure prepended directories are trusted and not world-writable. Use absolute paths for security-critical commands.

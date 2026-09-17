@@ -1,0 +1,16 @@
+id: SEC-027
+title: Buffer over-read with user-controlled length (CVE-2014-0160 Heartbleed)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: test/ tests/ vendor/ .git/ build/
+patterns:
+  - regex: memcpy\(.*,.*,.*\blen(gth)?\b
+    message: "memcpy with variable length — ensure bounds checking before copy (Heartbleed pattern: CVE-2014-0160)"
+  - regex: memcpy\(.*,.*,.*\bsize\b
+    message: "memcpy with variable size — validate size against buffer capacity before copy"
+  - regex: memcpy\(.*,.*,.*\bn\b\)
+    message: "memcpy with parameter n — ensure n does not exceed source/destination buffer size"
+fix: Always validate that the length parameter does not exceed the buffer size before memcpy/memmove calls.

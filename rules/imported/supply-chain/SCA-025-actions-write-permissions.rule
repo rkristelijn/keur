@@ -1,0 +1,17 @@
+id: SCA-025
+title: GitHub Actions workflow with broad write permissions
+category: supply-chain
+severity: info
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: permissions
+patterns:
+  - regex: permissions:\s*write-all
+    message: write-all gives every step (including third-party actions) ability to push code, create releases, or publish packages.
+  - regex: contents:\s*write
+    message: contents write permission allows steps to push code or create releases — use least-privilege.
+  - regex: packages:\s*write
+    message: packages write permission allows steps to publish packages — use least-privilege.
+fix: Use least-privilege permissions. Set permissions read-all at workflow level and grant write only to specific jobs that need it.

@@ -1,0 +1,30 @@
+id: SEC-042
+title: OWASP Top 10 — A07 Auth Failures + A09 Logging Failures + A10 SSRF/Error Handling
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .cpp .h
+  exclude_paths: test/ node_modules/ vendor/ _test.go
+patterns:
+  - regex: password\s*=\s*\"
+    message: "A07 Hardcoded password — use environment variables or a secrets manager"
+  - regex: password:\s*\"
+    message: "A07 Hardcoded password — use environment variables or a secrets manager"
+  - regex: jwt\.decode
+    message: "A07 JWT decoded without verification — use jwt.verify() to validate signature"
+  - regex: algorithm:\s*'none'
+    message: "A07 JWT algorithm none — disables signature verification, allowing token forgery"
+  - regex: expiresIn:\s*'365d'
+    message: "A07 Long-lived token (365d) — use short expiry with refresh tokens"
+  - regex: catch\s*\{\}
+    message: "A09 Empty catch block — swallowed errors hide failures and make debugging impossible"
+  - regex: catch\s*\([a-zA-Z_]+\)\s*\{\}
+    message: "A09 Empty catch block — log or handle the error, don't swallow it"
+  - regex: except:\s*$
+    message: "A09 Bare except in Python — catches KeyboardInterrupt and SystemExit. Use except Exception"
+  - regex: catch\s*\(Exception\s+[a-zA-Z_]+\)
+    message: "A10 Catch-all Exception — catch specific exceptions to avoid masking bugs"
+  - regex: catch\s*\(Throwable
+    message: "A10 Catch-all Throwable — catches OutOfMemoryError and other fatal errors. Catch specific types"
+fix: Store secrets in environment variables or vaults. Verify JWT signatures. Use short token expiry. Handle errors explicitly — never swallow them. Catch specific exception types.

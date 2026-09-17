@@ -1,0 +1,13 @@
+id: SCA-019
+title: GitHub Actions ACTIONS_ALLOW_UNSECURE_COMMANDS enabled
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ node_modules/ .git/ vendor/
+  content_contains: ACTIONS_ALLOW_UNSECURE_COMMANDS
+patterns:
+  - regex: ACTIONS_ALLOW_UNSECURE_COMMANDS\s*:\s*true
+    message: Re-enables deprecated set-env and add-path commands, allowing arbitrary environment manipulation by any workflow step.
+fix: Remove ACTIONS_ALLOW_UNSECURE_COMMANDS. Use $GITHUB_ENV file approach instead. The deprecated commands were disabled for security reasons.

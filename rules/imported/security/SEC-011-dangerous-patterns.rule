@@ -1,0 +1,16 @@
+id: SEC-011
+title: Dangerous patterns (eval, ts-ignore, as any)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \beval\s*\(
+    message: eval() is a security risk — restructure logic without eval
+  - regex: @ts-ignore|@ts-expect-error
+    message: TypeScript suppression directive hides type errors — fix the underlying type issue
+  - regex: \bas\s+any\b
+    message: "'as any' defeats type safety — use proper type or unknown"
+fix: Remove eval(), fix type errors, use proper type annotations

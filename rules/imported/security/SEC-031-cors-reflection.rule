@@ -1,0 +1,16 @@
+id: SEC-031
+title: CORS origin reflection with credentials (CWE-942)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .js .ts .py .java .kt
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: Allow-Origin.*req\.headers\.origin
+    message: "CORS reflecting request Origin — any website can make authenticated requests and steal data"
+  - regex: cors.*origin:\s*true.*credentials:\s*true
+    message: "CORS with origin: true + credentials: true — reflects any origin with credentials, enabling data theft"
+  - regex: CORS_ALLOW_ALL_ORIGINS\s*=\s*True
+    message: "Django CORS_ALLOW_ALL_ORIGINS — allows any website to access API responses"
+fix: Set specific allowed origins. Never reflect the request Origin header blindly with credentials: true.

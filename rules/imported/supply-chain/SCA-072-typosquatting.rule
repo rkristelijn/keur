@@ -1,0 +1,14 @@
+id: SCA-072
+title: Typosquatting indicator in dependency name
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  filenames: package.json requirements.txt Gemfile Cargo.toml go.mod
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (requets|reqests|requsets|requists|lodsah|loadsh|collors|colros)
+    message: Possible typosquatting — package name matches known misspelling of popular package. Attackers publish packages with similar names to steal credentials.
+  - regex: (ejs-templat|espress|expresss|axois)
+    message: Possible typosquatting — dependency name is a common misspelling of a popular package.
+fix: Double-check package names against the official registry. Use lockfiles with integrity hashes. Consider tools like Socket.dev for typosquatting detection.

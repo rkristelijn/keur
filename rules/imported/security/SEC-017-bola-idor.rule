@@ -1,0 +1,14 @@
+id: SEC-017
+title: Broken Object Level Authorization (OWASP API1:2023)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .js .ts .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: findById\(req\.params\.id\)
+    message: Direct database lookup by user-supplied ID without ownership check — BOLA/IDOR vulnerability
+  - regex: findOne\(\{\s*_id:\s*req\.
+    message: MongoDB findOne by request param without user ownership filter — IDOR risk
+fix: Always verify the requesting user owns the resource. Add .where({userId: req.user.id}) or equivalent.
