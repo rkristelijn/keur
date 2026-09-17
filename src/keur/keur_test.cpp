@@ -1054,6 +1054,45 @@ SCENARIO("[feature:rule-engine] without skip_comments the comment match is kept"
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] rule-level message is the fallback when a pattern has none") {
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/MSG.rule",
+        "id: MSG-1\ntitle: T\ncategory: quality\nseverity: warning\nengine: pattern\n"
+        "message: rule-level message\ntarget:\n  extensions: .py\n"
+        "patterns:\n  - regex: TODO\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    std::string py = dir + "/a.py";
+    write_file(py, "# TODO fix\n");
+    auto fs = keur::rules_scan_files(rules, {py});
+    REQUIRE(fs.size() == 1);
+    CHECK(fs[0].message == "rule-level message");
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] block-absence flags a block missing its inner regex") {
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/NOASSERT.rule",
+        "id: TEST-NOASSERT\ntitle: test without assertion\ncategory: quality\n"
+        "severity: warning\nengine: block-absence\nblock_inner: \\bexpect\\s*\\(\n"
+        "target:\n  extensions: .js\n"
+        "patterns:\n  - regex: \\b(it|test)\\s*\\(\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    std::string js = dir + "/a.test.js";
+    write_file(js,
+        "it(\"has assertion\", () => {\n  expect(1).toBe(1);\n});\n"
+        "it(\"no assertion\", () => {\n  const x = 2;\n});\n");
+    auto fs = keur::rules_scan_files(rules, {js});
+    int hits = 0, line = 0;
+    for (auto& f : fs) if (f.rule_id == "TEST-NOASSERT") { hits++; line = f.line; }
+    CHECK(hits == 1);
+    CHECK(line == 4);   // only the second block (no expect)
+    cleanup_dir(dir);
+}
+
 } // TEST_SUITE("integration")
 
 
