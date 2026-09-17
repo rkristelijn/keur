@@ -90,7 +90,7 @@ Guiding principle (kept verbatim from the review because it is exactly right):
 Design constraints we bind ourselves to:
 
 - **Pragmatic over academic.** No factories/strategies/visitors/managers unless
-  a concrete need forces them. Rules stay dumb data; the engine stays small.
+  a concrete need forces them. Rules stay plain data; the engine stays small.
   `struct Rule { id; metadata; expression; }`, not a class hierarchy.
 - **Language-neutral rules, language-specific adapters.** A rule expresses a
   concept (`category: command-execution`); adapters map it to concrete tokens

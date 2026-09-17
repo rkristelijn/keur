@@ -34,6 +34,18 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ### Features
 
+- [ ] KEUR_HOME should be DERIVED, not a required global env var. Today keur
+      hard-reads getenv("KEUR_HOME") in 4 places (util/keur_utils.h rule_dirs,
+      cmd/policy.cpp resolve_config, cmd/learn.cpp keur_home, src/rules/main.cpp)
+      and derives its own location NOWHERE. If the user has not exported it,
+      keur finds no rules (empty `keur rules list`); if it is set wrong it shifts
+      config resolution. Fix: resolve keur's home automatically —
+        1. from the binary path (argv[0] → resolve symlinks → parent of bin/),
+        2. or walk up to a config/keur.toml / installed marker,
+      and treat $KEUR_HOME only as an explicit OVERRIDE. Makes it optional like
+      git/.git, cargo, etc. Removes the setup drift that made tests env-fragile.
+      (The .keur/rules cascade already reduces this for project rules; this
+      finishes it for the built-in layer.)
 - [ ] libmode: run external scanners (semgrep, gitleaks, trivy, ...) via the
       Proc adapter, OR ruleengine mode, or both — normalise into one findings
       report. (Proc adapter seam is ready.)
@@ -110,6 +122,13 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ### Quality / research
 
+- [ ] no .clang-format exists — C++ style is inconsistent hand-formatting.
+      Notably, broken function headers align continuation lines under the open
+      paren (AlignAfterOpenBracket: Align), which drifts right on long names and
+      churns diffs on rename. Add a .clang-format with a STABLE style (e.g.
+      AlignAfterOpenBracket: BlockIndent or DontAlign + ContinuationIndentWidth:
+      4, one param per line), then format the codebase once. Hook into `make
+      lint`/`make format`. New code is already written in the stable style.
 - [ ] BASICS as enforced norms (candidate for KEUR-ARCH self-check rules):
       * no source file > ~300 NET lines (comments/blank excluded);
       * no dir > ~10 files;

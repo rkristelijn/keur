@@ -30,7 +30,7 @@ exactly the **corroboration** model: independent tools agreeing → higher confi
 `~/tooling/src/tools/ticket-audit/pii-sensitive-scan.sh` — deterministic, offline,
 **production-proven**. Do NOT rewrite this in KEUR's rule engine. Key properties:
 
-- **Validated** structured identifiers, not dumb regex:
+- **Validated** structured identifiers, not naive regex:
   - BSN → 11-proef (elfproef) validation
   - IBAN → mod-97 checksum validation
   - NL phone, email

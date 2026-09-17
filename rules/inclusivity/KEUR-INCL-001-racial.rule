@@ -1,0 +1,21 @@
+# Adopted from cpm rules/style/STYLE-020 (github.com/rkristelijn/cpm).
+id: KEUR-INCL-001
+title: Non-inclusive terminology (racial/slavery)
+category: inclusivity
+severity: error
+engine: pattern
+skip_strings: false
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .cpp .h .rb .cs .sh .md .yml .yaml
+  exclude_paths: node_modules/ vendor/ dist/ build/ .git/
+patterns:
+  - regex: \bwhitelist\b
+    message: whitelist → use allowlist
+  - regex: \bblacklist\b
+    message: blacklist → use denylist
+  - regex: \bmaster/slave\b
+    message: master/slave → use primary/secondary
+  - regex: \bslave\b
+    message: slave → use replica
+fix: Replace with inclusive alternatives (allowlist, denylist, primary/secondary, replica).
+confidence: 0.6
