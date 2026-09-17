@@ -1,0 +1,28 @@
+# Adopted from cpm rules/style/STYLE-022 (github.com/rkristelijn/cpm).
+id: KEUR-INCL-003
+title: Non-inclusive terminology (violent/exclusionary/culture)
+category: inclusivity
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .cpp .h .rb .cs .sh .md .yml .yaml
+  exclude_paths: node_modules/ vendor/ dist/ build/ .git/
+patterns:
+  - regex: \bwar room\b
+    message: war room → use incident room
+  - regex: \bkill switch\b
+    message: kill switch → use emergency stop
+  - regex: \bbus factor\b
+    message: bus factor → use lottery factor
+  - regex: \bgrandfathered\b
+    message: grandfathered → use legacy exempt
+  - regex: \btribal knowledge\b
+    message: tribal knowledge → use institutional knowledge
+  - regex: \bnative speaker\b
+    message: native speaker → use fluent speaker
+  - regex: \bnormal user\b
+    message: normal user → use typical user
+  - regex: \bgrandfather clause\b
+    message: grandfather clause → use legacy exemption
+fix: Replace violent, exclusionary, and culturally dismissive terms with inclusive alternatives.
+confidence: 0.5
