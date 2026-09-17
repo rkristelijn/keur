@@ -70,4 +70,27 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 - [ ] Why do we have multipe Makefiles
 - [ ] why is rules apart from keur in src? what isthe pupose?
-- [ ]
+- [ ] `keur learn` TUI: equalise the height of the two side-by-side source
+      columns (corpus | keureval). `render::beside()` pads width but not height,
+      so the shorter box (usually keureval) ends higher and leaves ragged
+      whitespace beside the taller one. Pad the shorter block with blank lines
+      to the taller block's height, or draw a continuing right border. Cosmetic
+      only. See src/keur/render/box.cpp (beside) and cmd/learn.cpp (draw_frame,
+      wide branch).
+- [ ] KEUR-ARCH-001 (and siblings) are not comment-aware: the regex for raw
+      `system(` matched the word "system(" inside a CODE COMMENT in learn.cpp,
+      producing a false-positive BLOCK. The rule engine should ignore matches
+      inside line/block comments (per-language comment syntax) so documenting a
+      guard doesn't trip the guard. See rules/keur-internal/KEUR-ARCH-001*.
+- [ ] `keur learn` TUI: show visible PROGRESS OF THE CURRENT RUN. Right now the
+      boxes aggregate ALL history (old + new runs mixed), so when a fresh run
+      only produces rejects (recall/accepted unchanged) the panel looks frozen
+      even though `iters` climbs and the log line moves. Improvements to make:
+        - mark/segment "this session" (records since monitor start, e.g. by ts
+          or a run marker) so the user sees what THIS run did;
+        - surface a live activity indicator (current iter, target FN, spinner)
+          more prominently than the single bottom log line;
+        - show a per-run counter (iters this session, accepts this session) and
+          "last change N iters ago" so a rejects-only stretch reads as progress,
+          not a hang.
+      See src/keur/cmd/learn.cpp (draw_frame, aggregate).
