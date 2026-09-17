@@ -9,6 +9,8 @@
  */
 #include "rule_engine.h"
 
+#include "tokenizer.h"
+
 #include <dirent.h>
 #include <sys/stat.h>
 
@@ -100,6 +102,8 @@ Rule rule_parse(const std::string& path) {
     else if (key == "action") rule.action = val;
     else if (key == "confidence") rule.confidence = val;
     else if (key == "fix") rule.fix = val;
+    else if (key == "skip_comments") rule.skip_comments = (val == "true" || val == "yes");
+    else if (key == "skip_strings") rule.skip_strings = (val == "true" || val == "yes");
     else if (key == "extensions") rule.target.extensions = split_ws(val);
     else if (key == "filenames") rule.target.filenames = split_ws(val);
     else if (key == "exclude_paths") rule.target.exclude_paths = split_ws(val);
@@ -288,13 +292,40 @@ static std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
         filtered.push_back(r);
     if (filtered.empty()) continue;
 
-    std::vector<re2::StringPiece> lines;
-    split_lines(content, lines);
+    std::vector<re2::StringPiece> raw_lines;
+    split_lines(content, raw_lines);
+
+    // Comment/string-aware matching (ADR-004 stage 1): if any applicable rule
+    // asks to skip comments/strings, compute a stripped copy of the file ONCE
+    // and match those rules against the stripped lines. Stripping replaces
+    // comment/string chars with spaces but preserves newlines, so line numbers
+    // stay correct. Rules that do not opt in keep matching the raw lines.
+    bool need_comments = false, need_strings = false;
+    for (auto* r : filtered) {
+      if (r->skip_comments) need_comments = true;
+      if (r->skip_strings) need_strings = true;
+    }
+    std::string stripped_content;
+    std::vector<re2::StringPiece> stripped_lines;
+    if (need_comments || need_strings) {
+      const LangSyntax* syntax = lang_syntax(get_ext(rel));
+      if (syntax) {
+        stripped_content = need_strings ? strip_comments_and_strings(content, syntax)
+                                        : strip_comments(content, syntax);
+        split_lines(stripped_content, stripped_lines);
+      }
+    }
 
     size_t before = findings.size();
     for (auto* r : filtered) {
       auto& c = compiled[to_compiled[r]];
       const std::string engine = r->engine.empty() ? "pattern" : r->engine;
+      // Match against stripped lines for opt-in rules (only when stripping
+      // actually ran — i.e. the language was recognised); else the raw lines.
+      const std::vector<re2::StringPiece>& lines =
+          ((r->skip_comments || r->skip_strings) && !stripped_lines.empty())
+              ? stripped_lines
+              : raw_lines;
 
       if (engine == "pattern") {
         for (size_t pi = 0; pi < c.res.size(); pi++) {
@@ -342,8 +373,8 @@ static std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
       for (size_t i = before; i < findings.size(); i++) {
         const auto& fnd = findings[i];
         bool suppressed = false;
-        if (fnd.line >= 1 && (size_t)fnd.line <= lines.size()) {
-          std::string_view lv(lines[fnd.line - 1].data(), lines[fnd.line - 1].size());
+        if (fnd.line >= 1 && (size_t)fnd.line <= raw_lines.size()) {
+          std::string_view lv(raw_lines[fnd.line - 1].data(), raw_lines[fnd.line - 1].size());
           suppressed = line_suppresses(lv, fnd.rule_id, id_to_cat[fnd.rule_id]);
         }
         if (!suppressed) kept.push_back(fnd);

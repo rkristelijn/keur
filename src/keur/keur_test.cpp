@@ -33,6 +33,7 @@
 
 #include "../../vendor/doctest.h"
 #include "rules/rule_engine.h"
+#include "tokenizer.h"
 #include "cmd/check.h"
 #include "cmd/hook.h"
 #include "cmd/policy.h"
@@ -420,26 +421,38 @@ SCENARIO("[feature:rule-engine] jesc escapes quotes and backslashes") {
 SCENARIO("[feature:rule-engine] rule_dirs empty when no env set") {
     unsetenv("KEUR_HOME");
     unsetenv("KEUR_RULES_DIRS");
-    CHECK(keur::rule_dirs().empty());
+    // With no KEUR_HOME/KEUR_RULES_DIRS, only the global (~/.config/keur/rules)
+    // and project (.keur/rules, if CWD is inside such a repo) layers can appear.
+    // Neither built-in nor override contributes, so no path may reference
+    // KEUR_HOME or an override dir. (The cascade may still list a global/project
+    // dir depending on the machine, so we assert on ABSENCE of the env layers.)
+    auto d = keur::rule_dirs();
+    for (const auto& p : d) {
+        CHECK(p.find("/opt/keur") == std::string::npos);  // no built-in without KEUR_HOME
+    }
 }
 
-SCENARIO("[feature:rule-engine] rule_dirs reads KEUR_HOME") {
+SCENARIO("[feature:rule-engine] rule_dirs includes KEUR_HOME/rules as the built-in layer") {
     setenv("KEUR_HOME", "/opt/keur", 1);
     unsetenv("KEUR_RULES_DIRS");
     auto d = keur::rule_dirs();
-    REQUIRE(d.size() == 1);
+    // built-in layer is first and present; other layers (global/project) may
+    // follow depending on the machine, so we check membership + position.
+    REQUIRE(!d.empty());
     CHECK(d[0] == "/opt/keur/rules");
     unsetenv("KEUR_HOME");
 }
 
-SCENARIO("[feature:rule-engine] rule_dirs splits KEUR_RULES_DIRS on colon") {
+SCENARIO("[feature:rule-engine] rule_dirs appends KEUR_RULES_DIRS overrides in order, last") {
     unsetenv("KEUR_HOME");
     setenv("KEUR_RULES_DIRS", "/a:/b:/c", 1);
     auto d = keur::rule_dirs();
-    REQUIRE(d.size() == 3);
-    CHECK(d[0] == "/a");
-    CHECK(d[1] == "/b");
-    CHECK(d[2] == "/c");
+    // the override entries are the highest-specificity layer: they must be the
+    // final three, in order (global/project layers, if any, come before them).
+    REQUIRE(d.size() >= 3);
+    CHECK(d[d.size() - 3] == "/a");
+    CHECK(d[d.size() - 2] == "/b");
+    CHECK(d[d.size() - 1] == "/c");
     unsetenv("KEUR_RULES_DIRS");
 }
 
@@ -630,6 +643,62 @@ SCENARIO("[feature:proc] default_has finds sh but not a bogus binary") {
     keur::adapters::Proc proc;
     CHECK(proc.has("sh"));
     CHECK(!proc.has("keur_bogus_binary_xyz_123"));
+}
+
+// --- tokenizer (skip_comments / skip_strings building block) ----------------
+TEST_CASE("tokenizer: lang_syntax resolves known extensions, nullptr for unknown") {
+    CHECK(keur::lang_syntax(".py")  != nullptr);
+    CHECK(keur::lang_syntax(".cpp") != nullptr);
+    CHECK(keur::lang_syntax(".ts")  != nullptr);
+    CHECK(keur::lang_syntax(".unknownext") == nullptr);
+    CHECK(keur::lang_syntax("") == nullptr);
+}
+
+TEST_CASE("tokenizer: strip_comments blanks comments, keeps code and line count") {
+    // C-style: line + block comments
+    auto* cpp = keur::lang_syntax(".cpp");
+    std::string src = "int x = 1; // secret comment\n/* block\n secret */ int y = 2;\n";
+    std::string out = keur::strip_comments(src, cpp);
+    // code survives
+    CHECK(out.find("int x = 1;") != std::string::npos);
+    CHECK(out.find("int y = 2;") != std::string::npos);
+    // comment words are gone
+    CHECK(out.find("secret comment") == std::string::npos);
+    CHECK(out.find("block") == std::string::npos);
+    // line count preserved (newlines kept)
+    CHECK(std::count(out.begin(), out.end(), '\n') == std::count(src.begin(), src.end(), '\n'));
+}
+
+TEST_CASE("tokenizer: strip_comments leaves string literals intact") {
+    auto* py = keur::lang_syntax(".py");
+    std::string src = "url = \"http://example.com # not a comment\"  # real comment\n";
+    std::string out = keur::strip_comments(src, py);
+    CHECK(out.find("http://example.com # not a comment") != std::string::npos);  // inside string, kept
+    CHECK(out.find("real comment") == std::string::npos);                        // real comment gone
+}
+
+TEST_CASE("tokenizer: strip_comments_and_strings blanks string contents too") {
+    auto* py = keur::lang_syntax(".py");
+    std::string src = "key = \"AKIAFICTIONAL0000\"\n";
+    std::string bare = keur::strip_comments_and_strings(src, py);
+    CHECK(bare.find("AKIAFICTIONAL0000") == std::string::npos);  // string content blanked
+    CHECK(bare.find("key =") != std::string::npos);              // code survives
+}
+
+TEST_CASE("tokenizer: the comment false-positive scenario (system in a comment)") {
+    // This is the KEUR-ARCH-001 false positive: the word 'system(' inside a
+    // comment must NOT survive stripping, so a rule scanning stripped code
+    // won't fire on documentation of a guard.
+    auto* cpp = keur::lang_syntax(".cpp");
+    std::string src = "// no raw system() here\nreturn proc.run(cmd);\n";
+    std::string out = keur::strip_comments(src, cpp);
+    CHECK(out.find("system(") == std::string::npos);      // comment mention gone
+    CHECK(out.find("proc.run(cmd)") != std::string::npos); // real code survives
+}
+
+TEST_CASE("tokenizer: nullptr syntax returns content unchanged") {
+    std::string src = "anything // goes\n";
+    CHECK(keur::strip_comments(src, nullptr) == src);
 }
 
 } // TEST_SUITE("unit")
@@ -918,6 +987,71 @@ SCENARIO("[feature:check] staged_files uses the injected fake git") {
     REQUIRE(files.size() == 2);
     CHECK(files[0] == "a.txt");
     CHECK(files[1] == "b.txt");
+}
+
+// skip_comments end-to-end: a rule that opts in must not fire on a match inside
+// a comment, but must still fire on real code. This is the KEUR-ARCH-001 fix
+// (a `system(`/`eval(` rule tripping on the word in a comment) proven through
+// the real scan path, not just the tokenizer unit.
+SCENARIO("[feature:rule-engine] skip_comments suppresses comment-only matches") {
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    // rule opts into comment stripping
+    std::string rule_path = dir + "/SKIP.rule";
+    write_file(rule_path,
+        "id: SKIP-EVAL\n"
+        "title: eval usage\n"
+        "category: sast\n"
+        "severity: warning\n"
+        "engine: pattern\n"
+        "skip_comments: true\n"
+        "target:\n"
+        "  extensions: .py\n"
+        "patterns:\n"
+        "  - regex: \\beval\\s*\\(\n"
+        "    message: eval usage\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    REQUIRE(rules[0].skip_comments == true);   // field parsed
+
+    std::string py = dir + "/app.py";
+    write_file(py, "# TODO: remove this eval( someday\nresult = eval(user_input)\n");
+    auto fs = keur::rules_scan_files(rules, {py});
+
+    // exactly one finding, on line 2 (the code), not line 1 (the comment)
+    int hits = 0, line = 0;
+    for (auto& f : fs) if (f.rule_id == "SKIP-EVAL") { hits++; line = f.line; }
+    CHECK(hits == 1);
+    CHECK(line == 2);
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] without skip_comments the comment match is kept") {
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    std::string rule_path = dir + "/NOSKIP.rule";
+    write_file(rule_path,
+        "id: NOSKIP-EVAL\n"
+        "title: eval usage\n"
+        "category: sast\n"
+        "severity: warning\n"
+        "engine: pattern\n"
+        "target:\n"
+        "  extensions: .py\n"
+        "patterns:\n"
+        "  - regex: \\beval\\s*\\(\n"
+        "    message: eval usage\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    CHECK(rules[0].skip_comments == false);
+
+    std::string py = dir + "/app.py";
+    write_file(py, "# TODO: remove this eval( someday\nresult = eval(user_input)\n");
+    auto fs = keur::rules_scan_files(rules, {py});
+    int hits = 0;
+    for (auto& f : fs) if (f.rule_id == "NOSKIP-EVAL") hits++;
+    CHECK(hits == 2);   // comment line + code line
+    cleanup_dir(dir);
 }
 
 } // TEST_SUITE("integration")
