@@ -34,27 +34,40 @@ MIN_PRECISION="${KEUR_MIN_PRECISION:-0.50}"
 LEARNED="$KEUR_HOME/rules/learned"          # accepted rules live here
 HIST="$HERE/history/optimiser.jsonl"
 BASE_RULES="$KEUR_HOME/rules"               # keur's own rules (always loaded)
+NATIVE="$KEUR_HOME/bin/keur-rules"          # the compiled rule engine (slop test)
 mkdir -p "$LEARNED" "$HERE/history"
 
 # Which split the optimiser trains on. Holdout stays unseen during training and
 # is only measured for a generalisation report (overfitting check).
 TRAIN_SPLIT="${KEUR_TRAIN_SPLIT:-train}"
 
+# Which measurement source is the training signal:
+#   corpus   -> eval/measure.sh   (proven-tool ground truth; recall-focused)
+#   keureval -> eval/keureval.sh  (keur-eval CONTRACT; scores FALSE POSITIVES on
+#                                  negative cases, so the gate can punish noise)
+# Both write the same eval/corpus/measure.json shape, so the rest is identical.
+KEUR_EVAL_SOURCE="${KEUR_EVAL_SOURCE:-corpus}"
+case "$KEUR_EVAL_SOURCE" in
+    keureval) EVAL_CMD="$HERE/keureval.sh" ;;
+    corpus|*) EVAL_CMD="$HERE/measure.sh" ;;
+esac
+
 # measure with a given rules dir -> echoes "recall precision f1 fn" (space-sep)
 measure() {
     local dirs="$1"; local split="${2:-$TRAIN_SPLIT}"
-    KEUR_SPLIT="$split" KEUR_RULES_DIRS="$dirs" "$HERE/measure.sh" >/dev/null 2>&1
+    KEUR_SPLIT="$split" KEUR_RULES_DIRS="$dirs" "$EVAL_CMD" >/dev/null 2>&1
     python3 -c "import json;d=json.load(open('$HERE/corpus/measure.json'));print(d['recall'],d['precision'],d['f1'],d['fn'])"
 }
 
-# sample_fn <rules-dir> <index> -> one missed finding, ROTATING through the
-# distinct missed clusters so each iteration attacks a different one instead of
-# re-proposing rules for the same hard case forever.
+# sample_fn <rules-dir> <index> -> one missed finding, chosen at RANDOM from
+# the distinct missed clusters (seeded per iteration + PID) so each iteration
+# attacks a different one instead of re-proposing rules for the same hard case
+# forever — and so a phase restart does not always begin at the same cluster.
 sample_fn() {
     local idx="${2:-0}"
-    KEUR_SPLIT="$TRAIN_SPLIT" KEUR_RULES_DIRS="$1" "$HERE/measure.sh" --fn 2>/dev/null \
+    KEUR_SPLIT="$TRAIN_SPLIT" KEUR_RULES_DIRS="$1" "$EVAL_CMD" --fn 2>/dev/null \
       | awk '/sample missed/{f=1;next} f&&NF{print}' \
-      | awk -v n="$idx" 'NR>=1{a[NR]=$0} END{if(NR==0)exit; print a[(n % NR)+1]}'
+      | awk -v seed="${idx}${RANDOM}$$" 'NR>=1{a[NR]=$0} END{if(NR==0)exit; srand(seed); print a[int(rand()*NR)+1]}'
 }
 
 # regex_generalises <candidate-rule-text> -> exit 0 if the regex is a
@@ -85,6 +98,60 @@ sys.exit(0)
 '
 }
 
+# is_slop <candidate-rule-text> <fn-line> -> exit 0 (SLOP) if the candidate
+# fires on a case but NOT on a reformatted (perturbed) variant of it. That means
+# the rule learned the FORM (the corpus's tidy "Label: value" layout), not the
+# CONCEPT (the sensitive value / dangerous call). Perturbation keeps the
+# semantic content, strips the structure. A concept-bound rule still fires on
+# the perturbed variant; a form-bound rule misses -> slop. Exit 1 = genuine or
+# undeterminable.
+#
+# NOTE: because scoring is at CATEGORY granularity, the candidate rarely fires
+# on the exact TARGET case (fn_line field 3). So we search the target's category
+# directory for the FIRST case the candidate actually fires on, and perturb that
+# — testing the rule where it genuinely matches, not where we hoped it would.
+is_slop() {
+    local cand="$1"; local fn_line="$2"
+    local ref; ref=$(echo "$fn_line" | awk '{print $3}')
+    # Determine the directory of cases to search (the category dir the target is
+    # in). Resolve the target to an absolute path first.
+    local target=""
+    for base in "$KEUR_HOME/eval/corpus/repos" "${KEUR_EVAL:-$HOME/git/hub/keur-eval}"; do
+        for c in "$base/$ref" "$base/${ref#*/}"; do
+            [ -f "$c" ] && { target="$c"; break; }
+        done
+        [ -n "$target" ] && break
+    done
+    [ -z "$target" ] && return 1   # can't locate -> can't judge -> not slop
+
+    local sd; sd="$(mktemp -d)"
+    printf '%s\n' "$cand" > "$sd/r.rule"
+    local id; id="$(printf '%s' "$cand" | awk -F': *' '/^id:/{print $2;exit}')"
+    local dir; dir="$(dirname "$target")"
+
+    # Find the first case in this category dir where the candidate actually fires
+    # (isolated: empty KEUR_HOME so only THIS rule loads).
+    local hit="" f ext
+    for f in "$dir"/*; do
+        [ -f "$f" ] || continue
+        ext="${f##*.}"
+        if KEUR_HOME="" KEUR_RULES_DIRS="$sd" "$NATIVE" --files "$f" 2>/dev/null | grep -q "\"$id\""; then
+            hit="$f"; break
+        fi
+    done
+    [ -z "$hit" ] && { rm -rf "$sd"; return 1; }   # fires nowhere here -> can't judge
+
+    # Perturb the case it DID fire on, keep the same extension, re-test.
+    ext="${hit##*.}"
+    "$HERE/perturb.sh" "$hit" > "$sd/pert.$ext" 2>/dev/null
+    local on_pert
+    on_pert=$(KEUR_HOME="" KEUR_RULES_DIRS="$sd" "$NATIVE" --files "$sd/pert.$ext" 2>/dev/null | grep -c "\"$id\"")
+    rm -rf "$sd"
+
+    # slop iff it fired on the (real) original but vanished on the perturbed one
+    [ "$on_pert" -eq 0 ]
+}
+
 ollama() {
     local prompt="$1"
     local body
@@ -100,14 +167,51 @@ ollama() {
 build_prompt() {
     local fn_line="$1"
     local cat; cat=$(echo "$fn_line" | awk '{print $2}')
+    # The 3rd field is repo/file (corpus) or a keur-eval relative path. Try to
+    # resolve it to a real file and show the model the ACTUAL missed content —
+    # without it, the model only sees the category NAME and guesses (e.g. it
+    # read "cbi" as "callback" and wrote a useless rule). Showing the evidence is
+    # what turns opaque category labels into catchable patterns.
+    local ref; ref=$(echo "$fn_line" | awk '{print $3}')
+    local snippet="" example_file=""
+    for base in "$KEUR_HOME/eval/corpus/repos" "${KEUR_EVAL:-$HOME/git/hub/keur-eval}"; do
+        # ref may be "repo/path" (corpus) or "positive/cat/file" (keur-eval)
+        for cand in "$base/$ref" "$base/${ref#*/}"; do
+            [ -f "$cand" ] && { example_file="$cand"; break; }
+        done
+        [ -n "$example_file" ] && break
+    done
+    if [ -n "$example_file" ]; then
+        # first ~25 non-empty lines, stripped of KEUR-EXPECT annotations
+        snippet=$(grep -vE 'KEUR-(EXPECT|CATEGORY|NOTE)' "$example_file" 2>/dev/null \
+                  | grep -v '^[[:space:]]*$' | head -25)
+    fi
+    # Short human meaning for the non-obvious categories (the obvious ones like
+    # sqli/secret the model already understands from its system prompt).
+    local hint=""
+    case "$cat" in
+        cbi)  hint="CBI = Commercially/Business-sensitive Information: internal hostnames, private/internal IPs (e.g. 10.x, 192.168.x, 192.0.2.x), monetary figures, supplier/contract references." ;;
+        pii)  hint="PII = Personally Identifiable Information: names+national IDs, phone numbers, email+address combos, dates of birth." ;;
+        personal-docs) hint="personal-docs = private personal documents leaking into a repo: medical, financial, legal, or HR content about an individual." ;;
+        cmdi) hint="CMDI = OS command injection: user input reaching os.system/exec/subprocess/backticks/shell." ;;
+    esac
+
     cat <<EOF
 A proven security tool found a "$cat" issue that our rule engine MISSED.
+${hint:+Category meaning: $hint}
+
+Here is the ACTUAL content the tool flagged (write a rule that would catch it,
+and generalises to similar cases — do NOT hard-code these literal values):
+--- BEGIN MISSED CASE ---
+$snippet
+--- END MISSED CASE ---
+
 Write ONE keur .rule that catches this class of "$cat" issue and generalises to
 other repos (not a memorised literal).
 
 Start the file with:  id: LEARNED-$(echo "$cat" | tr a-z A-Z)-NNN
 Use category: $cat, engine: pattern, and target these extensions:
-  .js .php .rb .py .env .yml .json .ts .go .java
+  .js .php .rb .py .env .yml .json .ts .go .java .md .txt
 
 Output ONLY the rule file, starting with "id:". No markdown fences, no prose.
 EOF
@@ -167,23 +271,55 @@ iterate_once() {
     # THE GATE (benchmark decides): recall must rise on train, precision stay
     # >= floor, AND the candidate must not collapse on the holdout split (which
     # Ollama never saw). A rule that helps train but not holdout is overfitting.
+    #
+    # The holdout measure echoes "recall precision f1 fn". We ALSO need the raw
+    # tp/fp so we can tell "precision is genuinely low" from "precision is 0.0
+    # because nothing fired / the split is empty". A degenerate holdout (no
+    # fires, or too few cases) gives precision=0.0 and would wrongly reject every
+    # candidate — that was the bug that blocked the keur-eval source entirely.
     read -r h_recall h_prec _ _ < <(measure "$BASE_RULES:$tmpd" holdout)
-    echo "[iter $iter] holdout:   recall=$h_recall precision=$h_prec"
+    # Pull tp/fp from the holdout measure.json the previous call just wrote.
+    read -r h_tp h_fp < <(python3 -c "import json;d=json.load(open('$HERE/corpus/measure.json'));print(d.get('tp',0),d.get('fp',0))")
+    echo "[iter $iter] holdout:   recall=$h_recall precision=$h_prec (tp=$h_tp fp=$h_fp)"
     local accept
     accept="$(python3 -c "
 b_r,b_p,c_r,c_p = float('$b_recall'),float('$b_prec'),float('$c_recall'),float('$c_prec')
-h_r,h_p        = float('$h_recall'),float('$h_prec')
+h_p            = float('$h_prec')
+h_tp, h_fp     = int('$h_tp'), int('$h_fp')
 train_ok = c_r > b_r and c_p >= min($MIN_PRECISION, b_p)
-# generalisation: holdout precision must not fall below the floor (a rule that
-# fires as noise on unseen repos is rejected even if it lifts train recall).
-holdout_ok = h_p >= $MIN_PRECISION
+# Generalisation check, but only when the holdout can actually MEASURE
+# precision. If the candidate fired nothing on holdout (h_tp+h_fp == 0),
+# precision is undefined (reported as 0.0) — that is NOT evidence of noise, so
+# we do not punish it; fall back to the train-precision gate. Only when the
+# rule DID fire on holdout do we require it to stay clean.
+holdout_measurable = (h_tp + h_fp) > 0
+holdout_ok = (h_p >= $MIN_PRECISION) if holdout_measurable else True
 print('yes' if (train_ok and holdout_ok) else 'no')")"
 
     if [ "$accept" = "yes" ]; then
         local id; id="$(printf '%s' "$candidate" | awk -F': *' '/^id:/{print $2;exit}')"
+        # SLOP TEST (soft marker, option B): the candidate passed the benchmark,
+        # but does it generalise beyond the training case's FORM? Perturb the
+        # target case (keep the value, strip the layout) and re-test. If it fires
+        # on the original but not the perturbed variant, it learned the form —
+        # keep it as WEAK evidence: tag slop: true and cap confidence below
+        # block-at so it can only ever WARN, never BLOCK. Evidence is preserved;
+        # its weight is degraded. (keur.toml block-at = 0.85; cap at 0.50.)
+        local slop_note=""
+        if is_slop "$candidate" "$fn"; then
+            slop_note=" slop=true"
+            echo "[iter $iter] SLOP: fires on original but not on perturbed variant -> soft-marking (cap confidence, WARN-only)"
+            # write the candidate with slop:true and a capped confidence
+            printf '%s\n' "$candidate" \
+              | sed -E 's/^confidence:.*/confidence: 0.50/' > "$tmpd/candidate.rule"
+            # ensure a slop marker line exists (append if absent)
+            grep -q '^slop:' "$tmpd/candidate.rule" || echo "slop: true" >> "$tmpd/candidate.rule"
+            # if there was no confidence line at all, add the cap
+            grep -q '^confidence:' "$tmpd/candidate.rule" || echo "confidence: 0.50" >> "$tmpd/candidate.rule"
+        fi
         cp "$tmpd/candidate.rule" "$LEARNED/${id:-learned-$iter}.rule"
-        echo "[iter $iter] ACCEPT -> rules/learned/${id:-learned-$iter}.rule (holdout recall=$h_recall)"
-        record "$iter" accept "$c_recall" "$c_prec" "${id} holdout_recall=$h_recall"
+        echo "[iter $iter] ACCEPT -> rules/learned/${id:-learned-$iter}.rule (holdout recall=$h_recall)${slop_note}"
+        record "$iter" accept "$c_recall" "$c_prec" "${id} holdout_recall=$h_recall${slop_note}"
         rm -rf "$tmpd"; return 0
     else
         echo "[iter $iter] REJECT (gate: train or holdout criteria not met)"
@@ -193,7 +329,9 @@ print('yes' if (train_ok and holdout_ok) else 'no')")"
 }
 
 record() {
-    python3 -c "import json,sys,time;print(json.dumps({'iter':int(sys.argv[1]),'ts':time.strftime('%Y-%m-%dT%H:%M:%S'),'decision':sys.argv[2],'recall':float(sys.argv[3]),'precision':float(sys.argv[4]),'note':sys.argv[5]}))" "$@" >> "$HIST"
+    # Tag each record with the active eval source (corpus|keureval) so the
+    # monitor can separate runs instead of mixing their recall scales.
+    KEUR_EVAL_SOURCE="$KEUR_EVAL_SOURCE" python3 -c "import json,sys,time,os;print(json.dumps({'iter':int(sys.argv[1]),'ts':time.strftime('%Y-%m-%dT%H:%M:%S'),'decision':sys.argv[2],'recall':float(sys.argv[3]),'precision':float(sys.argv[4]),'note':sys.argv[5],'source':os.environ.get('KEUR_EVAL_SOURCE','corpus')}))" "$@" >> "$HIST"
 }
 
 case "${1:-iterate}" in
