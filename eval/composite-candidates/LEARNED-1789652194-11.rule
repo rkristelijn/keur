@@ -1,0 +1,12 @@
+id: LEARNED-1789652194-11
+title: OS Command Injection via User Input
+category: cmdi
+severity: critical
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)\b(os\.system|exec|subprocess\.run|shell=True)\s*\([^)]*user_input\b[^)]*\)
+    message: Potential OS command injection detected. User input is directly used in a system call.
+confidence: 0.50
+slop: true

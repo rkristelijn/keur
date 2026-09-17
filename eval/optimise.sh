@@ -35,6 +35,8 @@ LEARNED="$KEUR_HOME/rules/learned"          # accepted rules live here
 HIST="$HERE/history/optimiser.jsonl"
 BASE_RULES="$KEUR_HOME/rules"               # keur's own rules (always loaded)
 NATIVE="$KEUR_HOME/bin/keur-rules"          # the compiled rule engine (slop test)
+COMPOSITE="$HERE/composite-candidates"      # slop rules kept as composite building blocks (NOT loaded standalone)
+mkdir -p "$COMPOSITE"
 mkdir -p "$LEARNED" "$HERE/history"
 
 # Which split the optimiser trains on. Holdout stays unseen during training and
@@ -298,28 +300,29 @@ print('yes' if (train_ok and holdout_ok) else 'no')")"
 
     if [ "$accept" = "yes" ]; then
         local id; id="$(printf '%s' "$candidate" | awk -F': *' '/^id:/{print $2;exit}')"
-        # SLOP TEST (soft marker, option B): the candidate passed the benchmark,
-        # but does it generalise beyond the training case's FORM? Perturb the
-        # target case (keep the value, strip the layout) and re-test. If it fires
-        # on the original but not the perturbed variant, it learned the form —
-        # keep it as WEAK evidence: tag slop: true and cap confidence below
-        # block-at so it can only ever WARN, never BLOCK. Evidence is preserved;
-        # its weight is degraded. (keur.toml block-at = 0.85; cap at 0.50.)
-        local slop_note=""
+        # SLOP TEST: the candidate passed the benchmark, but does it generalise
+        # beyond the training case's FORM? Perturb the case it fires on (keep the
+        # value, strip the layout) and re-test. If it fires on the original but
+        # not the perturbed variant, it learned the FORM, not the CONCEPT.
+        #
+        # Such a rule is NOT discarded and NOT loaded as a standalone rule (that
+        # would add WARN noise). It is a weak SELECTOR — valuable only when it
+        # CORROBORATES another selector in the same file/block. We preserve it in
+        # composite-candidates/ as a building block for future composite rules
+        # (see TODO.md "composite rules via corroboration" + corroboration-bonus
+        # in config/keur.toml). It keeps slop:true + a note recording the case.
         if is_slop "$candidate" "$fn"; then
-            slop_note=" slop=true"
-            echo "[iter $iter] SLOP: fires on original but not on perturbed variant -> soft-marking (cap confidence, WARN-only)"
-            # write the candidate with slop:true and a capped confidence
-            printf '%s\n' "$candidate" \
-              | sed -E 's/^confidence:.*/confidence: 0.50/' > "$tmpd/candidate.rule"
-            # ensure a slop marker line exists (append if absent)
-            grep -q '^slop:' "$tmpd/candidate.rule" || echo "slop: true" >> "$tmpd/candidate.rule"
-            # if there was no confidence line at all, add the cap
-            grep -q '^confidence:' "$tmpd/candidate.rule" || echo "confidence: 0.50" >> "$tmpd/candidate.rule"
+            local cand_out; cand_out="$COMPOSITE/${id:-slop-$iter}.rule"
+            printf '%s\n' "$candidate" > "$cand_out"
+            grep -q '^slop:' "$cand_out" || echo "slop: true" >> "$cand_out"
+            echo "# composite-candidate: fires on form, not concept; kept for corroboration. from FN: $fn" >> "$cand_out"
+            echo "[iter $iter] SLOP -> composite-candidates/${id:-slop-$iter}.rule (weak selector, kept for future composite rules)"
+            record "$iter" accept "$c_recall" "$c_prec" "${id} holdout_recall=$h_recall slop=true composite-candidate"
+            rm -rf "$tmpd"; return 0
         fi
         cp "$tmpd/candidate.rule" "$LEARNED/${id:-learned-$iter}.rule"
-        echo "[iter $iter] ACCEPT -> rules/learned/${id:-learned-$iter}.rule (holdout recall=$h_recall)${slop_note}"
-        record "$iter" accept "$c_recall" "$c_prec" "${id} holdout_recall=$h_recall${slop_note}"
+        echo "[iter $iter] ACCEPT -> rules/learned/${id:-learned-$iter}.rule (holdout recall=$h_recall)"
+        record "$iter" accept "$c_recall" "$c_prec" "${id} holdout_recall=$h_recall"
         rm -rf "$tmpd"; return 0
     else
         echo "[iter $iter] REJECT (gate: train or holdout criteria not met)"
