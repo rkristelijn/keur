@@ -39,6 +39,7 @@ REPO_ROOT := $(shell cd ../.. && pwd -P)
 # Rule engine (shared, lower layer)
 RULES_SRC = ../rules/rule_engine.cpp
 RULES_OBJ = $(BINDIR)/rule_engine.o
+TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
@@ -65,8 +66,11 @@ build: $(BIN) ## Build bin/keur
 $(BINDIR):
 	@mkdir -p $(BINDIR)
 
-$(RULES_OBJ): $(RULES_SRC) ../rules/rule_engine.h | $(BINDIR)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+$(RULES_OBJ): $(RULES_SRC) ../rules/rule_engine.h ../rules/tokenizer.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
+$(TOKENIZER_OBJ): ../rules/tokenizer.cpp ../rules/tokenizer.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
 # Generic pattern: compile any keur source to a flattened object name.
 # $* is the stem with slashes turned to underscores by the explicit rules below.
@@ -97,6 +101,9 @@ $(BINDIR)/keur_render_display_width.o: render/display_width.cpp render/display_w
 $(BINDIR)/keur_render_box.o: render/box.cpp render/box.h render/display_width.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
+$(BINDIR)/keur_util_tokenizer.o: util/tokenizer.cpp util/tokenizer.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
 $(BINDIR)/keur_adapters_git.o: adapters/git.cpp adapters/git.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
@@ -109,7 +116,7 @@ $(BINDIR)/keur_adapters_proc.o: adapters/proc.cpp adapters/proc.h | $(BINDIR)
 $(BINDIR)/keur_report_report.o: report/report.cpp report/report.h util/keur_utils.h ../rules/rule_engine.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ)
+$(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(RE2_LDFLAGS)
 	@echo "built $(BIN) (version $(VERSION))"
 
@@ -117,10 +124,10 @@ $(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ)
 
 $(TEST_OBJ): keur_test.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h \
              adapters/git.h adapters/fs.h adapters/proc.h report/report.h util/keur_utils.h \
-             ../../vendor/doctest.h | $(BINDIR)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
+             ../rules/tokenizer.h ../../vendor/doctest.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
 
-$(TEST_BIN): $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ)
+$(TEST_BIN): $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(RE2_LDFLAGS)
 	@echo "built $(TEST_BIN)"
 
@@ -219,5 +226,5 @@ lint: ## Run clang-tidy if installed; otherwise a -Wall -Wextra syntax check
 	 fi
 
 clean: ## Remove build artifacts
-	rm -f $(BIN) $(TEST_BIN) $(MAIN_OBJ) $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ)
+	rm -f $(BIN) $(TEST_BIN) $(MAIN_OBJ) $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ)
 	rm -rf ../../.tmp/cov ../../.tmp/mull

@@ -11,12 +11,12 @@ RE2_LDFLAGS = -L$(RE2_PREFIX)/lib -L$(ABSL_PREFIX)/lib -lre2
 
 BINDIR = ../../bin
 BIN    = $(BINDIR)/keur-rules
-SRC    = rule_engine.cpp main.cpp
+SRC    = rule_engine.cpp tokenizer.cpp main.cpp
 
 .PHONY: all clean
 all: $(BIN)
 
-$(BIN): $(SRC) rule_engine.h
+$(BIN): $(SRC) rule_engine.h tokenizer.h
 	@mkdir -p $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(RE2_CFLAGS) $(SRC) -o $(BIN) $(RE2_LDFLAGS)
 	@echo "built $(BIN)"

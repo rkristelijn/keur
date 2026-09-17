@@ -44,6 +44,8 @@ struct Rule {
   std::string action;      // optional: "block"|"warn"|"advisory"
   std::string confidence;  // optional: "0.0".."1.0"
   std::string fix;
+  bool skip_comments = false;  // strip comments before matching (ADR-004 stage 1)
+  bool skip_strings = false;   // strip string literals before matching
   RuleTarget target;
   std::vector<RulePattern> patterns;
 };
