@@ -5,10 +5,16 @@
 #include "cmd/learn.h"
 
 #include <sys/ioctl.h>
+#include <sys/sysctl.h>
 #include <unistd.h>
+#if defined(__APPLE__)
+#include <mach/mach.h>
+#include <mach/mach_host.h>
+#endif
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <csignal>
 #include <cstdio>
@@ -238,6 +244,7 @@ LearnOptions learn_parse(const std::vector<std::string>& args) {
     else if (a == "--status") o.status = true;
     else if (a == "--no-spin") o.no_spin = true;
     else if (a == "--source" && i + 1 < args.size()) o.source = args[++i];
+    else if (a == "--model" && i + 1 < args.size()) o.model = args[++i];
     else if (a == "--refresh" && i + 1 < args.size()) o.refresh_secs = std::atoi(args[++i].c_str());
   }
   return o;
@@ -285,6 +292,63 @@ static RuleStats read_rule_stats(const std::string& home) {
   return s;
 }
 
+// --- machine resources + run duration (for the plain-terms summary) ---------
+struct Resources {
+  double load1 = 0.0;       // 1-min load average
+  int ncpu = 0;             // logical cpus
+  double ram_total_gb = 0;
+  double ram_free_gb = 0;   // free + inactive (macOS: practically available)
+  long run_secs = 0;        // how long the current run has been going
+};
+
+static Resources read_resources(const std::string& home) {
+  Resources r;
+  size_t sz = 0;
+  if (sysctlbyname("vm.loadavg", nullptr, nullptr, nullptr, 0) == 0) {
+    struct loadavg lv {};
+    sz = sizeof(lv);
+    if (sysctlbyname("vm.loadavg", &lv, &sz, nullptr, 0) == 0)
+      r.load1 = (double)lv.ldavg[0] / (double)lv.fscale;
+  }
+  { int n = 0; sz = sizeof(n);
+    if (sysctlbyname("hw.logicalcpu", &n, &sz, nullptr, 0) == 0) r.ncpu = n; }
+  { uint64_t m = 0; sz = sizeof(m);
+    if (sysctlbyname("hw.memsize", &m, &sz, nullptr, 0) == 0)
+      r.ram_total_gb = (double)m / 1e9; }
+#if defined(__APPLE__)
+  { vm_size_t page = 0; host_page_size(mach_host_self(), &page);
+    vm_statistics64_data_t vm {};
+    mach_msg_type_number_t cnt = HOST_VM_INFO64_COUNT;
+    if (host_statistics64(mach_host_self(), HOST_VM_INFO64,
+                          (host_info64_t)&vm, &cnt) == KERN_SUCCESS) {
+      r.ram_free_gb = (double)((vm.free_count + vm.inactive_count) * page) / 1e9;
+    } }
+#endif
+  // run duration from the supervisor pidfile mtime (set when the run started)
+  namespace fs = std::filesystem;
+  std::error_code ec;
+  auto pidf = fs::path(home) / "eval/.run/supervisor.pid";
+  if (fs::exists(pidf, ec)) {
+    auto ft = fs::last_write_time(pidf, ec);
+    if (!ec) {
+      auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+          ft - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
+      auto now = std::chrono::system_clock::now();
+      r.run_secs = std::chrono::duration_cast<std::chrono::seconds>(now - sctp).count();
+      if (r.run_secs < 0) r.run_secs = 0;
+    }
+  }
+  return r;
+}
+
+static std::string fmt_duration(long s) {
+  long h = s / 3600, m = (s % 3600) / 60;
+  char buf[32];
+  if (h > 0) std::snprintf(buf, sizeof(buf), "%ldh %ldm", h, m);
+  else       std::snprintf(buf, sizeof(buf), "%ldm", m);
+  return buf;
+}
+
 // --- one full-screen frame --------------------------------------------------
 static void draw_frame(const std::string& home) {
   auto recs = parse_history(home + "/eval/history/optimiser.jsonl");
@@ -329,6 +393,16 @@ static void draw_frame(const std::string& home) {
     std::cout << "  learning success rate  : " << pct << "%  (" << acc
               << " keepers out of " << tot << " tries — the rest were rejected as "
                  "too weak/noisy)\n";
+    // machine resources + how long this run has been going
+    Resources rc = read_resources(home);
+    char rbuf[256];
+    double load_pct = rc.ncpu ? (100.0 * rc.load1 / rc.ncpu) : 0.0;
+    std::snprintf(rbuf, sizeof(rbuf),
+                  "  running for            : %s   CPU load %.0f%% of %d cores   "
+                  "RAM free %.1f/%.0f GB",
+                  fmt_duration(rc.run_secs).c_str(), load_pct, rc.ncpu,
+                  rc.ram_free_gb, rc.ram_total_gb);
+    std::cout << rbuf << "\n";
     std::cout << "\n";
   }
 
@@ -384,11 +458,15 @@ int learn(const LearnOptions& opts) {
   // spin the background loop if nothing is running and not told to skip
   Supervisor sup = read_supervisor(home);
   if (!sup.running && !opts.no_spin) {
-    std::string cmd = "KEUR_EVAL_SOURCE=" + opts.source +
+    // MODEL is honoured by optimise.sh (env override); pass it only when set so
+    // an empty --model falls back to optimise.sh's own default selection.
+    std::string model_env = opts.model.empty() ? "" : ("MODEL='" + opts.model + "' ");
+    std::string cmd = model_env + "KEUR_EVAL_SOURCE=" + opts.source +
                       " KEUR_LOOP_CMD='" + home + "/eval/optimise.sh iterate 500' '" +
                       home + "/eval/supervise.sh' start";
-    std::cerr << "keur learn: spinning background loop (source=" << opts.source
-              << ")...\n";
+    std::cerr << "keur learn: spinning background loop (source=" << opts.source;
+    if (!opts.model.empty()) std::cerr << ", model=" << opts.model;
+    std::cerr << ")...\n";
     proc.run(cmd);
   }
 
