@@ -40,6 +40,7 @@ flowchart LR
 | `buildgt.sh`    | Run the tools over the whole corpus, write one append-only `groundtruth.jsonl` tagged by repo. |
 | `measure.sh`    | Run keur's rule engine over the corpus, join with the ground truth, report recall / precision / FN clusters. Honours the train/holdout split. |
 | `optimise.sh`   | The learning loop: pick an FN, ask Ollama for the smallest rule to catch it, re-measure, gate accept/reject. |
+| `Modelfile`     | Builds `keur-rule-engineer`: a model primed (SYSTEM prompt) as a detection engineer that knows RE2 and the .rule format. The optimiser prefers it when present. |
 | `preflight.sh`  | Disk + memory gate. Answers "is it safe to start another heavy iteration?" (macOS + Linux). |
 | `supervise.sh`  | Babysittable background job: escalating budget ladder, preflight per phase, crash-restart with backoff. |
 | `progress.sh`   | Readable dashboard: recall curve, accept/reject tally, learned-rule count. |
@@ -126,6 +127,9 @@ eval/corpus.sh clone
 eval/buildgt.sh                 # all tools;  or --tool gitleaks for speed
 eval/buildgt.sh --stats
 
+# 3b. build the expertise-primed model once (optional but recommended)
+ollama create keur-rule-engineer -f eval/Modelfile
+
 # 4a. one measurement (no learning)
 KEUR_RULES_DIRS=$PWD/rules eval/measure.sh
 KEUR_RULES_DIRS=$PWD/rules eval/measure.sh --fn     # what keur misses
@@ -133,7 +137,8 @@ KEUR_RULES_DIRS=$PWD/rules eval/measure.sh --fn     # what keur misses
 # 4b. a few learning iterations by hand
 eval/optimise.sh iterate 5
 
-# 5. the babysittable multi-hour run
+# 5. the babysittable multi-hour run (uses keur-rule-engineer if built)
+MODEL=keur-rule-engineer \
 KEUR_LOOP_CMD="$PWD/eval/optimise.sh iterate" \
 KEUR_PHASES="5 25 50 50 50 50" \
   eval/supervise.sh start
@@ -143,10 +148,19 @@ eval/supervise.sh tail          # raw supervisor log
 eval/progress.sh watch          # recall curve dashboard
 eval/supervise.sh status        # phase + last log
 eval/supervise.sh stop          # graceful stop
+
+# 6. review + promote (manual, deliberate)
+cat rules/learned/*.rule        # inspect what was learned
+#   move the sound ones into rules/<area>/ with a KEUR-* id, fix any regex the
+#   model got subtly wrong, correct mislabelled category/severity, then verify:
+KEUR_RULES_DIRS=$PWD/rules eval/measure.sh          # recall with promoted rules
+(cd src/keur && make test)                          # nothing regressed
 ```
 
 Accepted rules land in `rules/learned/` (gitignored until reviewed). Every
-iteration appends a compact record to `eval/history/optimiser.jsonl`.
+iteration appends a compact record to `eval/history/optimiser.jsonl`. Learned
+rules are never auto-promoted: a human reviews and moves the good ones into
+`rules/`.
 
 ## What we learned
 
@@ -176,24 +190,74 @@ iteration appends a compact record to `eval/history/optimiser.jsonl`.
    agree, confidence rises; where they disagree, that is a review candidate and a
    corpus-improvement signal, not a fact.
 
-5. **The loop currently fixates on one FN cluster.** FN targeting always picks
-   the first missed item, so the loop keeps proposing rules for the same hard
-   case (a payload-list README full of example keys that is genuinely hard to
-   match without noise). The convergence guard stops this from wasting hours, but
-   the hours are only productive once FN targeting *rotates* across different
-   missed clusters. That is the next improvement (see below).
+5. **FN targeting must rotate, or the loop fixates.** Initially FN targeting
+   always picked the first missed item, so the loop kept proposing rules for the
+   same hard case (a payload-list README full of example keys that is genuinely
+   hard to match without noise). `sample_fn` now rotates through the distinct
+   missed clusters by iteration index, so each step attacks a different category
+   (secret, then sast, then cmdi, ...). This is what made the hours productive.
+
+6. **Priming the model with expertise sharpens proposals.** A generic coder
+   model proposes generic regex and stalls. A model primed to be a detection
+   engineer (`eval/Modelfile` -> `keur-rule-engineer`, expertise in the SYSTEM
+   prompt: RE2 rules, the .rule format, generalise-never-memorise, prefer one
+   broad keyword-anchored pattern) converges faster and writes cleaner rules.
+   The expertise lives in the model, not in every request.
+
+7. **The LLM gets the concept right but the details wrong; a human reviews.**
+   The model correctly identified PHP command injection (the right structure:
+   exec/system/eval with a request superglobal), but wrote the superglobals as a
+   character class `[\$_GET\$_POST...]` (which matches characters, not the
+   strings). The benchmark accepted it because it lifted recall; only a human
+   review caught the regex bug. This is why `rules/learned/` is gitignored:
+   learned rules are candidates, never auto-promoted. The loop does the heavy
+   lifting (which categories, which patterns); the reviewer does the last 5%.
+
+## First full run (2026-09-17)
+
+The first productive overnight run, with the rich 4-category ground truth
+(gitleaks + semgrep, 663 findings across 9 repos), the primed model, and FN
+rotation:
+
+| Metric            | Start  | End    |
+|-------------------|--------|--------|
+| Train recall      | 0.083  | 0.917  |
+| Holdout recall    | 0.20   | 0.60   |
+| Rules learned     | 0      | 4      |
+| Iterations        | 0      | 86 (4 accept, 82 reject) |
+
+Holdout recall grew with train recall (0.20 -> 0.60): the learned rules
+generalise to repos Ollama never saw, they did not just fit the training set.
+The loop then converged (82 rejects on the last unlearnable FN) and stopped via
+the stall guard rather than burning hours.
+
+### Review and promotion
+
+Of the 4 learned rules, 3 were promoted to `rules/security/` after review:
+
+- `KEUR-SEC-002` (secret): generic hardcoded secret. Promoted as-is.
+- `KEUR-SEC-003` (cmdi): PHP exec/system/eval with a request superglobal. The
+  character-class bug was rewritten to a proper alternation before promotion.
+- `KEUR-SEC-004` (sast): exec() on a string literal. Mislabelled "SQL injection"
+  by the model; metadata corrected, downgraded to warn.
+- The 4th (`exec|query\(...`) was rejected: the alternation bound wrong and
+  matched a bare "exec" everywhere. Its intent is covered by SEC-004.
+
+Promoted rules lift production recall 0.083 -> 0.667 at precision 1.0, with zero
+false positives on keur's own source and the full test suite still green.
 
 ## Known limitations / next steps
 
-- **Rotate FN targeting.** Instead of always the first FN, cycle through distinct
-  missed clusters (by category, by repo) so each iteration attacks something new.
-- **semgrep coverage.** `p/default` produced 0 findings in the first runs
-  (registry/timeout). Wire a local ruleset so sqli/cmdi/sast categories enter the
-  ground truth, not just secrets.
 - **More sources.** Add adapters for Sonar, CodeRabbit, Dependabot, Renovate,
   AWS security. Each is one function in `groundtruth.sh` emitting the same JSON.
 - **Two-layer memory in the prompt.** Feed Ollama a compact history summary
   (accepted/rejected changes, known failure modes) rather than re-deriving from
   scratch each iteration (see evaluator.md).
-- **Larger corpus.** Currently ~6 usable repos after the size cap; scale toward
-  50 for a more robust signal.
+- **Larger corpus.** Currently ~9 repos (one skipped by the size cap); scale
+  toward 50 for a more robust, more diverse signal.
+- **Gate on holdout recall, not only precision.** The gate currently requires
+  holdout *precision* to hold; adding a holdout *recall* floor would reject
+  train-only overfits earlier (holdout recall lagged train in the first run).
+- **Tighter regex review automation.** The character-class-vs-alternation bug
+  is detectable; a lint pass on candidate regexes could flag it before a human
+  looks.
