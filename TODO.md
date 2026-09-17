@@ -124,6 +124,20 @@ Status legend: [x] done · [~] partially done · [ ] open
       user-input identifiers, never touch the sink call token). It is "soft"
       (WARN, not discard) so not urgent, but it mislabels good rules. See
       eval/perturb.sh (code branch) and eval/optimise.sh (is_slop).
+- [ ] SYSTEM INTEL must follow the adapter/provider pattern (currently macOS-only).
+      `keur learn`'s resource readout (RAM free, CPU load, run duration) in
+      cmd/learn.cpp uses macOS-only APIs behind `#if defined(__APPLE__)`:
+      host_statistics64 / mach + sysctlbyname("vm.loadavg","hw.memsize",
+      "hw.logicalcpu"). This BREAKS on Linux and Windows and is raw system I/O
+      inside a cmd/ (a KEUR-ARCH-001 smell — I/O belongs in an adapter).
+      Extract a SysInfo adapter (adapters/sysinfo.h) with one interface —
+      { load1(), ncpu(), ram_total_gb(), ram_free_gb() } — and platform impls:
+        * macOS   : mach host_statistics64 + sysctlbyname (current code)
+        * Linux   : /proc/loadavg, /proc/meminfo (MemAvailable), nproc
+        * Windows : GlobalMemoryStatusEx, GetSystemInfo, perf counters
+      cmd/learn.cpp then depends on the adapter, not on the platform. Same
+      injectable-seam benefit as the Git/Fs/Proc adapters (ADR-003): tests can
+      feed fake resource numbers. Until then the readout only works on macOS.
 - [ ] Why do we have multipe Makefiles
 - [ ] why is rules apart from keur in src? what isthe pupose?
 - [ ] `keur learn` TUI: equalise the height of the two side-by-side source
