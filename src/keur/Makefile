@@ -234,6 +234,9 @@ lint: ## Run clang-tidy if installed; otherwise a -Wall -Wextra syntax check
 	   done; \
 	   echo "syntax + warning check clean"; \
 	 fi
+	@echo ""
+	@echo "basics (file/dir size norms):"
+	@bash ../../scripts/check-basics.sh
 
 clean: ## Remove build artifacts
 	rm -f $(BIN) $(TEST_BIN) $(MAIN_OBJ) $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ)
