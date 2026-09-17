@@ -50,9 +50,13 @@ int hook(const HookOptions& opts, const HookDeps& deps = HookDeps{});
  * Write hook stubs into a directory (via the adapters::Fs adapter).
  * @param hooks_dir  Destination directory.
  * @param fs         Filesystem adapter (injectable for tests).
+ * @param global     When true, write the orchestrator stub (composes keur with
+ *                   the repo's own .githooks per its keur.toml mode). When
+ *                   false, write the minimal per-repo stub.
  * @returns true if all hooks were written successfully.
  */
-bool hooks_install(const std::string& hooks_dir, const adapters::Fs& fs = adapters::Fs{});
+bool hooks_install(const std::string& hooks_dir, const adapters::Fs& fs = adapters::Fs{},
+                   bool global = false);
 
 /**
  * Remove keur hook stubs from a directory (silently succeeds if absent).
