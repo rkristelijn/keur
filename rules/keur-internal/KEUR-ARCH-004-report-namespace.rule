@@ -7,7 +7,7 @@ action: block
 # Sibling of KEUR-ARCH-002 for the report/ layer (ADR-003).
 target:
   extensions: .cpp .h
-  exclude_paths: adapters/ cmd/ util/ rules/ main.cpp _test.cpp test/ tests/ vendor/ render/
+  exclude_paths: adapters/ cmd/ util/ rules/ main.cpp _test.cpp test/ tests/ vendor/ render/ learn/
 patterns:
   - regex: namespace keur::report
     message: "File under report/ must declare 'namespace keur::report' (namespace mirrors the directory layer). See ADR-003."

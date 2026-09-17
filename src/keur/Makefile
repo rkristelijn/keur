@@ -44,6 +44,7 @@ TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
 IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp cmd/rules.cpp \
+             learn/history.cpp learn/sysinfo.cpp learn/monitor.cpp \
              adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp \
              render/display_width.cpp render/box.cpp
 # Object files: flatten path (cmd/check.cpp -> keur_cmd_check.o) via subst
@@ -89,7 +90,16 @@ $(BINDIR)/keur_cmd_scan.o: cmd/scan.cpp cmd/scan.h report/report.h util/keur_uti
 $(BINDIR)/keur_cmd_policy.o: cmd/policy.cpp cmd/policy.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_learn.o: cmd/learn.cpp cmd/learn.h render/box.h render/display_width.h | $(BINDIR)
+$(BINDIR)/keur_cmd_learn.o: cmd/learn.cpp cmd/learn.h learn/monitor.h adapters/proc.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_learn_history.o: learn/history.cpp learn/history.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_learn_sysinfo.o: learn/sysinfo.cpp learn/sysinfo.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_learn_monitor.o: learn/monitor.cpp learn/monitor.h learn/history.h learn/sysinfo.h render/box.h render/display_width.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_cmd_rules.o: cmd/rules.cpp cmd/rules.h ../rules/rule_engine.h util/keur_utils.h | $(BINDIR)
