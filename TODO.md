@@ -38,8 +38,55 @@ Status legend: [x] done · [~] partially done · [ ] open
       Proc adapter, OR ruleengine mode, or both — normalise into one findings
       report. (Proc adapter seam is ready.)
 - [ ] ollama learn/loop as designed (eval/ harness exists; optimiser missing).
+- [ ] COMPOSITE RULES via corroboration (supersedes the slop soft-marker).
+      Insight: several SIMPLE selectors that fire together are more reliable than
+      one big complex regex. A "slop" rule on its own (e.g. an `internal
+      hostname:` label, or a bare private-IP pattern, or a money figure) is a
+      weak signal; but 2-3 of them CORROBORATING in the same file/block is a
+      strong signal of real business-sensitive data. So slop rules are not junk
+      — they are BUILDING BLOCKS.
+      keur.toml already DESIGNS this but the policy engine does not implement it:
+        corroboration-bonus = 0.10   corroboration-cap = 0.99
+        escalate-band-low = 0.40     escalate-band-high = 0.75
+      Plan:
+        - weak selectors sit in the ambiguous band (WARN-level) on their own;
+        - when N selectors co-occur (same file/block, or a shared group: field),
+          add corroboration-bonus per agreement, capped, lifting combined
+          confidence over block-at -> BLOCK;
+        - source of building blocks: eval/composite-candidates/ (slop rules are
+          preserved there now, NOT loaded standalone, so no WARN noise);
+        - needs: policy_evaluate() to combine findings (currently binary per
+          finding), a grouping mechanism (group: field or co-location), and the
+          confidence arithmetic.
+      This is the CONSTRUCTIVE answer to slop (make weak rules useful in
+      combination) vs the current DEFENSIVE one (degrade weak rules). It is
+      policy-engine work — do it as a deliberate step, not a quick patch.
 - [ ] pluggable private rules: loadable (KEUR_RULES_DIRS works) + docs + man page
       in the binary, so an AI/agent can discover how to add custom rules.
+- [ ] LEARN PROVIDER PATTERN — make the rule-PROPOSER pluggable (default Ollama).
+      Today eval/optimise.sh has one hard-coded ollama() function that POSTs a
+      prompt to localhost:11434 and gets a candidate rule back. Abstract it to a
+      "proposer" interface, keeping Ollama as the default, so the same learn
+      loop (measure + gate + slop test stay unchanged, LLM-agnostic) can use a
+      stronger model for the hard cases. Mirror the multi-provider design of
+      rkristelijn/llama-cli (Ollama + OpenAI-compatible, switchable at runtime;
+      config precedence CLI > .env > env > default).
+        - selection: KEUR_PROPOSER=ollama|openai|bedrock|kiro (default ollama)
+        - providers to support:
+            * ollama            — local, free, offline (DEFAULT; the bulk loop)
+            * openai-compatible — one adapter covers OpenAI, llama.cpp server,
+                                  LM Studio, proxies (biggest coverage per effort)
+            * bedrock           — AWS (Claude/Titan/Llama); fits the AWS-sec work
+            * kiro              — likely best per-rule quality; use for the HARD
+                                  cases (persistent holdout-rejects) where Ollama
+                                  stalls, not for the whole bulk loop
+        - rationale: the deterministic gate + slop test already correct for weak
+          proposer output, so cheap/local Ollama is right for volume; a stronger
+          paid/remote proposer earns its cost only on the cases Ollama can't
+          crack. Keep the loop able to MIX: Ollama for bulk, escalate hard FNs.
+        - privacy note: remote providers send the corpus cases off-machine;
+          gate this behind explicit opt-in (never default), consistent with
+          keur's local-first stance.
 
 ### Docs (DONE this cycle)
 
@@ -68,6 +115,15 @@ Status legend: [x] done · [~] partially done · [ ] open
 4. ollama optimiser loop.
 5. (optional) --format/--color on `keur check`; model auto-gen for diagrams.
 
+- [ ] slop marker is too strict on CODE cases (false-positive slop). Observed:
+      two near-identical genuine cmdi sink rules were classified differently —
+      one REAL, one SLOP — because perturb.sh's identifier-rename for a specific
+      .py case happened to break the sink match. The perturbation test is solid
+      on PROSE (cbi label rules) but wobbly on code. Make code perturbation
+      preserve the dangerous-call syntax more carefully (rename only clearly
+      user-input identifiers, never touch the sink call token). It is "soft"
+      (WARN, not discard) so not urgent, but it mislabels good rules. See
+      eval/perturb.sh (code branch) and eval/optimise.sh (is_slop).
 - [ ] Why do we have multipe Makefiles
 - [ ] why is rules apart from keur in src? what isthe pupose?
 - [ ] `keur learn` TUI: equalise the height of the two side-by-side source
