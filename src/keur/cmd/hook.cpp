@@ -21,10 +21,44 @@ namespace keur::cmd {
 
 static constexpr std::array<const char*, 2> k_hook_names = {"pre-commit", "pre-push"};
 
-// The stub is intentionally minimal: no logic, just exec keur check.
+// Per-repo hook stub: minimal, just run keur for this repo's commits.
 static std::string hook_stub(const char* hook_name) {
     std::string tier = (std::strcmp(hook_name, "pre-push") == 0) ? "pre-push" : "pre-commit";
     return std::string("#!/bin/sh\nexec keur check --tier ") + tier + "\n";
+}
+
+// Global hook stub: an orchestrator that gives each repo control over how keur
+// composes with the repo's own hooks. Because core.hooksPath disables the
+// repo's .git/hooks, this stub resolves and chains to the repo's .githooks/
+// itself. The repo declares the relationship in keur.toml:
+//
+//   [hooks] mode = "augment"   (default) run keur, then the repo hook
+//                = "replace"   run only the repo hook (repo overrides global)
+//                = "keur-only" run only keur (ignore the repo hook)
+//
+// The repo hook is expected at .githooks/<hook> (a common convention that is
+// not shadowed by core.hooksPath).
+static std::string global_hook_stub(const char* hook_name) {
+    std::string tier = (std::strcmp(hook_name, "pre-push") == 0) ? "pre-push" : "pre-commit";
+    std::string h(hook_name);
+    return
+        "#!/bin/sh\n"
+        "# keur global hook orchestrator. Composes keur with the repo's own\n"
+        "# hooks; the repo decides via [hooks].mode in keur.toml.\n"
+        "root=$(git rev-parse --show-toplevel 2>/dev/null)\n"
+        "mode=augment\n"
+        "if [ -n \"$root\" ] && [ -f \"$root/keur.toml\" ]; then\n"
+        "  m=$(sed -n 's/^[[:space:]]*mode[[:space:]]*=[[:space:]]*\"\\{0,1\\}\\([a-z-]*\\).*/\\1/p' \"$root/keur.toml\" | head -1)\n"
+        "  [ -n \"$m\" ] && mode=$m\n"
+        "fi\n"
+        "repo_hook=\"$root/.githooks/" + h + "\"\n"
+        "run_keur() { keur check --tier " + tier + "; }\n"
+        "run_repo() { [ -x \"$repo_hook\" ] && \"$repo_hook\" \"$@\"; }\n"
+        "case \"$mode\" in\n"
+        "  replace)   run_repo \"$@\" ;;\n"
+        "  keur-only) run_keur ;;\n"
+        "  *)         run_keur && run_repo \"$@\" ;;\n"   // augment (default)
+        "esac\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -47,7 +81,7 @@ std::string repo_hooks_dir(const adapters::Git& git) {
 // Install / remove (via the adapters::Fs adapter)
 // ---------------------------------------------------------------------------
 
-bool hooks_install(const std::string& hooks_dir, const adapters::Fs& fs) {
+bool hooks_install(const std::string& hooks_dir, const adapters::Fs& fs, bool global) {
     if (!fs.mkdir_p(hooks_dir)) {
         std::cerr << "keur: could not create hooks directory: " << hooks_dir << "\n";
         return false;
@@ -55,7 +89,11 @@ bool hooks_install(const std::string& hooks_dir, const adapters::Fs& fs) {
     bool ok = true;
     for (auto* name : k_hook_names) {
         std::string dest = hooks_dir + "/" + name;
-        if (!fs.write_executable(dest, hook_stub(name))) {
+        // Global installs get the orchestrator stub (composes keur with the
+        // repo's own .githooks per its keur.toml mode); per-repo installs get
+        // the minimal stub.
+        std::string content = global ? global_hook_stub(name) : hook_stub(name);
+        if (!fs.write_executable(dest, content)) {
             std::cerr << "keur: failed to write hook: " << dest << "\n";
             ok = false;
         } else {
@@ -124,7 +162,7 @@ int hook(const HookOptions& opts, const HookDeps& deps) {
         case HookAction::Global: {
             std::string dir = global_hooks_dir();
             std::cout << "Installing global KEUR hooks...\n";
-            if (!hooks_install(dir, fs)) return 1;
+            if (!hooks_install(dir, fs, /*global=*/true)) return 1;
             std::string current = git.run("config --global core.hooksPath");
             if (!current.empty() && current != dir) {
                 std::cerr << "keur hook: core.hooksPath already set to: " << current << "\n";
