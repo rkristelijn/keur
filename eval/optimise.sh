@@ -348,7 +348,12 @@ case "${1:-iterate}" in
     # Re-proposing the same FN cluster without progress just burns time/tokens.
     MAX_STALL="${KEUR_MAX_STALL:-8}"
     stall=0
+    # Stop files: honour both the supervisor's STOP and the loop stop-file, so
+    # `keur learn --stop` (and supervise.sh stop) end the run promptly between
+    # iterations, not only at a phase boundary.
+    STOP_SUP="$HERE/.run/STOP"; STOP_LOOP="/tmp/stop-keur-eval-loop"
     for i in $(seq 1 "$N"); do
+      [ -f "$STOP_SUP" ] || [ -f "$STOP_LOOP" ] && { echo "stop requested; ending iterate"; break; }
       iterate_once "$i"; rc=$?
       case "$rc" in
         0) stall=0 ;;                         # accepted: progress
