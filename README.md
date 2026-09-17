@@ -236,6 +236,7 @@ suppress `SEC-043`.
 - `docs/adr/ADR-001-native-rule-engine.md` - why a native RE2 engine
 - `docs/adr/ADR-002-single-cpp-binary.md` - why one compiled binary
 - `docs/adr/ADR-003-provider-architecture.md` - the adapter / provider layers
+- `docs/adr/ADR-004-analysis-engine-evolution.md` - staged path from line-scanner to language-agnostic analysis
 - `CONTRIBUTING.md` - build, test, coverage, mutation, layout, self-checks
 
 ## License
