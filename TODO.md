@@ -34,6 +34,12 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ### Features
 
+- [ ] extract-duplicates engine (last of cpm's 7 engines; ADR-004 stage 2). Per
+      file, extract a capture group via `extract:` regex + `capture:` index and
+      flag duplicate captured values (e.g. duplicate test names in one file).
+      Needs fields extract/capture/message and an eval_extract in rule/. Once it
+      lands, scripts/check-basics.sh (an aggregation check) can become a real
+      .rule. cpm ref: adr-166 phase 5.
 - [ ] KEUR_HOME should be DERIVED, not a required global env var. Today keur
       hard-reads getenv("KEUR_HOME") in 4 places (util/keur_utils.h rule_dirs,
       cmd/policy.cpp resolve_config, cmd/learn.cpp keur_home, src/rules/main.cpp)
@@ -75,7 +81,7 @@ Status legend: [x] done · [~] partially done · [ ] open
       policy-engine work — do it as a deliberate step, not a quick patch.
 - [ ] pluggable private rules: loadable (KEUR_RULES_DIRS works) + docs + man page
       in the binary, so an AI/agent can discover how to add custom rules.
-- [ ] SARIF output format — the ecosystem lingua franca (GitHub/GitLab code
+- [x] SARIF output format — DONE (keur scan --format sarif, SARIF 2.1.0). The
       scanning ingest it). From the tool study (docs/design/lessons-from-
       existing-tools.md): every serious SAST tool emits SARIF; add it as a
       report format alongside jsonl/compact/verbose so keur interoperates.
