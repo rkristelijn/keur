@@ -532,6 +532,23 @@ SCENARIO("[feature:report] report_findings JSONL emits one line per finding") {
     CHECK(s.find("\"rule\":\"B\"") != std::string::npos);
 }
 
+SCENARIO("[feature:report] report_findings SARIF emits a 2.1.0 document") {
+    std::vector<keur::RuleFinding> fs(1);
+    fs[0].rule_id = "T1"; fs[0].severity = "warning"; fs[0].message = "msg";
+    fs[0].file = "a.py"; fs[0].line = 3;
+    std::ostringstream out;
+    keur::report::ReportOptions ro; ro.format = keur::report::OutputFormat::Sarif;
+    auto n = keur::report::report_findings(out, fs, ro);
+    CHECK(n == 1);
+    std::string s = out.str();
+    CHECK(s.find("\"version\":\"2.1.0\"") != std::string::npos);
+    CHECK(s.find("\"driver\":{\"name\":\"keur\"") != std::string::npos);
+    CHECK(s.find("\"ruleId\":\"T1\"") != std::string::npos);
+    CHECK(s.find("\"level\":\"warning\"") != std::string::npos);
+    CHECK(s.find("\"startLine\":3") != std::string::npos);
+    CHECK(s.find("\"uri\":\"a.py\"") != std::string::npos);
+}
+
 SCENARIO("[feature:report] report_findings compact emits file:line RULE") {
     std::vector<keur::RuleFinding> fs(1);
     fs[0].rule_id = "R"; fs[0].file = "a.txt"; fs[0].line = 7; fs[0].message = "msg";

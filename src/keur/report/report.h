@@ -23,6 +23,7 @@ enum class OutputFormat {
     Jsonl,    // one JSON object per line (machine-readable, default for scan)
     Compact,  // one short line per finding (file:line RULE message)
     Verbose,  // multi-line, human-friendly, with fix hints
+    Sarif,    // SARIF 2.1.0 document (GitHub/GitLab code-scanning interop)
 };
 
 /** Colour policy for human formats. */

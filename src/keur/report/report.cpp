@@ -56,6 +56,7 @@ OutputFormat parse_format(const std::string& s, OutputFormat fallback) {
     if (s == "jsonl")   return OutputFormat::Jsonl;
     if (s == "compact") return OutputFormat::Compact;
     if (s == "verbose") return OutputFormat::Verbose;
+    if (s == "sarif")   return OutputFormat::Sarif;
     return fallback;
 }
 
@@ -70,6 +71,33 @@ std::size_t report_findings(std::ostream& out,
                             const std::vector<RuleFinding>& findings,
                             const ReportOptions& opts) {
     bool color = use_color(opts.color, false);  // ostream is not a tty here
+
+    // SARIF is a single document wrapping all results (GitHub/GitLab code
+    // scanning ingest it), so it is emitted whole rather than per finding.
+    if (opts.format == OutputFormat::Sarif) {
+        auto sarif_level = [](const std::string& sev) -> const char* {
+            if (sev == "error" || sev == "critical") return "error";
+            if (sev == "warning") return "warning";
+            return "note";
+        };
+        out << "{\"version\":\"2.1.0\","
+               "\"$schema\":\"https://json.schemastore.org/sarif-2.1.0.json\","
+               "\"runs\":[{\"tool\":{\"driver\":{\"name\":\"keur\","
+               "\"informationUri\":\"https://github.com/rkristelijn/keur\","
+               "\"rules\":[]}},\"results\":[";
+        for (std::size_t i = 0; i < findings.size(); ++i) {
+            const auto& f = findings[i];
+            if (i) out << ",";
+            out << "{\"ruleId\":\"" << jesc(f.rule_id) << "\","
+                << "\"level\":\"" << sarif_level(f.severity) << "\","
+                << "\"message\":{\"text\":\"" << jesc(f.message) << "\"},"
+                << "\"locations\":[{\"physicalLocation\":{"
+                << "\"artifactLocation\":{\"uri\":\"" << jesc(f.file) << "\"},"
+                << "\"region\":{\"startLine\":" << (f.line > 0 ? f.line : 1) << "}}}]}";
+        }
+        out << "]}]}\n";
+        return findings.size();
+    }
 
     for (const auto& f : findings) {
         switch (opts.format) {
@@ -97,6 +125,9 @@ std::size_t report_findings(std::ostream& out,
                 out << "\n";
                 break;
             }
+
+            case OutputFormat::Sarif:
+                break;  // handled as a whole document above the loop
         }
     }
     return findings.size();
