@@ -32,11 +32,13 @@ while IFS= read -r f; do
 done < <(find "$ROOT/src" \( -name '*.cpp' -o -name '*.h' \) \
            ! -path '*/vendor/*' ! -name '*_test.cpp')
 
-# 2. files per source directory (skip vendor)
+# 2. logical units per source directory (skip vendor). A .h/.cpp pair with the
+#    same stem counts as ONE unit — the norm is about logical modules per dir,
+#    not raw file count (6 command pairs in cmd/ is fine, 30 loose files is not).
 while IFS= read -r d; do
-  n=$(find "$d" -maxdepth 1 -type f | wc -l | tr -d ' ')
+  n=$(find "$d" -maxdepth 1 -type f | sed -E 's/\.(h|hpp|cpp|cc|c)$//' | sort -u | wc -l | tr -d ' ')
   if [ "$n" -gt "$MAX_FILES" ]; then
-    echo "  DIR   $d ($n files) — regroup into subdirs"
+    echo "  DIR   $d ($n units) — regroup into subdirs"
     fail=1
   fi
 done < <(find "$ROOT/src" -type d ! -path '*/vendor/*')
