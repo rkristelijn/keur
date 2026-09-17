@@ -23,6 +23,7 @@
 #include "cmd/hook.h"
 #include "cmd/learn.h"
 #include "cmd/policy.h"
+#include "cmd/rules.h"
 #include "cmd/scan.h"
 
 // ---------------------------------------------------------------------------
@@ -49,6 +50,7 @@ static void usage() {
         "  check [--tier T]           Gate the staged diff (used by hooks)\n"
         "                             T = pre-commit (default) | pre-push\n"
         "  policy explain             Print the resolved policy and thresholds\n"
+        "  rules list [--winners]     Show the resolved rule cascade (layers + specificity)\n"
         "  learn [--stop|--status]    Spin the optimise loop + live TUI monitor\n"
         "        [--source S]         S = corpus (default) | keureval\n"
         "  version                    Print version\n"
@@ -69,6 +71,7 @@ static const std::unordered_map<std::string, Handler> k_commands = {
     {"scan",   [](const Args& a) { return keur::cmd::scan(keur::cmd::scan_parse(a)); }},
     {"check",  [](const Args& a) { return keur::cmd::check(keur::cmd::check_parse(a)); }},
     {"policy", [](const Args& a) { return keur::cmd::policy(keur::cmd::policy_parse(a)); }},
+    {"rules",  [](const Args& a) { return keur::cmd::rules(keur::cmd::rules_parse(a)); }},
     {"learn",  [](const Args& a) { return keur::cmd::learn(keur::cmd::learn_parse(a)); }},
     {"version",  [](const Args&) {
         // Prefer the version from a resolved keur.toml; fall back to the

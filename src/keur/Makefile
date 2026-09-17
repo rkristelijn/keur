@@ -42,7 +42,7 @@ RULES_OBJ = $(BINDIR)/rule_engine.o
 
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
-IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp \
+IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp cmd/rules.cpp \
              adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp \
              render/display_width.cpp render/box.cpp
 # Object files: flatten path (cmd/check.cpp -> keur_cmd_check.o) via subst
@@ -86,6 +86,9 @@ $(BINDIR)/keur_cmd_policy.o: cmd/policy.cpp cmd/policy.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_cmd_learn.o: cmd/learn.cpp cmd/learn.h render/box.h render/display_width.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_cmd_rules.o: cmd/rules.cpp cmd/rules.h ../rules/rule_engine.h util/keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_render_display_width.o: render/display_width.cpp render/display_width.h | $(BINDIR)
