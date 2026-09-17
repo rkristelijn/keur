@@ -461,9 +461,17 @@ int learn(const LearnOptions& opts) {
     // MODEL is honoured by optimise.sh (env override); pass it only when set so
     // an empty --model falls back to optimise.sh's own default selection.
     std::string model_env = opts.model.empty() ? "" : ("MODEL='" + opts.model + "' ");
-    std::string cmd = model_env + "KEUR_EVAL_SOURCE=" + opts.source +
-                      " KEUR_LOOP_CMD='" + home + "/eval/optimise.sh iterate 500' '" +
-                      home + "/eval/supervise.sh' start";
+    // Loop command: normally optimise.sh on one source; with --source alternate
+    // use alternate.sh, which flips corpus<->keureval each phase (both sources
+    // learned in one run, still tracked separately in history).
+    std::string loop_cmd;
+    if (opts.source == "alternate" || opts.source == "both") {
+      loop_cmd = "KEUR_LOOP_CMD='" + home + "/eval/alternate.sh'";
+    } else {
+      loop_cmd = "KEUR_EVAL_SOURCE=" + opts.source +
+                 " KEUR_LOOP_CMD='" + home + "/eval/optimise.sh iterate 500'";
+    }
+    std::string cmd = model_env + loop_cmd + " '" + home + "/eval/supervise.sh' start";
     std::cerr << "keur learn: spinning background loop (source=" << opts.source;
     if (!opts.model.empty()) std::cerr << ", model=" << opts.model;
     std::cerr << ")...\n";

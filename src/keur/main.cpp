@@ -52,7 +52,7 @@ static void usage() {
         "  policy explain             Print the resolved policy and thresholds\n"
         "  rules list [--winners]     Show the resolved rule cascade (layers + specificity)\n"
         "  learn [--stop|--status]    Spin the optimise loop + live TUI monitor\n"
-        "        [--source S]         S = corpus (default) | keureval\n"
+        "        [--source S]         S = corpus (default) | keureval | alternate\n"
         "        [--model M]          Ollama model for the loop (default: keur-rule-engineer)\n"
         "  version                    Print version\n"
         "  help                       Show this message\n"
