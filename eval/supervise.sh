@@ -43,7 +43,22 @@ supervise_run() {
     rm -f "$STOP"
     log "supervisor start: phases=[$PHASES] max_restarts=$MAX_RESTARTS pid=$$"
     local phase_no=0
-    for mins in $PHASES; do
+
+    # "loop" mode: run indefinitely in fixed-length phases until STOP is set
+    # (for overnight runs — `keur learn` until you stop it). Otherwise walk the
+    # explicit minute-budget ladder.
+    local phase_list="$PHASES"
+    local loop_mode=0 loop_mins="${KEUR_LOOP_MINS:-30}"
+    if [ "$PHASES" = "loop" ]; then loop_mode=1; fi
+
+    while :; do
+      if [ "$loop_mode" = "1" ]; then
+        [ -f "$STOP" ] && { log "stop requested; ending loop-mode run"; break; }
+        set -- "$loop_mins"           # one phase of loop_mins, repeat forever
+      else
+        set -- $phase_list
+      fi
+    for mins in "$@"; do
         phase_no=$((phase_no+1))
         echo "$phase_no/$mins" > "$PHASE_FILE"
 
@@ -84,6 +99,9 @@ supervise_run() {
             "$HERE/preflight.sh" "$KEUR_HOME" >>"$LOG" 2>&1 || log "preflight warns; restarting anyway"
             sleep "$backoff"
         done
+    done
+    # loop-mode repeats the phase set until STOP; explicit ladder runs once.
+    [ "$loop_mode" = "1" ] || break
     done
     log "supervisor done"
     rm -f "$PIDFILE" "$PHASE_FILE"

@@ -471,10 +471,11 @@ int learn(const LearnOptions& opts) {
       loop_cmd = "KEUR_EVAL_SOURCE=" + opts.source +
                  " KEUR_LOOP_CMD='" + home + "/eval/optimise.sh iterate 500'";
     }
-    std::string cmd = model_env + loop_cmd + " '" + home + "/eval/supervise.sh' start";
+    std::string cmd = model_env + "KEUR_PHASES=loop " + loop_cmd +
+                      " '" + home + "/eval/supervise.sh' start";
     std::cerr << "keur learn: spinning background loop (source=" << opts.source;
     if (!opts.model.empty()) std::cerr << ", model=" << opts.model;
-    std::cerr << ")...\n";
+    std::cerr << ", runs until 'keur learn --stop')...\n";
     proc.run(cmd);
   }
 
