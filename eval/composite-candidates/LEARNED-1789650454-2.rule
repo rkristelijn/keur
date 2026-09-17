@@ -1,0 +1,16 @@
+id: LEARNED-1789650454-2
+title: Detect CBI Information in Text Files
+category: cbi
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)(internal\s+hostname|private\s+ip\s+address)\s*[:=]\s*["']?([0-9]{1,3}\.){3}[0-9]{1,3}["']?
+    message: Detected internal hostname or private IP address assignment.
+  - regex: (?i)(supplier\s+reference|contract\s+id)\s*[:=]\s*["']?[A-Z0-9\-]+["']?
+    message: Detected supplier reference or contract ID assignment.
+  - regex: (?i)(total\s+expenditure|invoice\s+amount)\s*[:=]\s*["']?\$\d{1,3}(,\d{3})*(\.\d{2})?["']?
+    message: Detected monetary figure assignment.
+confidence: 0.50
+slop: true

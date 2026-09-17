@@ -1,0 +1,14 @@
+id: LEARNED-1789652107-6
+title: Detect Commercially/Business-sensitive Information (CBI)
+category: cbi
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)(internal\s+hostname|private\s+ip)\s*[:=]\s*["']?([a-zA-Z0-9.-]+)["']?
+    message: Detected internal hostname or private IP address.
+  - regex: (?i)(supplier\s+contract|financial\s+record|invoiced\s+amount|agreed-upon\s+amount)\s*[:=]\s*["']?[\d,]+\s*[a-zA-Z]?\b
+    message: Detected monetary figure or supplier contract reference.
+confidence: 0.50
+slop: true

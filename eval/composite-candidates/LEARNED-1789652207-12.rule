@@ -1,0 +1,12 @@
+id: LEARNED-1789652207-12
+title: Potential OS Command Injection via User Input
+category: cmdi
+severity: critical
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)\b(os\.system|exec|subprocess\.call|shell_exec|Runtime\.getRuntime\(\)\.exec)\s*\([^)]*user_input[^)]*\)
+    message: User input is directly passed to an OS command execution function, which can lead to OS Command Injection.
+confidence: 0.50
+slop: true
