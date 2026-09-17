@@ -13,6 +13,7 @@
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -242,6 +243,48 @@ LearnOptions learn_parse(const std::vector<std::string>& args) {
   return o;
 }
 
+// --- rule inventory on disk (for the plain-terms summary) -------------------
+struct RuleStats {
+  std::map<std::string, int> learned_by_cat;   // category -> count in rules/learned
+  int learned_total = 0;
+  int composite_total = 0;                      // slop kept as composite building blocks
+};
+
+// count `category: X` lines in .rule files under a directory (non-recursive is
+// fine here; learned/ and composite-candidates/ are flat).
+static RuleStats read_rule_stats(const std::string& home) {
+  namespace fs = std::filesystem;
+  RuleStats s;
+  std::error_code ec;
+  auto count_dir = [&](const std::string& dir, bool into_cat) {
+    fs::path p(dir);
+    if (!fs::is_directory(p, ec)) return;
+    for (auto& e : fs::directory_iterator(p, ec)) {
+      if (e.path().extension() != ".rule") continue;
+      std::ifstream f(e.path());
+      std::string line, cat;
+      while (std::getline(f, line)) {
+        if (line.rfind("category:", 0) == 0) {
+          cat = line.substr(9);
+          // trim
+          size_t a = cat.find_first_not_of(" \t");
+          if (a != std::string::npos) cat = cat.substr(a);
+          break;
+        }
+      }
+      if (into_cat) {
+        s.learned_by_cat[cat.empty() ? "(uncat)" : cat]++;
+        s.learned_total++;
+      } else {
+        s.composite_total++;
+      }
+    }
+  };
+  count_dir(home + "/rules/learned", true);
+  count_dir(home + "/eval/composite-candidates", false);
+  return s;
+}
+
 // --- one full-screen frame --------------------------------------------------
 static void draw_frame(const std::string& home) {
   auto recs = parse_history(home + "/eval/history/optimiser.jsonl");
@@ -260,6 +303,34 @@ static void draw_frame(const std::string& home) {
   std::string head = "keur learn · loop " + status;
   if (!sup.phase.empty()) head += " · phase " + sup.phase;
   std::cout << head << "\n";
+
+  // --- plain-terms summary (no jargon) --------------------------------------
+  // Explains, for a human: how many rules keur has learned, in which areas, how
+  // many are still weak building blocks, and how often a training attempt
+  // actually produces a usable rule (the "success rate").
+  {
+    RuleStats rs = read_rule_stats(home);
+    // success rate = accepts / total attempts, over ALL history (both sources).
+    int acc = 0, tot = (int)recs.size();
+    for (const auto& r : recs) if (r.decision == "accept") ++acc;
+    int pct = tot ? (int)(100.0 * acc / tot + 0.5) : 0;
+
+    std::cout << "in plain terms:\n";
+    std::cout << "  rules keur has learned : " << rs.learned_total
+              << "   (weak building blocks kept aside: " << rs.composite_total << ")\n";
+    // per-area line, compact
+    std::string areas;
+    for (const auto& [cat, n] : rs.learned_by_cat) {
+      if (!areas.empty()) areas += "  ";
+      areas += cat + " " + std::to_string(n);
+    }
+    if (!areas.empty())
+      std::cout << "  by area                : " << render::truncate_to(areas, inner_total - 27) << "\n";
+    std::cout << "  learning success rate  : " << pct << "%  (" << acc
+              << " keepers out of " << tot << " tries — the rest were rejected as "
+                 "too weak/noisy)\n";
+    std::cout << "\n";
+  }
 
   bool wide = sz.cols >= 120;
   bool std_w = sz.cols >= 80;
