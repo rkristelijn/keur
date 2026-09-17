@@ -138,7 +138,11 @@ std::vector<Rule> rules_load(const std::string& dir) {
   std::sort(files.begin(), files.end());
   for (auto& f : files) {
     Rule r = rule_parse(f);
-    if (!r.id.empty() && !r.patterns.empty()) rules.push_back(std::move(r));
+    // pattern-based engines need at least one pattern; file-level engines
+    // (file-absence/file-presence) are valid with no patterns — they match on
+    // the target's filenames/extensions across the whole fileset.
+    const bool file_level = (r.engine == "file-absence" || r.engine == "file-presence");
+    if (!r.id.empty() && (!r.patterns.empty() || file_level)) rules.push_back(std::move(r));
   }
   return rules;
 }
@@ -214,6 +218,52 @@ static void split_lines(const std::string& content, std::vector<re2::StringPiece
   while (p <= end) {
     if (p == end || *p == '\n') { lines.emplace_back(ls, p - ls); ls = p + 1; }
     p++;
+  }
+}
+
+// ── file-level engines (ADR-004 stage 2) ────────────────────────────────────
+// file-absence: emit a finding when NONE of the target's filenames/extensions
+//   is present in the scanned fileset (e.g. "missing SECURITY.md").
+// file-presence: emit a finding for EACH matching file (e.g. "committed .env").
+// These run once over the whole fileset, not per line. Adopted from cpm
+// (adr-166); shaped to keur's RuleFinding.
+static void eval_file_level_rules(
+    const std::vector<const Rule*>& absence_rules,
+    const std::vector<const Rule*>& presence_rules,
+    const std::vector<std::pair<std::string, std::string>>& files,
+    std::vector<RuleFinding>& findings) {
+  std::unordered_set<std::string> basenames;
+  for (const auto& [rel, abs] : files) basenames.insert(basename_of(rel));
+
+  for (const auto* rule : absence_rules) {
+    bool found = false;
+    for (const auto& fn : rule->target.filenames) {
+      if (basenames.count(fn)) { found = true; break; }
+    }
+    if (!found) {
+      for (const auto& [rel, abs] : files) {
+        if (rule_matches_file(*rule, rel)) { found = true; break; }
+      }
+    }
+    if (!found) {
+      std::string expected = rule->target.filenames.empty()
+          ? (rule->target.extensions.empty() ? "matching file"
+                                             : rule->target.extensions[0])
+          : rule->target.filenames[0];
+      findings.push_back({rule->id, rule->title, rule->category, rule->severity,
+                          default_action(*rule), default_conf(*rule), expected, 0,
+                          rule->title});
+    }
+  }
+
+  for (const auto* rule : presence_rules) {
+    for (const auto& [rel, abs] : files) {
+      if (rule_matches_file(*rule, rel)) {
+        findings.push_back({rule->id, rule->title, rule->category, rule->severity,
+                            default_action(*rule), default_conf(*rule), rel, 0,
+                            rule->title});
+      }
+    }
   }
 }
 
@@ -383,6 +433,17 @@ static std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
       for (auto& k : kept) findings.push_back(std::move(k));
     }
   }
+
+  // file-level engines run once over the whole fileset (not per line).
+  std::vector<const Rule*> file_absence, file_presence;
+  for (const auto& r : rules) {
+    if (r.engine == "file-absence") file_absence.push_back(&r);
+    else if (r.engine == "file-presence") file_presence.push_back(&r);
+  }
+  if (!file_absence.empty() || !file_presence.empty()) {
+    eval_file_level_rules(file_absence, file_presence, files, findings);
+  }
+
   return findings;
 }
 
@@ -402,15 +463,21 @@ static void walk(const std::string& dir, const std::string& prefix,
   while ((e = readdir(d)) != nullptr) {
     std::string name = e->d_name;
     if (name == "." || name == "..") continue;
-    if (name[0] == '.' && name != ".github" && name != ".gitlab" && name != ".ci") continue;
-    if (name == "node_modules" || name == "vendor" || name == "build" || name == "dist" ||
-        name == "out" || name == "target" || name == "coverage" || name == "__pycache__" ||
-        name == "venv" || name == "env" || name == "bin" || name == "obj" || name == "tmp")
-      continue;
     std::string rel = prefix.empty() ? name : prefix + "/" + name;
     std::string full = dir + "/" + name;
     struct stat st;
     if (stat(full.c_str(), &st) != 0) continue;
+    // Hidden DIRECTORIES are skipped (.git, .cache, ...) except a few CI dirs;
+    // but hidden FILES are kept — .env / .npmrc / .dockercfg are exactly the
+    // secret-bearing files a scanner must see (needed for file-presence rules).
+    if (name[0] == '.' && S_ISDIR(st.st_mode) &&
+        name != ".github" && name != ".gitlab" && name != ".ci")
+      continue;
+    if (S_ISDIR(st.st_mode) &&
+        (name == "node_modules" || name == "vendor" || name == "build" || name == "dist" ||
+         name == "out" || name == "target" || name == "coverage" || name == "__pycache__" ||
+         name == "venv" || name == "env" || name == "bin" || name == "obj" || name == "tmp"))
+      continue;
     if (S_ISDIR(st.st_mode)) walk(full, rel, out);
     else if (S_ISREG(st.st_mode) && st.st_size < 1024 * 1024) out.emplace_back(rel, full);
   }
