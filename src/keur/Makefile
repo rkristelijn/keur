@@ -37,8 +37,7 @@ BIN    = $(BINDIR)/keur
 REPO_ROOT := $(shell cd ../.. && pwd -P)
 
 # Rule engine (shared, lower layer)
-RULES_SRC = ../rules/rule_engine.cpp
-RULES_OBJ = $(BINDIR)/rule_engine.o
+RULES_OBJ = $(BINDIR)/rule_parse.o $(BINDIR)/rule_match.o $(BINDIR)/rule_scan.o $(BINDIR)/rule_block.o
 TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 
 # All keur sources (relative to src/keur)
@@ -67,7 +66,16 @@ build: $(BIN) ## Build bin/keur
 $(BINDIR):
 	@mkdir -p $(BINDIR)
 
-$(RULES_OBJ): $(RULES_SRC) ../rules/rule_engine.h ../rules/tokenizer.h | $(BINDIR)
+$(BINDIR)/rule_parse.o: ../rules/rule/parse.cpp ../rules/rule/internal.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/rule_match.o: ../rules/rule/match.cpp ../rules/rule/internal.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/rule_scan.o: ../rules/rule/scan.cpp ../rules/rule/internal.h ../rules/rule_engine.h ../rules/tokenizer.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/rule_block.o: ../rules/rule/block.cpp ../rules/rule/internal.h ../rules/rule_engine.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
 $(TOKENIZER_OBJ): ../rules/tokenizer.cpp ../rules/tokenizer.h | $(BINDIR)
@@ -164,7 +172,7 @@ e2e: build ## Run end-to-end tests (binary + git repos)
 
 # Coverage sources (flat list for the single-command coverage build).
 COV_SRCS = keur_test.cpp cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp \
-           adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp ../rules/rule_engine.cpp
+           adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp ../rules/rule/parse.cpp ../rules/rule/match.cpp ../rules/rule/scan.cpp ../rules/rule/block.cpp ../rules/tokenizer.cpp
 
 coverage: ## Build test binary with coverage and report (gcov)
 	@mkdir -p ../../.tmp/cov
