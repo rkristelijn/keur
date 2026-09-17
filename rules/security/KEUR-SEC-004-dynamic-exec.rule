@@ -1,0 +1,18 @@
+id: KEUR-SEC-004
+title: Dynamic code execution from a string literal
+category: sast
+severity: warning
+engine: pattern
+action: warn
+# Learned by the optimiser loop (2026-09-17), reviewed. The model labelled it
+# "SQL injection" but the pattern is really an exec() call taking a string, i.e.
+# dynamic code/command execution. Metadata corrected here. Advisory (warn):
+# exec-with-a-literal is a smell worth review but not always a vulnerability.
+target:
+  extensions: .php .py .rb .js .ts
+  exclude_paths: test/ tests/ fixtures/ eval/ .git/
+patterns:
+  - regex: (?i)\bexec\s*\(\s*["'][^"']+["']
+    message: "Dynamic execution of a string literal via exec(). Review whether this can be replaced with a safe, non-dynamic call."
+confidence: 0.6
+fix: "Avoid exec() on constructed strings. Prefer explicit function calls or a vetted library API."

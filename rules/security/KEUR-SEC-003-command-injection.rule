@@ -1,0 +1,19 @@
+id: KEUR-SEC-003
+title: Command execution with request-derived input
+category: cmdi
+severity: critical
+engine: pattern
+action: block
+# Learned by the optimiser loop (2026-09-17) against a semgrep ground truth,
+# then reviewed. The model's original regex put the PHP superglobals inside a
+# character class ([\$_GET\$_POST...]), which matches individual characters, not
+# the strings. Rewritten here as a proper alternation so it matches a dangerous
+# exec/system/eval call whose arguments reference a request superglobal.
+target:
+  extensions: .php
+  exclude_paths: test/ tests/ fixtures/ eval/ .git/
+patterns:
+  - regex: (?i)\b(exec|shell_exec|system|passthru|popen|proc_open|eval)\s*\([^)]*\$_(GET|POST|REQUEST|COOKIE|FILES|SERVER)\b
+    message: "Command/eval call with request-derived input (command injection). Never pass user input to a shell; validate and use safe APIs."
+confidence: 0.9
+fix: "Do not pass request data to exec/system/eval. Use allow-lists, escapeshellarg(), or a safe library API instead of shelling out."
