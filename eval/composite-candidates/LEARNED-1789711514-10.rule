@@ -1,0 +1,13 @@
+id: LEARNED-1789711514-10
+title: CI Pipeline Configuration Issue
+category: sast
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)\bname:\s*["']CI Pipeline["']
+    message: "Potential CI pipeline configuration detected. Ensure proper security and access controls."
+confidence: 0.8
+slop: true
+# composite-candidate: fires on form, not concept; kept for corroboration. from FN:   semgrep  sast      bkimminich_juice-shop-ctf/.github/workflows/ci.yml

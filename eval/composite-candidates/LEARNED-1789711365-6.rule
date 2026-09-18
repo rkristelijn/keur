@@ -1,0 +1,13 @@
+id: LEARNED-1789711365-6
+title: Unnecessary GitHub Actions Workflow Configuration
+category: sast
+severity: warning
+engine: pattern
+target:
+  extensions: .yml .json
+patterns:
+  - regex: (?i)\bname:\s*["']CI Pipeline["']
+    message: This workflow is named "CI Pipeline", which may indicate a generic or unnecessary configuration. Consider renaming it to be more specific.
+confidence: 0.8
+slop: true
+# composite-candidate: fires on form, not concept; kept for corroboration. from FN:   semgrep  sast      bkimminich_juice-shop-ctf/.github/workflows/ci.yml
