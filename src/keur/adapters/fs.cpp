@@ -1,46 +1,33 @@
 /**
  * @file adapters/fs.cpp
- * @brief Filesystem adapter implementation (POSIX) — the only place keur
- *        performs mutating filesystem operations.
+ * @brief Filesystem adapter implementation — the only place keur performs
+ *        mutating filesystem operations. The OS-divergent primitives (mkdir -p,
+ *        existence, executable write, remove, path separator) come from
+ *        platform::, so this file has no POSIX headers or hardcoded separators.
  */
 #include "adapters/fs.h"
 
-#include <cerrno>
-#include <fstream>
 #include <string>
-#include <sys/stat.h>
-#include <unistd.h>
+
+#include "common/platform.h"
 
 namespace keur::adapters {
 
 bool Fs::default_exists(const std::string& path) {
-    struct stat st{};
-    return stat(path.c_str(), &st) == 0;
+    return platform::path_exists(path);
 }
 
 bool Fs::default_mkdir_p(const std::string& path) {
-    struct stat st{};
-    if (stat(path.c_str(), &st) == 0) return S_ISDIR(st.st_mode);
-    // Create the parent first, then this level.
-    auto sep = path.rfind('/');
-    if (sep != std::string::npos && sep > 0) {
-        if (!default_mkdir_p(path.substr(0, sep))) return false;
-    }
-    return mkdir(path.c_str(), 0755) == 0 || errno == EEXIST;
+    return platform::make_dir(path);
 }
 
 bool Fs::default_write_executable(const std::string& path,
                                   const std::string& content) {
-    std::ofstream f(path, std::ios::out | std::ios::trunc);
-    if (!f) return false;
-    f << content;
-    f.close();
-    chmod(path.c_str(), 0755);
-    return true;
+    return platform::write_executable(path, content);
 }
 
 void Fs::default_remove(const std::string& path) {
-    unlink(path.c_str());
+    platform::remove_file(path);
 }
 
 }  // namespace keur::adapters

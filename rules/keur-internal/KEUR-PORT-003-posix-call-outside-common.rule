@@ -1,0 +1,34 @@
+# keur portability control — adapted from cpm STYLE-016 + QUAL-078 (@see cpm ADR-170).
+# POSIX-only libc calls that compile on macOS/Linux but break on Windows/MinGW,
+# plus raw platform timing/exit APIs. All belong behind keur::platform.
+# @see docs/adr/ADR-005.
+id: KEUR-PORT-003
+title: POSIX-only or raw-platform API call outside common/
+category: architecture
+severity: error
+engine: pattern
+action: block
+target:
+  extensions: .c .cpp .cc
+  exclude_paths: common/ vendor/ ../rules/ _test.cpp test/ tests/ build/ dist/
+patterns:
+  - regex: \bWIFEXITED\s*\(
+    message: "POSIX-only WIFEXITED() outside common/ — use keur::platform::wait_exit() (ADR-005)"
+  - regex: \bWEXITSTATUS\s*\(
+    message: "POSIX-only WEXITSTATUS() outside common/ — use keur::platform::wait_exit() (ADR-005)"
+  - regex: \blstat\s*\(
+    message: "POSIX-only lstat() outside common/ — not on MinGW. Confine to platform_posix.cpp (ADR-005)"
+  - regex: \bS_ISLNK\s*\(
+    message: "POSIX-only S_ISLNK() outside common/ — undefined on MinGW. Confine to platform_posix.cpp (ADR-005)"
+  - regex: \breadlink\s*\(
+    message: "POSIX-only readlink() outside common/ — not on Windows. Route through keur::platform (ADR-005)"
+  - regex: \bfork\s*\(\s*\)
+    message: "POSIX-only fork() outside common/ — no fork() on Windows. Confine to the platform layer (ADR-005)"
+  - regex: \bwaitpid\s*\(
+    message: "POSIX-only waitpid() outside common/ — not on Windows. Confine to the platform layer (ADR-005)"
+  - regex: clock_gettime\s*\(\s*CLOCK_MONOTONIC
+    message: "Direct clock_gettime(CLOCK_MONOTONIC) outside common/ — add keur::platform::now_sec() and use it (ADR-005)"
+  - regex: QueryPerformanceCounter\s*\(
+    message: "Raw Windows timing API outside common/ — add keur::platform::now_sec() (ADR-005)"
+confidence: 0.9
+fix: "Wrap the primitive in src/keur/common/platform.h and implement it in platform_posix.cpp + platform_win32.cpp. Business logic calls keur::platform::wait_exit / now_sec / etc. See ADR-005."

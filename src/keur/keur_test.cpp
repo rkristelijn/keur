@@ -42,6 +42,8 @@
 #include "adapters/git.h"
 #include "util/keur_utils.h"
 #include "adapters/proc.h"
+#include "adapters/sysinfo.h"
+#include "learn/sysinfo.h"
 #include "report/report.h"
 
 // ---------------------------------------------------------------------------
@@ -660,6 +662,47 @@ SCENARIO("[feature:proc] default_has finds sh but not a bogus binary") {
     keur::adapters::Proc proc;
     CHECK(proc.has("sh"));
     CHECK(!proc.has("keur_bogus_binary_xyz_123"));
+}
+
+// --- [feature:sysinfo] system-info adapter + resource composition ----------
+
+SCENARIO("[feature:sysinfo] read_resources uses the injected adapter (fake seam)") {
+    // The whole point of the adapter: a fake feeds deterministic numbers, no
+    // real syscalls. read_resources must surface exactly what the adapter says.
+    keur::adapters::SysInfo fake;
+    fake.read = []() {
+        keur::adapters::Resources r;
+        r.load1 = 1.5;
+        r.ncpu = 4;
+        r.ram_total_gb = 16.0;
+        r.ram_free_gb = 8.0;
+        return r;
+    };
+    // A home with no supervisor pidfile -> run_secs stays 0 (portable branch).
+    auto res = keur::learn::read_resources("/tmp/keur_no_such_home_xyz", fake);
+    CHECK(res.load1 == doctest::Approx(1.5));
+    CHECK(res.ncpu == 4);
+    CHECK(res.ram_total_gb == doctest::Approx(16.0));
+    CHECK(res.ram_free_gb == doctest::Approx(8.0));
+    CHECK(res.run_secs == 0);
+}
+
+SCENARIO("[feature:sysinfo] default_read returns sane host numbers") {
+    // Real per-platform implementation: on any supported OS ncpu is >= 1 and
+    // total RAM is positive. Values are host-dependent, so we only assert ranges.
+    auto hw = keur::adapters::SysInfo::default_read();
+    CHECK(hw.ncpu >= 1);
+    CHECK(hw.ram_total_gb > 0.0);
+    CHECK(hw.ram_free_gb >= 0.0);
+    CHECK(hw.load1 >= 0.0);
+}
+
+SCENARIO("[feature:sysinfo] fmt_duration formats hours and minutes") {
+    CHECK(keur::learn::fmt_duration(0) == "0m");
+    CHECK(keur::learn::fmt_duration(59) == "0m");
+    CHECK(keur::learn::fmt_duration(60) == "1m");
+    CHECK(keur::learn::fmt_duration(3600) == "1h 0m");
+    CHECK(keur::learn::fmt_duration(3661) == "1h 1m");
 }
 
 // --- tokenizer (skip_comments / skip_strings building block) ----------------

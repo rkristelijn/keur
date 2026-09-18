@@ -4,10 +4,6 @@
  */
 #include "learn/monitor.h"
 
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <csignal>  // kill()
-
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -18,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#include "common/platform.h"
 #include "learn/history.h"
 #include "learn/sysinfo.h"
 #include "render/box.h"
@@ -33,9 +30,9 @@ struct Size {
   int rows;
 };
 Size term_size() {
-  struct winsize ws {};
-  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0) {
-    return {static_cast<int>(ws.ws_col), static_cast<int>(ws.ws_row)};
+  keur::platform::TermSize ts = keur::platform::terminal_size();
+  if (ts.cols > 0) {
+    return {ts.cols, ts.rows};
   }
   const char* c = std::getenv("COLUMNS");
   const char* r = std::getenv("LINES");
@@ -142,7 +139,7 @@ Supervisor read_supervisor(const std::string& home) {
   if (pf) {
     int pid = 0;
     pf >> pid;
-    if (pid > 0 && kill(pid, 0) == 0) s.running = true;
+    if (pid > 0 && keur::platform::process_alive(pid)) s.running = true;
   }
   std::ifstream ph(home + "/eval/.run/phase");
   if (ph) std::getline(ph, s.phase);
@@ -170,9 +167,11 @@ void draw_frame(const std::string& home) {
   // plain-terms summary (jargon-free)
   {
     RuleStats rs = read_rule_stats(home);
-    int acc = 0, tot = (int)recs.size();
+    size_t acc = 0, tot = recs.size();
     for (const auto& r : recs) if (r.decision == "accept") ++acc;
-    int pct = tot ? (int)(100.0 * acc / tot + 0.5) : 0;
+    int pct = tot ? static_cast<int>(100.0 * static_cast<double>(acc) /
+                                     static_cast<double>(tot) + 0.5)
+                  : 0;
 
     std::cout << "in plain terms:\n";
     std::cout << "  rules keur has learned : " << rs.learned_total

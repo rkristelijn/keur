@@ -10,11 +10,12 @@ action: block
 # Fs / Proc adapters so every branch stays spoofable and testable.
 #
 # This rule is keur guarding its own codebase. It fires on raw popen/system/
-# mkdir/unlink calls made OUTSIDE the adapters directory (and outside tests,
-# which legitimately exercise the real implementations).
+# mkdir/unlink calls made OUTSIDE the adapters directory and the platform
+# abstraction layer (common/, which is the sanctioned home for OS-divergent
+# I/O — see ADR-005), and outside tests (which exercise the real impls).
 target:
   extensions: .cpp .h
-  exclude_paths: adapters/ _test.cpp test/ tests/ vendor/ ../rules/
+  exclude_paths: adapters/ common/ _test.cpp test/ tests/ vendor/ ../rules/
 patterns:
   - regex: \bpopen\s*\(
     message: "Raw popen() outside an adapter. Spawn tools via the Proc adapter (adapters/proc.h) or query git via the Git adapter (adapters/git.h)."

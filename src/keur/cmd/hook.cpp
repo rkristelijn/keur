@@ -13,6 +13,8 @@
 #include <cstring>
 #include <iostream>
 
+#include "common/platform.h"
+
 namespace keur::cmd {
 
 // ---------------------------------------------------------------------------
@@ -68,8 +70,9 @@ static std::string global_hook_stub(const char* hook_name) {
 std::string global_hooks_dir() {
     const char* xdg = std::getenv("XDG_CONFIG_HOME");
     std::string base = xdg ? std::string(xdg)
-                           : (std::string(std::getenv("HOME") ? std::getenv("HOME") : "") + "/.config");
-    return base + "/git/hooks";
+                           : platform::path_join(
+                                 std::getenv("HOME") ? std::getenv("HOME") : "", ".config");
+    return platform::path_join(platform::path_join(base, "git"), "hooks");
 }
 
 std::string repo_hooks_dir(const adapters::Git& git) {
@@ -88,7 +91,7 @@ bool hooks_install(const std::string& hooks_dir, const adapters::Fs& fs, bool gl
     }
     bool ok = true;
     for (auto* name : k_hook_names) {
-        std::string dest = hooks_dir + "/" + name;
+        std::string dest = platform::path_join(hooks_dir, name);
         // Global installs get the orchestrator stub (composes keur with the
         // repo's own .githooks per its keur.toml mode); per-repo installs get
         // the minimal stub.
@@ -105,7 +108,7 @@ bool hooks_install(const std::string& hooks_dir, const adapters::Fs& fs, bool gl
 
 void hooks_remove(const std::string& hooks_dir, const adapters::Fs& fs) {
     for (auto* name : k_hook_names) {
-        std::string path = hooks_dir + "/" + name;
+        std::string path = platform::path_join(hooks_dir, name);
         if (fs.exists(path)) {
             fs.remove(path);
             std::cout << "  removed " << path << "\n";
@@ -181,12 +184,12 @@ int hook(const HookOptions& opts, const HookDeps& deps) {
             std::cout << "Global core.hooksPath : " << git.run("config --global core.hooksPath") << "\n";
             std::cout << "Global hooks dir      : " << gdir << "\n";
             for (auto* name : k_hook_names) {
-                std::string p = gdir + "/" + name;
+                std::string p = platform::path_join(gdir, name);
                 std::cout << "  global " << name << ": " << (fs.exists(p) ? "installed" : "(absent)") << "\n";
             }
             if (!rdir.empty()) {
                 for (auto* name : k_hook_names) {
-                    std::string p = rdir + "/" + name;
+                    std::string p = platform::path_join(rdir, name);
                     std::cout << "  repo   " << name << ": " << (fs.exists(p) ? "installed" : "(absent)") << "\n";
                 }
             }
