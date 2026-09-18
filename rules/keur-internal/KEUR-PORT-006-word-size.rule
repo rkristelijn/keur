@@ -1,0 +1,29 @@
+# keur word-size portability control. @see docs/adr/ADR-006.
+# 32 vs 64 bit is a compile-time target, not a runtime choice: code must type
+# wide enough to be correct on both. These patterns catch the classic word-size
+# smells that compile everywhere but truncate/overflow on a 32-bit target (or
+# on a 64-bit host). warn (not block): some casts are provably safe, so this
+# flags for review rather than failing the gate.
+id: KEUR-PORT-006
+title: Word-size portability smell (32/64-bit)
+category: architecture
+severity: warning
+engine: pattern
+action: warn
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: common/ vendor/ ../rules/ _test.cpp test/ tests/ build/ dist/
+patterns:
+  # Truncating a size_t (from .size()/.length()) into a 32-bit int.
+  - regex: \(int\)\s*\w[\w.>-]*\.(size|length)\s*\(\)
+    message: "Truncating .size()/.length() (size_t) into int — loses bits on 64-bit and assumes a word size. Keep it size_t or use int64_t (ADR-006)"
+  - regex: static_cast<int>\s*\(\s*\w[\w.>-]*\.(size|length)\s*\(\)
+    message: "Truncating .size()/.length() (size_t) into int — keep size_t or use int64_t (ADR-006)"
+  # Storing a pointer/size in a fixed 32-bit type.
+  - regex: reinterpret_cast<(int|unsigned|uint32_t|int32_t)>\s*\(
+    message: "Casting a pointer to a 32-bit integer type — breaks on 64-bit and assumes a word size. Use uintptr_t (ADR-006)"
+  # Assuming long is 64-bit (it is 32-bit on 32-bit Linux/ARM and on Windows).
+  - regex: \blong\s+\w*(size|bytes|offset|total|len)\w*\s*=
+    message: "Storing a size/offset/byte-count in 'long' assumes 64-bit — 'long' is 32-bit on 32-bit ARM/Linux and on Windows. Use int64_t/uint64_t (ADR-006)"
+confidence: 0.6
+fix: "Use size_t for sizes/indices/counts (correct on both word sizes automatically), and int64_t/uint64_t when a value genuinely needs 64 bits regardless of target. Never truncate a size_t into int or store a pointer in a 32-bit integer. See ADR-006."
