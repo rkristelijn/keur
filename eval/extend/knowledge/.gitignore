@@ -1,0 +1,2 @@
+# Generated knowledge caches (regenerate with the knowledge-*.sh adapters).
+*.jsonl
