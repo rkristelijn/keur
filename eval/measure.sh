@@ -21,8 +21,8 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd -P)"
 KEUR_HOME="$(cd "$HERE/.." && pwd -P)"
 export KEUR_HOME
-CACHE="$HERE/corpus/repos"
-GT="$HERE/corpus/groundtruth.jsonl"
+CACHE="${KEUR_CORPUS_DIR:-$HERE/corpus/repos}"
+GT="${KEUR_GT:-$HERE/corpus/groundtruth.jsonl}"
 OUT="$HERE/corpus/measure.json"
 NATIVE="$KEUR_HOME/bin/keur-rules"
 

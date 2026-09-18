@@ -118,7 +118,7 @@ is_slop() {
     # Determine the directory of cases to search (the category dir the target is
     # in). Resolve the target to an absolute path first.
     local target=""
-    for base in "$KEUR_HOME/eval/corpus/repos" "${KEUR_EVAL:-$HOME/git/hub/keur-eval}"; do
+    for base in "${KEUR_CORPUS_DIR:-$KEUR_HOME/eval/corpus/repos}" "${KEUR_EVAL:-$HOME/git/hub/keur-eval}"; do
         for c in "$base/$ref" "$base/${ref#*/}"; do
             [ -f "$c" ] && { target="$c"; break; }
         done
@@ -176,7 +176,7 @@ build_prompt() {
     # what turns opaque category labels into catchable patterns.
     local ref; ref=$(echo "$fn_line" | awk '{print $3}')
     local snippet="" example_file=""
-    for base in "$KEUR_HOME/eval/corpus/repos" "${KEUR_EVAL:-$HOME/git/hub/keur-eval}"; do
+    for base in "${KEUR_CORPUS_DIR:-$KEUR_HOME/eval/corpus/repos}" "${KEUR_EVAL:-$HOME/git/hub/keur-eval}"; do
         # ref may be "repo/path" (corpus) or "positive/cat/file" (keur-eval)
         for cand in "$base/$ref" "$base/${ref#*/}"; do
             [ -f "$cand" ] && { example_file="$cand"; break; }
