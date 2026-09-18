@@ -14,6 +14,114 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd -P)"
 HIST="$HERE/history/optimiser.jsonl"
 LEARNED="$(cd "$HERE/.." && pwd -P)/rules/learned"
+RUN_DIR="$HERE/.run"
+PIDFILE="$RUN_DIR/supervisor.pid"
+SUP_LOG="$RUN_DIR/supervisor.log"
+PHASE_FILE="$RUN_DIR/phase"
+TURN_FILE="$RUN_DIR/alt-turn"
+LOOP_LOG="$HERE/loop.log"
+
+# ---------------------------------------------------------------------------
+# live_status — the "what is it doing right now" view. Answers: is the
+# supervisor running, which phase, how long has this phase run, how much budget
+# is left, which source is training, the latest measured metric, and the last
+# few log lines. This is the runtime layer that the optimiser-history summary
+# below does not show.
+# ---------------------------------------------------------------------------
+hms() { # seconds -> Hh Mm Ss (compact)
+    local s=$1 h m
+    h=$((s/3600)); m=$(((s%3600)/60)); s=$((s%60))
+    [ "$h" -gt 0 ] && printf '%dh%02dm%02ds' "$h" "$m" "$s" \
+        || { [ "$m" -gt 0 ] && printf '%dm%02ds' "$m" "$s" || printf '%ds' "$s"; }
+}
+
+pbar() { # frac width -> filled bar
+    local frac=$1 width=${2:-24} k
+    k=$(awk -v f="$frac" -v w="$width" 'BEGIN{k=int(f*w+0.5); if(k<0)k=0; if(k>w)k=w; print k}')
+    printf '%*s' "$k" '' | tr ' ' '#'
+    printf '%*s' "$((width-k))" '' | tr ' ' '.'
+}
+
+live_status() {
+    local running=0 pid=""
+    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+        running=1; pid="$(cat "$PIDFILE")"
+    fi
+
+    echo "┌─ live ──────────────────────────────────────────────────┐"
+    if [ "$running" = "1" ]; then
+        # uptime of the supervisor process. `ps -o etimes` is Linux-only, so
+        # derive seconds from the process start time (lstart), which both BSD
+        # (macOS) and GNU ps provide.
+        local lstart start_epoch up=""
+        lstart="$(ps -o lstart= -p "$pid" 2>/dev/null | sed 's/^ *//')"
+        if [ -n "$lstart" ]; then
+            start_epoch="$(date -j -f '%a %b %e %T %Y' "$lstart" +%s 2>/dev/null \
+                           || date -d "$lstart" +%s 2>/dev/null || true)"
+            [ -n "$start_epoch" ] && up="up $(hms "$(( $(date +%s) - start_epoch ))")"
+        fi
+        printf '│ supervisor  RUNNING  pid %-6s %-26s│\n' "$pid" "$up"
+    else
+        printf '│ supervisor  %-44s│\n' "not running"
+    fi
+
+    # current phase: "<n>/<mins>" from the phase file
+    local phase_no="?" budget_min="?"
+    if [ -f "$PHASE_FILE" ]; then
+        IFS='/' read -r phase_no budget_min < "$PHASE_FILE"
+    fi
+
+    # phase elapsed: timestamp of the last "PHASE <n>:" line in the supervisor log
+    local phase_started_epoch="" now elapsed=0 budget_s remain
+    if [ -f "$SUP_LOG" ]; then
+        local ts
+        ts="$(grep -E "PHASE ${phase_no}: " "$SUP_LOG" 2>/dev/null | tail -1 \
+              | sed -E 's/^\[([0-9-]+ [0-9:]+)\].*/\1/')"
+        if [ -n "$ts" ]; then
+            # macOS `date -j` vs GNU `date -d`
+            phase_started_epoch="$(date -j -f '%Y-%m-%d %H:%M:%S' "$ts" +%s 2>/dev/null \
+                                   || date -d "$ts" +%s 2>/dev/null || true)"
+        fi
+    fi
+    now="$(date +%s)"
+    if [ "$running" = "1" ] && [ -n "$phase_started_epoch" ]; then
+        elapsed=$(( now - phase_started_epoch ))
+        [ "$elapsed" -lt 0 ] && elapsed=0
+    fi
+
+    if [ "$budget_min" != "?" ] && [ "$running" = "1" ]; then
+        budget_s=$(( budget_min * 60 ))
+        remain=$(( budget_s - elapsed )); [ "$remain" -lt 0 ] && remain=0
+        local frac
+        frac="$(awk -v e="$elapsed" -v b="$budget_s" 'BEGIN{print (b>0)? e/b:0}')"
+        printf '│ phase %-4s  [%s] %3d%%           │\n' \
+            "$phase_no" "$(pbar "$frac" 24)" \
+            "$(awk -v f="$frac" 'BEGIN{printf "%d", f*100}')"
+        printf '│ elapsed %-10s  left ~%-10s budget %sm      │\n' \
+            "$(hms "$elapsed")" "$(hms "$remain")" "$budget_min"
+    else
+        printf '│ phase %-50s│\n' "${phase_no} (no active budget)"
+    fi
+
+    # which source is training now (alternate.sh writes the CURRENT turn)
+    local src="?"; [ -f "$TURN_FILE" ] && src="$(cat "$TURN_FILE")"
+    printf '│ training on  %-44s│\n' "$src"
+
+    # latest measured metric from loop.log (the most recent "iter N: ..." line)
+    local last_iter
+    last_iter="$(grep -E 'iter [0-9]+:' "$LOOP_LOG" 2>/dev/null | tail -1 \
+                 | sed -E 's/^\[[0-9:]+\] //')"
+    [ -n "$last_iter" ] && printf '│ last measure %-44s│\n' "${last_iter:0:44}"
+    echo "└─────────────────────────────────────────────────────────┘"
+
+    # last few supervisor log lines: the raw "what is happening" feed
+    if [ -f "$SUP_LOG" ]; then
+        echo ""
+        echo "recent activity (supervisor.log):"
+        tail -n 6 "$SUP_LOG" | sed 's/^/  /'
+    fi
+    echo ""
+}
 
 summary() {
     if [ ! -s "$HIST" ]; then echo "no optimiser history yet ($HIST)"; return; fi
@@ -113,6 +221,7 @@ case "${1:-once}" in
     while :; do
       clear 2>/dev/null || true
       echo "keur optimiser  ·  $(date '+%H:%M:%S')"
+      live_status
       summary
       echo ""
       echo "(refresh 15s · Ctrl+C stops)"
@@ -120,5 +229,6 @@ case "${1:-once}" in
     done
     ;;
   *)
+    live_status
     summary ;;
 esac

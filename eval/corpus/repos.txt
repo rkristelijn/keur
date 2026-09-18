@@ -1,3 +1,12 @@
+# keur corpus repo list — one "owner/name" per line (GitHub), shallow-cloned.
+# Lines starting with # are comments. After editing: eval/corpus.sh clone && eval/buildgt.sh
+#
+# A good baseline needs BOTH kinds of repo:
+#   - deliberately-vulnerable ("worst repo ever")  -> tests RECALL (catch the holes)
+#   - realistic clean OSS                           -> tests PRECISION (stay quiet on normal code)
+# The corpus was almost all vulnerable-by-design; the clean repos below balance it.
+
+# --- deliberately vulnerable (recall) — currently cloned ---------------------
 OWASP/NodeGoat
 OWASP/railsgoat
 digininja/DVWA
@@ -8,3 +17,22 @@ snyk-labs/nodejs-goof
 we45/DVFaaS-Damn-Vulnerable-Functions-as-a-Service
 payloadbox/sql-injection-payload-list
 swisskyrepo/PayloadsAllTheThings
+
+# --- deliberately vulnerable (recall) — candidates to add --------------------
+# More holes, different languages/stacks, so recall is not measured on JS alone.
+OWASP/WebGoat
+OWASP/crAPI
+OWASP/OWASPWebGoatPHP
+DevSlop/Pixi
+appsecco/VyAPI
+OWASP/Damn-Vulnerable-GraphQL-Application
+
+# --- realistic clean OSS (precision) — candidates to add ---------------------
+# Popular, well-maintained projects with FEW real issues. These measure whether
+# keur stays quiet on ordinary code (false-positive control). Keep --depth 1;
+# some are large, so KEUR_CORPUS_MAX_MB guards the disk.
+pallets/flask
+expressjs/express
+gin-gonic/gin
+psf/requests
+sinatra/sinatra

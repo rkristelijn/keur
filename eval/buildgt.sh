@@ -69,4 +69,48 @@ for repo in "$CACHE"/*/; do
     echo "        $n finding(s)" >&2
 done
 
+# --- deduplicate / combine across tools -------------------------------------
+# Multiple scanners often flag the SAME issue (e.g. gitleaks + trufflehog both
+# find one private key). Collapse findings that share (repo, file, category)
+# into a SINGLE record, keeping the list of tools that saw it plus a seen_by
+# count. This gives clean statistics (no double-counting) and a confidence
+# signal: a finding confirmed by more tools is more trustworthy. Line numbers
+# differ between tools for the same issue, so they are NOT part of the key; the
+# earliest reported line is kept.
+if [ -s "$GT" ]; then
+    dedup="$(mktemp)"
+    python3 - "$GT" > "$dedup" <<'PY'
+import json, sys, collections
+combined = collections.OrderedDict()
+for line in open(sys.argv[1]):
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        f = json.loads(line)
+    except Exception:
+        continue
+    k = (f.get("repo",""), f.get("file",""), f.get("category",""))
+    if k not in combined:
+        f["tools"] = [f.get("tool","?")]
+        f["seen_by"] = 1
+        combined[k] = f
+    else:
+        c = combined[k]
+        t = f.get("tool","?")
+        if t not in c["tools"]:
+            c["tools"].append(t)
+            c["seen_by"] = len(c["tools"])
+        # keep the earliest line reported for the same issue
+        if f.get("line", 0) and (not c.get("line") or f["line"] < c["line"]):
+            c["line"] = f["line"]
+for f in combined.values():
+    print(json.dumps(f))
+PY
+    before="$total"
+    total="$(wc -l < "$dedup" | tr -d ' ')"
+    mv "$dedup" "$GT"
+    echo "dedup: $before raw -> $total combined finding(s)" >&2
+fi
+
 echo "ground truth: $total finding(s) -> $GT" >&2
