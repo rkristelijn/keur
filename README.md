@@ -61,6 +61,8 @@ install -m 755 bin/keur /usr/local/bin/keur
 keur hook   [--install | --global | --status | --remove [--global]]
 keur scan   [path]
 keur check  [--tier pre-commit|pre-push] [--ai off] [--config <file>]
+keur learn  [--source corpus|keureval|alternate] [--model <name>]
+            [--status | --stop | --no-spin | --refresh <sec>]
 keur policy explain
 keur version
 keur help
@@ -129,6 +131,72 @@ keur check --config keur.toml   # explicit config path
 
 Exit code: `0` for PASS or WARN, `1` for BLOCK. When nothing is staged, check
 prints a PASS and exits `0`. Progress and the verdict are printed to stderr.
+
+### learn
+
+Trains keur's own rule set. Where `check` and `scan` *apply* rules, `learn`
+*produces* them: it runs a self-improving loop that grows `rules/learned/`
+against a benchmark, so the detector gets better over time without you
+hand-writing every rule.
+
+```bash
+ollama create keur-rule-engineer -f eval/Modelfile   # one-time: build the primed model
+keur learn --source alternate                         # start training (auto-uses the primed model)
+keur learn --status                                   # dashboard only, no loop
+keur learn --stop                                     # end the background loop
+```
+
+Use the expertise-primed `keur-rule-engineer` model (see below): it is built to
+write generalising regexes instead of memorising literals from the example,
+which is exactly what the acceptance gate rejects as `overfit-regex`. Passing a
+raw base model via `--model` (e.g. `--model qwen2.5-coder:14b`) works but tends
+to produce more overfit proposals that the gate throws away.
+
+The loop, one iteration at a time:
+
+1. **Measure** keur's rule engine against a ground truth (recall / precision)
+   and find the false negatives — the findings keur currently misses.
+2. **Propose**: hand the dominant missed case to a local LLM (via Ollama) and
+   ask for the *smallest* `.rule` that would catch it.
+3. **Gate**: re-measure with the candidate added and accept it only if the
+   benchmark improves — recall rises, precision stays above the floor
+   (`KEUR_MIN_PRECISION`, default 0.50), and the regex generalises rather than
+   memorising a literal from the example. The benchmark decides, never the LLM.
+4. Accepted rules are written to `rules/learned/`; every decision is appended to
+   `eval/history/optimiser.jsonl`.
+
+`--source` picks the training signal: `corpus` (proven-tool ground truth,
+recall-focused), `keureval` (the keur-eval contract, which scores false
+positives so noise is punished), or `alternate` — flip between the two each
+phase so one run sharpens both recall and precision. `--model` selects the
+Ollama model (omit it to use the loop's default, preferring the
+expertise-primed `keur-rule-engineer` from `eval/Modelfile` when present).
+
+Optional, one-time: build the primed model. `eval/Modelfile` derives
+`keur-rule-engineer` from a base coder model and bakes rule-engineering
+expertise (RE2 limits, the `.rule` format, generalise-don't-memorise) into its
+SYSTEM prompt, so every call in the loop carries it. Build it once, then let the
+loop pick it up automatically (omit `--model`):
+
+```bash
+ollama create keur-rule-engineer -f eval/Modelfile
+keur learn --source alternate            # auto-uses keur-rule-engineer if built
+```
+
+To prime a different base model, edit the `FROM` line in `eval/Modelfile`
+before `ollama create`. Passing `--model <name>` always overrides this and uses
+the named model as-is (unprimed).
+
+`learn` runs the loop as a supervised background job (`eval/supervise.sh`) and
+opens a live monitor in the foreground; the loop keeps running after you close
+the monitor, until `keur learn --stop`. Watch progress any time with
+`eval/progress.sh` (add `watch` for a refreshing view).
+
+Training on your own signal: because the ground truth is source-agnostic
+(one Finding JSON shape per line) and rules resolve from `$KEUR_RULES_DIRS`, you
+can point the loop at your own corpus and grow a rule set for your codebase.
+See `docs/design/learning-loop.md` for the full pipeline and the scripts under
+`eval/`.
 
 ### policy explain
 
@@ -237,6 +305,7 @@ suppress `SEC-043`.
 - `docs/adr/ADR-002-single-cpp-binary.md` - why one compiled binary
 - `docs/adr/ADR-003-provider-architecture.md` - the adapter / provider layers
 - `docs/adr/ADR-004-analysis-engine-evolution.md` - staged path from line-scanner to language-agnostic analysis
+- `docs/design/learning-loop.md` - how `keur learn` trains the rule set (the pipeline, the gate, the scripts under `eval/`)
 - `CONTRIBUTING.md` - build, test, coverage, mutation, layout, self-checks
 
 ## License

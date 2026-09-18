@@ -38,6 +38,19 @@ MODE="metrics"; [ "${1:-}" = "--fn" ] && MODE="fn"
 # sees holdout during optimisation).
 SPLIT="${KEUR_SPLIT:-all}"
 SPLIT_FILE="$HERE/corpus/split.txt"
+
+# Tool filter: restrict the ground truth to a proven subset. KEUR_GT_TOOLS is a
+# comma-separated list of tool names (e.g. "gitleaks,semgrep"); empty = all
+# tools. This is how we audit the baseline: measure only against tools we trust,
+# so noise from a weaker source does not depress recall or mislead the loop.
+GT_TOOLS="${KEUR_GT_TOOLS:-}"
+
+# Category scope: restrict BOTH the ground truth AND keur's findings to a set of
+# categories. KEUR_GT_CATEGORIES is comma-separated (e.g. "secret,sast,cmdi,sqli");
+# empty = all categories. Unlike the tool filter, this applies to both sides so
+# recall and precision are measured against the same scope — otherwise keur is
+# penalised (as FP) for firing in a category the filtered baseline no longer has.
+GT_CATS="${KEUR_GT_CATEGORIES:-}"
 in_split() {
     # in_split <repo-name> -> 0 if it belongs to the active split
     [ "$SPLIT" = "all" ] && return 0
@@ -65,11 +78,13 @@ done
 
 # 2. Join keur findings with ground truth at (repo,category) granularity.
 # Pass the split so the ground truth is filtered to the same repos as keur's.
-python3 - "$GT" "$KEUR_FINDINGS" "$OUT" "$MODE" "$SPLIT" "$SPLIT_FILE" <<'PY'
+python3 - "$GT" "$KEUR_FINDINGS" "$OUT" "$MODE" "$SPLIT" "$SPLIT_FILE" "$GT_TOOLS" "$GT_CATS" <<'PY'
 import json, sys, collections, os
 
 gt_path, keur_path, out_path, mode = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 split, split_file = sys.argv[5], sys.argv[6]
+gt_tools = set(t for t in sys.argv[7].split(",") if t) if len(sys.argv) > 7 else set()
+gt_cats  = set(c for c in sys.argv[8].split(",") if c) if len(sys.argv) > 8 else set()
 
 # repo -> split assignment (unlisted = train)
 assign = {}
@@ -94,13 +109,17 @@ for line in open(gt_path):
     if not line: continue
     f=json.loads(line)
     if not in_split(f.get("repo","")): continue   # only this split's repos
+    if gt_tools and f.get("tool","") not in gt_tools: continue  # proven-tool filter
+    if gt_cats and f.get("category","") not in gt_cats: continue  # category scope
     gt[key(f)].append(f)
 
 keur = collections.defaultdict(list)
 for line in open(keur_path):
     line=line.strip()
     if not line: continue
-    f=json.loads(line); keur[key(f)].append(f)
+    f=json.loads(line)
+    if gt_cats and f.get("category","") not in gt_cats: continue  # same scope as GT
+    keur[key(f)].append(f)
 
 gt_keys, keur_keys = set(gt), set(keur)
 tp = gt_keys & keur_keys

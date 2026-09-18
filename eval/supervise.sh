@@ -26,6 +26,7 @@ RUN_DIR="$HERE/.run"
 PIDFILE="$RUN_DIR/supervisor.pid"
 LOG="$RUN_DIR/supervisor.log"
 STOP="$RUN_DIR/STOP"
+STOP_LOOP="/tmp/stop-keur-eval-loop"   # loop.sh / optimise.sh honour this too
 PHASE_FILE="$RUN_DIR/phase"
 
 PHASES="${KEUR_PHASES:-5 25 50 50 50}"
@@ -40,7 +41,9 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
 # crash. This function is what gets backgrounded.
 # ---------------------------------------------------------------------------
 supervise_run() {
-    rm -f "$STOP"
+    rm -f "$STOP" "$STOP_LOOP"   # clear BOTH flags so a restart begins clean;
+                                 # a stale /tmp flag otherwise makes every phase
+                                 # abort instantly and busy-spins the loop.
     log "supervisor start: phases=[$PHASES] max_restarts=$MAX_RESTARTS pid=$$"
     local phase_no=0
 
@@ -82,9 +85,24 @@ supervise_run() {
         local restarts=0
         while :; do
             [ -f "$STOP" ] && { log "stop requested; leaving phase $phase_no"; break; }
-            # Run the worker for this phase's budget.
+            # Run the worker for this phase's budget. Time it so we can detect a
+            # phase that "completes" instantly — a symptom of a stale stop-flag
+            # or a worker that exits 0 without doing work. Blindly looping on
+            # those busy-spins the machine (see: the 800-phase incident).
+            local t0 t1 elapsed
+            t0=$(date +%s)
             if $LOOP_CMD "$mins" >>"$LOG" 2>&1; then
-                log "PHASE $phase_no complete (${mins}m)"
+                t1=$(date +%s); elapsed=$((t1 - t0))
+                log "PHASE $phase_no complete (${mins}m budget, ran ${elapsed}s)"
+                # A real phase runs for many seconds (>=1 iter + sleeps). A near-
+                # instant "complete" means no work happened. In loop-mode this
+                # would spin forever, so stop and surface it instead.
+                if [ "$loop_mode" = "1" ] && [ "$elapsed" -lt 10 ]; then
+                    log "PHASE $phase_no finished in ${elapsed}s (<10s) with no work; \
+suspected stop-flag or instant-exit worker. Stopping to avoid a busy-spin. \
+Check for a stale /tmp/stop-keur-eval-loop or $STOP, then restart."
+                    break 2
+                fi
                 break
             fi
             rc=$?

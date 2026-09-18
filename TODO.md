@@ -56,6 +56,49 @@ Status legend: [x] done · [~] partially done · [ ] open
       Proc adapter, OR ruleengine mode, or both — normalise into one findings
       report. (Proc adapter seam is ready.)
 - [ ] ollama learn/loop as designed (eval/ harness exists; optimiser missing).
+
+### Ground-truth quality (2026-09-17 session — see docs/design/ground-truth-roadmap.md)
+
+- [x] add trufflehog adapter to eval/groundtruth.sh (secrets, JSONL, offline).
+- [x] dedup/combine findings in eval/buildgt.sh on (repo,file,category) with a
+      `tools` list + `seen_by` count (clean stats + confirmation signal).
+- [x] audit filters in eval/measure.sh: KEUR_GT_TOOLS (proven-tool subset) and
+      KEUR_GT_CATEGORIES (category scope, applied to BOTH sides).
+- [x] FIX gate precision-floor bug in eval/optimise.sh: the accept test used
+      `min(FLOOR, b_p)`, which LOWERED the floor once precision had dipped below
+      it → accept-everything spiral (overnight run reached recall 1.0 while
+      precision fell to 0.4). Now a hard floor + no regression below baseline.
+      Verified with scenario tests (overfit p=0.4 now rejected; good rule kept).
+- [x] expand the corpus: 19 repos now (added WebGoat, crAPI, OWASPWebGoatPHP,
+      Pixi, VyAPI + clean OSS flask/express/gin/requests/sinatra). 2 candidates
+      failed to clone (payloadbox/sql-injection-payload-list, OWASP/DVGA).
+- [x] more ground-truth tool adapters: trivy + checkov added (category `iac`).
+      Ground truth now 683 combined findings from 5 tools (semgrep/gitleaks/
+      trufflehog/trivy/checkov) across 21 repos. Clean security-scope baseline:
+      recall 0.81 / precision 0.76 / F1 0.78.
+- [ ] API-based ground-truth sources: GitHub Copilot, CodeRabbit, Sonar
+      (same one-adapter pattern; these need API access, not local binaries).
+- [ ] combination analysis BEFORE training: score every tool set as TP/FP/TN/FN;
+      weight confidence by `seen_by` (multi-tool agreement = trustworthy;
+      single-tool hits = scrutinise — they were the main noise source).
+- [ ] LLM-as-a-judge: ask Ollama (code snippet + finding) whether a finding is a
+      genuine TP or a FP, to PRUNE mislabelled ground truth (e.g. the
+      InvoiceController.java "sqli" false positive). Hard rule: the LLM may judge
+      the BENCHMARK, never approve rules — rule acceptance stays with the
+      deterministic gate.
+- [ ] "can't do it without this feature" signal from Ollama: when the model
+      cannot write a generalising rule for a missed case with the CURRENT engine
+      (pattern/presence/absence), let it emit a structured suggestion naming the
+      engine capability it WOULD need (e.g. multi-line context, cross-file
+      correlation, AST/semantic match, extract+capture). Aggregate these across
+      all missed cases → a ranked "engine feature demand" list, so the rule
+      engine gets extended by POPULAR DEMAND (the misses that keep needing the
+      same capability) rather than guesswork. Ties into ADR-004 (analysis-engine
+      evolution) and the extract-duplicates engine already on the list. The
+      suggestion is ADVISORY only — it never bypasses the deterministic gate.
+- [ ] make eval/keureval.sh honour KEUR_GT_TOOLS / KEUR_GT_CATEGORIES too, so
+      `--source alternate` trains both signals against the same clean scope
+      (today only the corpus source via measure.sh applies the filters).
 - [ ] COMPOSITE RULES via corroboration (supersedes the slop soft-marker).
       Insight: several SIMPLE selectors that fire together are more reliable than
       one big complex regex. A "slop" rule on its own (e.g. an `internal

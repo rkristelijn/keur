@@ -288,14 +288,20 @@ iterate_once() {
 b_r,b_p,c_r,c_p = float('$b_recall'),float('$b_prec'),float('$c_recall'),float('$c_prec')
 h_p            = float('$h_prec')
 h_tp, h_fp     = int('$h_tp'), int('$h_fp')
-train_ok = c_r > b_r and c_p >= min($MIN_PRECISION, b_p)
+FLOOR          = $MIN_PRECISION
+# THE GATE. Recall must rise. Precision must clear the ABSOLUTE floor AND not
+# regress below the baseline. The old code used min(FLOOR, b_p), which LOWERED
+# the floor once precision had already dipped below it — so one bad rule opened
+# the door to an accept-everything spiral (recall->1.0 while precision->0.4).
+# The floor is a hard limit; it never moves down.
+train_ok = (c_r > b_r) and (c_p >= FLOOR) and (c_p >= b_p - 1e-9)
 # Generalisation check, but only when the holdout can actually MEASURE
 # precision. If the candidate fired nothing on holdout (h_tp+h_fp == 0),
 # precision is undefined (reported as 0.0) — that is NOT evidence of noise, so
 # we do not punish it; fall back to the train-precision gate. Only when the
 # rule DID fire on holdout do we require it to stay clean.
 holdout_measurable = (h_tp + h_fp) > 0
-holdout_ok = (h_p >= $MIN_PRECISION) if holdout_measurable else True
+holdout_ok = (h_p >= FLOOR) if holdout_measurable else True
 print('yes' if (train_ok and holdout_ok) else 'no')")"
 
     if [ "$accept" = "yes" ]; then
@@ -353,7 +359,9 @@ case "${1:-iterate}" in
     # iterations, not only at a phase boundary.
     STOP_SUP="$HERE/.run/STOP"; STOP_LOOP="/tmp/stop-keur-eval-loop"
     for i in $(seq 1 "$N"); do
-      [ -f "$STOP_SUP" ] || [ -f "$STOP_LOOP" ] && { echo "stop requested; ending iterate"; break; }
+      if [ -f "$STOP_SUP" ] || [ -f "$STOP_LOOP" ]; then
+        echo "stop requested; ending iterate"; break
+      fi
       iterate_once "$i"; rc=$?
       case "$rc" in
         0) stall=0 ;;                         # accepted: progress
