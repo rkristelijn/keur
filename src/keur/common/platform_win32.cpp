@@ -33,14 +33,18 @@ int wait_exit(int raw_status) {
     return raw_status;
 }
 
+// run/capture/capture_bytes intentionally use the shell: callers pass fixed,
+// internal command strings that rely on shell features and NEVER attacker-
+// controlled input. The injectable surface was removed from tool_on_path below.
+// Documented, accepted exception. @see KEUR-SEC-005, ADR-005.
 int run(const std::string& cmd) {
-    return wait_exit(std::system(cmd.c_str()));  // NOLINT(cert-env33-c)
+    return wait_exit(std::system(cmd.c_str()));  // keur:ignore KEUR-SEC-005  NOLINT(cert-env33-c)
 }
 
 CaptureResult capture(const std::string& cmd) {
     CaptureResult r;
     std::string full = cmd + " 2>nul";
-    FILE* p = _popen(full.c_str(), "r");
+    FILE* p = _popen(full.c_str(), "r");  // keur:ignore KEUR-SEC-005 — internal, fixed command
     if (!p) { r.exit_code = -1; return r; }
     char buf[512];
     while (fgets(buf, sizeof(buf), p)) r.out += buf;
@@ -50,7 +54,7 @@ CaptureResult capture(const std::string& cmd) {
 
 int capture_bytes(const std::string& cmd, std::string& sink) {
     std::string full = cmd + " 2>nul";
-    FILE* p = _popen(full.c_str(), "r");
+    FILE* p = _popen(full.c_str(), "r");  // keur:ignore KEUR-SEC-005 — internal, fixed command
     if (!p) return -1;
     int c;
     while ((c = fgetc(p)) != EOF) sink += static_cast<char>(c);
@@ -58,8 +62,19 @@ int capture_bytes(const std::string& cmd, std::string& sink) {
 }
 
 bool tool_on_path(const std::string& tool) {
-    std::string cmd = "where " + tool + " >nul 2>&1";
-    return std::system(cmd.c_str()) == 0;  // NOLINT(cert-env33-c)
+    // Shell-free PATH resolution via the Win32 SearchPath API — no system()/
+    // _popen and no string interpolation, so a tool name cannot break out into
+    // cmd (CWE-78). Tries the bare name and the common executable extensions.
+    // @see ADR-005, KEUR-SEC-005.
+    if (tool.empty()) return false;
+    const char* exts[] = {"", ".exe", ".bat", ".cmd", ".com"};
+    for (const char* ext : exts) {
+        std::string name = tool + ext;
+        char found[MAX_PATH];
+        if (SearchPathA(nullptr, name.c_str(), nullptr, MAX_PATH, found, nullptr) > 0)
+            return true;
+    }
+    return false;
 }
 
 bool make_dir(const std::string& path) {

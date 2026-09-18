@@ -22,7 +22,11 @@ VERSION  := $(or $(VERSION),dev)
 # -I..     → resolves rules/rule_engine.h  (src/rules/...)
 # -I.      → resolves cmd/, adapters/, report/, util/  (src/keur/...)
 # -I../..  → resolves vendor/doctest.h
-CXXFLAGS ?= -Wall -Wextra -std=c++20 -O2 -DKEUR_VERSION='"$(VERSION)"'
+# -MMD -MP → emit per-object .d files so header edits trigger the right rebuilds
+#            automatically (ADR-008). Belt-and-braces with the explicit header
+#            prerequisites below; the .d files also catch newly-added includes
+#            that a hand-written prerequisite list would miss.
+CXXFLAGS ?= -Wall -Wextra -std=c++20 -O2 -MMD -MP -DKEUR_VERSION='"$(VERSION)"'
 INCLUDES  = -I. -I.. -I../..
 
 # Platform abstraction source selection — @see docs/adr/ADR-005.
@@ -64,6 +68,13 @@ TEST_BIN   = $(BINDIR)/keur-test
 
 .PHONY: all build test test-unit test-integration perf e2e coverage mutate compile-commands lint clean help
 .DEFAULT_GOAL := build
+
+# Auto-generated header dependency files (-MMD). Pull them in so a changed header
+# rebuilds exactly the objects that include it — no manual prerequisite upkeep.
+# The '-' prefix ignores them on the first (clean) build when none exist yet.
+DEPS = $(MAIN_OBJ:.o=.d) $(IMPL_OBJS:.o=.d) $(TEST_OBJ:.o=.d) \
+       $(RULES_OBJ:.o=.d) $(TOKENIZER_OBJ:.o=.d) $(PLATFORM_OBJ:.o=.d)
+-include $(DEPS)
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | sort | \
@@ -266,4 +277,5 @@ lint: ## Run clang-tidy if installed; otherwise a -Wall -Wextra syntax check
 
 clean: ## Remove build artifacts
 	rm -f $(BIN) $(TEST_BIN) $(MAIN_OBJ) $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
+	rm -f $(DEPS)
 	rm -rf ../../.tmp/cov ../../.tmp/mull

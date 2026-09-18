@@ -28,6 +28,7 @@ bin/keur
 bin/keur-rules
 bin/keur-test
 *.o
+*.d
 *.gcda
 *.gcno
 *.gcov

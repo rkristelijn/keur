@@ -45,6 +45,9 @@ bool line_suppresses(std::string_view line, const std::string& id, const std::st
 struct Compiled {
   const Rule* rule = nullptr;
   std::vector<std::unique_ptr<RE2>> res;
+  // Parallel to `res`: optional pattern-not regex per pattern (nullptr = none).
+  // When set and it matches the same line, the pattern's match is suppressed.
+  std::vector<std::unique_ptr<RE2>> exclude_res;
   std::unique_ptr<RE2> block_inner;    // block-absence: required inner regex
   std::unique_ptr<RE2> block_trigger;  // block-absence: optional gate regex
 };
