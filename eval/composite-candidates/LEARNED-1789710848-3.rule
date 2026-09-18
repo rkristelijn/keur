@@ -1,0 +1,13 @@
+id: LEARNED-1789710848-3
+title: Potential Sensitive API Key Exposure
+category: sast
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)(api[_-]?key|token|secret|password)\s*[:=]\s*["'][^"']{12,}["']
+    message: Sensitive information (API key/token/secret/password) found in the code.
+confidence: 0.8
+slop: true
+# composite-candidate: fires on form, not concept; kept for corroboration. from FN:   semgrep  sast      OWASP_WebGoat/webgoat/src/main/java/org/owasp/webgoat/lessons/BlindScript.java
