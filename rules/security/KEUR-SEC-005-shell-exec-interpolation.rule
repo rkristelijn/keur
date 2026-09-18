@@ -10,13 +10,18 @@
 # fix + control (never just the fix).
 #
 # What it flags:
-#   1. system()/popen() whose argument is a NON-LITERAL (a variable, incl.
-#      `var.c_str()`) — the command was built elsewhere and may carry shell
-#      metacharacters.
-#   2. Building a shell command by concatenating a literal with a variable
-#      (the assignment that feeds pattern 1).
+#   system()/popen() whose argument is a NON-LITERAL (a variable, incl.
+#   `var.c_str()`) — the command was built elsewhere and may carry shell
+#   metacharacters.
 # A shell call with a FIXED string literal (e.g. system("git --version")) does
 # NOT match and is allowed.
+#
+# Scope note: this rule guards the libc sinks only (system/popen). keur's OWN
+# process adapter (Proc::run/.capture -> platform::run/capture) is a separate
+# sink class, guarded by KEUR-SEC-006. An earlier second pattern here flagged
+# any `x = "lit" + var` assignment context-free, which mis-fired on non-exec
+# std::cout builders (false positive); that heuristic is removed and the real
+# detection now lives on the sink itself in SEC-006.
 #
 # Prefer a shell-free primitive (posix_spawn/execvp with an argv vector, or an
 # access()-based PATH scan) routed through keur::platform. Where a shell is truly
@@ -43,8 +48,5 @@ patterns:
   - regex: \b(?:std::)?(?:system|popen)\s*\(
     exclude: \b(?:std::)?(?:system|popen)\s*\(\s*"
     message: "system()/popen() invoked with a non-literal (constructed) command — OS command injection risk (CWE-78). Build the command shell-free (posix_spawn/execvp with an argv vector, or an access()-based PATH scan) via keur::platform. Reserve system()/popen() for fixed string literals. @see KEUR-SEC-005, ADR-005"
-  # building a shell command by concatenating a literal with a variable
-  - regex: =\s*"[^"]*"\s*\+\s*[A-Za-z_][A-Za-z0-9_]*\s*(?:\+|;)
-    message: "Shell command assembled by concatenating a literal with a variable — if this feeds system()/popen() it is command injection (CWE-78). Assemble arguments as an argv vector, not a shell string. @see KEUR-SEC-005, ADR-005"
 confidence: 0.85
 fix: "Replace shell interpolation with a shell-free call: resolve tools with an access()-based PATH scan, spawn processes with posix_spawn/execvp and an argv array (no /bin/sh), exposed through keur::platform. Reserve system()/popen() for fixed literal commands with zero interpolated input. See ADR-005 and KEUR-SEC-005."

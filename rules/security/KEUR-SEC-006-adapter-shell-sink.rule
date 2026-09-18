@@ -1,0 +1,54 @@
+# keur security control — non-literal command into keur's OWN shell sink.
+#
+# Why this exists (and why it is separate from KEUR-SEC-005):
+#   KEUR-SEC-005 guards the libc shell sinks (system()/popen()). But keur does
+#   not call those directly in business code — it routes every external command
+#   through its process adapter:
+#       Proc::run(const std::string& cmd)      -> platform::run(cmd)
+#       Proc::capture(const std::string& cmd)  -> platform::capture(cmd)
+#   and platform::run / platform::capture / platform::capture_bytes are the
+#   actual shell sinks underneath. That is a keur-specific sink class, so it
+#   gets a keur-specific control instead of overloading SEC-005's context-free
+#   string-concat heuristic (which mis-fired on non-exec std::cout builders).
+#
+# What it flags:
+#   A call to one of keur's shell sinks — .run(...) / .capture(...) on a Proc,
+#   or platform::run/capture/capture_bytes(...) — whose FIRST argument is NOT a
+#   bare "..." string literal (i.e. a variable, a concatenation, or *.c_str()).
+#   A constructed command may carry shell metacharacters (CWE-78).
+#
+# What it does NOT flag:
+#   A sink called with a fixed string literal (run("git --version")). Those are
+#   safe by construction and allowed.
+#
+# The fix is shell-free execution: give the adapter an argv-vector primitive
+# (Proc::run_argv -> platform::run_argv via posix_spawn/CreateProcess, no
+# /bin/sh) and pass arguments as a vector, never as an interpolated shell
+# string. This mirrors the tool_on_path fix (KEUR-SEC-005) and the
+# no-posix-shell-in-exec line (KEUR-PORT-005).
+#
+# @see rules/security/KEUR-SEC-005 (libc sibling: system/popen), ADR-003
+#      (adapter layer), ADR-005 (platform layer), KEUR-PORT-005.
+id: KEUR-SEC-006
+title: Non-literal command passed to keur's shell adapter/platform sink
+category: cmdi
+severity: critical
+engine: pattern
+action: block
+skip_comments: true
+target:
+  extensions: .c .cpp .cc
+  # Exclude the sink layer itself: common/ (platform::run/capture definitions)
+  # and adapters/ (the Proc pass-through) are the single, documented place where
+  # a shell string legitimately lives — same convention KEUR-PORT-* uses for
+  # common/. Business code (cmd/, learn/, report/) must stay shell-free.
+  exclude_paths: vendor/ ../rules/ _test.cpp test/ tests/ build/ dist/ common/ adapters/
+patterns:
+  # A keur shell sink (.run/.capture on a Proc, or platform::run/capture/
+  # capture_bytes) whose first argument is not a bare "..." literal. `exclude`
+  # (pattern-not, ADR-007) drops the safe fixed-literal case.
+  - regex: \b(?:platform::(?:run|capture|capture_bytes)|(?:\w+\.)?(?:run|capture))\s*\(
+    exclude: \b(?:platform::(?:run|capture|capture_bytes)|(?:\w+\.)?(?:run|capture))\s*\(\s*"
+    message: "Non-literal command passed to a keur shell sink (Proc::run/.capture or platform::run/capture) — the command was constructed and may carry shell metacharacters (CWE-78). Assemble arguments as an argv vector (Proc::run_argv -> platform::run_argv, posix_spawn/CreateProcess, no /bin/sh), not an interpolated shell string. Reserve the string form for fixed literals. @see KEUR-SEC-006, ADR-003, ADR-005"
+confidence: 0.85
+fix: "Replace the interpolated shell string with a shell-free argv call: add an argv-vector primitive to the process adapter (Proc::run_argv routing to platform::run_argv, implemented with posix_spawn / CreateProcess and no shell) and pass the command as a vector of arguments. Reserve Proc::run/.capture(string) for fixed literal commands with zero interpolated input. See ADR-003, ADR-005, and KEUR-SEC-006."
