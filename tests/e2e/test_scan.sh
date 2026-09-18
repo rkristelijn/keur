@@ -36,4 +36,15 @@ echo "$compact" | grep -qE '^[^:]+:[0-9]+ KEUR-SEC-001' \
 echo "$compact" | grep -q '{' \
   && fail "compact format leaked JSON" || ok "compact format is not JSON"
 
+# Scanning a SINGLE FILE (not a dir) must also emit findings. Regression guard:
+# `scan` previously always walked its target as a directory, so a file argument
+# silently produced 0 findings. See cmd/scan.cpp (is_regular_file branch).
+# Use a temp file outside tests/ so the rule's exclude_paths do not interfere.
+sf_tmp="$(mktemp --suffix=.pem)"
+cp "$FIX/secrets/rsa_key.pem" "$sf_tmp"
+file_out="$("$BINARY" scan "$sf_tmp" 2>/dev/null)"
+rm -f "$sf_tmp"
+echo "$file_out" | grep -q "KEUR-SEC-001" \
+  && ok "scan on a single file emits findings" || fail "single-file scan emitted nothing (dir-only regression)"
+
 summary
