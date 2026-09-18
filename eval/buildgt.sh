@@ -17,8 +17,10 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd -P)"
 KEUR_HOME="$(cd "$HERE/.." && pwd -P)"
-CACHE="$HERE/corpus/repos"
-GT="$HERE/corpus/groundtruth.jsonl"
+# Cache + ground-truth output default in-repo but follow KEUR_CORPUS_DIR / KEUR_GT
+# so an alternate corpus (e.g. ~/git/hub/keur-eval-3) is fully self-contained.
+CACHE="${KEUR_CORPUS_DIR:-$HERE/corpus/repos}"
+GT="${KEUR_GT:-$HERE/corpus/groundtruth.jsonl}"
 
 if [ "${1:-}" = "--stats" ]; then
     [ -f "$GT" ] || { echo "no ground truth yet: $GT"; exit 0; }
@@ -47,6 +49,7 @@ if [ "${1:-}" = "--tool" ]; then TOOL_ARG=(--tool "${2:-all}"); shift 2; fi
 
 [ -d "$CACHE" ] || { echo "no corpus; run: eval/corpus.sh clone" >&2; exit 1; }
 
+mkdir -p "$(dirname "$GT")"
 : > "$GT"   # fresh cache
 total=0
 for repo in "$CACHE"/*/; do

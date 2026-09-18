@@ -318,6 +318,9 @@ suppress `SEC-043`.
 - `docs/adr/ADR-004-analysis-engine-evolution.md` - staged path from line-scanner to language-agnostic analysis
 - `docs/adr/ADR-005-platform-abstraction.md` - cross-platform build (platform layer, portability rules, CI)
 - `docs/adr/ADR-006-word-size-portability.md` - 32/64-bit as a compile-time target, proven by a 32-bit CI build + smoke
+- `docs/adr/ADR-007-pattern-exclude.md` - the `exclude` (pattern-not) primitive for rules
+- `docs/adr/ADR-008-incremental-compile-and-build-affected.md` - incremental compile + build-affected
+- `docs/adr/ADR-009-labeled-corpus-loop.md` - oracle-free evaluation loop: fixtures carry their own TP/TN labels
 - `docs/design/learning-loop.md` - how `keur learn` trains the rule set (the pipeline, the gate, the scripts under `eval/`)
 - `CONTRIBUTING.md` - build, test, coverage, mutation, layout, self-checks
 

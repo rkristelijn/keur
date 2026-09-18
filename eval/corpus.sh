@@ -17,8 +17,11 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd -P)"
-CACHE="$HERE/corpus/repos"
-LIST="$HERE/corpus/repos.txt"
+# Cache + list default to the in-repo corpus, but can point elsewhere so an
+# alternate corpus (e.g. ~/git/hub/keur-eval-3) lives fully outside this repo
+# without touching the default one.
+CACHE="${KEUR_CORPUS_DIR:-$HERE/corpus/repos}"
+LIST="${KEUR_CORPUS_LIST:-$HERE/corpus/repos.txt}"
 
 # --- resource guards --------------------------------------------------------
 # Skip a repo whose working tree exceeds this after clone (keeps one outlier
@@ -51,7 +54,7 @@ swisskyrepo/PayloadsAllTheThings
 REPOS
 }
 
-mkdir -p "$HERE/corpus"
+mkdir -p "$(dirname "$LIST")"
 [ -f "$LIST" ] || default_list > "$LIST"
 
 cmd="${1:-status}"
