@@ -6,8 +6,6 @@
  */
 #include "cmd/learn.h"
 
-#include <unistd.h>
-
 #include <atomic>
 #include <csignal>
 #include <cstdlib>
@@ -15,6 +13,7 @@
 #include <string>
 
 #include "adapters/proc.h"
+#include "common/platform.h"
 #include "learn/monitor.h"
 
 namespace keur::cmd {
@@ -52,7 +51,8 @@ int learn(const LearnOptions& opts) {
   adapters::Proc proc;
 
   if (opts.stop) {
-    return proc.run("'" + home + "/eval/supervise.sh' stop");
+    // Shell-free: executable + literal arg in argv, no /bin/sh. @see KEUR-SEC-006.
+    return proc.run_argv({home + "/eval/supervise.sh", "stop"}, {});
   }
 
   if (opts.status) {
@@ -63,24 +63,29 @@ int learn(const LearnOptions& opts) {
   // spin the background loop if nothing is running and not told to skip
   keur::learn::Supervisor sup = keur::learn::read_supervisor(home);
   if (!sup.running && !opts.no_spin) {
+    // Spawn the supervisor shell-free: the executable + its literal args go in
+    // argv (no /bin/sh, so `home` can never break out — CWE-78), and what used
+    // to be a `VAR=val ... cmd` shell prefix becomes explicit environment
+    // overrides. supervise.sh reads these from the environment as before.
+    // @see KEUR-SEC-006, ADR-003, ADR-005.
+    std::vector<std::pair<std::string, std::string>> env;
     // MODEL is honoured by optimise.sh (env override); pass it only when set so
     // an empty --model falls back to optimise.sh's own default selection.
-    std::string model_env = opts.model.empty() ? "" : ("MODEL='" + opts.model + "' ");
+    if (!opts.model.empty()) env.emplace_back("MODEL", opts.model);
+    env.emplace_back("KEUR_PHASES", "loop");
     // Loop command: normally optimise.sh on one source; with --source alternate
     // use alternate.sh, which flips corpus<->keureval each phase.
-    std::string loop_cmd;
     if (opts.source == "alternate" || opts.source == "both") {
-      loop_cmd = "KEUR_LOOP_CMD='" + home + "/eval/alternate.sh'";
+      env.emplace_back("KEUR_LOOP_CMD", home + "/eval/alternate.sh");
     } else {
-      loop_cmd = "KEUR_EVAL_SOURCE=" + opts.source +
-                 " KEUR_LOOP_CMD='" + home + "/eval/optimise.sh iterate 500'";
+      env.emplace_back("KEUR_EVAL_SOURCE", opts.source);
+      env.emplace_back("KEUR_LOOP_CMD", home + "/eval/optimise.sh iterate 500");
     }
-    std::string cmd = model_env + "KEUR_PHASES=loop " + loop_cmd +
-                      " '" + home + "/eval/supervise.sh' start";
+    std::vector<std::string> argv = {home + "/eval/supervise.sh", "start"};
     std::cerr << "keur learn: spinning background loop (source=" << opts.source;
     if (!opts.model.empty()) std::cerr << ", model=" << opts.model;
     std::cerr << ", runs until 'keur learn --stop')...\n";
-    proc.run(cmd);
+    proc.run_argv(argv, env);
   }
 
   // foreground monitor loop
@@ -88,7 +93,7 @@ int learn(const LearnOptions& opts) {
   while (!g_stop) {
     keur::learn::draw_frame(home);
     for (int i = 0; i < opts.refresh_secs * 10 && !g_stop; ++i) {
-      usleep(100000);  // 100ms slices so Ctrl+C stays responsive
+      keur::platform::sleep_ms(100);  // 100ms slices so Ctrl+C stays responsive
     }
   }
   std::cout << "\nmonitor closed. loop still running in background "

@@ -12,9 +12,17 @@ src/rules/        <- the rule ENGINE (C++: rule_engine.cpp, reads .rule files)
 ## Layout
 
 - `security/` built-in security rules (e.g. KEUR-SEC-001 private key).
-- `keur-internal/` keur's own architecture controls (KEUR-ARCH-001..004) that
-  keep the codebase honest: I/O only in adapters, namespace matches directory.
-  See `docs/adr/ADR-003-provider-architecture.md`.
+- `keur-internal/` keur's own architecture controls that keep the codebase
+  honest:
+  - `KEUR-ARCH-001..004` — I/O only in adapters, namespace matches directory.
+    See `docs/adr/ADR-003-provider-architecture.md`.
+  - `KEUR-PORT-001..005` — cross-platform portability: no platform `#ifdef`,
+    OS-only header, POSIX-only libc call, hardcoded path separator, or POSIX
+    shell command outside the platform layer (`src/keur/common/`). Adapted from
+    cpm's STYLE-012..017 / QUAL-078. See `docs/adr/ADR-005-platform-abstraction.md`.
+  - `KEUR-PORT-006` — word-size portability (`warn`): no `(int)` truncation of
+    `.size()`/`.length()`, no pointer→32-bit cast, no 64-bit-assuming `long`.
+    See `docs/adr/ADR-006-word-size-portability.md`.
 
 ## Rule format
 

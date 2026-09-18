@@ -1,0 +1,52 @@
+# keur security control — C/C++ shell execution with interpolated input.
+#
+# Why this exists: keur's OWN platform layer shipped a `tool_on_path` that did
+#     std::string cmd = "command -v " + tool + " >/dev/null 2>&1";
+#     return std::system(cmd.c_str()) == 0;
+# — a textbook OS command-injection shape (CWE-78). SonarQube rated the new code
+# 'D Security' on exactly this. The pre-existing KEUR-SEC-003 only covers PHP
+# ($_GET into exec) and KEUR-SEC-004 covers dynamic exec() in scripting langs, so
+# C/C++ shell interpolation slipped through. This rule closes that gap:
+# fix + control (never just the fix).
+#
+# What it flags:
+#   system()/popen() whose argument is a NON-LITERAL (a variable, incl.
+#   `var.c_str()`) — the command was built elsewhere and may carry shell
+#   metacharacters.
+# A shell call with a FIXED string literal (e.g. system("git --version")) does
+# NOT match and is allowed.
+#
+# Scope note: this rule guards the libc sinks only (system/popen). keur's OWN
+# process adapter (Proc::run/.capture -> platform::run/capture) is a separate
+# sink class, guarded by KEUR-SEC-006. An earlier second pattern here flagged
+# any `x = "lit" + var` assignment context-free, which mis-fired on non-exec
+# std::cout builders (false positive); that heuristic is removed and the real
+# detection now lives on the sink itself in SEC-006.
+#
+# Prefer a shell-free primitive (posix_spawn/execvp with an argv vector, or an
+# access()-based PATH scan) routed through keur::platform. Where a shell is truly
+# required, the command must be a fixed literal with no interpolated input.
+#
+# NOTE: unlike the KEUR-PORT-* rules, common/ is NOT excluded — the platform
+# layer is exactly where this shape appeared and must be held to it too.
+# @see rules/security/KEUR-SEC-003 (PHP sibling), ADR-005.
+id: KEUR-SEC-005
+title: Shell execution with interpolated (non-literal) input in C/C++
+category: cmdi
+severity: critical
+engine: pattern
+action: block
+skip_comments: true
+target:
+  extensions: .c .cpp .cc
+  exclude_paths: vendor/ ../rules/ _test.cpp test/ tests/ build/ dist/
+patterns:
+  # Flag system()/popen() whose first argument is not a plain "..." literal
+  # (a variable, concatenation, or *.c_str()) — a constructed command that may
+  # carry shell metacharacters (CWE-78). `exclude` (pattern-not, ADR-007) drops
+  # the safe case where the argument IS a bare string literal.
+  - regex: \b(?:std::)?(?:system|popen)\s*\(
+    exclude: \b(?:std::)?(?:system|popen)\s*\(\s*"
+    message: "system()/popen() invoked with a non-literal (constructed) command — OS command injection risk (CWE-78). Build the command shell-free (posix_spawn/execvp with an argv vector, or an access()-based PATH scan) via keur::platform. Reserve system()/popen() for fixed string literals. @see KEUR-SEC-005, ADR-005"
+confidence: 0.85
+fix: "Replace shell interpolation with a shell-free call: resolve tools with an access()-based PATH scan, spawn processes with posix_spawn/execvp and an argv array (no /bin/sh), exposed through keur::platform. Reserve system()/popen() for fixed literal commands with zero interpolated input. See ADR-005 and KEUR-SEC-005."

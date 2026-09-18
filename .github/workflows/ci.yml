@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  # Build keur on Linux, macOS and Windows, then run a post-compile e2e smoke
+  # test of the essential subcommands. keur's core is the RE2 rule engine, so
+  # every OS gets a full build with RE2 (via apt / brew / MSYS2). @see ADR-005.
+  # ────────────────────────────────────────────────────────────────────────
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            name: linux-amd64
+          - os: macos-14
+            name: macos-arm64
+          - os: windows-latest
+            name: windows-amd64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Dependencies: RE2 + abseil per platform ──────────────────────────
+      - name: Install RE2 (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libre2-dev libabsl-dev
+
+      - name: Install RE2 (macOS)
+        if: runner.os == 'macOS'
+        run: brew install re2 abseil
+
+      - name: Setup MSYS2 (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-re2
+            mingw-w64-ucrt-x86_64-abseil-cpp
+
+      # ── Build (POSIX shells on Linux/macOS) ──────────────────────────────
+      - name: Build (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: make build
+        working-directory: src/keur
+
+      - name: Test (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: make test
+        working-directory: src/keur
+
+      # ── Build on Windows via the MSYS2/UCRT64 toolchain ──────────────────
+      # $(OS) == Windows_NT there, so the Makefile selects platform_win32.cpp.
+      - name: Build (Windows / MSYS2)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: make build
+        working-directory: src/keur
+
+      # ── Post-compile e2e smoke test of the essential subcommands ─────────
+      # This is the real "does the binary work" gate: version, policy, scan,
+      # check. On Windows we run the same smoke through the MSYS2 shell.
+      - name: Smoke test (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: bash tests/e2e/smoke.sh bin/keur
+
+      - name: Smoke test (Windows / MSYS2)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: bash tests/e2e/smoke.sh bin/keur.exe
+
+      - name: Upload binary
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: keur-${{ matrix.name }}
+          path: bin/keur
+          retention-days: 5
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 32-bit build: prove keur compiles AND runs on 32-bit ARM (armhf) — the
+  # older Raspberry Pi target. Runs under QEMU emulation in an arm32v7 Debian
+  # container (bookworm ships libre2-dev + abseil for armhf, so it is a full
+  # build with the rule engine). The post-build smoke test is the proof that a
+  # 32-bit binary behaves correctly (no word-size truncation). @see ADR-006.
+  # ────────────────────────────────────────────────────────────────────────
+  build-arm32:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU (arm emulation)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+      - name: Build + smoke (armhf under QEMU)
+        run: |
+          docker run --rm --platform linux/arm/v7 \
+            -v "$PWD:/src" -w /src arm32v7/debian:bookworm \
+            bash -c '
+              set -e
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                g++ make libre2-dev libabsl-dev git ca-certificates
+              # Confirm we really are 32-bit before building.
+              echo "target word size: $(getconf LONG_BIT)-bit  ($(uname -m))"
+              make -C src/keur build
+              file bin/keur || true
+              git config --global --add safe.directory /src
+              bash tests/e2e/smoke.sh bin/keur
+            '
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Dogfood: keur scans its own source with its internal architecture +
+  # portability rules and must find nothing (drift gate). Runs on Linux only.
+  # ────────────────────────────────────────────────────────────────────────
+  dogfood:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install RE2
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libre2-dev libabsl-dev
+      - name: Build keur
+        run: make build
+        working-directory: src/keur
+      - name: Self-check (architecture — I/O only in adapters)
+        run: bash tests/e2e/test_selfcheck.sh bin/keur
+      - name: Self-check (portability — OS code only in common/)
+        run: bash tests/e2e/test_portability.sh bin/keur

@@ -24,6 +24,11 @@ namespace keur {
 struct RulePattern {
   std::string regex_str;
   std::string message;
+  // Optional RE2-friendly "pattern-not": when this second regex matches the
+  // same line, the match is suppressed. Lets a rule express "match X except
+  // when Y" without PCRE lookahead — keeps the engine single, RE2, linear.
+  // @see docs/adr/ADR-007-pattern-exclude.md
+  std::string exclude_str;
 };
 
 /** Which files a rule applies to. */

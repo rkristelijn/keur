@@ -36,14 +36,25 @@ brew install re2 abseil
 
 # Debian / Ubuntu
 sudo apt install libre2-dev libabsl-dev
+
+# Windows (MSYS2 UCRT64 shell)
+pacman -S make mingw-w64-ucrt-x86_64-gcc \
+          mingw-w64-ucrt-x86_64-re2 mingw-w64-ucrt-x86_64-abseil-cpp
 ```
 
 Build:
 
 ```bash
 cd src/keur
-make            # produces ../../bin/keur
+make            # produces ../../bin/keur  (keur.exe on Windows)
 ```
+
+keur builds on macOS, Linux and Windows. OS-divergent code lives behind a
+platform abstraction layer (`src/keur/common/platform.*`); the Makefile selects
+`platform_posix.cpp` or `platform_win32.cpp` per OS, and business code holds no
+`#ifdef`. The `KEUR-PORT-*` self-check rules block platform drift, and CI
+(`.github/workflows/ci.yml`) builds + smoke-tests all three OSes on every push.
+See `docs/adr/ADR-005-platform-abstraction.md`.
 
 The Makefile resolves RE2 and abseil via `brew --prefix` on macOS and falls back
 to system include/lib paths on Linux. The version string is read from
@@ -305,6 +316,8 @@ suppress `SEC-043`.
 - `docs/adr/ADR-002-single-cpp-binary.md` - why one compiled binary
 - `docs/adr/ADR-003-provider-architecture.md` - the adapter / provider layers
 - `docs/adr/ADR-004-analysis-engine-evolution.md` - staged path from line-scanner to language-agnostic analysis
+- `docs/adr/ADR-005-platform-abstraction.md` - cross-platform build (platform layer, portability rules, CI)
+- `docs/adr/ADR-006-word-size-portability.md` - 32/64-bit as a compile-time target, proven by a 32-bit CI build + smoke
 - `docs/design/learning-loop.md` - how `keur learn` trains the rule set (the pipeline, the gate, the scripts under `eval/`)
 - `CONTRIBUTING.md` - build, test, coverage, mutation, layout, self-checks
 

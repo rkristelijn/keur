@@ -21,6 +21,8 @@ for cls in ("positive", "negative", "regression"):
     if not os.path.isdir(base): continue
     for dirpath, _, files in os.walk(base):
         for fn in files:
+            if fn == ".gitkeep" or fn.startswith("."):
+                continue  # placeholders / dotfiles are not cases
             p = os.path.join(dirpath, fn)
             rel = os.path.relpath(p, root)
             expect, expect_not, cat = [], [], ""
