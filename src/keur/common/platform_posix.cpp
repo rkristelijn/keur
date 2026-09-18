@@ -55,14 +55,20 @@ int wait_exit(int raw_status) {
     return 1;
 }
 
+// run/capture/capture_bytes intentionally use the shell: callers pass fixed,
+// internal command strings that rely on shell features (git argument splitting,
+// env-var prefixes, redirects) and NEVER attacker-controlled input. The command
+// injection surface (a bare, possibly-influenced tool name) was removed from
+// tool_on_path below. These three are a documented, accepted exception.
+// @see KEUR-SEC-005, ADR-005.
 int run(const std::string& cmd) {
-    return wait_exit(std::system(cmd.c_str()));  // NOLINT(cert-env33-c)
+    return wait_exit(std::system(cmd.c_str()));  // keur:ignore KEUR-SEC-005  NOLINT(cert-env33-c)
 }
 
 CaptureResult capture(const std::string& cmd) {
     CaptureResult r;
     std::string full = cmd + " 2>/dev/null";
-    FILE* p = popen(full.c_str(), "r");
+    FILE* p = popen(full.c_str(), "r");  // keur:ignore KEUR-SEC-005 — internal, fixed command
     if (!p) { r.exit_code = -1; return r; }
     char buf[512];
     while (fgets(buf, sizeof(buf), p)) r.out += buf;
@@ -72,7 +78,7 @@ CaptureResult capture(const std::string& cmd) {
 
 int capture_bytes(const std::string& cmd, std::string& sink) {
     std::string full = cmd + " 2>/dev/null";
-    FILE* p = popen(full.c_str(), "r");
+    FILE* p = popen(full.c_str(), "r");  // keur:ignore KEUR-SEC-005 — internal, fixed command
     if (!p) return -1;
     int c;
     while ((c = fgetc(p)) != EOF) sink += static_cast<char>(c);
@@ -80,8 +86,26 @@ int capture_bytes(const std::string& cmd, std::string& sink) {
 }
 
 bool tool_on_path(const std::string& tool) {
-    std::string cmd = "command -v " + tool + " >/dev/null 2>&1";
-    return std::system(cmd.c_str()) == 0;  // NOLINT(cert-env33-c)
+    // Shell-free PATH resolution: no system()/popen and no string interpolation,
+    // so a tool name can never break out into a shell (CWE-78). A name with a
+    // separator is checked directly; a bare name is searched across $PATH.
+    // @see ADR-005, KEUR-SEC-005.
+    if (tool.empty()) return false;
+    auto is_exec = [](const std::string& p) { return access(p.c_str(), X_OK) == 0; };
+    if (tool.find('/') != std::string::npos) return is_exec(tool);
+    const char* penv = getenv("PATH");
+    if (!penv) return false;
+    const std::string paths = penv;
+    size_t start = 0;
+    while (start <= paths.size()) {
+        size_t colon = paths.find(':', start);
+        std::string dir = paths.substr(
+            start, colon == std::string::npos ? std::string::npos : colon - start);
+        if (!dir.empty() && is_exec(path_join(dir, tool))) return true;
+        if (colon == std::string::npos) break;
+        start = colon + 1;
+    }
+    return false;
 }
 
 bool make_dir(const std::string& path) {

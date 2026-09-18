@@ -89,6 +89,18 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
       } else {
         c.res.push_back(std::move(re));
       }
+      // optional pattern-not (exclude): compiled parallel to res.
+      if (p.exclude_str.empty()) {
+        c.exclude_res.push_back(nullptr);
+      } else {
+        auto ex = std::make_unique<RE2>(p.exclude_str, opt);
+        if (!ex->ok()) {
+          std::cerr << "keur: invalid exclude in rule " << r.id << ": " << ex->error() << "\n";
+          c.exclude_res.push_back(nullptr);
+        } else {
+          c.exclude_res.push_back(std::move(ex));
+        }
+      }
     }
     // block-absence: compile the inner + optional trigger regexes.
     if (!r.block_inner.empty()) {
@@ -171,8 +183,11 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
       if (engine == "pattern") {
         for (size_t pi = 0; pi < c.res.size(); pi++) {
           if (!c.res[pi]) continue;
+          const RE2* excl = pi < c.exclude_res.size() ? c.exclude_res[pi].get() : nullptr;
           for (size_t li = 0; li < lines.size(); li++)
             if (RE2::PartialMatch(lines[li], *c.res[pi])) {
+              // pattern-not: skip this line if the exclude regex also matches it.
+              if (excl && RE2::PartialMatch(lines[li], *excl)) continue;
               const std::string msg = finding_msg(*r, r->patterns[pi].message);
               findings.push_back({r->id, r->title, r->category, r->severity, default_action(*r),
                                   default_conf(*r), rel, (int)(li + 1), msg});
