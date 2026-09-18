@@ -171,7 +171,10 @@ int hook(const HookOptions& opts, const HookDeps& deps) {
                 std::cerr << "keur hook: core.hooksPath already set to: " << current << "\n";
                 std::cerr << "  Leaving it unchanged. Merge KEUR hooks into that dir, or unset it.\n";
             } else {
-                proc.run("git config --global core.hooksPath " + dir);
+                // Shell-free: git + literal args + the path in argv, no
+                // /bin/sh, so `dir` can never inject (CWE-78). @see KEUR-SEC-006.
+                proc.run_argv(
+                    {"git", "config", "--global", "core.hooksPath", dir}, {});
                 std::cout << "  git core.hooksPath -> " << dir << "\n";
             }
             std::cout << "Global KEUR hooks installed for all repos on this machine.\n";

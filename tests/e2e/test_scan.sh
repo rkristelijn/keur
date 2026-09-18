@@ -40,10 +40,13 @@ echo "$compact" | grep -q '{' \
 # `scan` previously always walked its target as a directory, so a file argument
 # silently produced 0 findings. See cmd/scan.cpp (is_regular_file branch).
 # Use a temp file outside tests/ so the rule's exclude_paths do not interfere.
-sf_tmp="$(mktemp --suffix=.pem)"
+# mktemp --suffix is GNU-only (absent on macOS), so make a temp dir and place a
+# .pem file inside it — portable across macOS and Linux.
+sf_dir="$(mktemp -d)"
+sf_tmp="$sf_dir/rsa_key.pem"
 cp "$FIX/secrets/rsa_key.pem" "$sf_tmp"
 file_out="$("$BINARY" scan "$sf_tmp" 2>/dev/null)"
-rm -f "$sf_tmp"
+rm -rf "$sf_dir"
 echo "$file_out" | grep -q "KEUR-SEC-001" \
   && ok "scan on a single file emits findings" || fail "single-file scan emitted nothing (dir-only regression)"
 

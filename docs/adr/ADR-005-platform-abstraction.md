@@ -49,9 +49,9 @@ endif
 ```
 
 The interface covers every primitive that diverges across OSes: `os_kind`,
-`path_sep`, `path_join`, `wait_exit`, `run`, `capture`, `capture_bytes`,
-`tool_on_path`, `make_dir`, `path_exists`, `write_executable`, `remove_file`,
-`read_resources`, `sleep_ms`, `terminal_size`, `process_alive`.
+`path_sep`, `path_join`, `wait_exit`, `run`, `run_argv`, `capture`,
+`capture_bytes`, `tool_on_path`, `make_dir`, `path_exists`, `write_executable`,
+`remove_file`, `read_resources`, `sleep_ms`, `terminal_size`, `process_alive`.
 
 Principles:
 
@@ -70,6 +70,13 @@ Principles:
    even on Windows (Git for Windows ships one), so they legitimately stay shell.
    They are string literals, not `system()`/`popen()` calls, so the portability
    rules do not (and should not) flag them.
+5. **Constructed commands spawn shell-free.** When a command carries any
+   non-literal input, business code calls `platform::run_argv` (via
+   `Proc::run_argv`) with an argv vector and explicit `KEY=value` environment
+   overrides — `posix_spawnp` on POSIX, `CreateProcessA` on Windows, no
+   `/bin/sh` or `cmd.exe`. Nothing in `argv` can be reinterpreted as a shell
+   metacharacter (CWE-78). The string form `run`/`capture` is reserved for fixed
+   literal commands. This is enforced by `KEUR-SEC-006` (see below).
 
 ## Enforcement (keur guards itself)
 
@@ -84,6 +91,14 @@ QUAL-078, fire on drift **outside `common/`**:
   `clock_gettime`, `QueryPerformanceCounter`, …)
 - **004** hardcoded path separator (`+ "/"`)
 - **005** POSIX shell command in `system()`/`popen()` (`mkdir -p`, `command -v`, …)
+
+Two command-injection controls under `rules/security/` complete the picture:
+`KEUR-SEC-005` blocks a non-literal command into the libc sinks
+(`system()`/`popen()`); `KEUR-SEC-006` blocks a non-literal command into keur's
+own shell sink (`Proc::run/.capture` → `platform::run/capture`), steering
+callers to the shell-free `run_argv` path above. The sink layer itself
+(`common/`, `adapters/`) is excluded — it is the one documented home for a
+shell string.
 
 `tests/e2e/test_portability.sh` runs these over `src/keur`, asserts zero
 findings, then injects a violation to prove the controls fire (no dead rule).

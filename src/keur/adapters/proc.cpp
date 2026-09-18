@@ -17,6 +17,12 @@ int Proc::default_run(const std::string& cmd) {
     return platform::run(cmd);
 }
 
+int Proc::default_run_argv(
+    const std::vector<std::string>& argv,
+    const std::vector<std::pair<std::string, std::string>>& env) {
+    return platform::run_argv(argv, env);
+}
+
 ProcResult Proc::default_capture(const std::string& cmd) {
     ProcResult r;
     auto cap = platform::capture(cmd);
