@@ -1,23 +1,21 @@
 /**
  * @file adapters/git.cpp
- * @brief Git adapter implementation — the only place keur spawns git.
+ * @brief Git adapter implementation — the only place keur spawns git. The
+ *        spawn/capture primitives come from platform::, so there is no raw
+ *        popen or POSIX-only redirect here.
  */
 #include "adapters/git.h"
 
-#include <cstdio>
 #include <string>
 #include <vector>
+
+#include "common/platform.h"
 
 namespace keur::adapters {
 
 std::string Git::default_run(const std::string& args) {
-    std::string cmd = "git " + args + " 2>/dev/null";
-    FILE* p = popen(cmd.c_str(), "r");
-    if (!p) return "";
-    std::string out;
-    char buf[256];
-    while (fgets(buf, sizeof(buf), p)) out += buf;
-    pclose(p);
+    auto cap = platform::capture("git " + args);
+    std::string out = std::move(cap.out);
     while (!out.empty() && (out.back() == '\n' || out.back() == '\r'))
         out.pop_back();
     return out;
@@ -26,27 +24,25 @@ std::string Git::default_run(const std::string& args) {
 std::vector<std::string> Git::default_staged_files() {
     std::vector<std::string> files;
     // -z: NUL-separated to survive filenames with spaces.
-    FILE* p = popen(
-        "git diff --cached --name-only --diff-filter=ACM -z 2>/dev/null", "r");
-    if (!p) return files;
+    std::string raw;
+    platform::capture_bytes(
+        "git diff --cached --name-only --diff-filter=ACM -z", raw);
     std::string cur;
-    int c;
-    while ((c = fgetc(p)) != EOF) {
+    for (char c : raw) {
         if (c == '\0') {
             if (!cur.empty()) { files.push_back(cur); cur.clear(); }
         } else {
-            cur += static_cast<char>(c);
+            cur += c;
         }
     }
     if (!cur.empty()) files.push_back(cur);
-    pclose(p);
     return files;
 }
 
 std::string git_repo_hooks_dir(const Git& git) {
     std::string git_dir = git.run("rev-parse --git-dir");
     if (git_dir.empty()) return "";
-    return git_dir + "/hooks";
+    return platform::path_join(git_dir, "hooks");
 }
 
 }  // namespace keur::adapters

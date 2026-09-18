@@ -222,20 +222,21 @@ Status legend: [x] done · [~] partially done · [ ] open
       user-input identifiers, never touch the sink call token). It is "soft"
       (WARN, not discard) so not urgent, but it mislabels good rules. See
       eval/perturb.sh (code branch) and eval/optimise.sh (is_slop).
-- [ ] SYSTEM INTEL must follow the adapter/provider pattern (currently macOS-only).
-      `keur learn`'s resource readout (RAM free, CPU load, run duration) in
-      cmd/learn.cpp uses macOS-only APIs behind `#if defined(__APPLE__)`:
-      host_statistics64 / mach + sysctlbyname("vm.loadavg","hw.memsize",
-      "hw.logicalcpu"). This BREAKS on Linux and Windows and is raw system I/O
-      inside a cmd/ (a KEUR-ARCH-001 smell — I/O belongs in an adapter).
-      Extract a SysInfo adapter (adapters/sysinfo.h) with one interface —
-      { load1(), ncpu(), ram_total_gb(), ram_free_gb() } — and platform impls:
-        * macOS   : mach host_statistics64 + sysctlbyname (current code)
-        * Linux   : /proc/loadavg, /proc/meminfo (MemAvailable), nproc
-        * Windows : GlobalMemoryStatusEx, GetSystemInfo, perf counters
-      cmd/learn.cpp then depends on the adapter, not on the platform. Same
-      injectable-seam benefit as the Git/Fs/Proc adapters (ADR-003): tests can
-      feed fake resource numbers. Until then the readout only works on macOS.
+- [x] SYSTEM INTEL + all OS-divergent code now behind a platform layer (ADR-005).
+      DONE: created src/keur/common/{platform.h,compat.h,platform_posix.cpp,
+      platform_win32.cpp} (namespace keur::platform), selected per-OS by the
+      Makefile (PLATFORM_SRC). The only #ifdef in the whole codebase lives there
+      (a single __APPLE__ split for mach-vs-/proc). Migrated off raw OS calls:
+        * sysinfo   → platform::read_resources (macOS mach/sysctl, Linux /proc,
+                      Windows GlobalMemoryStatusEx); adapters::SysInfo stays the
+                      injectable seam and just delegates.
+        * proc/git  → platform::run/capture/capture_bytes/tool_on_path/wait_exit
+        * fs        → platform::make_dir/path_exists/write_executable/remove_file
+        * hook      → platform::path_join (git-hook stubs stay #!/bin/sh — legit)
+        * learn     → platform::sleep_ms / terminal_size / process_alive
+      Enforced by KEUR-PORT-001..005 (rules/keur-internal/) + test_portability.sh
+      (0 findings on src/keur, fire-detection proven). CI builds+smoke-tests
+      linux/macos/windows (.github/workflows/ci.yml). See ADR-005.
 - [ ] Why do we have multipe Makefiles
 - [ ] why is rules apart from keur in src? what isthe pupose?
 - [ ] `keur learn` TUI: equalise the height of the two side-by-side source

@@ -1,0 +1,33 @@
+# keur portability control — adapted from cpm STYLE-015 (@see cpm ADR-170).
+# OS-specific system headers belong ONLY in the platform layer (common/).
+# Included elsewhere they break the build on the other OS. @see docs/adr/ADR-005.
+id: KEUR-PORT-002
+title: Platform-specific system header included outside common/
+category: architecture
+severity: error
+engine: pattern
+action: block
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: common/ vendor/ ../rules/ _test.cpp test/ tests/ build/ dist/
+patterns:
+  - regex: \#include\s*<windows\.h>
+    message: "Windows-only <windows.h> outside common/ — belongs in platform_win32.cpp only (ADR-005)"
+  - regex: \#include\s*<direct\.h>
+    message: "Windows-only <direct.h> outside common/ — use the platform layer / compat.h (ADR-005)"
+  - regex: \#include\s*<io\.h>
+    message: "Windows-only <io.h> outside common/ — use the platform layer (ADR-005)"
+  - regex: \#include\s*<process\.h>
+    message: "Windows-only <process.h> outside common/ — wrap in the platform layer (ADR-005)"
+  - regex: \#include\s*<unistd\.h>
+    message: "POSIX-only <unistd.h> outside common/ — breaks the Windows build. Route through keur::platform (ADR-005)"
+  - regex: \#include\s*<sys/wait\.h>
+    message: "POSIX-only <sys/wait.h> outside common/ — breaks the Windows build. Use keur::platform::wait_exit (ADR-005)"
+  - regex: \#include\s*<sys/sysctl\.h>
+    message: "macOS/BSD-only <sys/sysctl.h> outside common/ — breaks the Linux/Windows build. Confine to platform_posix.cpp (ADR-005)"
+  - regex: \#include\s*<mach/
+    message: "macOS-only <mach/...> header outside common/ — confine to platform_posix.cpp (ADR-005)"
+  - regex: \#include\s*<dirent\.h>
+    message: "POSIX-only <dirent.h> outside common/ — confine to the platform layer (ADR-005)"
+confidence: 0.95
+fix: "OS-specific headers belong in src/keur/common/platform_posix.cpp (POSIX / mach / sysctl) or platform_win32.cpp (<windows.h>, <direct.h>, <io.h>). Business logic includes only common/platform.h and common/compat.h. See ADR-005."

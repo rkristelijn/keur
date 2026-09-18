@@ -18,7 +18,7 @@ action: block
 # for a precise check; the exclude list makes it safe to run repo-wide too.
 target:
   extensions: .cpp .h
-  exclude_paths: cmd/ report/ util/ rules/ main.cpp _test.cpp test/ tests/ vendor/ render/ learn/
+  exclude_paths: cmd/ report/ util/ rules/ common/ main.cpp _test.cpp test/ tests/ vendor/ render/ learn/
 patterns:
   - regex: namespace keur::adapters
     message: "File under adapters/ must declare 'namespace keur::adapters' (namespace mirrors the directory layer). See ADR-003."

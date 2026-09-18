@@ -16,6 +16,8 @@
 #pragma once
 #include <functional>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace keur::adapters {
 
@@ -36,6 +38,16 @@ struct Proc {
     std::function<int(const std::string& cmd)> run = default_run;
 
     /**
+     * Run a program shell-free from an argv vector (no /bin/sh, no cmd.exe),
+     * with optional KEY=value environment overrides. Preferred over run() when
+     * any argument is constructed from non-literal input — nothing in argv can
+     * be interpreted as a shell metacharacter (CWE-78). @see KEUR-SEC-006.
+     */
+    std::function<int(const std::vector<std::string>& argv,
+                      const std::vector<std::pair<std::string, std::string>>& env)>
+        run_argv = default_run_argv;
+
+    /**
      * Run a command and capture stdout + exit code.
      * Used by external-scanner adapters (libmode).
      */
@@ -46,6 +58,9 @@ struct Proc {
 
     // Real implementations.
     static int         default_run(const std::string& cmd);
+    static int         default_run_argv(
+        const std::vector<std::string>& argv,
+        const std::vector<std::pair<std::string, std::string>>& env);
     static ProcResult  default_capture(const std::string& cmd);
     static bool        default_has(const std::string& bin);
 };

@@ -7,6 +7,7 @@
  */
 #include "cmd/scan.h"
 
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -47,7 +48,16 @@ int scan(const ScanOptions& opts) {
         return 0;
     }
 
-    auto findings = rules_scan_dir(rules, opts.target);
+    // A target may be a single file or a directory. rules_scan_dir walks a
+    // tree; for a single file we must use rules_scan_files, otherwise the file
+    // is treated as a (childless) directory and nothing is scanned.
+    std::error_code ec;
+    std::vector<RuleFinding> findings;
+    if (std::filesystem::is_regular_file(opts.target, ec)) {
+        findings = rules_scan_files(rules, {opts.target});
+    } else {
+        findings = rules_scan_dir(rules, opts.target);
+    }
 
     // Single output touch point — the report provider owns the format.
     report::ReportOptions ro;

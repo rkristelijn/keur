@@ -42,6 +42,11 @@ Rule rule_parse(const std::string& path) {
       if (cur.message.size() >= 2 && cur.message.front() == '"' && cur.message.back() == '"')
         cur.message = cur.message.substr(1, cur.message.size() - 2);
       continue;
+    } else if (in_patterns && starts_with(line, "    exclude:")) {
+      cur.exclude_str = trim(line.substr(line.find("exclude:") + 8));
+      if (cur.exclude_str.size() >= 2 && cur.exclude_str.front() == '"' && cur.exclude_str.back() == '"')
+        cur.exclude_str = cur.exclude_str.substr(1, cur.exclude_str.size() - 2);
+      continue;
     } else if (in_patterns && starts_with(line, "  ")) {
       continue;  // other indented sub-key we don't use
     } else if (in_patterns) {
