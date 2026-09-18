@@ -46,9 +46,12 @@ target:
 patterns:
   # A keur shell sink (.run/.capture on a Proc, or platform::run/capture/
   # capture_bytes) whose first argument is not a bare "..." literal. `exclude`
-  # (pattern-not, ADR-007) drops the safe fixed-literal case.
+  # (pattern-not, ADR-007) drops ONLY the safe case where the whole argument is
+  # a single complete "..." literal closed by ')'. A concatenation that merely
+  # starts with a literal (e.g. run("'" + home + "'...")) is NOT excluded — it
+  # still carries interpolated input.
   - regex: \b(?:platform::(?:run|capture|capture_bytes)|(?:\w+\.)?(?:run|capture))\s*\(
-    exclude: \b(?:platform::(?:run|capture|capture_bytes)|(?:\w+\.)?(?:run|capture))\s*\(\s*"
+    exclude: \b(?:platform::(?:run|capture|capture_bytes)|(?:\w+\.)?(?:run|capture))\s*\(\s*"(?:[^"\\]|\\.)*"\s*\)
     message: "Non-literal command passed to a keur shell sink (Proc::run/.capture or platform::run/capture) — the command was constructed and may carry shell metacharacters (CWE-78). Assemble arguments as an argv vector (Proc::run_argv -> platform::run_argv, posix_spawn/CreateProcess, no /bin/sh), not an interpolated shell string. Reserve the string form for fixed literals. @see KEUR-SEC-006, ADR-003, ADR-005"
 confidence: 0.85
 fix: "Replace the interpolated shell string with a shell-free argv call: add an argv-vector primitive to the process adapter (Proc::run_argv routing to platform::run_argv, implemented with posix_spawn / CreateProcess and no shell) and pass the command as a vector of arguments. Reserve Proc::run/.capture(string) for fixed literal commands with zero interpolated input. See ADR-003, ADR-005, and KEUR-SEC-006."

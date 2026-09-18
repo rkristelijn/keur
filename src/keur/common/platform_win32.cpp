@@ -10,6 +10,7 @@
 #include <windows.h>
 
 #include <cstdio>
+#include <cstring>
 #include <string>
 
 #include "common/platform.h"
@@ -39,6 +40,92 @@ int wait_exit(int raw_status) {
 // Documented, accepted exception. @see KEUR-SEC-005, ADR-005.
 int run(const std::string& cmd) {
     return wait_exit(std::system(cmd.c_str()));  // keur:ignore KEUR-SEC-005  NOLINT(cert-env33-c)
+}
+
+int run_argv(const std::vector<std::string>& argv,
+             const std::vector<std::pair<std::string, std::string>>& env) {
+    if (argv.empty()) return -1;
+
+    // Quote each argument per the Win32 CommandLineToArgvW rules so a space or
+    // quote in an argument cannot split it or inject extra arguments. No shell
+    // (cmd.exe) is involved, so shell metacharacters are inert (CWE-78).
+    auto quote = [](const std::string& a) -> std::string {
+        if (!a.empty() &&
+            a.find_first_of(" \t\"") == std::string::npos)
+            return a;
+        std::string out = "\"";
+        size_t backslashes = 0;
+        for (char c : a) {
+            if (c == '\\') {
+                ++backslashes;
+            } else if (c == '"') {
+                out.append(backslashes * 2 + 1, '\\');
+                out += '"';
+                backslashes = 0;
+            } else {
+                out.append(backslashes, '\\');
+                backslashes = 0;
+                out += c;
+            }
+        }
+        out.append(backslashes * 2, '\\');
+        out += '"';
+        return out;
+    };
+
+    std::string cmdline;
+    for (size_t i = 0; i < argv.size(); ++i) {
+        if (i) cmdline += ' ';
+        cmdline += quote(argv[i]);
+    }
+
+    // Build the environment block: inherited vars minus any we override, then
+    // the overrides, as a double-NUL-terminated "KEY=value\0...\0" buffer.
+    std::string block;
+    if (!env.empty()) {
+        LPCH parent = GetEnvironmentStringsA();
+        if (parent) {
+            for (LPCH e = parent; *e; e += std::strlen(e) + 1) {
+                std::string cur = e;
+                auto eq = cur.find('=');
+                bool overridden = false;
+                if (eq != std::string::npos) {
+                    std::string key = cur.substr(0, eq);
+                    for (const auto& kv : env)
+                        if (kv.first == key) { overridden = true; break; }
+                }
+                if (!overridden) { block += cur; block += '\0'; }
+            }
+            FreeEnvironmentStringsA(parent);
+        }
+        for (const auto& kv : env) {
+            block += kv.first + "=" + kv.second;
+            block += '\0';
+        }
+        block += '\0';  // terminating NUL for the block
+    }
+
+    STARTUPINFOA si{};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi{};
+    // Mutable buffer for the command line (CreateProcessA may modify it).
+    std::vector<char> cmdbuf(cmdline.begin(), cmdline.end());
+    cmdbuf.push_back('\0');
+
+    BOOL ok = CreateProcessA(
+        nullptr,               // resolve argv[0] via PATH from the command line
+        cmdbuf.data(),
+        nullptr, nullptr, FALSE, 0,
+        env.empty() ? nullptr : block.data(),
+        nullptr, &si, &pi);
+    if (!ok) return -1;
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD code = 0;
+    GetExitCodeProcess(pi.hProcess, &code);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return static_cast<int>(code);
 }
 
 CaptureResult capture(const std::string& cmd) {

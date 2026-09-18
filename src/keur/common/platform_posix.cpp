@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
+#include <spawn.h>
 #include <unistd.h>
 #include <csignal>
 
@@ -29,6 +30,11 @@
 #include <mach/mach.h>
 #include <mach/mach_host.h>
 #endif
+
+// The process environment. Declared by <unistd.h> only under certain feature
+// macros, so declare it explicitly for portability across macOS and Linux.
+// For a normal executable this refers to the real libc symbol.
+extern "C" char** environ;
 
 namespace keur::platform {
 
@@ -63,6 +69,52 @@ int wait_exit(int raw_status) {
 // @see KEUR-SEC-005, ADR-005.
 int run(const std::string& cmd) {
     return wait_exit(std::system(cmd.c_str()));  // keur:ignore KEUR-SEC-005  NOLINT(cert-env33-c)
+}
+
+int run_argv(const std::vector<std::string>& argv,
+             const std::vector<std::pair<std::string, std::string>>& env) {
+    if (argv.empty()) return -1;
+
+    // argv for the child: NULL-terminated array of char*. posix_spawn does not
+    // modify the strings, but the prototype is char* const[], so cast away
+    // const on our owned std::string buffers.
+    std::vector<char*> cargv;
+    cargv.reserve(argv.size() + 1);
+    for (const auto& a : argv) cargv.push_back(const_cast<char*>(a.c_str()));
+    cargv.push_back(nullptr);
+
+    // Build the child environment: inherit the parent's, then apply overrides.
+    // Keeping owned std::strings alive in `entries` so the char* stay valid
+    // until posix_spawnp returns.
+    std::vector<std::string> entries;
+    for (char** e = environ; e && *e; ++e) {
+        std::string cur = *e;
+        // Drop any inherited var we are about to override (match on KEY=).
+        bool overridden = false;
+        auto eq = cur.find('=');
+        if (eq != std::string::npos) {
+            std::string key = cur.substr(0, eq);
+            for (const auto& kv : env)
+                if (kv.first == key) { overridden = true; break; }
+        }
+        if (!overridden) entries.push_back(std::move(cur));
+    }
+    for (const auto& kv : env) entries.push_back(kv.first + "=" + kv.second);
+
+    std::vector<char*> cenv;
+    cenv.reserve(entries.size() + 1);
+    for (auto& s : entries) cenv.push_back(const_cast<char*>(s.c_str()));
+    cenv.push_back(nullptr);
+
+    pid_t pid = 0;
+    // posix_spawnp resolves argv[0] via PATH when it has no '/', mirroring exec
+    // behaviour without invoking a shell.
+    int rc = posix_spawnp(&pid, cargv[0], nullptr, nullptr,
+                          cargv.data(), cenv.data());
+    if (rc != 0) return -1;
+    int status = 0;
+    if (waitpid(pid, &status, 0) == -1) return -1;
+    return wait_exit(status);
 }
 
 CaptureResult capture(const std::string& cmd) {

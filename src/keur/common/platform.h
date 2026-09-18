@@ -16,6 +16,8 @@
  */
 #pragma once
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace keur::platform {
 
@@ -38,6 +40,16 @@ int wait_exit(int raw_status);
 
 /// Run a shell command, discard output, return the decoded exit code.
 int run(const std::string& cmd);
+
+/// Run a program shell-free: argv[0] is the executable (resolved via PATH if it
+/// has no separator), the rest are literal arguments passed straight to the
+/// child — no /bin/sh, so nothing in `argv` can be interpreted as a shell
+/// metacharacter (CWE-78). `env` is a list of KEY=value pairs added to (and
+/// overriding) the inherited environment; use it instead of a `VAR=val cmd`
+/// shell prefix. Returns the decoded exit code, or -1 if the spawn failed.
+/// posix: posix_spawnp   win32: CreateProcessA
+int run_argv(const std::vector<std::string>& argv,
+             const std::vector<std::pair<std::string, std::string>>& env = {});
 
 /// Run a shell command, capture stdout, return {exit_code, stdout_text}.
 /// stderr is redirected to the platform null device.
