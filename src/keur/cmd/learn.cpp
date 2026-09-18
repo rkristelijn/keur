@@ -6,8 +6,6 @@
  */
 #include "cmd/learn.h"
 
-#include <unistd.h>
-
 #include <atomic>
 #include <csignal>
 #include <cstdlib>
@@ -15,6 +13,7 @@
 #include <string>
 
 #include "adapters/proc.h"
+#include "common/platform.h"
 #include "learn/monitor.h"
 
 namespace keur::cmd {
@@ -88,7 +87,7 @@ int learn(const LearnOptions& opts) {
   while (!g_stop) {
     keur::learn::draw_frame(home);
     for (int i = 0; i < opts.refresh_secs * 10 && !g_stop; ++i) {
-      usleep(100000);  // 100ms slices so Ctrl+C stays responsive
+      keur::platform::sleep_ms(100);  // 100ms slices so Ctrl+C stays responsive
     }
   }
   std::cout << "\nmonitor closed. loop still running in background "

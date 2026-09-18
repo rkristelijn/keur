@@ -25,6 +25,16 @@ VERSION  := $(or $(VERSION),dev)
 CXXFLAGS ?= -Wall -Wextra -std=c++20 -O2 -DKEUR_VERSION='"$(VERSION)"'
 INCLUDES  = -I. -I.. -I../..
 
+# Platform abstraction source selection — @see docs/adr/ADR-005.
+# The correct translation unit is compiled per OS; business code holds no
+# #ifdef. On Windows (nmake/mingw make) $(OS) is "Windows_NT".
+ifeq ($(OS),Windows_NT)
+  PLATFORM_SRC = common/platform_win32.cpp
+else
+  PLATFORM_SRC = common/platform_posix.cpp
+endif
+PLATFORM_OBJ = $(BINDIR)/keur_platform.o
+
 # RE2 + abseil
 RE2_PREFIX  ?= $(shell brew --prefix re2  2>/dev/null || echo /usr)
 ABSL_PREFIX ?= $(shell brew --prefix abseil 2>/dev/null || echo /usr)
@@ -44,7 +54,7 @@ TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 MAIN_SRC   = main.cpp
 IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp cmd/rules.cpp \
              learn/history.cpp learn/sysinfo.cpp learn/monitor.cpp \
-             adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp \
+             adapters/git.cpp adapters/fs.cpp adapters/proc.cpp adapters/sysinfo.cpp report/report.cpp \
              render/display_width.cpp render/box.cpp
 # Object files: flatten path (cmd/check.cpp -> keur_cmd_check.o) via subst
 IMPL_OBJS  = $(patsubst %.cpp,$(BINDIR)/keur_%.o,$(subst /,_,$(IMPL_SRCS)))
@@ -104,7 +114,7 @@ $(BINDIR)/keur_cmd_learn.o: cmd/learn.cpp cmd/learn.h learn/monitor.h adapters/p
 $(BINDIR)/keur_learn_history.o: learn/history.cpp learn/history.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_learn_sysinfo.o: learn/sysinfo.cpp learn/sysinfo.h | $(BINDIR)
+$(BINDIR)/keur_learn_sysinfo.o: learn/sysinfo.cpp learn/sysinfo.h adapters/sysinfo.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_learn_monitor.o: learn/monitor.cpp learn/monitor.h learn/history.h learn/sysinfo.h render/box.h render/display_width.h | $(BINDIR)
@@ -131,21 +141,29 @@ $(BINDIR)/keur_adapters_fs.o: adapters/fs.cpp adapters/fs.h | $(BINDIR)
 $(BINDIR)/keur_adapters_proc.o: adapters/proc.cpp adapters/proc.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
+$(BINDIR)/keur_adapters_sysinfo.o: adapters/sysinfo.cpp adapters/sysinfo.h common/platform.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+# Platform abstraction: compile the OS-selected translation unit ($(PLATFORM_SRC))
+# into one object. Only this object contains platform #ifdefs / OS headers.
+$(PLATFORM_OBJ): $(PLATFORM_SRC) common/platform.h common/compat.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
 $(BINDIR)/keur_report_report.o: report/report.cpp report/report.h util/keur_utils.h ../rules/rule_engine.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ)
+$(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(RE2_LDFLAGS)
 	@echo "built $(BIN) (version $(VERSION))"
 
 ## ---- Test binary ----------------------------------------------------------
 
 $(TEST_OBJ): keur_test.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h \
-             adapters/git.h adapters/fs.h adapters/proc.h report/report.h util/keur_utils.h \
+             adapters/git.h adapters/fs.h adapters/proc.h adapters/sysinfo.h learn/sysinfo.h report/report.h util/keur_utils.h \
              ../rules/tokenizer.h ../../vendor/doctest.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
 
-$(TEST_BIN): $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ)
+$(TEST_BIN): $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(RE2_LDFLAGS)
 	@echo "built $(TEST_BIN)"
 
@@ -172,7 +190,7 @@ e2e: build ## Run end-to-end tests (binary + git repos)
 
 # Coverage sources (flat list for the single-command coverage build).
 COV_SRCS = keur_test.cpp cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp \
-           adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp ../rules/rule/parse.cpp ../rules/rule/match.cpp ../rules/rule/scan.cpp ../rules/rule/block.cpp ../rules/tokenizer.cpp
+           adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp $(PLATFORM_SRC) ../rules/rule/parse.cpp ../rules/rule/match.cpp ../rules/rule/scan.cpp ../rules/rule/block.cpp ../rules/tokenizer.cpp
 
 coverage: ## Build test binary with coverage and report (gcov)
 	@mkdir -p ../../.tmp/cov
@@ -247,5 +265,5 @@ lint: ## Run clang-tidy if installed; otherwise a -Wall -Wextra syntax check
 	@bash ../../scripts/check-basics.sh
 
 clean: ## Remove build artifacts
-	rm -f $(BIN) $(TEST_BIN) $(MAIN_OBJ) $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ)
+	rm -f $(BIN) $(TEST_BIN) $(MAIN_OBJ) $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
 	rm -rf ../../.tmp/cov ../../.tmp/mull

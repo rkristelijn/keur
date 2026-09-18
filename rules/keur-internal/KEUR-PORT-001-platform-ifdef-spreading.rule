@@ -1,0 +1,28 @@
+# keur portability control — adapted from cpm STYLE-013 (@see cpm ADR-170).
+# Platform #ifdef guards belong ONLY in the platform abstraction layer
+# (src/keur/common/). Anywhere else they signal OS-divergent logic leaking into
+# business code, which is exactly the drift this rule blocks. @see docs/adr/ADR-005.
+id: KEUR-PORT-001
+title: Platform #ifdef outside common/ (ifdef-spreading)
+category: architecture
+severity: error
+engine: pattern
+action: block
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: common/ vendor/ ../rules/ _test.cpp test/ tests/ build/ dist/
+patterns:
+  - regex: \#ifdef\s+_WIN32
+    message: "Platform guard #ifdef _WIN32 outside common/ — declare a keur::platform function in common/platform.h and implement it in platform_posix.cpp / platform_win32.cpp (ADR-005)"
+  - regex: \#ifdef\s+__APPLE__
+    message: "Platform guard #ifdef __APPLE__ outside common/ — move to the platform layer (common/), ADR-005"
+  - regex: \#ifdef\s+__linux__
+    message: "Platform guard #ifdef __linux__ outside common/ — move to the platform layer (common/), ADR-005"
+  - regex: \#if defined.*_WIN32
+    message: "Platform guard #if defined(_WIN32) outside common/ — move to the platform layer (common/), ADR-005"
+  - regex: \#if defined.*__APPLE__
+    message: "Platform guard #if defined(__APPLE__) outside common/ — move to the platform layer (common/), ADR-005"
+  - regex: \#elif defined.*_WIN32
+    message: "Platform guard #elif defined(_WIN32) outside common/ — move to the platform layer (common/), ADR-005"
+confidence: 0.95
+fix: "Declare keur::platform::your_function() in src/keur/common/platform.h. Implement it in platform_posix.cpp (macOS+Linux) and platform_win32.cpp (Windows) — no #ifdef needed in either. The Makefile selects the TU via PLATFORM_SRC. See ADR-005."

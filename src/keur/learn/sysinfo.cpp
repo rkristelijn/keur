@@ -1,14 +1,10 @@
 /**
  * @file learn/sysinfo.cpp
- * @brief machine resources + run duration (macOS impl; cross-platform TODO).
+ * @brief Compose host resources (from the SysInfo adapter) with keur's own
+ *        run duration. No platform system calls live here — they are behind the
+ *        adapter — so this module builds identically on every platform.
  */
 #include "learn/sysinfo.h"
-
-#include <sys/sysctl.h>
-#if defined(__APPLE__)
-#include <mach/mach.h>
-#include <mach/mach_host.h>
-#endif
 
 #include <chrono>
 #include <cstdio>
@@ -16,30 +12,19 @@
 
 namespace keur::learn {
 
-Resources read_resources(const std::string& home) {
+Resources read_resources(const std::string& home, const adapters::SysInfo& sys) {
   Resources r;
-  size_t sz = 0;
-  if (sysctlbyname("vm.loadavg", nullptr, nullptr, nullptr, 0) == 0) {
-    struct loadavg lv {};
-    sz = sizeof(lv);
-    if (sysctlbyname("vm.loadavg", &lv, &sz, nullptr, 0) == 0)
-      r.load1 = (double)lv.ldavg[0] / (double)lv.fscale;
-  }
-  { int n = 0; sz = sizeof(n);
-    if (sysctlbyname("hw.logicalcpu", &n, &sz, nullptr, 0) == 0) r.ncpu = n; }
-  { uint64_t m = 0; sz = sizeof(m);
-    if (sysctlbyname("hw.memsize", &m, &sz, nullptr, 0) == 0)
-      r.ram_total_gb = (double)m / 1e9; }
-#if defined(__APPLE__)
-  { vm_size_t page = 0; host_page_size(mach_host_self(), &page);
-    vm_statistics64_data_t vm {};
-    mach_msg_type_number_t cnt = HOST_VM_INFO64_COUNT;
-    if (host_statistics64(mach_host_self(), HOST_VM_INFO64,
-                          (host_info64_t)&vm, &cnt) == KERN_SUCCESS) {
-      r.ram_free_gb = (double)((vm.free_count + vm.inactive_count) * page) / 1e9;
-    } }
-#endif
-  // run duration from the supervisor pidfile mtime (set when the run started)
+
+  // Platform resources come from the adapter (macOS/Linux/Windows behind its
+  // own #if); tests can inject a fake by passing a SysInfo with `read` set.
+  adapters::Resources hw = sys.read();
+  r.load1 = hw.load1;
+  r.ncpu = hw.ncpu;
+  r.ram_total_gb = hw.ram_total_gb;
+  r.ram_free_gb = hw.ram_free_gb;
+
+  // Run duration from the supervisor pidfile mtime (set when the run started).
+  // Portable: std::filesystem works on all platforms.
   namespace fs = std::filesystem;
   std::error_code ec;
   auto pidf = fs::path(home) / "eval/.run/supervisor.pid";

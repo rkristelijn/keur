@@ -1,0 +1,25 @@
+# keur portability control — adapted from cpm STYLE-012 (@see cpm ADR-170).
+# Hardcoded path separators break the other OS. Use keur::platform::path_join /
+# path_sep, or std::filesystem. @see docs/adr/ADR-005.
+#
+# NOTE: the pattern matches string concatenation with a literal separator
+# (e.g. `dir + "/"`), not every "/" in the source. The platform layer and the
+# POSIX git-hook stubs (which git always runs via sh) are excluded.
+id: KEUR-PORT-004
+title: Hardcoded path separator (use keur::platform::path_join)
+category: architecture
+severity: warning
+engine: pattern
+action: warn
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: common/ vendor/ ../rules/ _test.cpp test/ tests/ build/ dist/
+patterns:
+  - regex: \+\s*"/"
+    message: "Hardcoded '/' path separator — use keur::platform::path_join() or path_sep() for cross-platform paths (ADR-005)"
+  - regex: \+\s*"\\\\"
+    message: "Hardcoded '\\\\' Windows path separator — use keur::platform::path_join() (ADR-005)"
+  - regex: \#include\s*<conio\.h>
+    message: "Platform-specific <conio.h> — confine to the platform layer (common/), ADR-005"
+confidence: 0.7
+fix: "Build paths with keur::platform::path_join(a, b) (declared in common/platform.h) or std::filesystem::path, never by concatenating a literal separator. See ADR-005."
