@@ -1,0 +1,10 @@
+id: LEARNED-1789774869-1
+title: Unnecessary Dependencies
+category: deps
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)\b(deps|dependencies|require|import|include)\s*[:=]\s*\["[^"]*"
+    message: Unnecessary dependencies detected. Please review and remove unused dependencies to improve security and performance.

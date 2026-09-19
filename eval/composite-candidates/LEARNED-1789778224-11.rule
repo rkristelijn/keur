@@ -1,0 +1,15 @@
+id: LEARNED-1789778224-11
+title: Missing EXPOSE instruction in Dockerfile
+category: iac
+severity: warning
+engine: pattern
+message: Dockerfile is missing an EXPOSE instruction which could lead to security vulnerabilities.
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+  filenames: Dockerfile
+patterns:
+  - regex: ^FROM\s+node:\d+
+  - regex: ^(?!.*\bEXPOSE\b).*$
+confidence: 0.9
+slop: true
+# composite-candidate: fires on form, not concept; kept for corroboration. from FN:   trivy  iac       step-security_github-actions-goat/src/backdoor-demo/Dockerfile

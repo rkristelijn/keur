@@ -1,0 +1,11 @@
+id: LEARNED-1789654002-6
+title: CI Pipeline Configuration Exposure
+category: sast
+severity: critical
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)(name|on|push|branches|paths-ignore|tags-ignore|pull_request|jobs)\s*[:=]\s*\{[^}]*\}
+    message: CI pipeline configuration exposed, which may lead to security vulnerabilities.
+confidence: 0.9

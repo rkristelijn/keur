@@ -1,0 +1,18 @@
+# Promoted from the learning loop (2026-09-19), reviewed and kept — but with the
+# overfit branch removed. The loop's original rule also matched corpus-specific
+# hostnames (ACME-/FIN-...-SRVn), which memorised the example rather than a
+# concept; that branch is dropped. What remains is the general, durable signal:
+# an RFC1918 / TEST-NET internal address leaking into committed code/config.
+id: KEUR-CBI-001
+title: Internal (RFC1918 / TEST-NET) IP address in committed code
+category: cbi
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .js .ts .py .rb .php .go .java .env .yml .yaml .json .md
+patterns:
+  - regex: \b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|192\.0\.2\.\d{1,3})\b
+    message: "Internal IP address (RFC1918 / TEST-NET) in committed code or config (CBI). Prefer a hostname or config value; leaking internal topology aids reconnaissance."
+confidence: 0.6
+fix: "Replace the hardcoded internal address with a configurable hostname or environment value."

@@ -1,0 +1,8 @@
+id: LEARNED-1789691485-21
+category: secret
+engine: pattern
+target_extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+
+patterns:
+  - regex: [a-zA-Z0-9+/]{40,}
+    description: Base64 encoded string longer than 40 characters

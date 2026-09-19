@@ -1,0 +1,11 @@
+id: LEARNED-1789659500-4
+title: Potential Hardcoded API Key in Configuration
+category: quality
+severity: critical
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)(api[_-]?key|token|secret|password)\s*[:=]\s*["'][^"']{12,}["']
+    message: Hardcoded API key or secret detected. This poses a significant security risk.
+confidence: 0.9
