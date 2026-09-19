@@ -1,0 +1,11 @@
+id: LEARNED-1789760244-4
+title: Potential Dependency Mismanagement
+category: deps
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)\b(deps|dependencies|require|import|include)\s*[:=]\s*["'][^"']{12,}["']
+    message: Potential mismanagement of dependencies detected. Ensure all dependencies are properly managed and up-to-date.
+confidence: 0.8

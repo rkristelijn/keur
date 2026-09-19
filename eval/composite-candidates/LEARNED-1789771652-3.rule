@@ -1,0 +1,13 @@
+id: LEARNED-1789771652-3
+title: Detect GitHub Actions Workflow Dependencies
+category: deps
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)uses:\s+[^/]+/[^@]+\@[0-9a-f]{40}
+    message: "Detected a GitHub Actions workflow using a specific commit hash instead of a tag or version. This can lead to dependency issues and security vulnerabilities."
+confidence: 0.8
+slop: true
+# composite-candidate: fires on form, not concept; kept for corroboration. from FN:   grype  deps      step-security_github-actions-goat/.github/workflows/tj-actions-changed-files-incident.yaml

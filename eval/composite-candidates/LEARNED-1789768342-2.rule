@@ -1,0 +1,11 @@
+id: LEARNED-1789768342-2
+title: Unnecessary sleep in CI/CD workflow
+category: sast
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)\bsleep\b\s*\d+
+    message: "Unnecessary sleep in CI/CD workflow detected. This can slow down the build process and increase resource usage."
+confidence: 0.8

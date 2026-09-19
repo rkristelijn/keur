@@ -1,0 +1,11 @@
+id: LEARNED-1789630364-2
+title: Potential SQL Injection Vulnerability
+category: sast
+severity: critical
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java
+patterns:
+  - regex: (?i)\b(query|execute|prepare)\s*\([^)]*["'][^"']*\bFROM\b[^"']*["']
+    message: Potential SQL injection vulnerability detected. Ensure user inputs are properly parameterized.
+confidence: 0.8

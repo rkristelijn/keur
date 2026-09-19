@@ -1,0 +1,11 @@
+id: LEARNED-1789768256-1
+title: Potential XSS Vulnerability in HTML Content
+category: sast
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)<script[^>]*>.*<\/script>
+    message: Inline script tags found, which may indicate an XSS vulnerability.
+confidence: 0.8

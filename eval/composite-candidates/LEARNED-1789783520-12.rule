@@ -1,0 +1,11 @@
+id: LEARNED-1789783520-12
+title: Dependency Action Usage
+category: deps
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)\buses:\s+[^/]+/[^@]+\@\d+\b
+    message: "Using a specific version of an action can lock dependencies and prevent updates."
+confidence: 0.8
