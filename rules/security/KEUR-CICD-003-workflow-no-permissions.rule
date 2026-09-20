@@ -1,0 +1,18 @@
+# Rule 3/5 (absence engine). A GitHub Actions workflow with no top-level
+# `permissions:` block runs with the repo's default (often write-all) token
+# scope — violating least privilege. Flag a workflow file where `permissions:`
+# never appears. content_contains gates it to real workflow files.
+id: KEUR-CICD-003
+title: Workflow has no permissions block (least-privilege token scope)
+category: sast
+severity: warning
+engine: absence
+action: warn
+target:
+  extensions: .yml .yaml
+  content_contains: "on:"
+patterns:
+  - regex: (?im)^\s*permissions\s*:
+    message: "This workflow declares no `permissions:` block, so it uses the default (often write-all) GITHUB_TOKEN scope. Add a least-privilege permissions: block (e.g. contents: read)."
+confidence: 0.5
+fix: "Add a top-level `permissions:` block scoped to the minimum the workflow needs (start from contents: read)."

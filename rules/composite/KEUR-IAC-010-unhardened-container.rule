@@ -1,0 +1,23 @@
+# Composite (ADR-009): a container image that is BOTH run as root AND has no
+# healthcheck is an unhardened image worth escalating past either leaf alone.
+# Gated on the `docker` fact so it never runs in a repo without a Dockerfile
+# (most-discriminating-first). The leaves (KEUR-IAC-002/003) still fire on their
+# own; this composite only combines their evidence and raises the signal.
+#
+# This is the reference composite: engine stays dumb, the "root AND no-healthcheck
+# matters" logic is DATA here, not C++.
+# @see docs/adr/ADR-009-composite-rules-and-facts.md
+# @implements ADR-009.composite
+id: KEUR-IAC-010
+title: Unhardened container image (runs as root and has no healthcheck)
+category: iac
+severity: warning
+engine: composite
+action: warn
+confidence: 0.6
+requires:
+  framework: docker
+composite:
+  all: KEUR-IAC-002 KEUR-IAC-003
+message: "Unhardened container image: it runs as root AND declares no HEALTHCHECK. Add a non-root USER and a HEALTHCHECK — either alone is a warning, both together is a hardening gap."
+fix: "Add both a non-root USER and a HEALTHCHECK instruction to the Dockerfile."
