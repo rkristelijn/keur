@@ -126,6 +126,36 @@ Principles (see ADR-003):
   implementation. Production uses the default; tests inject fakes.
 - Decision logic stays pure. I/O stays at the edge in the adapters.
 
+## Code style — the way forward
+
+Small, testable pieces over clever density. These are conventions, not dogma —
+performance is a valid reason to deviate, but say so in a comment.
+
+- **Small, single-purpose functions.** One function, one job. A function you can
+  name precisely is a function you can test in isolation. Prefer extracting over
+  a growing body.
+- **Dispatch by the right mechanism (ADR-014).** Don't reach for a long
+  `if/else`/`switch` on a type or key when the branch set grows: use a lookup
+  table for data/uniform branches, a strategy registry for behaviour/extension
+  points. Keep short, closed chains (e.g. CLI-flag parsing) as-is — the rule is
+  fit, not "no if/else". `KEUR-QUAL-001` nudges on 8+ `else if (x == …)`.
+- **Name conditions, don't inline them (ADR-015, parked).** `if (age >= 18 &&
+  !banned && verified)` → `const bool isEligible = …; if (isEligible)`. Reads
+  better and the condition is testable without entering the flow. Central,
+  business-critical conditions can live in one place.
+- **Positive boolean names.** `isValid`, `hasAccess` — never `isNotInvalid`.
+  Prefix booleans with `is/has/can/should`.
+- **Query vs. command (CQS).** A function either returns a value (query, no side
+  effects: `get/fetch/find`) or performs a side effect (command). Don't mix.
+- **I/O at the edge (ADR-003).** Decision logic stays pure; side effects live in
+  `adapters/`. Pure logic is the testable core.
+- **Files stay small.** Aim well under ~300 net lines per file and a handful of
+  files per directory; split by responsibility when it grows. The limit *is* the
+  complexity check — no separate analysis needed.
+
+Rationale in `AGENTS.md` (the short version for humans and AI agents) and the
+ADRs (the why).
+
 ## Self-enforcing rules (keur guards itself)
 
 keur runs its own rule engine over its own source. The architecture is a

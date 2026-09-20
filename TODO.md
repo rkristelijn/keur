@@ -57,6 +57,33 @@ Status legend: [x] done · [~] partially done · [ ] open
       report. (Proc adapter seam is ready.)
 - [ ] ollama learn/loop as designed (eval/ harness exists; optimiser missing).
 
+- [ ] NO PYTHON in the eval scripting layer — replace inline `python3 -c` JSON
+      writers with either pure shell OR a small standalone compiled C++ util.
+      Rationale: keur's identity is one compiled binary, no runtime language dep;
+      adding Python is a third language (bash + C++ + Python) with its own
+      boilerplate/runtime just to append a JSON line. Today `eval/optimise.sh`
+      uses inline python3 heredocs in record() (and elsewhere: measure.sh,
+      alternate.sh) to emit JSONL. Decision (2026-09-20): prefer a tiny
+      `keur-jsonl` C++ util (argv → one JSON line, json-escaped) compiled in the
+      same toolchain as keur-rules — testable, no heredoc per callsite, robust
+      for regex payloads with quotes/backslashes. Wire record() + log_attempt +
+      the measure/alternate emitters through it, then drop the inline python3.
+      (Blocks the per-attempt logging below from being "clean" — until the util
+      exists, keep attempt logging minimal / shell-only.)
+
+- [ ] DYNAMIC retry feedback for the optimiser retry loop. The retry loop
+      (KEUR_MAX_ATTEMPTS, added 2026-09-20) now re-prompts Ollama on the SAME
+      missed case with the reject reason + a hardcoded per-category good example
+      (good_example_for in optimise.sh). That steering is STATIC. Make it
+      dynamic: (a) log every attempt (iter, attempt#, category, outcome, reason,
+      the regex produced) to eval/history/attempts.tsv so we can SEE how the
+      model does across retries and WHY it is rejected; (b) use that data to
+      tailor feedback — e.g. if the model keeps overfitting, show the actual
+      diff between its literal and a generalised form; if precision drops, name
+      the safe lines it wrongly hit. Depends on the no-python decision above for
+      the attempt log writer. Also consider feeding a RANDOM real good rule of
+      the same category as an extra worked example on retry (user idea 2026-09-20).
+
 ### Ground-truth quality (2026-09-17 session — see docs/design/ground-truth-roadmap.md)
 
 - [x] add trufflehog adapter to eval/groundtruth.sh (secrets, JSONL, offline).
