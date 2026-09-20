@@ -6,6 +6,7 @@
  * extension/filename, literal content pre-filter, pre-compiled RE2. Engines:
  * pattern / presence / absence (per line) + file-absence / file-presence
  * (once over the fileset).
+ * @implements ADR-001 ADR-004.stage0
  */
 #include "rule/internal.h"
 #include "tokenizer.h"
@@ -27,6 +28,8 @@ namespace {
 
 // file-absence: flag when NONE of the target's filenames/extensions exist in
 // the fileset. file-presence: flag EACH matching file. Once over the fileset.
+// These are file-level (not per-line) so they run here, not via the per-line
+// engine registry (ADR-014).  @id engine-file-absence  @id engine-file-presence
 void eval_file_level_rules(
     const std::vector<const Rule*>& absence_rules,
     const std::vector<const Rule*>& presence_rules,
@@ -58,13 +61,26 @@ void eval_file_level_rules(
 }
 
 std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
-                                   const std::vector<std::pair<std::string, std::string>>& files) {
+                                   const std::vector<std::pair<std::string, std::string>>& files,
+                                   const Facts& facts) {
   std::vector<RuleFinding> findings;
+
+  // ADR-009: composites run after the single-rule pass; hold them aside. Single
+  // rules whose requires: guard isn't satisfied by facts are pruned up front
+  // (most-discriminating-first) — they are never indexed, compiled, or run.
+  std::vector<const Rule*> composite_rules;
+  std::vector<const Rule*> active;
+  for (auto& r : rules) {
+    if (r.engine == "composite" || r.has_composite) { composite_rules.push_back(&r); continue; }
+    if (!requires_satisfied(r, facts)) continue;  // guard failed → skip entirely
+    active.push_back(&r);
+  }
 
   // extension / filename index for dispatch; rules with no target run on all.
   std::unordered_map<std::string, std::vector<const Rule*>> ext_index, name_index;
   std::vector<const Rule*> all_rules;
-  for (auto& r : rules) {
+  for (auto* rp : active) {
+    const Rule& r = *rp;
     if (r.target.extensions.empty() && r.target.filenames.empty()) all_rules.push_back(&r);
     else {
       for (auto& e : r.target.extensions) ext_index[e].push_back(&r);
@@ -72,11 +88,12 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
     }
   }
 
-  // pre-compile RE2 for each rule
+  // pre-compile RE2 for each ACTIVE rule (pruned rules are never compiled).
   std::vector<Compiled> compiled;
-  compiled.reserve(rules.size());
+  compiled.reserve(active.size());
   std::unordered_map<const Rule*, size_t> to_compiled;
-  for (auto& r : rules) {
+  for (auto* rp : active) {
+    const Rule& r = *rp;
     Compiled c;
     c.rule = &r;
     RE2::Options opt;
@@ -118,7 +135,7 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
   }
 
   std::unordered_map<std::string, std::string> id_to_cat;
-  for (auto& r : rules) id_to_cat[r.id] = r.category;
+  for (auto& r : rules) id_to_cat[r.id] = r.category;   // all rules, incl. composites
 
   for (auto& [rel, abs] : files) {
     std::string ext = get_ext(rel), base = basename_of(rel);
@@ -180,45 +197,12 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
       const std::vector<re2::StringPiece>& lines =
           ((r->skip_comments || r->skip_strings) && !stripped_lines.empty()) ? stripped_lines : raw_lines;
 
-      if (engine == "pattern") {
-        for (size_t pi = 0; pi < c.res.size(); pi++) {
-          if (!c.res[pi]) continue;
-          const RE2* excl = pi < c.exclude_res.size() ? c.exclude_res[pi].get() : nullptr;
-          for (size_t li = 0; li < lines.size(); li++)
-            if (RE2::PartialMatch(lines[li], *c.res[pi])) {
-              // pattern-not: skip this line if the exclude regex also matches it.
-              if (excl && RE2::PartialMatch(lines[li], *excl)) continue;
-              const std::string msg = finding_msg(*r, r->patterns[pi].message);
-              findings.push_back({r->id, r->title, r->category, r->severity, default_action(*r),
-                                  default_conf(*r), rel, (int)(li + 1), msg});
-            }
-        }
-      } else if (engine == "presence") {
-        for (size_t pi = 0; pi < c.res.size(); pi++) {
-          if (!c.res[pi]) continue;
-          for (size_t li = 0; li < lines.size(); li++)
-            if (RE2::PartialMatch(lines[li], *c.res[pi])) {
-              const std::string msg = finding_msg(*r, r->patterns[pi].message);
-              findings.push_back({r->id, r->title, r->category, r->severity, default_action(*r),
-                                  default_conf(*r), rel, (int)(li + 1), msg});
-              break;
-            }
-        }
-      } else if (engine == "absence") {
-        for (size_t pi = 0; pi < c.res.size(); pi++) {
-          if (!c.res[pi]) continue;
-          bool found = false;
-          for (size_t li = 0; li < lines.size() && !found; li++)
-            if (RE2::PartialMatch(lines[li], *c.res[pi])) found = true;
-          if (!found) {
-            const std::string msg = finding_msg(*r, r->patterns[pi].message);
-            findings.push_back({r->id, r->title, r->category, r->severity, default_action(*r),
-                                default_conf(*r), rel, 1, msg});
-          }
-        }
-      } else if (engine == "block-absence") {
-        eval_block_absence(*r, c.res.empty() ? nullptr : c.res[0].get(),
-                           c.block_inner.get(), c.block_trigger.get(), lines, rel, findings);
+      // Engine dispatch via the strategy registry (ADR-014): look up the engine
+      // by name and run it. File-level engines run separately over the fileset,
+      // so they are not in the registry and are skipped here without a warning.
+      if (EngineFn fn = engine_lookup(engine)) {
+        ScanContext cx{c, lines, rel};
+        fn(cx, findings);
       } else if (engine != "file-absence" && engine != "file-presence") {
         static std::unordered_set<std::string> warned;
         if (warned.insert(engine).second)
@@ -243,14 +227,34 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
     }
   }
 
-  // file-level engines run once over the whole fileset.
+  // file-level engines run once over the whole fileset (respect requires: too).
   std::vector<const Rule*> file_absence, file_presence;
   for (const auto& r : rules) {
+    if (!requires_satisfied(r, facts)) continue;
     if (r.engine == "file-absence") file_absence.push_back(&r);
     else if (r.engine == "file-presence") file_presence.push_back(&r);
   }
   if (!file_absence.empty() || !file_presence.empty())
     eval_file_level_rules(file_absence, file_presence, files, findings);
+
+  // ADR-009: composite pass. After the single-rule pass, collect the ids that
+  // fired, then evaluate each composite's boolean tree over that set. A composite
+  // whose requires: guard fails is skipped; one that fires emits a single finding.
+  if (!composite_rules.empty()) {
+    std::unordered_set<std::string> fired;
+    for (const auto& fnd : findings) fired.insert(fnd.rule_id);
+    for (const Rule* rp : composite_rules) {
+      const Rule& r = *rp;
+      if (!requires_satisfied(r, facts)) continue;
+      if (!r.has_composite) continue;
+      if (composite_eval(r.composite, fired)) {
+        findings.push_back({r.id, r.title, r.category, r.severity,
+                            default_action(r), default_conf(r),
+                            r.target.filenames.empty() ? std::string(".") : r.target.filenames[0],
+                            0, finding_msg(r, "")});
+      }
+    }
+  }
 
   return findings;
 }
@@ -289,14 +293,23 @@ std::vector<RuleFinding> rules_scan_files(const std::vector<Rule>& rules,
                                           const std::vector<std::string>& files) {
   std::vector<std::pair<std::string, std::string>> pairs;
   for (auto& f : files) pairs.emplace_back(f, f);  // rel == abs for an explicit list
-  return scan_impl(rules, pairs);
+  // Derive facts from the parent directory of the first file (best-effort for an
+  // explicit list; the hook passes staged paths under the repo root).
+  std::string root = ".";
+  if (!files.empty()) {
+    size_t slash = files[0].find_last_of('/');
+    if (slash != std::string::npos) root = files[0].substr(0, slash);
+  }
+  Facts facts = derive_facts(root);
+  return scan_impl(rules, pairs, facts);
 }
 
 std::vector<RuleFinding> rules_scan_dir(const std::vector<Rule>& rules, const std::string& root) {
   std::vector<std::pair<std::string, std::string>> files;
   walk(root, "", files);
   std::sort(files.begin(), files.end());
-  return scan_impl(rules, files);
+  Facts facts = derive_facts(root);
+  return scan_impl(rules, files, facts);
 }
 
 }  // namespace keur

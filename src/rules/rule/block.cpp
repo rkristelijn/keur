@@ -1,6 +1,7 @@
 /**
  * @file rule/block.cpp
  * @brief block-absence engine (ADR-004 stage 2) — brace-scope matching.
+ * @implements ADR-004.stage2
  *
  * For each line matching the block-START pattern (patterns[0]), find the block's
  * end by counting braces from the first `{`, then flag the block when the
