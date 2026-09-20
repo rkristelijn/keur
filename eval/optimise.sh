@@ -33,6 +33,7 @@ MIN_PRECISION="${KEUR_MIN_PRECISION:-0.50}"
 
 LEARNED="$KEUR_HOME/rules/learned"          # accepted rules live here
 HIST="$HERE/history/optimiser.jsonl"
+ATTEMPT_LOG="$HERE/history/attempts.tsv"     # per-attempt trace (retry analysis, TSV — no python)
 BASE_RULES="$KEUR_HOME/rules"               # keur's own rules (always loaded)
 NATIVE="$KEUR_HOME/bin/keur-rules"          # the compiled rule engine (slop test)
 COMPOSITE="$HERE/composite-candidates"      # slop rules kept as composite building blocks (NOT loaded standalone)
@@ -166,8 +167,27 @@ ollama() {
 # The deep expertise (RE2, .rule format, generalise-don't-memorise) lives in the
 # model's SYSTEM prompt (eval/Modelfile -> keur-rule-engineer), so this per-call
 # prompt only has to state the concrete task.
+
+# good_example_for <category> — a REAL, generalising rule shape from keur's own
+# rule set, shown to the model as "here is what good looks like for this
+# category". Showing a concrete good example steers far better than abstract
+# tips (the retry loop proved the model repeats the same mistake when only told
+# "use character classes"). Each example is keyword-anchored, length/structure-
+# bounded, and generalises — never a memorised literal.
+good_example_for() {
+    case "$1" in
+      secret) echo '(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*["'"'"'][^"'"'"']{12,}["'"'"']  # keyword + either separator + a 12+ char quoted value' ;;
+      cmdi)   echo '\b(?:os\.system|subprocess\.(?:run|call)|exec)\s*\([^)]*[A-Za-z_]\w*[^)]*\)  # a shell sink called with a variable (not a literal) arg; add exclude: for the literal-only safe case' ;;
+      sqli)   echo '(?i)\b(?:execute|query|prepare)\s*\(\s*["'"'"'][^"'"'"']*\bselect\b[^"'"'"']*["'"'"']\s*[%+.]  # a SELECT string that is then concatenated/formatted (%, +, .format)' ;;
+      iac)    echo '(?im)^\s*-?\s*uses:\s*[\w.-]+/[\w.-]+@(v?\d[\w.-]*|main|latest)  # a workflow action pinned to a mutable tag; exclude: @[0-9a-f]{40} for the safe SHA pin' ;;
+      sast)   echo '\bnew\s+RegExp\s*\(\s*[A-Za-z_$][\w$.]*  # a sink built from a variable; add exclude: for the literal-argument safe case' ;;
+      *)      echo '(?i)\bKEYWORD\s*[:=]\s*["'"'"'][^"'"'"']{N,}["'"'"']  # anchor on a keyword, bound the value length, use a negated class instead of .*' ;;
+    esac
+}
+
 build_prompt() {
     local fn_line="$1"
+    local feedback="${2:-}"   # retry: the reason the previous attempt was rejected
     local cat; cat=$(echo "$fn_line" | awk '{print $2}')
     # The 3rd field is repo/file (corpus) or a keur-eval relative path. Try to
     # resolve it to a real file and show the model the ACTUAL missed content —
@@ -198,6 +218,30 @@ build_prompt() {
         cmdi) hint="CMDI = OS command injection: user input reaching os.system/exec/subprocess/backticks/shell." ;;
     esac
 
+    # Build the retry-feedback block as a plain variable (NOT inside a
+    # ${feedback:+...} expansion in the heredoc — a literal '}' in the text would
+    # close that expansion early and break the whole prompt). Only on retries.
+    local retry_block=""
+    if [ -n "$feedback" ]; then
+        local good; good="$(good_example_for "$cat")"
+        retry_block="
+YOUR PREVIOUS ATTEMPT WAS REJECTED. Reason: $feedback
+
+How to fix it this time:
+  - OVERFIT (too literal): do NOT copy any value from the case. Match the
+    STRUCTURE with character classes + quantifiers so it fires on OTHER repos too.
+  - PRECISION dropped: too broad. Anchor it (word boundary, a keyword, an
+    assignment, a specific sink name) or add an exclude: regex for the safe case.
+  - RECALL did not rise: it matched nothing new. Widen it just enough to catch
+    this case AND its siblings.
+
+A GOOD $cat rule shape to model yours on (adapt, do not copy):
+  regex: $good
+
+Keep what was right; change only what the reason says failed.
+"
+    fi
+
     cat <<EOF
 A proven security tool found a "$cat" issue that our rule engine MISSED.
 ${hint:+Category meaning: $hint}
@@ -212,9 +256,18 @@ Write ONE keur .rule that catches this class of "$cat" issue and generalises to
 other repos (not a memorised literal).
 
 Start the file with:  id: LEARNED-$(echo "$cat" | tr a-z A-Z)-NNN
-Use category: $cat, engine: pattern, and target these extensions:
-  .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+Use category: $cat and target the relevant extensions (a subset of:
+  .js .php .rb .py .env .yml .yaml .json .ts .go .java) — pick only those that fit.
 
+Choose the SIMPLEST engine that fits (do not default to pattern blindly):
+  - engine: pattern     one dangerous line; add exclude: <regex> to subtract the safe case.
+  - engine: multiline   the evidence SPANS lines (assign here, use there): set
+                        within: window and window: 3, use [\\s\\S]*? to span.
+  - engine: absence     something REQUIRED is missing from the file.
+  - engine: composite   combine other rules: composite: { all: ID-A ID-B } / any / not.
+If the issue only matters for a framework/version, add a requires: guard
+(lang:/framework:/version:) instead of hard-coding it into the regex.
+${retry_block}
 Output ONLY the rule file, starting with "id:". No markdown fences, no prose.
 EOF
 }
@@ -231,8 +284,16 @@ iterate_once() {
     [ -z "$fn" ] && { echo "[iter $iter] no FN sample"; return 1; }
     echo "[iter $iter] target FN: $fn"
 
-    # ask Ollama for a candidate rule
-    local candidate; candidate="$(ollama "$(build_prompt "$fn")")"
+    # RETRY LOOP (up to KEUR_MAX_ATTEMPTS): give Ollama several shots at the SAME
+    # missed case, feeding back WHY the previous attempt was rejected — the same
+    # way a human iterates on a regex with the test result in hand. One-shot was
+    # the old behaviour and threw away fixable near-misses. @see TODO retry-loop
+    local max_attempts="${KEUR_MAX_ATTEMPTS:-4}"
+    local feedback="" attempt=1
+    while [ "$attempt" -le "$max_attempts" ]; do
+      echo "[iter $iter] attempt $attempt/$max_attempts${feedback:+ (retry: ${feedback})}"
+      # ask Ollama for a candidate rule (with feedback on retries)
+      local candidate; candidate="$(ollama "$(build_prompt "$fn" "$feedback")")"
     # Clean the candidate:
     #  - strip markdown fences (```yaml / ```), trailing whitespace
     #  - collapse double-escaped backslashes (\\s -> \s): the model sometimes
@@ -244,6 +305,10 @@ iterate_once() {
         | sed -E 's/\\\\/\\/g' \
         | sed -E "s/^([[:space:]]*- regex: )'(.*)'$/\1\2/; s/^([[:space:]]*- regex: )\"(.*)\"$/\1\2/")"
     if ! printf '%s' "$candidate" | grep -q '^id:'; then
+        log_attempt "$iter" "$attempt" "$(echo "$fn"|awk '{print $2}')" retry no-rule ""
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            feedback="you did not return a valid .rule starting with 'id:'"; attempt=$((attempt+1)); continue
+        fi
         echo "[iter $iter] Ollama did not return a valid rule; reject"
         record "$iter" reject "$b_recall" "$b_prec" "no-rule"
         return 2
@@ -252,6 +317,7 @@ iterate_once() {
     # give the candidate a unique id (Ollama often leaves the NNN placeholder or
     # reuses an id); use the iteration number so learned rules never collide.
     candidate="$(printf '%s\n' "$candidate" | sed -E "s/^id:.*/id: LEARNED-$(date +%s)-${iter}/")"
+    local cand_rx; cand_rx="$(printf '%s\n' "$candidate" | awk -F'- regex: ' '/- regex:/{print $2;exit}')"
 
     # ANTI-OVERFIT: reject a regex that just memorises the training value.
     # A rule like `regex: AKIAIOSFODNN7EXAMPLE` or `regex: 1234` would "find" the
@@ -259,6 +325,10 @@ iterate_once() {
     # GENERALISING matcher (character classes + quantifiers), not a long literal
     # copied from the secret, and not present verbatim in the corpus.
     if ! regex_generalises "$candidate"; then
+        log_attempt "$iter" "$attempt" "$(echo "$fn"|awk '{print $2}')" retry overfit-regex "$cand_rx"
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            feedback="the regex was too literal/specific (memorised the example). Use character classes + quantifiers to match the FAMILY, not the exact value"; attempt=$((attempt+1)); continue
+        fi
         echo "[iter $iter] REJECT (anti-overfit: regex is too literal/specific)"
         record "$iter" reject "$b_recall" "$b_prec" "overfit-regex"
         return 2
@@ -328,19 +398,49 @@ print('yes' if (train_ok and holdout_ok) else 'no')")"
         fi
         cp "$tmpd/candidate.rule" "$LEARNED/${id:-learned-$iter}.rule"
         echo "[iter $iter] ACCEPT -> rules/learned/${id:-learned-$iter}.rule (holdout recall=$h_recall)"
+        log_attempt "$iter" "$attempt" "$(echo "$fn"|awk '{print $2}')" accept accepted "$cand_rx"
         record "$iter" accept "$c_recall" "$c_prec" "${id} holdout_recall=$h_recall"
         rm -rf "$tmpd"; return 0
     else
+        # Build SPECIFIC feedback so the retry is steered, not blind: tell Ollama
+        # exactly which criterion failed (recall didn't rise / precision below
+        # floor / holdout noisy), with the numbers, so it can fix that one thing.
+        local why
+        why="$(python3 -c "
+b_r,b_p,c_r,c_p=float('$b_recall'),float('$b_prec'),float('$c_recall'),float('$c_prec')
+h_p=float('$h_prec'); h_tp,h_fp=int('$h_tp'),int('$h_fp'); FLOOR=$MIN_PRECISION
+msgs=[]
+if not (c_r > b_r):
+    msgs.append(f'recall did not rise (was {b_r:.3f}, your rule {c_r:.3f}) — it matched nothing NEW; broaden the pattern to catch this case and similar ones')
+if c_p < FLOOR or c_p < b_p-1e-9:
+    msgs.append(f'precision dropped too far ({c_p:.3f}, floor {FLOOR}, baseline {b_p:.3f}) — the rule is too broad and fires on safe code; tighten it or add an exclude:')
+if (h_tp+h_fp)>0 and h_p < FLOOR:
+    msgs.append(f'on the holdout set precision was {h_p:.3f} (fp={h_fp}) — it generalises as NOISE; make it more specific')
+print('; '.join(msgs) or 'the benchmark did not improve')")"
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            feedback="$why"; attempt=$((attempt+1)); rm -rf "$tmpd"; continue
+        fi
         echo "[iter $iter] REJECT (gate: train or holdout criteria not met)"
         record "$iter" reject "$c_recall" "$c_prec" "gate holdout_prec=$h_prec"
         rm -rf "$tmpd"; return 2
     fi
+  done
 }
 
 record() {
     # Tag each record with the active eval source (corpus|keureval) so the
     # monitor can separate runs instead of mixing their recall scales.
     KEUR_EVAL_SOURCE="$KEUR_EVAL_SOURCE" python3 -c "import json,sys,time,os;print(json.dumps({'iter':int(sys.argv[1]),'ts':time.strftime('%Y-%m-%dT%H:%M:%S'),'decision':sys.argv[2],'recall':float(sys.argv[3]),'precision':float(sys.argv[4]),'note':sys.argv[5],'source':os.environ.get('KEUR_EVAL_SOURCE','corpus')}))" "$@" >> "$HIST"
+}
+
+# log_attempt <iter> <attempt> <cat> <outcome> <reason> <regex>
+# Per-ATTEMPT trace for retry analysis. Deliberately SHELL-ONLY (no python):
+# tab-separated, so we add no new language dependency. Will move to a small
+# compiled keur-jsonl util (TODO: "NO PYTHON in the eval scripting layer");
+# until then this stays plain TSV that jq/awk can read.
+log_attempt() {
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "$(date +%Y-%m-%dT%H:%M:%S)" "$1" "$2" "$3" "$4" "$5" "${6:-}" >> "$ATTEMPT_LOG"
 }
 
 case "${1:-iterate}" in
