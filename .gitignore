@@ -44,5 +44,7 @@ eval/corpus/groundtruth.jsonl
 eval/corpus/measure.json
 rules/learned/
 eval/history/optimiser.jsonl
+eval/composite-candidates/*.rule
+!eval/composite-candidates/README.md
 eval/corpus/split.txt
 eval/.awssec.tmp

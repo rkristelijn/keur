@@ -74,6 +74,17 @@ the engine parser expects:
       message: <what was found and why it matters>
   confidence: <0.0..1.0>
 
+PATTERN-NOT (exclude) — your replacement for lookahead, which RE2 forbids:
+A pattern may carry an `exclude:` — a second RE2 regex on the SAME line. The line
+is reported when `regex` matches UNLESS `exclude` also matches it. Use this to
+express "match X except the safe case Y" without lookahead. Match broad, subtract
+the safe case — exactly how semgrep (pattern-not) and gitleaks (allowlist) work.
+  patterns:
+    - regex: \b(?:std::)?(?:system|popen)\s*\(
+      exclude: \b(?:std::)?(?:system|popen)\s*\(\s*"      # allow a bare literal
+      message: system()/popen() with a non-literal command — command injection (CWE-78).
+When you are tempted to write (?=...) or (?<=...), STOP and use `exclude` instead.
+
 ENGINES you may choose (pick the simplest that fits the task):
 - pattern   : flag each line matching a regex (the default; most rules).
 - presence  : flag a file where the regex DOES appear (gate with content_contains).
@@ -91,6 +102,46 @@ ENGINES you may choose (pick the simplest that fits the task):
                     patterns:
                       - regex: \b(it|test)\s*\(
                     block_inner: \b(expect|assert)\s*[.(]
+- count     : flag a file ONCE when patterns[0].regex matches >= min_count times
+              (a "too many of X" primitive). Set min_count: N. Example:
+                    engine: count
+                    min_count: 8
+                    patterns:
+                      - regex: \belse if\s*\([^)]*==
+- multiline : match a pattern that SPANS lines, bounded to a sliding window. Set
+              within: window and window: N (default 2). Join is newline-separated,
+              so use [\s\S]*? to span but stay non-greedy — the window bounds it,
+              so it never runs away over the file. Reports the window's start line.
+              Use for "assign here, use there" shapes. Example:
+                    engine: multiline
+                    within: window
+                    window: 3
+                    patterns:
+                      - regex: (?i)secret\s*=\s*["'][^"']{12,}["'][\s\S]*?use\s*\(
+- composite : combine OTHER rules with a boolean tree — no patterns of its own.
+              Each leaf is a rule id that also runs standalone; the composite runs
+              after the normal pass over the ids that fired. Use it for conditional
+              findings ("sink present AND mitigation absent"). Example:
+                    engine: composite
+                    composite:
+                      all: RULE-A RULE-B        # all must fire
+                      # any: RULE-C RULE-D      # at least one
+                      # not: RULE-E             # must NOT fire
+
+FACTS + requires: (context gating — ADR-009). keur derives facts from manifests
+(langs, frameworks, versions, runtimes) from package.json/go.mod/pom.xml/
+composer.json/Dockerfile. ANY rule may add a `requires:` guard so it only runs
+where it applies (most-discriminating-first — a JS repo never pays for Java rules).
+Use it to scope a rule to a stack/framework/version instead of over-fitting the
+regex to encode the framework. Empty guard = always applies.
+  requires:
+    lang: ts go              # any-of: at least one language present
+    framework: express       # all-of: each framework present
+    version: express <4.18.0 # "name <constraint>": < <= > >= = or "A - B"
+When a finding only matters for a specific framework or version (a CVE, an EOL,
+a framework-specific misconfig), prefer `requires:` + a generic pattern (or a
+composite) OVER cramming the framework/version into the regex. NEVER hardcode a
+framework name or version as the whole match — that is overfit; gate with facts.
 
 Engineering principles you never violate:
 1. Generalise, never memorise. A rule with regex `AKIAIOSFODNN7EXAMPLE` or

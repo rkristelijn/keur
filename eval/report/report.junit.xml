@@ -1,0 +1,1998 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="keur-sast-posture" tests="651" failures="651" timestamp="2026-09-19T08:22:42">
+  <testsuite name="DevSlop_Pixi" tests="15" failures="15">
+    <testcase classname="DevSlop_Pixi" name="api/Dockerfile:17 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=dockerfile.security.missing-user.missing-user"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/Dockerfile:18 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=dockerfile.security.missing-user.missing-user"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/about.html:81 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/admin.html:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.audit.missing-integrity.missing-integrity"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/login.html:42 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/pixi.html:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.audit.missing-integrity.missing-integrity"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/public/api-docs/swagger-ui-standalone-preset.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/public/api-docs/swagger-ui.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/public/js/angular-route.js:312 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/public/js/bootstrap.js:168 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/register.html:42 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="docker-compose.yaml:4 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.docker-compose.security.no-new-privileges.no-new-privileges"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="api/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="DevSlop_Pixi" name="app/public/swagger.json:0 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_OPENAPI_6"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="OWASP_NodeGoat" tests="12" failures="12">
+    <testcase classname="OWASP_NodeGoat" name=".github/workflows/e2e-test.yml:16 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name=".github/workflows/lint.yml:16 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name="app/routes/contributions.js:32 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.eval-detected.eval-detected"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name="app/routes/index.js:72 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-open-redirect.express-open-redirect"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name="app/views/benefits.html:54 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name="app/views/login.html:107 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name="app/views/memos.html:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name="app/views/tutorial/a2.html:207 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name="app/views/tutorial/a5.html:50 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name="docker-compose.yml:13 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.docker-compose.security.no-new-privileges.no-new-privileges"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name="server.js:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-check-csurf-middleware-usage.express-check-csurf-middleware-usage"/>
+    </testcase>
+    <testcase classname="OWASP_NodeGoat" name="Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0026"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="OWASP_OWASPWebGoatPHP" tests="129" failures="129">
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="_japp/model/launcher/test.php:102 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.exec-use.exec-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="_japp/model/lib/settings.php:97 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="_japp/model/service/input/serialized.php:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="_japp/plugin/nusoap/nusoap.php:4073 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.eval-use.eval-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="_japp/view/default/panel/development/options.php:13 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/model/contest/submissions.php:92 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.md5-loose-equality.md5-loose-equality"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/Common/Annotations/FileCacheReader.php:98 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unlink-use.unlink-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/Common/Cache/FileCache.php:105 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unlink-use.unlink-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/Common/Cache/FilesystemCache.php:69 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/Common/Cache/XcacheCache.php:42 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/DBAL/Connections/MasterSlaveConnection.php:351 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.doctrine.security.audit.doctrine-dbal-dangerous-query.doctrine-dbal-dangerous-query"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/DBAL/Id/TableGenerator.php:119 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.doctrine.security.audit.doctrine-dbal-dangerous-query.doctrine-dbal-dangerous-query"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/DBAL/Query/QueryBuilder.php:185 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.doctrine.security.audit.doctrine-dbal-dangerous-query.doctrine-dbal-dangerous-query"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/DBAL/Schema/SqliteSchemaManager.php:42 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unlink-use.unlink-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/DBAL/Tools/Console/Command/ImportCommand.php:87 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.doctrine.security.audit.doctrine-dbal-dangerous-query.doctrine-dbal-dangerous-query"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/DBAL/Types/ArrayType.php:48 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/DBAL/Types/ObjectType.php:48 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/ORM/EntityManager.php:296 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.doctrine.security.audit.doctrine-dbal-dangerous-query.doctrine-dbal-dangerous-query"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/ORM/Id/SequenceGenerator.php:101 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/ORM/Mapping/ClassMetadataInfo.php:830 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/ORM/Persisters/BasicEntityPersister.php:263 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.doctrine.security.audit.doctrine-dbal-dangerous-query.doctrine-dbal-dangerous-query"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/ORM/Query/Exec/SingleSelectExecutor.php:46 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.doctrine.security.audit.doctrine-dbal-dangerous-query.doctrine-dbal-dangerous-query"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/ORM/Tools/SchemaTool.php:90 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.doctrine.security.audit.doctrine-dbal-dangerous-query.doctrine-dbal-dangerous-query"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/Symfony/Component/Yaml/Inline.php:376 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/Symfony/Component/Yaml/Tests/DumperTest.php:56 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.eval-use.eval-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/doctrine/Doctrine/Symfony/Component/Yaml/Tests/ParserTest.php:66 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.eval-use.eval-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="app/plugin/lastrss.php:71 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unserialize-use.unserialize-use"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/EncodingBasics/content.html:4 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/FailOpenAuthentication/content.html:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/ForgotPassword/content.html:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/HTMLClues/content.html:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/HTTPBasics/content.html:12 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/HTTPOnly/content.html:3 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/HiddenFields/content.html:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/JSObfuscation/static/solution.html:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/LogSpoofing/content.html:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/NumericSQLInjection/index.php:88 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-sql-string.tainted-sql-string"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/PathBasedAccessControl/index.php:89 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-filename.tainted-filename"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/SameOriginPolicy/content.html:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/SameOriginPolicy/static/plan.html:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/SessionFixation/stage3.html:12 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/SessionFixation/stage5.html:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/WeakAuthenticationCookie/content.html:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/XPATHInjection/content.html:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/XSS1/content.html:48 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="challenges/single/XSS2/content.html:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="files/index.php:173 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-filename.tainted-filename"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/ace.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/ext-chromevox.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/ext-emmet.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/ext-language_tools.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/ext-modelist.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/ext-old_ie.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.eval-detected.eval-detected"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/ext-settings_menu.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-actionscript.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-apache_conf.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-applescript.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-autohotkey.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-batchfile.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-c9search.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-c_cpp.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-coldfusion.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-csharp.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-css.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-curly.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-d.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-dart.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-diff.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-django.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-dockerfile.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-dot.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-ejs.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-erlang.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-forth.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-glsl.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-golang.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-groovy.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-handlebars.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-haskell.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-haxe.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-html.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-html_ruby.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-jack.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-java.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-javascript.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-json.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-jsoniq.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-jsp.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-jsx.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-julia.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-less.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-lsl.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-luapage.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-markdown.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-mel.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-mushcode.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-nix.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-objectivec.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-perl.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-php.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-powershell.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-prolog.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-protobuf.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-python.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-rhtml.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-rust.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-scad.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-scala.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-scss.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-sh.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-sjs.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-smarty.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-soy_template.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-svg.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-tcl.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-twig.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-typescript.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-vala.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-velocity.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/mode-xquery.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/worker-coffee.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/worker-css.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.eval-detected.eval-detected"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/worker-html.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/worker-php.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/calendar/calendar.js:2034 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/moment.js:1120 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/prettify/prettify.js:12 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/prettify/run_prettify.js:16 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_OWASPWebGoatPHP" name="script/ace/src-min-noconflict/snippets/dockerfile.js:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_DOCKER_2"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="OWASP_WebGoat" tests="54" failures="54">
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/AbstractLesson.java:638 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.formatted-sql-string.formatted-sql-string"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/BlindNumericSqlInjection.java:114 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/BlindScript.java:243 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.lang.security.audit.unsafe-reflection.unsafe-reflection"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/BlindStringSqlInjection.java:114 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/Challenge2Screen.java:171 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.servlets.security.cookie-issecure-false.cookie-issecure-false"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/Challenge2Screen.java:221 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/CrossSiteScripting/ViewProfile.java:97 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/DOS_Login.java:106 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/Encoding.java:325 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.lang.security.audit.cbc-padding-oracle.cbc-padding-oracle"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/GoatHillsFinancial/DefaultLessonAction.java:198 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/GoatHillsFinancial/DeleteProfile.java:98 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/GoatHillsFinancial/ListStaff.java:87 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/GoatHillsFinancial/Login.java:127 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.formatted-sql-string.formatted-sql-string"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/GoatHillsFinancial/ViewProfile.java:94 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/MaliciousFileExecution.java:150 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/RoleBasedAccessControl/DeleteProfile.java:103 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/RoleBasedAccessControl/ViewProfile.java:115 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/SQLInjection/ListStaff.java:89 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/SQLInjection/Login.java:131 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.formatted-sql-string.formatted-sql-string"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/SQLInjection/ViewProfile.java:108 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.formatted-sql-string.formatted-sql-string"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/SqlAddData.java:100 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/SqlModifyData.java:108 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/SqlStringInjection.java:101 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/ThreadSafetyProblem.java:98 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/WeakAuthenticationCookie.java:144 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.servlets.security.cookie-issecure-false.cookie-issecure-false"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/WeakSessionID.java:199 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.servlets.security.cookie-issecure-false.cookie-issecure-false"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/WsSqlInjection.java:233 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.formatted-sql-string.formatted-sql-string"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/instructor/RoleBasedAccessControl/DeleteProfile_i.java:35 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/lessons/instructor/RoleBasedAccessControl/ViewProfile_i.java:88 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/session/Course.java:354 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.lang.security.audit.unsafe-reflection.unsafe-reflection"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/session/CreateDB.java:806 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=java.lang.security.audit.sqli.jdbc-sqli.jdbc-sqli"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/session/DatabaseUtilities.java:93 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.lang.security.audit.unsafe-reflection.unsafe-reflection"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/session/WebSession.java:276 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.lang.security.audit.cookie-missing-httponly.cookie-missing-httponly"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/java/org/owasp/webgoat/util/Interceptor.java:88 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/javascript/eval.js:39 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.eval-detected.eval-detected"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/javascript/makeWindow.js:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.eval-detected.eval-detected"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/javascript/menu_system.js:30 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.eval-detected.eval-detected"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/English/CSRF.html:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/English/HttpOnly.html:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/English/HttpSplitting.html:33 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/English/NewLesson.html:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/English/UsefulTools.html:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/en/CSRF.html:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/en/HttpOnly.html:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/en/NewLesson.html:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/en/UsefulTools.html:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/ru/CSRF.html:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/ru/HttpOnly.html:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/ru/NewLesson.html:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_plans/ru/UsefulTools.html:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_solutions/CSRF.html:661 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_solutions/InsecureLogin.html:33 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_solutions/RemoteAdminFlaw.html:622 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+    <testcase classname="OWASP_WebGoat" name="webgoat/src/main/webapp/lesson_solutions/WeakSessionID.html:54 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.plaintext-http-link.plaintext-http-link"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="OWASP_crAPI" tests="102" failures="102">
+    <testcase classname="OWASP_crAPI" name=".github/workflows/pr-build.yml:30 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name=".github/workflows/publish.yml:32 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name=".github/workflows/workflow-multiarch.yml:26 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/chatbot/deployment.yaml:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/chromadb/statefulset.yaml:17 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/community/deployment.yaml:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/gateway-service/deployment.yaml:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/identity/deployment.yaml:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/mailhog/deployment.yaml:24 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.kubernetes.security.allow-privilege-escalation-no-securitycontext.allow-privilege-escalation-no-securitycontext"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/mongodb/statefulset.yaml:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/postgres/statefulset.yaml:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/web/deployment.yaml:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/workshop/deployment.yaml:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/chatbot/Dockerfile:24 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=dockerfile.security.missing-user.missing-user"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/chatbot/src/chatbot/aws_credentials.py:64 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/chatbot/src/chatbot/chat_api.py:89 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/chatbot/src/chatbot/chat_service.py:32 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/chatbot/src/chatbot/langgraph_agent.py:69 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/chatbot/src/chatbot/retriever_utils.py:146 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/chatbot/src/chatbot/session_service.py:50 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/chatbot/src/mcpserver/__main__.py:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.flask.security.audit.app-run-param-config.avoid_app_run_with_bad_host"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/community/Dockerfile:46 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=dockerfile.security.missing-user.missing-user"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/community/api/auth/token.go:56 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.crypto.missing-ssl-minversion.missing-ssl-minversion"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/community/api/responses/json.go:29 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.xss.no-fprintf-to-responsewriter.no-fprintf-to-responsewriter"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/community/api/server.go:47 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.crypto.missing-ssl-minversion.missing-ssl-minversion"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/gateway-service/Dockerfile:33 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=dockerfile.security.missing-user.missing-user"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/gateway-service/main.go:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.crypto.math_random.math-random-used"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/identity/Dockerfile:47 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=dockerfile.security.missing-user.missing-user"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/identity/src/main/java/com/crapi/config/WebSecurityConfig.java:98 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.spring.security.audit.spring-csrf-disabled.spring-csrf-disabled"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/identity/src/main/java/com/crapi/service/Impl/VehicleOwnershipServiceImpl.java:29 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.lang.security.audit.crypto.ssl.insecure-hostname-verifier.insecure-hostname-verifier"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/web/Dockerfile:47 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=dockerfile.security.missing-user.missing-user"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/workshop/Dockerfile:48 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=dockerfile.security.missing-user.missing-user"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/workshop/core/management/commands/seed_database.py:220 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.requests.security.disabled-cert-validation.disabled-cert-validation"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/workshop/crapi/mechanic/views.py:54 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.audit.csrf-exempt.no-csrf-exempt"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/workshop/crapi/merchant/views.py:87 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.requests.security.disabled-cert-validation.disabled-cert-validation"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/workshop/crapi/shop/views.py:141 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.requests.security.disabled-cert-validation.disabled-cert-validation"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/workshop/crapi/shop/views.py:388 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/workshop/crapi_site/settings.py:128 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.audit.django-rest-framework.missing-throttle-config.missing-throttle-config"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/workshop/utils/jwt.py:53 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.requests.security.disabled-cert-validation.disabled-cert-validation"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/api-gateway-service/config.yaml:0 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/api-gateway-service/deployment.yaml:4 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/chatbot/config.yaml:0 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/chatbot/deployment.yaml:4 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/chromadb/statefulset.yaml:4 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/community/config.yaml:0 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/community/deployment.yaml:4 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/identity/config.yaml:0 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/identity/deployment.yaml:4 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/mailhog/deployment.yaml:25 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/mongodb/config.yaml:0 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/mongodb/statefulset.yaml:4 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/postgres/config.yaml:0 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0109"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/postgres/statefulset.yaml:4 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/web/deployment.yaml:4 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/workshop/config.yaml:0 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/templates/workshop/deployment.yaml:4 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: trivy) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/chatbot/config.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/chatbot/deployment.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/chromadb/config.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/chromadb/statefulset.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/community/config.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/community/deployment.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/gateway-service/config.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/gateway-service/deployment.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/identity/config.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/identity/deployment.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/mailhog/deployment.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/mongodb/config.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/mongodb/statefulset.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/postgres/config.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0109"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/postgres/statefulset.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/web/deployment.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/workshop/config.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-01010"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/workshop/deployment.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=KSV-0001"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/chatbot/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/community/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/gateway-service/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/identity/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/mailhog/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0026"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/web/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/workshop/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/minikube/web/ingress.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/workshop/service.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/rbac/rolebinding.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_42"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/identity/service.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/chromadb/service.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/chatbot/ingress.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/chatbot/service.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/web/ingress.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/web/configmap.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/gateway-service/service.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/mongodb/service.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/postgres/service.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/mailhog/config.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/k8s/base/community/service.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/docker/docker-compose.yml:264 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="deploy/helm/values.yaml:337 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="postman_collections/crAPI.postman_collection.json:1197 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_9"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/community/vendor/github.com/jinzhu/gorm/wercker.yml:67 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/docker-database.yml:21 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="openapi-spec/crapi-openapi-spec.json:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_OPENAPI_5"/>
+    </testcase>
+    <testcase classname="OWASP_crAPI" name="services/chatbot/src/resources/crapi-openapi-spec.json:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_OPENAPI_5"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="OWASP_railsgoat" tests="29" failures="29">
+    <testcase classname="OWASP_railsgoat" name=".github/workflows/ci.yml:18 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/assets/javascripts/date-picker/date.js:70 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/assets/javascripts/jquery.snippet.js:402 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.raw-html-concat.raw-html-concat"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/assets/javascripts/moment.js:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/controllers/admin_controller.rb:28 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.brakeman.check-unscoped-find.check-unscoped-find"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/controllers/api/v1/mobile_controller.rb:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.brakeman.check-unsafe-reflection.check-unsafe-reflection"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/controllers/api/v1/users_controller.rb:42 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.lang.security.weak-hashes-sha1.weak-hashes-sha1"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/controllers/application_controller.rb:2 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.lang.security.missing-csrf-protection.missing-csrf-protection"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/controllers/benefit_forms_controller.rb:12 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.brakeman.check-unsafe-reflection.check-unsafe-reflection"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/controllers/password_resets_controller.rb:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.lang.security.bad-deserialization.bad-deserialization"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/controllers/pay_controller.rb:29 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.brakeman.check-unscoped-find.check-unscoped-find"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/controllers/sessions_controller.rb:26 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.xss.avoid-redirect.avoid-redirect"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/controllers/users_controller.rb:29 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=ruby.rails.security.injection.tainted-sql-string.tainted-sql-string"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/controllers/users_controller.rb:55 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.lang.security.model-attr-accessible.model-attr-accessible"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/models/user.rb:45 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.lang.security.weak-hashes-md5.weak-hashes-md5"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/views/admin/analytics.html.erb:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.xss.templates.unquoted-attribute.unquoted-attribute"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/views/layouts/application.html.erb:427 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.xss.templates.avoid-raw.avoid-raw"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/views/layouts/shared/_header.html.erb:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.xss.templates.var-in-href.var-in-href"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/views/messages/index.html.erb:167 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.xss.templates.avoid-html-safe.avoid-html-safe"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/views/paid_time_off/index.html.erb:210 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.xss.templates.avoid-html-safe.avoid-html-safe"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="app/views/users/account_settings.html.erb:81 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.xss.templates.avoid-html-safe.avoid-html-safe"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="config/environments/development.rb:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.detailed-exceptions.detailed-exceptions"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="config/environments/mysql.rb:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.detailed-exceptions.detailed-exceptions"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="config/environments/openshift.rb:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.detailed-exceptions.detailed-exceptions"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="config/environments/test.rb:16 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.detailed-exceptions.detailed-exceptions"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="spec/vulnerabilities/password_hashing_spec.rb:19 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.lang.security.weak-hashes-md5.weak-hashes-md5"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="openshift-configs/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="OWASP_railsgoat" name="openshift-configs/railsgoatservice.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_21"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="appsecco_VyAPI" tests="2" failures="2">
+    <testcase classname="appsecco_VyAPI" name="app/src/main/AndroidManifest.xml:74 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.android.security.exported_activity.exported_activity"/>
+    </testcase>
+    <testcase classname="appsecco_VyAPI" name="app/src/main/java/com/appsecco/vyapi/fragments/CreateContactFragment.java:122 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=java.lang.security.audit.crypto.use-of-default-aes.use-of-default-aes"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="appsecco_dvna" tests="8" failures="8">
+    <testcase classname="appsecco_dvna" name="Dockerfile:13 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=dockerfile.security.missing-user.missing-user"/>
+    </testcase>
+    <testcase classname="appsecco_dvna" name="config/db.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.sequelize.security.audit.sequelize-enforce-tls.sequelize-enforce-tls"/>
+    </testcase>
+    <testcase classname="appsecco_dvna" name="core/appHandler.js:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection"/>
+    </testcase>
+    <testcase classname="appsecco_dvna" name="docker-compose.yml:18 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.docker-compose.security.no-new-privileges.no-new-privileges"/>
+    </testcase>
+    <testcase classname="appsecco_dvna" name="models/index.js:43 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal"/>
+    </testcase>
+    <testcase classname="appsecco_dvna" name="server.js:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-check-csurf-middleware-usage.express-check-csurf-middleware-usage"/>
+    </testcase>
+    <testcase classname="appsecco_dvna" name="views/app/products.ejs:20 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.ejs.explicit-unescape.template-explicit-unescape"/>
+    </testcase>
+    <testcase classname="appsecco_dvna" name="Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="bkimminich_juice-shop-ctf" tests="11" failures="11">
+    <testcase classname="bkimminich_juice-shop-ctf" name=".github/workflows/ci.yml:24 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="bkimminich_juice-shop-ctf" name=".github/workflows/greetings.yml:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="bkimminich_juice-shop-ctf" name=".github/workflows/lint-fixer.yml:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="bkimminich_juice-shop-ctf" name=".github/workflows/rebase.yml:13 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="bkimminich_juice-shop-ctf" name=".github/workflows/release.yml:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="bkimminich_juice-shop-ctf" name=".github/workflows/update-news-www.yml:12 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="bkimminich_juice-shop-ctf" name="lib/fetchChallenges.ts:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification"/>
+    </testcase>
+    <testcase classname="bkimminich_juice-shop-ctf" name="lib/fetchCountryMapping.ts:20 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification"/>
+    </testcase>
+    <testcase classname="bkimminich_juice-shop-ctf" name="lib/fetchHints.ts:20 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification"/>
+    </testcase>
+    <testcase classname="bkimminich_juice-shop-ctf" name="lib/fetchSecretKey.ts:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification"/>
+    </testcase>
+    <testcase classname="bkimminich_juice-shop-ctf" name="Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0026"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="cpm-eval" tests="113" failures="113">
+    <testcase classname="cpm-eval" name="drone.yml:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=CICD-025"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="env:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="github/workflows/bad-ci.yml:26 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=CICD-SEC-011"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="github/workflows/cpm.yml:13 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SC-SEC-012"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="gitlab-ci.yml:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=CICD-022"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="Jenkinsfile:5 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=CICD-012"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/admin-panel/admin-api.js:4 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-042"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/admin-panel/components/BuildErrors.vue:12 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-011"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/admin-panel/components/UserList.vue:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=VUE-SEC-001"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/Dockerfile:13 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=12F-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/bad-graphql.ts:58 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-023"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/backend-attacks.ts:25 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/bad-feature-flags.ts:23 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-037"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/bad-feature-flags.ts:27 [transport]">
+      <failure type="transport" message="transport finding (seen_by 1: cpm) rule=TRANS-001"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/bad-graphql.ts:19 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-023"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/bad-module.d.ts:2 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-022"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/bad-oauth.ts:23 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-015"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/bad-rest-routes.ts:48 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/bad-templates.ejs:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=TMPL-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/bad-tests.test.ts:21 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/legacy-server.js:24 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/order-service.js:3 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-042"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/server.ts:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-039"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/wtf-async.ts:18 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-038"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/wtf-error-handling.ts:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-042"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/src/wtf-misc.ts:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-040"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/tsconfig.json:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-021"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/Dockerfile:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=12F-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/app.py:32 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/bad-db-pool.js:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-039"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/bad-fastapi.py:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=FA-QUAL-011"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/config/settings.py:55 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-021"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/ml-pipeline.py:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=PY-SEC-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/mongoose-models.js:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-037"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/templates/bad-template.jinja2:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=TMPL-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/users/views.py:180 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-012"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/users/views.py:124 [transport]">
+      <failure type="transport" message="transport finding (seen_by 1: cpm) rule=TRANS-004"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/cms-backend/app/Http/Controllers/ApiController.php:33 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-024"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/cms-backend/app/Http/Controllers/UserController.php:89 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-015"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/cms-backend/bad-ml.py:31 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=PY-SEC-011"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/code-cpp-demo-app/src/bad-patterns.cpp:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-012"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/code-cpp-demo-app/src/legacy-comments.cpp:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/crm-app/src/notification-service.ts:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=EX-SEC-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/django-bad-patterns/config/settings.py:5 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=DJ-SEC-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/django-bad-patterns/myapp/models.py:16 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=PY-SEC-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/django-bad-patterns/myapp/signals.py:23 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/django-bad-patterns/myapp/views.py:59 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=DJ-SEC-012"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/django-bad-patterns/myapp/worker.py:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/dotnet-api/Controllers/UsersController.cs:18 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=CS-SEC-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/dotnet-api/Views/Users/Profile.cshtml:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=CS-SEC-012"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/go-service/Dockerfile:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=12F-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/go-service/bad-gin.go:12 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=GIN-SEC-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/go-service/handlers.go:147 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=GIN-SEC-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/payment-service/src/main/java/WtfPatterns.java:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-042"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/payment-service/src/main/java/com/example/payment/controller/PaymentController.java:58 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=JV-SEC-011"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/payment-service/src/main/java/com/example/payment/security/SecurityConfig.java:74 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-031"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/rails-app/app/controllers/users_controller.rb:34 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BE-SEC-012"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/sca-npm-bad/package.json:5 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SC-SEC-011"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/bad-a11y-full.html:108 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=WEB-SEC-011"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/bad-hono.ts:13 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-039"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/bad-secrets.js:53 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/package.json:20 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-028"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/public/index.html:70 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=WEB-SEC-023"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/OAuthLogin.tsx:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=OAUTH-011"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/a11y-bad.css:28 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=CSS-AP-012"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/a11y-violations.html:52 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=WEB-SEC-011"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/app/dashboard/page.tsx:41 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-004"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/app/frontend-attacks.ts:101 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-004"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/app/inline-antipatterns.ts:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-011"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/bad-perf.tsx:20 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-004"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/bad-styles.css:35 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=CSS-AP-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/bad-styles.scss:28 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=CSS-AP-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/bad-web-perf.css:27 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=CSS-AP-012"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/src/build-errors.tsx:39 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-002"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/web-frontend/webpack.config.js:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-042"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/bad-k8s.yaml:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=K8S-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/bad-playbook.yml:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=ANS-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/bad-serverless.yml:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SLS-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/docker/Dockerfile:24 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=12F-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/docker/docker-compose.yml:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=ANS-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/k8s/deployment.yaml:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=ANS-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/terraform/main.tf:88 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=IAC-SEC-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="research/coderabbit-harvest.sh:366 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SH-QUAL-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="scripts/deploy.sh:30 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SH-QUAL-014"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="scripts/insecure-transport.sh:2 [transport]">
+      <failure type="transport" message="transport finding (seen_by 1: cpm) rule=TRANS-002"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="scripts/maintenance.sh:25 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-011b"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/boilerplate/.github/workflows/ci.yml:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SC-SEC-012"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/boilerplate/docker-compose.yml:29 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=DC-010"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/boilerplate/package.json:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-036"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/boilerplate/tsconfig.json:5 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=BUILD-027"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/new-rules/BadDesignPatterns.java:24 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-042"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/new-rules/bad-patterns-design.ts:40 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-042"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/new-rules/bad_design_patterns.py:9 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-042"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/new-rules/debug-config.yml:3 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/new-rules/deployment.yaml:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=K8S-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/new-rules/openapi.yaml:16 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/new-rules/vite.config.ts:2 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=SEC-013"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="SECURITY.md:0 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: cpm) rule=PROJ-003"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/terraform/main.tf:6 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_AWS_41"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/bad-k8s.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_37"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/k8s/deployment.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_K8S_37"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/new-rules/serverless.yml:13 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_AWS_27"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_DOCKER_2"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/api-gateway/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_DOCKER_2"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/backend-api/Dockerfile.bad:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_DOCKER_2"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/docker/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_DOCKER_7"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="apps/go-service/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_DOCKER_2"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="infra/bad-serverless.yml:17 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/boilerplate/docker-compose.yml:29 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/new-rules/values.yaml:9 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="cpm-eval" name=".github/workflows/bad-ci.yml:25 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_GHA_2"/>
+    </testcase>
+    <testcase classname="cpm-eval" name="tests/fixtures/new-rules/openapi.yaml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_OPENAPI_5"/>
+    </testcase>
+    <testcase classname="cpm-eval" name=".circleci/config.yml:12 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_CIRCLECIPIPELINES_2"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="digininja_DVWA" tests="38" failures="38">
+    <testcase classname="digininja_DVWA" name=".github/workflows/codeql-analysis.yml:37 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name=".github/workflows/docker-image.yml:13 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name=".github/workflows/pytest.yml:19 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name=".github/workflows/shiftleft-analysis.yml:19 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name=".github/workflows/vulnerable.yml:30 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="instructions.php:26 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-filename.tainted-filename"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="login.php:41 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.md5-loose-equality.md5-loose-equality"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="phpinfo.php:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.phpinfo-use.phpinfo-use"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/api/gen_openapi.php:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.php-permissive-cors.php-permissive-cors"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/api/public/index.php:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.php-permissive-cors.php-permissive-cors"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/api/src/HealthController.php:88 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-exec.tainted-exec"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/api/src/Token.php:39 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.audit.openssl-decrypt-validate.openssl-decrypt-validate"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/bac/source/low.php:22 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-sql-string.tainted-sql-string"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/bac/source/medium.php:21 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-sql-string.tainted-sql-string"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/brute/source/high.php:22 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.md5-loose-equality.md5-loose-equality"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/brute/source/low.php:12 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-sql-string.tainted-sql-string"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/brute/source/low.php:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.md5-loose-equality.md5-loose-equality"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/brute/source/medium.php:17 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.md5-loose-equality.md5-loose-equality"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/captcha/source/impossible.php:46 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.md5-loose-equality.md5-loose-equality"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/cryptography/source/ecb_attack.php:92 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.md5-loose-equality.md5-loose-equality"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/csrf/test_credentials.php:23 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.md5-loose-equality.md5-loose-equality"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/exec/source/high.php:26 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.exec-use.exec-use"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/exec/source/impossible.php:22 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.exec-use.exec-use"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/exec/source/low.php:10 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.exec-use.exec-use"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/exec/source/medium.php:19 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.exec-use.exec-use"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/fi/source/high.php:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-filename.tainted-filename"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/javascript/index.php:43 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.md5-loose-equality.md5-loose-equality"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/javascript/source/high.js:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.eval-detected.eval-detected"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/sqli/source/low.php:10 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-sql-string.tainted-sql-string"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/sqli_blind/source/high.php:11 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-sql-string.tainted-sql-string"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/sqli_blind/source/low.php:11 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-sql-string.tainted-sql-string"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/sqli_blind/source/medium.php:34 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-sql-string.tainted-sql-string"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/upload/source/impossible.php:54 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.unlink-use.unlink-use"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/view_help.php:20 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.eval-use.eval-use"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/view_source.php:63 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-filename.tainted-filename"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/view_source_all.php:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-filename.tainted-filename"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+    <testcase classname="digininja_DVWA" name="vulnerabilities/api/openapi.yml:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_OPENAPI_5"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="erp-service" tests="1" failures="1">
+    <testcase classname="erp-service" name="Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_DOCKER_2"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="expressjs_express" tests="13" failures="13">
+    <testcase classname="expressjs_express" name=".github/dependabot.yml:3 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/auth/index.js:22 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-cookie-settings.express-cookie-session-default-name"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/auth/views/login.ejs:5 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.ejs.explicit-unescape.template-explicit-unescape"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/cookie-sessions/index.js:13 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-cookie-settings.express-cookie-session-default-name"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/mvc/index.js:40 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-cookie-settings.express-cookie-session-default-name"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/params/index.js:67 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.direct-response-write.direct-response-write"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/resource/index.js:46 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.direct-response-write.direct-response-write"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/route-map/index.js:37 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.direct-response-write.direct-response-write"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/search/index.js:57 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/session/index.js:16 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-cookie-settings.express-cookie-session-default-name"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/session/redis.js:20 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-cookie-settings.express-cookie-session-default-name"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/vhost/index.js:30 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.direct-response-write.direct-response-write"/>
+    </testcase>
+    <testcase classname="expressjs_express" name="examples/web-service/index.js:89 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.direct-response-write.direct-response-write"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="gin-gonic_gin" tests="14" failures="14">
+    <testcase classname="gin-gonic_gin" name=".github/dependabot.yml:3 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name=".github/workflows/codeql.yml:36 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name=".github/workflows/gin.yml:19 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name=".github/workflows/goreleaser.yml:16 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name=".github/workflows/trivy-scan.yml:25 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name="context.go:1163 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.net.cookie-missing-httponly.cookie-missing-httponly"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name="render/bson.go:26 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name="render/data.go:24 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name="render/json.go:73 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name="render/pdf.go:19 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name="render/protobuf.go:29 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name="render/text.go:36 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.xss.no-fprintf-to-responsewriter.no-fprintf-to-responsewriter"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name="render/toml.go:29 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter"/>
+    </testcase>
+    <testcase classname="gin-gonic_gin" name="render/yaml.go:29 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="juice-shop_juice-shop" tests="55" failures="55">
+    <testcase classname="juice-shop_juice-shop" name=".github/workflows/ci.yml:188 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name=".github/workflows/codeql-analysis.yml:23 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name=".github/workflows/image_actions.yml:30 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name=".github/workflows/update-challenges-ebook.yml:22 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.run-shell-injection.run-shell-injection"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name=".github/workflows/update-challenges-www-legacy.yml:27 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.run-shell-injection.run-shell-injection"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name=".github/workflows/update-challenges-www.yml:27 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.run-shell-injection.run-shell-injection"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name=".npmrc:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=package_managers.npm.npm-missing-minimum-release-age.npm-missing-minimum-release-age"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/dbSchemaChallenge_1.ts:5 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/dbSchemaChallenge_3.ts:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/iacLeakedKeyChallenge_1.tf:17 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=terraform.aws.security.aws-subnet-has-public-ip-address.aws-subnet-has-public-ip-address"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/iacLeakedKeyChallenge_2.tf:17 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=terraform.aws.security.aws-subnet-has-public-ip-address.aws-subnet-has-public-ip-address"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/iacLeakedKeyChallenge_3_correct.tf:17 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=terraform.aws.security.aws-subnet-has-public-ip-address.aws-subnet-has-public-ip-address"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/restfulXssChallenge_2.ts:46 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/unionSqlInjectionChallenge_1.ts:6 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/unionSqlInjectionChallenge_3.ts:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="frontend/.npmrc:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=package_managers.npm.npm-missing-minimum-release-age.npm-missing-minimum-release-age"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="frontend/src/hacking-instructor/helpers/helpers.ts:49 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.prototype-pollution.prototype-pollution-loop.prototype-pollution-loop"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="infrastructure/terraform/main.tf:126 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=terraform.aws.security.aws-cloudwatch-log-group-unencrypted.aws-cloudwatch-log-group-unencrypted"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="infrastructure/terraform/networking.tf:18 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=terraform.aws.security.aws-subnet-has-public-ip-address.aws-subnet-has-public-ip-address"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="lib/antiCheat.ts:196 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="lib/codingChallenges.ts:76 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/b2bOrder.ts:23 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-detect-notevil-usage.express-detect-notevil-usage"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/captcha.ts:22 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.eval-detected.eval-detected"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/currentUser.ts:31 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.remote-property-injection.remote-property-injection"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/fileServer.ts:32 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-res-sendfile.express-res-sendfile"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/keyServer.ts:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-res-sendfile.express-res-sendfile"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/logfileServer.ts:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-res-sendfile.express-res-sendfile"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/login.ts:34 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/quarantineServer.ts:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-res-sendfile.express-res-sendfile"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/redirect.ts:18 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-open-redirect.express-open-redirect"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/search.ts:23 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/userProfile.ts:65 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.browser.security.eval-detected.eval-detected"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="routes/videoHandler.ts:71 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.unknown-value-with-script-tag.unknown-value-with-script-tag"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="server.ts:157 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="terraform/main.tf:126 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=terraform.aws.security.aws-cloudwatch-log-group-unencrypted.aws-cloudwatch-log-group-unencrypted"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="terraform/networking.tf:18 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=terraform.aws.security.aws-subnet-has-public-ip-address.aws-subnet-has-public-ip-address"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="views/promotionVideo.pug:75 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.pug.explicit-unescape.template-explicit-unescape"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0001"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/iacLeakedKeyChallenge_1.tf:5 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=AWS-0037"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/iacLeakedKeyChallenge_2.tf:5 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=AWS-0037"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/codefixes/iacLeakedKeyChallenge_3_correct.tf:5 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=AWS-0037"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="infrastructure/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0026"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="infrastructure/terraform/main.tf:35 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=AWS-0017"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="infrastructure/terraform/networking.tf:6 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=AWS-0052"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="terraform/main.tf:35 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=AWS-0017"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="terraform/networking.tf:6 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=AWS-0052"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="test/smoke/Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0001"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="data/static/users.yml:88 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="frontend/src/assets/i18n/ca_ES.json:10 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="frontend/src/assets/i18n/de_CH.json:165 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="frontend/src/assets/i18n/nl_NL.json:10 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="frontend/src/assets/i18n/no_NO.json:184 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="frontend/src/assets/i18n/sv_SE.json:184 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="frontend/src/assets/i18n/tlh_AA.json:11 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_SECRET_6"/>
+    </testcase>
+    <testcase classname="juice-shop_juice-shop" name="swagger.yml:44 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_OPENAPI_21"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="pallets_flask" tests="12" failures="12">
+    <testcase classname="pallets_flask" name="examples/celery/src/task_app/templates/index.html:14 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="examples/javascript/js_example/templates/base.html:3 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.audit.missing-integrity.missing-integrity"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="examples/javascript/js_example/templates/jquery.html:10 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.audit.missing-integrity.missing-integrity"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="examples/tutorial/flaskr/templates/auth/login.html:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="examples/tutorial/flaskr/templates/auth/register.html:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="examples/tutorial/flaskr/templates/blog/create.html:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="examples/tutorial/flaskr/templates/blog/update.html:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.django.security.django-no-csrf-token.django-no-csrf-token"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="pyproject.toml:103 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=package_managers.uv.uv-missing-dependency-cooldown.uv-missing-dependency-cooldown"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="src/flask/cli.py:1023 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.eval-detected.eval-detected"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="src/flask/config.py:209 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=python.lang.security.audit.exec-detected.exec-detected"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="src/flask/json/tag.py:188 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.flask.security.xss.audit.explicit-unescape-with-markup.explicit-unescape-with-markup"/>
+    </testcase>
+    <testcase classname="pallets_flask" name="src/flask/sessions.py:281 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="psf_requests" tests="3" failures="3">
+    <testcase classname="psf_requests" name="src/requests/auth.py:187 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1"/>
+    </testcase>
+    <testcase classname="psf_requests" name="src/requests/compat.py:42 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.non-literal-import.non-literal-import"/>
+    </testcase>
+    <testcase classname="psf_requests" name=".github/workflows/publish.yml:9 [iac]">
+      <failure type="iac" message="iac finding (seen_by 1: checkov) rule=CKV_GHA_7"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="sinatra_sinatra" tests="6" failures="6">
+    <testcase classname="sinatra_sinatra" name=".github/workflows/release.yml:16 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="sinatra_sinatra" name=".github/workflows/test.yml:42 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="sinatra_sinatra" name="lib/sinatra/base.rb:31 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.lang.security.model-attributes-attr-accessible.model-attributes-attr-accessible"/>
+    </testcase>
+    <testcase classname="sinatra_sinatra" name="lib/sinatra/show_exceptions.rb:74 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.xss.manual-template-creation.manual-template-creation"/>
+    </testcase>
+    <testcase classname="sinatra_sinatra" name="sinatra-contrib/lib/sinatra/config_file.rb:125 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.rails.security.audit.xss.manual-template-creation.manual-template-creation"/>
+    </testcase>
+    <testcase classname="sinatra_sinatra" name="sinatra-contrib/lib/sinatra/runner.rb:159 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=ruby.lang.security.ssl-mode-no-verify.ssl-mode-no-verify"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="snyk-labs_nodejs-goof" tests="12" failures="12">
+    <testcase classname="snyk-labs_nodejs-goof" name=".github/workflows/codeql-analysis.yml:42 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name=".github/workflows/snyk-code-manual.yml:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name=".github/workflows/snyk-code.yml:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name=".github/workflows/snyk-test-sarif.yml:7 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name="Dockerfile:13 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=dockerfile.security.missing-user-entrypoint.missing-user-entrypoint"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name="app.js:28 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.express-check-csurf-middleware-usage.express-check-csurf-middleware-usage"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name="docker-compose.yml:15 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.docker-compose.security.no-new-privileges.no-new-privileges"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name="views/admin.ejs:17 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.ejs.explicit-unescape.template-explicit-unescape"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name="views/index.ejs:20 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.ejs.explicit-unescape.template-explicit-unescape"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name="views/layout.ejs:12 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.ejs.explicit-unescape.template-explicit-unescape"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name="views/layout.hbs:12 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.express.security.audit.xss.mustache.explicit-unescape.template-explicit-unescape"/>
+    </testcase>
+    <testcase classname="snyk-labs_nodejs-goof" name="Dockerfile:1 [iac]">
+      <failure type="iac" message="iac finding (seen_by 2: trivy,checkov) rule=DS-0002"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="swisskyrepo_PayloadsAllTheThings" tests="17" failures="17">
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name=".github/hopla_config.json:1129 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=generic.ci.security.bash-reverse-shell.bash_reverse_shell"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name=".github/overrides/main.html:16 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=html.security.audit.missing-integrity.missing-integrity"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name=".github/workflows/check-markdown.yml:8 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name=".github/workflows/mkdocs-build.yml:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="File Inclusion/Files/uploadlfi.py:11 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.insecure-transport.requests.request-with-http.request-with-http"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/phpinfo.jpg.php:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.phpinfo-use.phpinfo-use"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/phpinfo.php:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.phpinfo-use.phpinfo-use"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/phpinfo.phtml:1 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=php.lang.security.phpinfo-use.phpinfo-use"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/shell.gif^shell.php:1 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-exec.tainted-exec"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/shell.jpeg.php:1 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-exec.tainted-exec"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/shell.jpg.php:1 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-exec.tainted-exec"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/shell.jpg^shell.php:1 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-exec.tainted-exec"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/shell.php:1 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-exec.tainted-exec"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/shell.phtml:1 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-exec.tainted-exec"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/shell.png.php:1 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-exec.tainted-exec"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Upload Insecure Files/Extension PHP/shell.png^shell.php:1 [cmdi]">
+      <failure type="cmdi" message="cmdi finding (seen_by 1: semgrep) rule=php.lang.security.injection.tainted-exec.tainted-exec"/>
+    </testcase>
+    <testcase classname="swisskyrepo_PayloadsAllTheThings" name="Web Sockets/README.md:110 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket"/>
+    </testcase>
+  </testsuite>
+  <testsuite name="we45_DVFaaS-Damn-Vulnerable-Functions-as-a-Service" tests="5" failures="5">
+    <testcase classname="we45_DVFaaS-Damn-Vulnerable-Functions-as-a-Service" name="iam_privilege_escalation/ops/create_dummies.py:41 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.md5-used-as-password.md5-used-as-password"/>
+    </testcase>
+    <testcase classname="we45_DVFaaS-Damn-Vulnerable-Functions-as-a-Service" name="iam_privilege_escalation/ops/db_provision.tf:12 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=terraform.aws.security.aws-dynamodb-table-unencrypted.aws-dynamodb-table-unencrypted"/>
+    </testcase>
+    <testcase classname="we45_DVFaaS-Damn-Vulnerable-Functions-as-a-Service" name="injection/mqtt_rds_sql_event_injection/sqli/app.py:25 [sqli]">
+      <failure type="sqli" message="sqli finding (seen_by 1: semgrep) rule=python.lang.security.audit.formatted-sql-query.formatted-sql-query"/>
+    </testcase>
+    <testcase classname="we45_DVFaaS-Damn-Vulnerable-Functions-as-a-Service" name="insecure_deserialization/insecure-deserialization/app.py:28 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.flask.security.insecure-deserialization.insecure-deserialization"/>
+    </testcase>
+    <testcase classname="we45_DVFaaS-Damn-Vulnerable-Functions-as-a-Service" name="xxe/xxe-example/app.py:89 [sast]">
+      <failure type="sast" message="sast finding (seen_by 1: semgrep) rule=python.lang.security.audit.md5-used-as-password.md5-used-as-password"/>
+    </testcase>
+  </testsuite>
+</testsuites>
