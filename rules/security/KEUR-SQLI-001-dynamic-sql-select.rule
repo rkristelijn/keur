@@ -1,0 +1,17 @@
+# SQL injection: a query sink (execute/query/prepare) whose SQL string is built
+# dynamically and contains SELECT. Promoted from the learn loop
+# (LEARNED-1789868567-4). Anchored on the sink + the SQL keyword. Target narrowed
+# to code extensions on promotion.
+id: KEUR-SQLI-001
+title: Potential SQL injection via dynamically built query
+category: sqli
+severity: critical
+engine: pattern
+action: block
+target:
+  extensions: .js .php .rb .py .ts .go .java
+patterns:
+  - regex: (?i)\b(?:execute|query|prepare)\s*\(\s*["'][^"']*\bselect\b[^"']*["']\s*[%+.]
+    message: A SQL query sink is called with a SELECT string that is then combined with other values (%, +, ., format args) — potential SQL injection (CWE-89). Use parameterised queries / prepared statements with bound parameters.
+confidence: 0.8
+fix: Use parameterised queries or an ORM with bound parameters; never concatenate untrusted input into SQL.

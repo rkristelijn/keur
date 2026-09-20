@@ -1,0 +1,19 @@
+# Rule 5/5 (composite engine). A workflow that BOTH pins a mutable action tag
+# AND declares no permissions block is a doubly-weak CI setup: a moved tag could
+# run malicious code with an over-broad default token. Either leaf alone warns;
+# together it is an escalation. The leaves (KEUR-CICD-001/003) still fire on
+# their own — this composite only combines their evidence.
+#
+# Reference composite: the "both together is worse" logic is DATA here, not C++.
+# @see docs/adr/ADR-009-composite-rules-and-facts.md
+# @implements ADR-009.composite
+id: KEUR-CICD-010
+title: High-risk CI workflow (mutable action tag AND no permissions block)
+category: sast
+severity: error
+engine: composite
+action: block
+composite:
+  all: KEUR-CICD-001 KEUR-CICD-003
+message: "High-risk workflow: it pins a mutable action tag AND has no permissions block. A re-pointed tag could run malicious code with an over-broad default token. Pin actions to a SHA and add a least-privilege permissions: block."
+fix: "Pin all actions to commit SHAs and add a scoped permissions: block — fixing either leaf clears this composite."

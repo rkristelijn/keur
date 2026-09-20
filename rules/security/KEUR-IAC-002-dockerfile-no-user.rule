@@ -1,0 +1,17 @@
+# Leaf rule (runs standalone AND as a composite leaf): a Dockerfile that never
+# declares a non-root USER. Maps to trivy DS-0002 / checkov CKV_DOCKER_3.
+# @see docs/adr/ADR-009-composite-rules-and-facts.md
+# @implements ADR-009.composite
+id: KEUR-IAC-002
+title: Dockerfile runs as root (no USER instruction)
+category: iac
+severity: warning
+engine: absence
+action: warn
+confidence: 0.6
+target:
+  filenames: Dockerfile
+patterns:
+  - regex: (?im)^\s*USER\s+\w
+    message: "Dockerfile never sets a non-root USER — the container runs as root. Add a `USER <non-root>` instruction."
+fix: "Add a non-root `USER` instruction before the CMD/ENTRYPOINT."
