@@ -1,7 +1,11 @@
 # ADR-002 — keur as a single compiled C++ binary
 
+@id ADR-002
 **Status:** Accepted  
 **Date:** 2026-09-16  
+**Coverage**: none  <!-- build/packaging decision, no single code site -->
+
+
 **Replaces:** shell entrypoint `bin/keur` + `lib/*.sh` + `scanners/rules.sh`
 
 ---

@@ -1,7 +1,9 @@
 # ADR-003 — Provider / adapter architecture (codeflex)
 
+@id ADR-003
 **Status:** Accepted
 **Date:** 2026-09-16
+**Coverage**: code
 **Builds on:** ADR-002 (single C++ binary)
 
 ---

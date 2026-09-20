@@ -1,7 +1,9 @@
 # ADR-001 — Native RE2 rule engine
 
+@id ADR-001
 Status: accepted
 Date: 2026-09-16
+Coverage: code
 
 ## Context
 

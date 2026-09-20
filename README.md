@@ -1,6 +1,11 @@
 # keur
 
-Deterministic guardrails for AI-generated code.
+Deterministic guardrails for AI-generated code — an **anti-slop, vibe-code
+limiter** that runs as a git pre-commit hook.
+
+> Looking for: AI code guardrails · vibe-coding limiter · anti-slop · AI/LLM
+> pre-commit gate · shift-left security hook · secret & hardening scanning ·
+> deterministic policy-as-code. That's keur.
 
 keur is a single compiled C++ binary that runs as a git pre-commit / pre-push
 gate. On commit or push it reads the staged files, runs a native RE2 rule engine
@@ -17,12 +22,35 @@ The rule engine uses RE2 (Google's regex library), which is linear-time and has
 no catastrophic backtracking. Same input, same rules, same verdict, every time.
 See `docs/adr/` for the decisions behind the design.
 
+## More than a hook
+
+That gate is the core, but keur grows on top of it into a **profile-driven,
+standards-grounded guardrail — a copilot for coding and vibe-coding**:
+
+- A **project profile** (`owner`, `lifecycle`, `criticality`, `maturity`, `docs`)
+  decides what blocks vs. warns — a prototype and a mission-critical service run
+  the same hook but are held to different bars. → `docs/adr/ADR-011-project-profile.md`
+- **Security & hardening by rules on known patterns**, with autodetection of
+  platform / framework / runtime. → `docs/adr/ADR-009-composite-rules-and-facts.md`
+- **Clear errors** so a human *or an AI* knows exactly what to fix — no reaching
+  for `--no-verify`.
+- **Traceability** (`@id` / `@implements` / `@proves`, IDE-clickable) and
+  **pipeline coverage** (which CI stages a repo has vs. needs).
+  → `docs/adr/ADR-010-traceability.md`, `docs/adr/ADR-012-pipeline-coverage.md`
+- **Learns on your own codebase** with a local LLM — **your IP never leaves your
+  machine**. → `docs/design/learning-loop.md`
+
+keur is **MIT-licensed and free**. It wraps open-source tools; paying it forward
+is welcome but never required — a good rule (merge request), a donation, or the
+wishlist. The full picture: **`docs/design/vision.md`**.
+
 ## Why C++
 
-An earlier shell prototype was correct but too slow for a hook: spawning a
-process per rule took minutes over a large rule corpus. The compiled engine
-scans the same corpus in well under a second. A single binary also means one
-artifact to distribute and no runtime language dependency. See
+A pre-commit hook runs on every commit, so it must be **sub-second** — slow it
+down and people disable it. An earlier shell prototype was correct but too slow:
+spawning a process per rule took minutes over a large rule corpus. The compiled
+engine scans the same corpus in well under a second. A single binary also means
+one artifact to distribute and no runtime language dependency. See
 `docs/adr/ADR-001-native-rule-engine.md` and
 `docs/adr/ADR-002-single-cpp-binary.md`.
 
@@ -309,16 +337,25 @@ suppress `SEC-043`.
 
 ## Documentation
 
-- `docs/c4.md` - C4 context, container, and component views
-- `docs/dataflow.md` - staged files to verdict data flow
-- `docs/diagrams.md` - class diagram and sequence diagrams
-- `docs/adr/ADR-001-native-rule-engine.md` - why a native RE2 engine
-- `docs/adr/ADR-002-single-cpp-binary.md` - why one compiled binary
-- `docs/adr/ADR-003-provider-architecture.md` - the adapter / provider layers
-- `docs/adr/ADR-004-analysis-engine-evolution.md` - staged path from line-scanner to language-agnostic analysis
-- `docs/adr/ADR-005-platform-abstraction.md` - cross-platform build (platform layer, portability rules, CI)
-- `docs/adr/ADR-006-word-size-portability.md` - 32/64-bit as a compile-time target, proven by a 32-bit CI build + smoke
-- `docs/design/learning-loop.md` - how `keur learn` trains the rule set (the pipeline, the gate, the scripts under `eval/`)
+Start with the big picture, then dive into the decisions:
+
+- **`docs/design/vision.md`** - the whole picture: from hook to copilot
+- `docs/design/traceability.md` - the `@id` / `@implements` / `@proves` convention
+- `docs/design/learning-loop.md` - how `keur learn` trains the rule set on your code
+- `docs/c4.md`, `docs/dataflow.md`, `docs/diagrams.md` - architecture views
+
+Decisions (ADRs) — the *why* behind each part:
+
+- `docs/adr/ADR-001..003` - native RE2 engine, single binary, provider/adapter layers
+- `docs/adr/ADR-004` - staged path to language-agnostic analysis
+- `docs/adr/ADR-005..006` - cross-platform build, 32/64-bit portability
+- `docs/adr/ADR-007` - pattern-level `exclude` (RE2-friendly "pattern-not")
+- `docs/adr/ADR-008` - incremental compile / build-affected
+- `docs/adr/ADR-009` - composite rules & the fact-driven engine
+- `docs/adr/ADR-010` - lightweight traceability (`@id`/`@implements`/`@proves`)
+- `docs/adr/ADR-011` - project profile (owner, lifecycle, criticality, maturity, docs)
+- `docs/adr/ADR-012` - pipeline coverage (which CI/CD stages a project needs)
+- `docs/adr/ADR-013` - OWASP SAMM coverage & parked gaps
 - `CONTRIBUTING.md` - build, test, coverage, mutation, layout, self-checks
 
 ## License

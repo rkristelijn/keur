@@ -17,7 +17,7 @@ id: KEUR-SEC-010               # unique, stable ID (never renamed once used)
 title: Hardcoded password      # short human title
 category: secret               # secret | sast | cmdi | cbi | pii | quality | inclusivity | ...
 severity: critical             # critical | error | warning | info
-engine: pattern                # pattern | presence | absence | file-absence | file-presence | block-absence
+engine: pattern                # pattern | presence | absence | file-absence | file-presence | block-absence | count | multiline
 action: block                  # optional: block | warn | advisory (else derived from severity)
 confidence: 0.9                # optional: 0.0..1.0 (else derived from action)
 message: default finding text  # optional rule-level message (fallback for patterns without one)
@@ -142,6 +142,125 @@ patterns:
   - regex: \b(it|test)\s*\(
 block_inner: \b(expect|assert)\s*[.(]
 ```
+
+### `count`
+Flag a file ONCE when the first pattern matches at least `min_count` times. A
+reusable "too many of X" primitive: long dispatch chains, too many imports, too
+many TODOs. The finding points at the line of the match that crosses the
+threshold. Fires once per file, not per match.
+
+- `patterns[0].regex` — what to count.
+- `min_count` — the threshold (default 2). Fire only at N or more matches.
+- `within` — scope; `file` for now (per-block reserved).
+
+```yaml
+# 8+ else-if(x == …) branches → consider a table or strategy registry (ADR-014)
+id: KEUR-QUAL-001
+title: Long conditional dispatch chain
+category: quality
+severity: warning
+engine: count
+min_count: 8
+skip_comments: true
+target:
+  extensions: .cpp .cc .h
+patterns:
+  - regex: \belse if\s*\([^)]*==
+```
+
+### `multiline`
+Match a pattern that SPANS lines, bounded to a sliding window. RE2 matches one
+line at a time; this engine joins a window of `window` lines with newlines and
+matches once over the join, so `[\s\S]*?` / `(?s).` can cross lines **without** a
+file-wide match (which would flood findings — see the anti-patterns above). The
+finding is reported at the window's START line, so it points at a real place and
+inline `keur:ignore` still works. Use it for "assign here, use there" shapes: a
+secret assigned on one line and passed to a client a couple of lines down, a SQL
+string built over several `+=`, a config value split across lines.
+
+- `patterns[0].regex` — the cross-line pattern (use `[\s\S]*?` to span, kept
+  non-greedy; the window bounds it so this cannot run away).
+- `within: window` — selects the sliding-window scope.
+- `window` — window size in lines (default 2). The match never spans more than
+  this many lines; after a hit the scan resumes past the window (one span, one
+  finding).
+
+```yaml
+# a secret assigned then passed to a client within 3 lines
+id: KEUR-SEC-009
+title: Hardcoded secret assigned then used
+category: secret
+severity: warning
+engine: multiline
+within: window
+window: 3
+skip_comments: true
+target:
+  extensions: .py .js .ts .go
+patterns:
+  - regex: (?i)(secret|token|api[_-]?key)\s*=\s*["'][^"']{12,}["'][\s\S]*?(client|connect|use)\s*\(
+```
+
+## Facts, `requires:` and composite rules (ADR-009)
+
+Beyond single patterns, a rule can reason about *context* and *combine* other
+rules. This is data, not engine logic — the engine only evaluates it.
+
+### Facts
+
+Before matching, keur derives a small, flat, language-neutral **facts** map from
+direct manifest pins and file presence only (no dependency graph, no network):
+
+```json
+{ "langs": ["js"], "frameworks": ["express"], "versions": {"express":"4.17.1"},
+  "runtimes": {"node":"18"} }
+```
+
+Sources read: file extensions (langs), `package.json` deps + engines, `go.mod`
+require/`go` directive, `pom.xml`, `composer.json`, and Dockerfile `FROM`.
+Inspect them with `keur-rules --dir <path> --facts`.
+
+### `requires:` — gate a rule on facts
+
+A rule (single or composite) may declare a `requires:` guard. If the facts don't
+satisfy it, the rule is **never loaded, compiled, or run** (most-discriminating-
+first: a JS-only repo never pays for Java/Docker rules). Empty guard = always
+applies (fully backwards compatible).
+
+```yaml
+requires:
+  lang: ts go            # any-of: at least one of these languages present
+  framework: express     # all-of: each framework must be present
+  version: express <4.18.0   # "name <constraint>": <, <=, >, >=, =, or "A - B"
+```
+
+Version predicates compare against a **direct pin** only (numeric, so 1.9 < 1.10;
+pre-release suffixes ignored). A missing pin means "not satisfied" — keur prefers
+a missed conditional finding over a guessed one.
+
+### `engine: composite` — combine other rules with `all`/`any`/`not`
+
+A composite composes the results of ordinary rules (each `ref` also runs
+standalone). It runs *after* the normal pass, over the ids that fired, and adds
+no new match primitive.
+
+```yaml
+id: KEUR-IAC-010
+title: Unhardened container image
+category: iac
+severity: warning
+engine: composite
+requires:
+  framework: docker         # only in repos with a Dockerfile
+composite:
+  all: KEUR-IAC-002 KEUR-IAC-003   # both must fire
+  # any: RULE-A RULE-B             # at least one
+  # not: RULE-C                    # must NOT fire
+message: "Runs as root AND has no HEALTHCHECK — either alone is a warning, both is a gap."
+```
+
+`all`/`any`/`not` take space-separated rule ids; `ref: <id>` is a single-leaf
+form. Each referenced id must resolve to a real rule.
 
 ## Comment / string awareness
 
