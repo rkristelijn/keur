@@ -1,0 +1,12 @@
+id: LEARNED-1789778408-13
+title: IaC Secret Exposure
+category: iac
+severity: critical
+engine: pattern
+message: Potential exposure of sensitive information in IaC files.
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)("heroku_api_key"\s*:\s*"[^"]{12,}"|"heroku_email"\s*:\s*"[^"]+@[^"]+\.[^"]+")
+slop: true
+# composite-candidate: fires on form, not concept; kept for corroboration. from FN:   checkov  iac       Plazmaz_leaky-repo/cloud/heroku.json

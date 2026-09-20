@@ -6,6 +6,7 @@
  * selects it via PLATFORM_SRC when OS == Windows_NT).
  *
  * @see docs/adr/ADR-005-platform-abstraction.md
+ * @implements ADR-005
  */
 #include <windows.h>
 

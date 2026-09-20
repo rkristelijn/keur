@@ -1,0 +1,31 @@
+id: KEUR-ARCH-005
+title: No hardcoded framework/CVE/version tables in the engine (ADR-009 invariant)
+category: architecture
+severity: error
+engine: pattern
+action: block
+# keur guarding its own engine. ADR-009's core invariant: the engine stays DUMB —
+# which frameworks/CVEs/versions matter is DATA in rules/, never knowledge baked
+# into C++. This is exactly where cpm drifted (scan_lang.cpp hardcodes
+# check_fw("react", 18, ...) EOL tables); keur must not. The self-check makes the
+# invariant enforceable, the same way KEUR-PORT-* blocks platform drift.
+#
+# It fires on the drift SHAPES: a CVE id literal in engine source, or a
+# framework/EOL "table" call pairing a quoted name with a version number. The
+# facts readers (facts.cpp) legitimately read manifests and map extensions to
+# languages — that is mechanism, not a catalogue — so this targets the
+# name+version-number pairing and CVE literals, which mechanism never needs.
+# @see docs/adr/ADR-009-composite-rules-and-facts.md
+# @implements ADR-009
+skip_comments: true
+skip_strings: false
+target:
+  extensions: .cpp .h
+  exclude_paths: _test.cpp test/ tests/ ../keur/ vendor/
+patterns:
+  - regex: (?i)"CVE-\d{4}-\d{3,}"
+    message: "Hardcoded CVE id in engine source. A CVE belongs in a .rule (requires: + composite), not in C++ — the engine must not carry a CVE catalogue (ADR-009)."
+  - regex: (?i)"(react|angular|vue|svelte|next|nuxt|nestjs|express|fastify|spring|django|laravel|rails)"\s*,\s*\d+
+    message: "Hardcoded framework-version table (name paired with a version number) in engine source — this is the cpm-style EOL drift ADR-009 forbids. Move the framework/version knowledge into a .rule with requires:/composite. The engine stays dumb."
+confidence: 0.9
+fix: "Delete the hardcoded framework/CVE/version knowledge from src/ and express it as data: a .rule with a requires: guard (facts: framework/version) and, if it combines conditions, engine: composite. See docs/adr/ADR-009 and docs/rules-authoring.md."

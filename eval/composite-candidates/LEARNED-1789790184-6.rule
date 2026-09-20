@@ -1,0 +1,13 @@
+id: LEARNED-1789790184-6
+title: CI Pipeline Configuration Exposure
+category: sast
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)\bname:\s*["']CI Pipeline["']
+    message: CI pipeline configuration exposed in repository.
+confidence: 0.9
+slop: true
+# composite-candidate: fires on form, not concept; kept for corroboration. from FN:   semgrep  sast      bkimminich_juice-shop-ctf/.github/workflows/ci.yml

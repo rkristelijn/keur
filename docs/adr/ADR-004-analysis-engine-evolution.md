@@ -1,7 +1,9 @@
 # ADR-004 — Toward a language-agnostic analysis engine (staged evolution)
 
+@id ADR-004
 Status: proposed
 Date: 2026-09-17
+Coverage: code
 
 ## Context
 
@@ -108,29 +110,29 @@ Design constraints we bind ourselves to:
 ### Staged roadmap
 
 - **Stage 0 (done):** RE2 line engine (ADR-001), provider architecture (ADR-003),
-  `.keur/rules` cascade, the learn loop.
+  `.keur/rules` cascade, the learn loop.  @id ADR-004.stage0
 - **Stage 1 — tokenizer + comment/string awareness (in progress).** Adopt cpm's
   language tokenizer (`util/tokenizer`, from cpm `adr-165`), add `skip_comments`
   / `skip_strings` rule fields, scan stripped content when requested. Kills the
-  comment/string false-positive class. This is "lex" from the pipeline.
+  comment/string false-positive class. This is "lex" from the pipeline.  @id ADR-004.stage1
 - **Stage 2 — block/scope engines.** Adopt cpm's `block-absence` /
   `block_inner` / `block_trigger`, `scope` (line ranges), `extract`, and the
   file-level engines (cpm `adr-166`). Gives cross-line matching (e.g. "a test
   block with no assertion", "a function that opens a file but never closes it")
-  without a parser — brace counting on stripped content.
+  without a parser — brace counting on stripped content.  @id ADR-004.stage2
 - **Stage 3 — light structural index.** Not a full AST: a practical model
   (TranslationUnit → Namespace/Class/Function/Include/Macro; Function → name,
   params, calls, body, location) sufficient to write structural rules. C++
-  first.
+  first.  @id ADR-004.stage3
 - **Stage 4 — source/sink/sanitizer flow.** A first-class flow rule type
   (`from: external-input`, `to: sink`, `not-through: sanitizer`) over the
-  structural index, with the language adapters classifying sources/sinks.
+  structural index, with the language adapters classifying sources/sinks.  @id ADR-004.stage4
 - **Stage 5 — expression DSL.** `all/any/not/node/name/argument/inside/...` as
-  the rule matcher language, so new structural rules need no C++.
+  the rule matcher language, so new structural rules need no C++.  @id ADR-004.stage5
 - **Stage 6 — language adapters + inline code.** `LanguageFragment` /
   `ExecutionBoundary`: nest shell/python/SQL/regex/template fragments inside a
   host language and let one flow rule traverse the boundary. Prioritise embedded
-  shell, SQL, regex, templates, JavaScript, Python, PowerShell.
+  shell, SQL, regex, templates, JavaScript, Python, PowerShell.  @id ADR-004.stage6
 
 Each stage is a separate unit of work with its own tests; later stages are only
 started once the earlier ones are green and have earned their keep on the corpus.

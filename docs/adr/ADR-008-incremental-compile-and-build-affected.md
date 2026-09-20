@@ -1,6 +1,7 @@
 # ADR-008 — Incremental compile (`-MMD -MP`) and a note on build-affected
 
-**Status**: accepted (part 1) / proposed (part 2) · **Date**: 2026-09-18
+@id ADR-008
+**Status**: accepted (part 1) / proposed (part 2) · **Date**: 2026-09-18 · **Coverage**: none  <!-- Makefile build behaviour, not a code site -->
 
 ## Part 1 — Automatic header dependency tracking (DONE)
 

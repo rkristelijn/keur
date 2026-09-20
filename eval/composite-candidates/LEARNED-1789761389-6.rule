@@ -1,0 +1,11 @@
+id: LEARNED-1789761389-6
+title: Potential SQL Injection in Comments
+category: sqli
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)\b(sqli|sql\s+injection|sql\s+attack|sql\s+vulnerability)\b
+    message: "Comment mentions SQL injection, indicating potential vulnerability."
+confidence: 0.8

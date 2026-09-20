@@ -1,0 +1,20 @@
+# Rule 2/5 (multiline engine). Shell-injection in a GitHub Actions `run:` block:
+# an untrusted ${{ github.event.* }} / pull_request title/body expression
+# interpolated into a shell command. The `run:` and the expression often sit on
+# nearby lines, so a single-line regex misses it — the window joins them,
+# bounded. Maps to semgrep run-shell-injection.
+id: KEUR-CICD-002
+title: Shell injection in a workflow run block (untrusted GitHub context)
+category: sast
+severity: error
+engine: multiline
+within: window
+window: 4
+action: block
+target:
+  extensions: .yml .yaml
+patterns:
+  - regex: (?i)\brun:\s*[\s\S]{0,200}?\$\{\{\s*github\.event\.(?:issue|pull_request|comment)\.[\s\S]*?\}\}
+    message: "Untrusted GitHub context (github.event.issue/pull_request/comment.*) is interpolated into a shell `run:` command — attacker-controlled title/body can inject shell (CWE-78). Pass it via an env: var and quote it, never inline in run:."
+confidence: 0.75
+fix: "Assign the expression to an env: variable and reference \"$VAR\" (quoted) in run:, so the shell never parses attacker-controlled text."

@@ -1,0 +1,13 @@
+id: LEARNED-1789761892-12
+title: Docker container running in detached mode without proper security context
+category: sast
+severity: warning
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java .md .txt
+patterns:
+  - regex: (?i)docker\s+run\s+-d\s+-p\s+\d+:\d+\s+--name\s+\w+\s+\w+
+    message: "Docker container is running in detached mode without proper security context. Ensure that the container is properly secured."
+confidence: 0.8
+slop: true
+# composite-candidate: fires on form, not concept; kept for corroboration. from FN:   semgrep  sast      Aif4thah_VulnerableLightApp/.github/workflows/docker.yml

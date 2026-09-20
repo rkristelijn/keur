@@ -33,6 +33,8 @@
 
 #include "../../vendor/doctest.h"
 #include "rules/rule_engine.h"
+#include "rule/facts.h"
+#include "rule/semver.h"
 #include "tokenizer.h"
 #include "cmd/check.h"
 #include "cmd/hook.h"
@@ -792,6 +794,45 @@ TEST_CASE("tokenizer: nullptr syntax returns content unchanged") {
     CHECK(keur::strip_comments(src, nullptr) == src);
 }
 
+SCENARIO("[feature:rule-engine] semver comparator handles ops and numeric order") {  // @proves ADR-009.requires
+    using keur::semver_satisfies;
+    using keur::semver_compare;
+    CHECK(semver_compare("1.9.0", "1.10.0") < 0);   // numeric, not lexical
+    CHECK(semver_compare("2.0.0", "2.0") == 0);      // missing parts = 0
+    CHECK(semver_satisfies("4.17.1", "<4.18.0"));
+    CHECK_FALSE(semver_satisfies("4.18.0", "<4.18.0"));
+    CHECK(semver_satisfies("1.5.0", ">=1.2"));
+    CHECK(semver_satisfies("1.5.0", "1.0.0 - 2.0.0"));
+    CHECK_FALSE(semver_satisfies("3.0.0", "1.0.0 - 2.0.0"));
+    CHECK(semver_satisfies("4.18.0-alpha", ">=4.18.0"));  // suffix ignored
+    CHECK_FALSE(semver_satisfies("", "<1.0.0"));           // empty pin = not satisfied
+}
+
+SCENARIO("[feature:rule-engine] facts readers derive langs/frameworks/versions") {  // @proves ADR-009.facts
+    keur::Facts f;
+    keur::facts_read_package_json(
+        "{\"dependencies\":{\"express\":\"^4.17.1\"},\"engines\":{\"node\":\">=18\"}}", f);
+    CHECK(f.frameworks.count("express") == 1);
+    CHECK(f.versions["express"] == "4.17.1");     // ^ stripped
+    CHECK(f.runtimes["node"] == "18");            // >= stripped
+    CHECK(f.langs.count("js") == 1);
+
+    keur::Facts g;
+    keur::facts_read_go_mod("module x\n\ngo 1.21\n\nrequire (\n  github.com/gin-gonic/gin v1.9.1\n)\n", g);
+    CHECK(g.langs.count("go") == 1);
+    CHECK(g.runtimes["go"] == "1.21");
+    CHECK(g.versions["github.com/gin-gonic/gin"] == "1.9.1");
+
+    keur::Facts d;
+    keur::facts_read_dockerfile("FROM node:18-alpine\nRUN npm ci\n", d);
+    CHECK(d.runtimes["node"] == "18-alpine");
+    CHECK(d.frameworks.count("docker") == 1);
+
+    CHECK(keur::facts_lang_for_ext(".ts") == "ts");
+    CHECK(keur::facts_lang_for_ext(".go") == "go");
+    CHECK(keur::facts_lang_for_ext(".unknown") == "");
+}
+
 } // TEST_SUITE("unit")
 
 
@@ -854,7 +895,7 @@ SCENARIO("[feature:suppress] keur:ignore suppresses KEUR-SEC-001") {
     cleanup_dir(dir);
 }
 
-SCENARIO("[feature:rule-engine] custom pattern rule fires on trigger file") {
+SCENARIO("[feature:rule-engine] custom pattern rule fires on trigger file") {  // @proves engine-pattern
     auto rules = keur::rules_load(fixtures_dir() + "/rules");
     REQUIRE(!rules.empty());
     std::string dir;
@@ -1170,7 +1211,7 @@ SCENARIO("[feature:rule-engine] rule-level message is the fallback when a patter
     cleanup_dir(dir);
 }
 
-SCENARIO("[feature:rule-engine] block-absence flags a block missing its inner regex") {
+SCENARIO("[feature:rule-engine] block-absence flags a block missing its inner regex") {  // @proves engine-block-absence
     std::string dir = create_temp_dir();
     REQUIRE(!dir.empty());
     write_file(dir + "/NOASSERT.rule",
@@ -1189,6 +1230,252 @@ SCENARIO("[feature:rule-engine] block-absence flags a block missing its inner re
     for (auto& f : fs) if (f.rule_id == "TEST-NOASSERT") { hits++; line = f.line; }
     CHECK(hits == 1);
     CHECK(line == 4);   // only the second block (no expect)
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] presence fires once per file when the pattern appears") {  // @proves engine-presence
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/PRES.rule",
+        "id: PRES-1\ntitle: has eval\ncategory: sast\nseverity: warning\nengine: presence\n"
+        "target:\n  extensions: .js\n"
+        "patterns:\n  - regex: \\beval\\s*\\(\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    std::string js = dir + "/a.js";
+    write_file(js, "eval(x);\neval(y);\nconst z = 1;\n");   // two matches, one file
+    auto fs = keur::rules_scan_files(rules, {js});
+    int hits = 0; for (auto& f : fs) if (f.rule_id == "PRES-1") hits++;
+    CHECK(hits == 1);   // presence = at most one finding per file
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] absence fires when a required pattern is missing") {  // @proves engine-absence
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/ABS.rule",
+        "id: ABS-1\ntitle: missing license header\ncategory: quality\nseverity: warning\nengine: absence\n"
+        "target:\n  extensions: .go\n"
+        "patterns:\n  - regex: SPDX-License-Identifier\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    std::string missing = dir + "/no_header.go";
+    write_file(missing, "package main\n");
+    std::string present = dir + "/has_header.go";
+    write_file(present, "// SPDX-License-Identifier: MIT\npackage main\n");
+    auto fs = keur::rules_scan_files(rules, {missing, present});
+    int hits = 0; std::string where;
+    for (auto& f : fs) if (f.rule_id == "ABS-1") { hits++; where = f.file; }
+    CHECK(hits == 1);                          // only the file WITHOUT the header
+    CHECK(where.find("no_header.go") != std::string::npos);
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] file-presence flags each matching file by name") {  // @proves engine-file-presence
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/FP.rule",
+        "id: FP-1\ntitle: committed .env\ncategory: secret\nseverity: critical\nengine: file-presence\n"
+        "target:\n  filenames: .env\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    std::string env = dir + "/.env";
+    write_file(env, "SECRET=x\n");
+    auto fs = keur::rules_scan_files(rules, {env});
+    int hits = 0; for (auto& f : fs) if (f.rule_id == "FP-1") hits++;
+    CHECK(hits == 1);
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] file-absence flags when a required file is absent") {  // @proves engine-file-absence
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/FA.rule",
+        "id: FA-1\ntitle: missing SECURITY.md\ncategory: quality\nseverity: warning\nengine: file-absence\n"
+        "target:\n  filenames: SECURITY.md\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    std::string other = dir + "/README.md";
+    write_file(other, "# readme\n");
+    auto fs = keur::rules_scan_files(rules, {other});   // no SECURITY.md in the set
+    int hits = 0; for (auto& f : fs) if (f.rule_id == "FA-1") hits++;
+    CHECK(hits == 1);
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] pattern exclude (pattern-not) suppresses the safe case") {  // @proves engine-pattern
+    // Guards ADR-007: match system(...) EXCEPT when the arg is a bare literal.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/EX.rule",
+        "id: EX-1\ntitle: non-literal system()\ncategory: cmdi\nseverity: error\nengine: pattern\n"
+        "target:\n  extensions: .c\n"
+        "patterns:\n"
+        "  - regex: \\bsystem\\s*\\(\n"
+        "    exclude: \\bsystem\\s*\\(\\s*\"\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    std::string c = dir + "/a.c";
+    // line 1: literal → excluded (safe). line 2: variable → flagged.
+    write_file(c, "system(\"ls\");\nsystem(cmd);\n");
+    auto fs = keur::rules_scan_files(rules, {c});
+    int hits = 0; int line = 0;
+    for (auto& f : fs) if (f.rule_id == "EX-1") { hits++; line = f.line; }
+    CHECK(hits == 1);      // only the non-literal call
+    CHECK(line == 2);      // the safe literal on line 1 was excluded
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] block-absence block_trigger gates which blocks are checked") {  // @proves engine-block-absence
+    // block_trigger: only evaluate blocks that contain the trigger regex.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/BT.rule",
+        "id: BT-1\ntitle: gated block-absence\ncategory: quality\nseverity: warning\nengine: block-absence\n"
+        "block_inner: \\bexpect\\s*\\(\n"
+        "block_trigger: @security\n"
+        "target:\n  extensions: .js\n"
+        "patterns:\n  - regex: \\b(it|test)\\s*\\(\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    std::string js = dir + "/a.test.js";
+    // block 1: no trigger → NOT checked even though it lacks expect().
+    // block 2: has @security trigger, lacks expect() → flagged.
+    write_file(js,
+        "it(\"plain\", () => {\n  const x = 1;\n});\n"
+        "it(\"@security\", () => {\n  const y = 2;\n});\n");
+    auto fs = keur::rules_scan_files(rules, {js});
+    int hits = 0; for (auto& f : fs) if (f.rule_id == "BT-1") hits++;
+    CHECK(hits == 1);   // only the triggered block (block 1 is gated out)
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] count engine fires once at min_count, not below") {  // @proves engine-count
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/CNT.rule",
+        "id: CNT-1\ntitle: too many TODOs\ncategory: quality\nseverity: warning\nengine: count\n"
+        "min_count: 3\n"
+        "target:\n  extensions: .py\n"
+        "patterns:\n  - regex: \\bTODO\\b\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+
+    // below threshold: 2 TODOs → no finding
+    std::string few = dir + "/few.py";
+    write_file(few, "# TODO one\nx = 1\n# TODO two\n");
+    auto f1 = keur::rules_scan_files(rules, {few});
+    int hits_few = 0; for (auto& f : f1) if (f.rule_id == "CNT-1") hits_few++;
+    CHECK(hits_few == 0);
+
+    // at/over threshold: 3 TODOs → exactly one finding, at the 3rd match's line
+    std::string many = dir + "/many.py";
+    write_file(many, "# TODO 1\n# TODO 2\ny = 2\n# TODO 3\n# TODO 4\n");
+    auto f2 = keur::rules_scan_files(rules, {many});
+    int hits_many = 0; int line = 0;
+    for (auto& f : f2) if (f.rule_id == "CNT-1") { hits_many++; line = f.line; }
+    CHECK(hits_many == 1);   // fires ONCE, not per match
+    CHECK(line == 4);        // the 3rd TODO (crossing the threshold) is on line 4
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] multiline window fires within N lines, not beyond") {  // @proves engine-multiline
+    // RE2 matches one line at a time; the window engine joins a sliding window of
+    // `window` lines so a pattern can span them — but STAYS bounded to the window
+    // (no file-wide .*) and reports the window's START line. @see engine-multiline
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/ML.rule",
+        "id: ML-1\ntitle: secret assigned then used\ncategory: secret\nseverity: critical\n"
+        "engine: multiline\nwithin: window\nwindow: 3\n"
+        "target:\n  extensions: .py\n"
+        "patterns:\n  - regex: secret\\s*=[\\s\\S]*?use\\s*\\(\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+
+    // within the window: assign on line 1, use on line 3 → one finding at line 1
+    std::string near = dir + "/near.py";
+    write_file(near, "secret = get()\nx = 1\nuse(secret)\n");
+    auto f1 = keur::rules_scan_files(rules, {near});
+    int hits_near = 0, line = 0;
+    for (auto& f : f1) if (f.rule_id == "ML-1") { hits_near++; line = f.line; }
+    CHECK(hits_near == 1);   // fires once for the window
+    CHECK(line == 1);        // reports the window START line, not the joined blob
+
+    // beyond the window: assign on line 1, use on line 5 → span > 3 lines → no finding
+    std::string far = dir + "/far.py";
+    write_file(far, "secret = get()\na = 1\nb = 2\nc = 3\nuse(secret)\n");
+    auto f2 = keur::rules_scan_files(rules, {far});
+    int hits_far = 0; for (auto& f : f2) if (f.rule_id == "ML-1") hits_far++;
+    CHECK(hits_far == 0);    // the window (3 lines) never spans line 1..5
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] requires: prunes a rule when facts don't satisfy it") {  // @proves ADR-009.requires
+    // A rule requiring framework=express must NOT fire in a repo whose package.json
+    // has no express; the same rule MUST fire when express is present.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/REQ.rule",
+        "id: REQ-1\ntitle: express-only rule\ncategory: sast\nseverity: warning\nengine: pattern\n"
+        "requires:\n  framework: express\n"
+        "target:\n  extensions: .js\n"
+        "patterns:\n  - regex: app\\.get\\s*\\(\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+
+    // no express in the manifest → guard fails → rule pruned → no finding
+    write_file(dir + "/package.json", "{\"dependencies\": {\"lodash\": \"^4.0.0\"}}\n");
+    std::string js = dir + "/a.js";
+    write_file(js, "app.get('/x', h);\n");
+    auto f1 = keur::rules_scan_dir(rules, dir);
+    int hits_no = 0; for (auto& f : f1) if (f.rule_id == "REQ-1") hits_no++;
+    CHECK(hits_no == 0);
+
+    // now express IS pinned → guard satisfied → rule runs → fires
+    write_file(dir + "/package.json", "{\"dependencies\": {\"express\": \"4.17.1\"}}\n");
+    auto f2 = keur::rules_scan_dir(rules, dir);
+    int hits_yes = 0; for (auto& f : f2) if (f.rule_id == "REQ-1") hits_yes++;
+    CHECK(hits_yes == 1);
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] composite all/any/not combines leaf rules") {  // @proves ADR-009.composite
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    // two ordinary leaf rules that also run standalone
+    write_file(dir + "/LEAF-A.rule",
+        "id: LEAF-A\ntitle: has sink\ncategory: sast\nseverity: info\nengine: pattern\n"
+        "target:\n  extensions: .js\n"
+        "patterns:\n  - regex: dangerousSink\\s*\\(\n");
+    write_file(dir + "/LEAF-B.rule",
+        "id: LEAF-B\ntitle: has mitigation\ncategory: sast\nseverity: info\nengine: pattern\n"
+        "target:\n  extensions: .js\n"
+        "patterns:\n  - regex: safeGuard\\s*\\(\n");
+    // composite: fire when the sink is present AND the mitigation is NOT.
+    write_file(dir + "/COMP.rule",
+        "id: COMP-1\ntitle: sink without mitigation\ncategory: sast\nseverity: error\n"
+        "engine: composite\naction: block\n"
+        "composite:\n  all: LEAF-A\n  not: LEAF-B\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(rules.size() == 3);
+
+    // sink present, no mitigation → composite fires
+    std::string bad = dir + "/bad.js";
+    write_file(bad, "dangerousSink(userInput);\n");
+    auto f1 = keur::rules_scan_files(rules, {bad});
+    int comp_bad = 0, leaf_a = 0;
+    for (auto& f : f1) { if (f.rule_id == "COMP-1") comp_bad++; if (f.rule_id == "LEAF-A") leaf_a++; }
+    CHECK(leaf_a == 1);   // leaf still fires standalone
+    CHECK(comp_bad == 1); // composite fires: all(A) and not(B)
+
+    // sink present AND mitigation present → composite does NOT fire
+    std::string good = dir + "/good.js";
+    write_file(good, "safeGuard(); dangerousSink(userInput);\n");
+    auto f2 = keur::rules_scan_files(rules, {good});
+    int comp_good = 0;
+    for (auto& f : f2) if (f.rule_id == "COMP-1") comp_good++;
+    CHECK(comp_good == 0);  // not(B) is false because B fired
     cleanup_dir(dir);
 }
 

@@ -1,0 +1,19 @@
+# Rule 4/5 (pattern + exclude). A RegExp built from a NON-literal (variable),
+# e.g. new RegExp(userInput) — enables ReDoS / regex injection. exclude the
+# safe case where the argument is a string/regex literal. Maps to semgrep
+# detect-non-literal-regexp.
+id: KEUR-SAST-001
+title: RegExp constructed from a non-literal value (ReDoS / regex injection)
+category: sast
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .js .ts .jsx .tsx
+patterns:
+  - regex: \bnew\s+RegExp\s*\(\s*[A-Za-z_$][\w$.]*
+    exclude: \bnew\s+RegExp\s*\(\s*["'/]
+    message: "RegExp built from a variable instead of a literal — attacker-controlled input can cause ReDoS or change the match (CWE-1333). Validate/escape the input or use a fixed pattern."
+confidence: 0.6
+fix: "Use a literal RegExp, or escape the dynamic part and bound its length before building the pattern."
