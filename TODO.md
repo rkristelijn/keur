@@ -56,7 +56,6 @@ Status legend: [x] done · [~] partially done · [ ] open
       Proc adapter, OR ruleengine mode, or both — normalise into one findings
       report. (Proc adapter seam is ready.)
 - [ ] ollama learn/loop as designed (eval/ harness exists; optimiser missing).
-
 - [ ] surface traceability / doc-coverage + test-coverage metrics on the
       dashboard (ADR-017). Decide Route A (own CI gate: doc-coverage.sh --strict
       as a PR check — small, fits "keur guards itself") vs Route B (sonar-scanner
@@ -64,6 +63,13 @@ Status legend: [x] done · [~] partially done · [ ] open
       autoscan, needs SONAR_TOKEN + plan-feature check). Parked pending the
       choice. See docs/adr/ADR-017-surfacing-coverage-metrics.md.
 
+- [ ] wire cpm in as a second quality gate over keur's own code (ADR-018).
+      cpm's mature checks already find ZERO issues on keur's source (good
+      regression gate), but cpm scans the corpus fixtures too. Prereq: solve the
+      corpus-exclude (eval/corpus/repos/ + rules-imported/) — the exact cpm
+      exclude mechanism is unconfirmed. Then add cpm.toml + optional CI job.
+      Bonus: feed multiline/count engine support upstream to cpm to drop the
+      "unsupported engine" warnings. See docs/adr/ADR-018-cpm-second-gate.md.
 - [ ] NO PYTHON in the eval scripting layer — replace inline `python3 -c` JSON
       writers with either pure shell OR a small standalone compiled C++ util.
       Rationale: keur's identity is one compiled binary, no runtime language dep;
@@ -77,7 +83,6 @@ Status legend: [x] done · [~] partially done · [ ] open
       the measure/alternate emitters through it, then drop the inline python3.
       (Blocks the per-attempt logging below from being "clean" — until the util
       exists, keep attempt logging minimal / shell-only.)
-
 - [ ] DYNAMIC retry feedback for the optimiser retry loop. The retry loop
       (KEUR_MAX_ATTEMPTS, added 2026-09-20) now re-prompts Ollama on the SAME
       missed case with the reject reason + a hardcoded per-category good example
@@ -141,18 +146,18 @@ Status legend: [x] done · [~] partially done · [ ] open
       strong signal of real business-sensitive data. So slop rules are not junk
       — they are BUILDING BLOCKS.
       keur.toml already DESIGNS this but the policy engine does not implement it:
-        corroboration-bonus = 0.10   corroboration-cap = 0.99
-        escalate-band-low = 0.40     escalate-band-high = 0.75
+      corroboration-bonus = 0.10 corroboration-cap = 0.99
+      escalate-band-low = 0.40 escalate-band-high = 0.75
       Plan:
         - weak selectors sit in the ambiguous band (WARN-level) on their own;
         - when N selectors co-occur (same file/block, or a shared group: field),
-          add corroboration-bonus per agreement, capped, lifting combined
-          confidence over block-at -> BLOCK;
+      add corroboration-bonus per agreement, capped, lifting combined
+      confidence over block-at -> BLOCK;
         - source of building blocks: eval/composite-candidates/ (slop rules are
-          preserved there now, NOT loaded standalone, so no WARN noise);
+      preserved there now, NOT loaded standalone, so no WARN noise);
         - needs: policy_evaluate() to combine findings (currently binary per
-          finding), a grouping mechanism (group: field or co-location), and the
-          confidence arithmetic.
+      finding), a grouping mechanism (group: field or co-location), and the
+      confidence arithmetic.
       This is the CONSTRUCTIVE answer to slop (make weak rules useful in
       combination) vs the current DEFENSIVE one (degrade weak rules). It is
       policy-engine work — do it as a deliberate step, not a quick patch.
@@ -181,18 +186,18 @@ Status legend: [x] done · [~] partially done · [ ] open
         - providers to support:
             * ollama            — local, free, offline (DEFAULT; the bulk loop)
             * openai-compatible — one adapter covers OpenAI, llama.cpp server,
-                                  LM Studio, proxies (biggest coverage per effort)
-            * bedrock           — AWS (Claude/Titan/Llama); fits the AWS-sec work
-            * kiro              — likely best per-rule quality; use for the HARD
-                                  cases (persistent holdout-rejects) where Ollama
-                                  stalls, not for the whole bulk loop
+      LM Studio, proxies (biggest coverage per effort)
+            * bedrock — AWS (Claude/Titan/Llama); fits the AWS-sec work
+            * kiro — likely best per-rule quality; use for the HARD
+      cases (persistent holdout-rejects) where Ollama
+      stalls, not for the whole bulk loop
         - rationale: the deterministic gate + slop test already correct for weak
-          proposer output, so cheap/local Ollama is right for volume; a stronger
-          paid/remote proposer earns its cost only on the cases Ollama can't
-          crack. Keep the loop able to MIX: Ollama for bulk, escalate hard FNs.
+      proposer output, so cheap/local Ollama is right for volume; a stronger
+      paid/remote proposer earns its cost only on the cases Ollama can't
+      crack. Keep the loop able to MIX: Ollama for bulk, escalate hard FNs.
         - privacy note: remote providers send the corpus cases off-machine;
-          gate this behind explicit opt-in (never default), consistent with
-          keur's local-first stance.
+      gate this behind explicit opt-in (never default), consistent with
+      keur's local-first stance.
 
 ### Docs (DONE this cycle)
 
@@ -221,15 +226,15 @@ Status legend: [x] done · [~] partially done · [ ] open
       cmd/ folder count resolved by counting logical units (.h+.cpp = 1 unit).
       check-basics is GREEN. Historical notes:
       * src/keur/cmd/learn.cpp (~411 net lines, 4 responsibilities: JSONL parse +
-        resource read + TUI render + orchestration) — SPLIT into
-        learn/history.{h,cpp} (parse), learn/sysinfo (resources; also the
-        cross-platform adapter TODO), learn/monitor (render), cmd/learn.cpp
-        (orchestration only). This is fresh debt from this cycle.
+      resource read + TUI render + orchestration) — SPLIT into
+      learn/history.{h,cpp} (parse), learn/sysinfo (resources; also the
+      cross-platform adapter TODO), learn/monitor (render), cmd/learn.cpp
+      (orchestration only). This is fresh debt from this cycle.
       * src/keur/keur_test.cpp (~858 net) — split per suite/feature.
       * src/rules/rule_engine.cpp (~358 net) — watch as ADR-004 stages land;
-        split engines (pattern/presence/absence/block/extract) into siblings.
+      split engines (pattern/presence/absence/block/extract) into siblings.
       * src/keur/cmd (12 files) and eval/ (21 shell scripts) — over the folder
-        cap; regroup (eval/ into subdirs: corpus/, groundtruth/, loop/, report/).
+      cap; regroup (eval/ into subdirs: corpus/, groundtruth/, loop/, report/).
       Consider making these checks KEUR's OWN dogfooding rules once measurable.
 - [ ] rules: do they follow an ISO *ilities structure? would that be applicable?
 - [ ] run cpm in extreme mode here + semgrep — dead code, dead docs, links
@@ -261,13 +266,13 @@ Status legend: [x] done · [~] partially done · [ ] open
       platform_win32.cpp} (namespace keur::platform), selected per-OS by the
       Makefile (PLATFORM_SRC). The only #ifdef in the whole codebase lives there
       (a single __APPLE__ split for mach-vs-/proc). Migrated off raw OS calls:
-        * sysinfo   → platform::read_resources (macOS mach/sysctl, Linux /proc,
-                      Windows GlobalMemoryStatusEx); adapters::SysInfo stays the
-                      injectable seam and just delegates.
-        * proc/git  → platform::run/capture/capture_bytes/tool_on_path/wait_exit
+        * sysinfo → platform::read_resources (macOS mach/sysctl, Linux /proc,
+      Windows GlobalMemoryStatusEx); adapters::SysInfo stays the
+      injectable seam and just delegates.
+        * proc/git → platform::run/capture/capture_bytes/tool_on_path/wait_exit
         * fs        → platform::make_dir/path_exists/write_executable/remove_file
-        * hook      → platform::path_join (git-hook stubs stay #!/bin/sh — legit)
-        * learn     → platform::sleep_ms / terminal_size / process_alive
+        * hook → platform::path_join (git-hook stubs stay #!/bin/sh — legit)
+        * learn → platform::sleep_ms / terminal_size / process_alive
       Enforced by KEUR-PORT-001..005 (rules/keur-internal/) + test_portability.sh
       (0 findings on src/keur, fire-detection proven). CI builds+smoke-tests
       linux/macos/windows (.github/workflows/ci.yml). See ADR-005.
@@ -290,10 +295,10 @@ Status legend: [x] done · [~] partially done · [ ] open
       only produces rejects (recall/accepted unchanged) the panel looks frozen
       even though `iters` climbs and the log line moves. Improvements to make:
         - mark/segment "this session" (records since monitor start, e.g. by ts
-          or a run marker) so the user sees what THIS run did;
+      or a run marker) so the user sees what THIS run did;
         - surface a live activity indicator (current iter, target FN, spinner)
-          more prominently than the single bottom log line;
+      more prominently than the single bottom log line;
         - show a per-run counter (iters this session, accepts this session) and
-          "last change N iters ago" so a rejects-only stretch reads as progress,
-          not a hang.
+      "last change N iters ago" so a rejects-only stretch reads as progress,
+      not a hang.
       See src/keur/cmd/learn.cpp (draw_frame, aggregate).
