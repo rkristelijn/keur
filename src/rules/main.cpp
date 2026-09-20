@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "rule_engine.h"
+#include "rule/facts.h"
 
 using namespace keur;
 
@@ -51,17 +52,27 @@ static std::vector<std::string> rule_dirs() {
 int main(int argc, char** argv) {
   std::vector<std::string> files;
   std::string dir;
+  bool facts_only = false;
   enum { NONE, FILES, DIR } mode = NONE;
 
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
     if (a == "--files") mode = FILES;
     else if (a == "--dir") { mode = DIR; if (i + 1 < argc) dir = argv[++i]; }
+    else if (a == "--facts") facts_only = true;
     else if (mode == FILES) files.push_back(a);
   }
   if (mode == NONE) {
-    std::cerr << "usage: keur-rules --files <f...> | --dir <root>\n";
+    std::cerr << "usage: keur-rules --files <f...> | --dir <root> [--facts]\n";
     return 2;
+  }
+
+  // --facts (ADR-009 debug): derive and print the facts map, then stop. Lets the
+  // facts pass be verified in isolation before it gates any matching.
+  if (facts_only) {
+    std::string root = dir.empty() ? (files.empty() ? "." : files[0]) : dir;
+    std::cout << facts_to_json(derive_facts(root)) << "\n";
+    return 0;
   }
 
   // Load rules from all configured dirs.
