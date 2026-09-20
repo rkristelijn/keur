@@ -12,6 +12,7 @@
  * fire-and-forget side effects and, later, external-scanner invocation.
  *
  * @see docs/adr/ADR-003-provider-architecture.md
+ * @implements ADR-003
  */
 #pragma once
 #include <functional>
