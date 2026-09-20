@@ -57,6 +57,13 @@ Status legend: [x] done · [~] partially done · [ ] open
       report. (Proc adapter seam is ready.)
 - [ ] ollama learn/loop as designed (eval/ harness exists; optimiser missing).
 
+- [ ] surface traceability / doc-coverage + test-coverage metrics on the
+      dashboard (ADR-017). Decide Route A (own CI gate: doc-coverage.sh --strict
+      as a PR check — small, fits "keur guards itself") vs Route B (sonar-scanner
+      + sonar.externalIssuesReportPaths — one dashboard, but migrates off
+      autoscan, needs SONAR_TOKEN + plan-feature check). Parked pending the
+      choice. See docs/adr/ADR-017-surfacing-coverage-metrics.md.
+
 - [ ] NO PYTHON in the eval scripting layer — replace inline `python3 -c` JSON
       writers with either pure shell OR a small standalone compiled C++ util.
       Rationale: keur's identity is one compiled binary, no runtime language dep;
