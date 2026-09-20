@@ -13,6 +13,7 @@
  * (and the shims in compat.h). The keur-internal portability rules enforce this.
  *
  * @see docs/adr/ADR-005-platform-abstraction.md
+ * @implements ADR-005
  */
 #pragma once
 #include <string>

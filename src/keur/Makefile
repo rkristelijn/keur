@@ -51,7 +51,7 @@ BIN    = $(BINDIR)/keur
 REPO_ROOT := $(shell cd ../.. && pwd -P)
 
 # Rule engine (shared, lower layer)
-RULES_OBJ = $(BINDIR)/rule_parse.o $(BINDIR)/rule_match.o $(BINDIR)/rule_scan.o $(BINDIR)/rule_block.o
+RULES_OBJ = $(BINDIR)/rule_parse.o $(BINDIR)/rule_match.o $(BINDIR)/rule_scan.o $(BINDIR)/rule_block.o $(BINDIR)/rule_engines.o $(BINDIR)/rule_facts.o $(BINDIR)/rule_semver.o $(BINDIR)/rule_composite.o
 TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 
 # All keur sources (relative to src/keur)
@@ -97,6 +97,18 @@ $(BINDIR)/rule_scan.o: ../rules/rule/scan.cpp ../rules/rule/internal.h ../rules/
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/rule_block.o: ../rules/rule/block.cpp ../rules/rule/internal.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/rule_engines.o: ../rules/rule/engines.cpp ../rules/rule/internal.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/rule_facts.o: ../rules/rule/facts.cpp ../rules/rule/facts.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/rule_semver.o: ../rules/rule/semver.cpp ../rules/rule/semver.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/rule_composite.o: ../rules/rule/composite.cpp ../rules/rule/internal.h ../rules/rule_engine.h ../rules/rule/semver.h ../rules/rule/facts.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
 $(TOKENIZER_OBJ): ../rules/tokenizer.cpp ../rules/tokenizer.h | $(BINDIR)
@@ -201,7 +213,7 @@ e2e: build ## Run end-to-end tests (binary + git repos)
 
 # Coverage sources (flat list for the single-command coverage build).
 COV_SRCS = keur_test.cpp cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp \
-           adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp $(PLATFORM_SRC) ../rules/rule/parse.cpp ../rules/rule/match.cpp ../rules/rule/scan.cpp ../rules/rule/block.cpp ../rules/tokenizer.cpp
+           adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp $(PLATFORM_SRC) ../rules/rule/parse.cpp ../rules/rule/match.cpp ../rules/rule/scan.cpp ../rules/rule/block.cpp ../rules/rule/engines.cpp ../rules/tokenizer.cpp
 
 coverage: ## Build test binary with coverage and report (gcov)
 	@mkdir -p ../../.tmp/cov

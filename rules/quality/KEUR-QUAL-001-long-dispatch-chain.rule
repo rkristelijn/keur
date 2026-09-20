@@ -1,0 +1,28 @@
+# keur quality control — long conditional dispatch chains.
+#
+# 8+ `else if (x == ...)` branches in one file signal dispatch-by-string. Per the
+# ADR-014 decision rule, that is where a lookup table (data/uniform branches) or a
+# strategy registry (behaviour/extension point) beats an if/else chain. This rule
+# makes that decision self-guarding — the same way KEUR-PORT-* guards platform
+# drift. It WARNS (a nudge to reconsider), it does not block: short, closed chains
+# are fine, and arg-parsing chains are excluded by path.
+#
+# First user of the `count` engine (ADR-014): fire once at min_count matches.
+# @see docs/adr/ADR-014-engine-registry.md
+# @implements ADR-014
+id: KEUR-QUAL-001
+title: Long conditional dispatch chain (consider a table or strategy registry)
+category: quality
+severity: warning
+engine: count
+action: warn
+min_count: 8
+skip_comments: true
+target:
+  extensions: .cpp .cc .h .hpp
+  exclude_paths: test/ tests/ _test.cpp vendor/ build/ dist/
+patterns:
+  - regex: \belse if\s*\([^)]*==
+    message: "8+ 'else if (x == ...)' branches — this is dispatch-by-string. Consider a lookup table (map<string,fn>) when branches are data/uniform, or a strategy registry (interface + objects) when each branch is real behaviour or an extension point. See ADR-014 for the decision rule."
+confidence: 0.6
+fix: "Replace the long conditional with the dispatch that fits (ADR-014): a lookup table for data/uniform branches (e.g. field-name -> setter), or a strategy registry for behaviour/extension points (e.g. the engine registry in rule/engines.cpp). Keep short, closed chains as-is."

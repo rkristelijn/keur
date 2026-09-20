@@ -8,6 +8,7 @@
  *   - no ad-hoc `popen("git ...")` scattered across subcommands.
  *
  * @see docs/adr/ADR-003-provider-architecture.md
+ * @implements ADR-003
  */
 #pragma once
 #include <functional>

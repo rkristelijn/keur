@@ -1,0 +1,21 @@
+# Promoted from the learning loop (2026-09-19), reviewed and kept: matches a
+# FAMILY of shell/exec sinks (os.system, exec, subprocess.*, shell=True) whose
+# argument contains a non-identifier character (i.e. an assembled/interpolated
+# command), not a single memorised literal. @see KEUR-SEC-005/006 (the C/C++ and
+# adapter siblings); this covers scripting-language sinks.
+id: KEUR-SEC-008
+title: OS command execution with a constructed (non-literal) argument
+category: cmdi
+severity: critical
+engine: pattern
+skip_comments: true
+target:
+  extensions: .py .js .ts .rb .php
+patterns:
+  # Fire when the command is built by string concatenation (+) or interpolation
+  # (f"...{}", `${}`, "#{}"), i.e. a shell string with injected input — NOT a
+  # safe argv list literal like subprocess.run(["ls","-la"]).
+  - regex: (?i)\b(?:os\.system|subprocess\.(?:call|run|Popen)|shell_exec|child_process\.exec)\s*\(\s*(?:[^)]*\+[^)]*|[a-z]?["'][^"']*(?:\{[^}]*\}|\$\{[^}]*\}|#\{[^}]*\})[^"']*["'][^)]*)\)
+    message: "OS command executed with a concatenated/interpolated argument (CWE-78). If any part is user-influenced this is command injection. Pass arguments as a list/array to a shell-free exec API; never build a shell string."
+confidence: 0.75
+fix: "Use a shell-free exec with an argument vector (e.g. subprocess.run([...]) without shell=True, execvp-style APIs). Never concatenate user input into a shell command string."

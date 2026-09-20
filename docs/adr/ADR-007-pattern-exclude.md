@@ -1,6 +1,7 @@
 # ADR-007 — Pattern-level `exclude` (RE2-friendly "pattern-not")
 
-**Status**: accepted · **Date**: 2026-09-18 · **Relates to**: ADR-001 (native rule engine)
+@id ADR-007
+**Status**: accepted · **Date**: 2026-09-18 · **Coverage**: code · **Relates to**: ADR-001 (native rule engine)
 
 ## Context
 

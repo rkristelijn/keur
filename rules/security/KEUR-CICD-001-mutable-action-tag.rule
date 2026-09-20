@@ -1,0 +1,20 @@
+# Rule 1/5 (pattern + exclude). GitHub Action pinned to a MUTABLE tag
+# (uses: owner/action@v4 or @main) instead of a full commit SHA. A mutable tag
+# can be re-pointed at malicious code (supply-chain). Maps to semgrep
+# github-actions-mutable-action-tag (the dominant workflow SAST miss, 32x).
+# exclude: a 40-hex SHA pin is the safe case — subtract it (pattern-not).
+id: KEUR-CICD-001
+title: GitHub Action pinned to a mutable tag (use a commit SHA)
+category: sast
+severity: warning
+engine: pattern
+action: warn
+target:
+  extensions: .yml .yaml
+  exclude_paths: node_modules/ vendor/
+patterns:
+  - regex: (?i)^\s*-?\s*uses:\s*[\w.-]+/[\w.-]+@(v?\d[\w.-]*|main|master|latest)
+    exclude: (?i)@[0-9a-f]{40}\b
+    message: "GitHub Action pinned to a mutable tag (@v4/@main/@latest). A tag can be moved to malicious code — pin to a full 40-char commit SHA instead (CWE-1357 supply chain)."
+confidence: 0.7
+fix: "Pin the action to a full commit SHA (uses: owner/action@<40-hex-sha>), optionally with a # v4 comment for readability."

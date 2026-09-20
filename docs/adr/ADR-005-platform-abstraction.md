@@ -1,7 +1,9 @@
 # ADR-005 — Platform abstraction layer (cross-platform build)
 
+@id ADR-005
 **Status:** Accepted
 **Date:** 2026-09-18
+**Coverage**: code
 **Builds on:** ADR-002 (single C++ binary), ADR-003 (provider / adapter architecture)
 **Prior art:** cpm ADR-170 (multi-OS platform abstraction)
 

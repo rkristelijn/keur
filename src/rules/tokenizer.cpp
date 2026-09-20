@@ -4,6 +4,7 @@
  *
  * Adopted from cpm (https://github.com/rkristelijn/cpm) src/analysis/tokenizer.cpp.
  * Wrapped in namespace keur; logic unchanged. See util/tokenizer.h.
+ * @implements ADR-004.stage1
  */
 #include "tokenizer.h"
 

@@ -1,0 +1,11 @@
+id: LEARNED-1789630574-2
+title: Potential SQL Injection Vulnerability
+category: sast
+severity: critical
+engine: pattern
+target:
+  extensions: .js .php .rb .py .env .yml .json .ts .go .java
+patterns:
+  - regex: (?i)exec\s*\(\s*["'][^"']+\s*["']
+    message: Direct execution of SQL commands can lead to SQL injection vulnerabilities.
+confidence: 0.9

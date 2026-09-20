@@ -1,0 +1,17 @@
+# Leaf rule: a Dockerfile with no HEALTHCHECK. Maps to trivy DS-0026 /
+# checkov CKV_DOCKER_2. Runs standalone and as a composite leaf.
+# @see docs/adr/ADR-009-composite-rules-and-facts.md
+# @implements ADR-009.composite
+id: KEUR-IAC-003
+title: Dockerfile has no HEALTHCHECK
+category: iac
+severity: info
+engine: absence
+action: advisory
+confidence: 0.4
+target:
+  filenames: Dockerfile
+patterns:
+  - regex: (?im)^\s*HEALTHCHECK\s
+    message: "Dockerfile has no HEALTHCHECK — orchestrators cannot tell if the container is healthy. Add a HEALTHCHECK instruction."
+fix: "Add a HEALTHCHECK instruction so the runtime can detect an unhealthy container."

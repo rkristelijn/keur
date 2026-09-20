@@ -1,0 +1,19 @@
+# OS command injection: a shell/exec sink called with a NON-literal argument.
+# Promoted from the learn loop (LEARNED-1789846034-7): matches the dangerous
+# sinks but uses `exclude` (pattern-not) to suppress the safe case where the
+# argument is a bare string literal — match broad, subtract the safe case.
+# Target narrowed to code extensions on promotion.
+id: KEUR-CMDI-001
+title: OS command injection — shell sink with a non-literal argument
+category: cmdi
+severity: critical
+engine: pattern
+action: block
+target:
+  extensions: .js .php .rb .py .ts .go .java
+patterns:
+  - regex: (?i)\b(?:subprocess\.run|os\.system|exec\.[^ ]+|`[^`]*`)\s*\([^)]*[^"'\s]\S*[^"'\s][^)]*\)
+    exclude: \b(?:subprocess\.run|os\.system|exec\.[^ ]+|`[^`]*`)\s*\([^)]*["'][^"']+["'][^)]*\)
+    message: A shell/exec sink is called with a non-literal (variable) argument — potential OS command injection (CWE-78). Pass a fixed argument vector or validate/escape the input.
+confidence: 0.9
+fix: Use a parameterised argument vector (no shell string interpolation), or strictly validate/escape the input before it reaches the sink.

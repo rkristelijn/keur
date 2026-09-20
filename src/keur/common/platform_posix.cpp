@@ -7,6 +7,7 @@
  * Selected by the Makefile when OS != Windows_NT.
  *
  * @see docs/adr/ADR-005-platform-abstraction.md
+ * @implements ADR-005
  */
 #include <sys/stat.h>
 #include <sys/wait.h>
