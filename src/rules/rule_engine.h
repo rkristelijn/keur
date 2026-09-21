@@ -81,6 +81,13 @@ struct Rule {
   int min_count = 0;          // count engine: fire only at >= this many matches (ADR-014)
   std::string within;         // count engine: scope — "file" (default). Reserved for "block".
   int window = 0;             // multiline engine: sliding window size in lines (default 2)
+  // path-derived engine (ADR-020): the expected string is computed from the
+  // file's path. `path_capture` is a regex with capture group(s) applied to the
+  // relative path; `derived_template` is the expected string with \1, \2, …
+  // placeholders substituted from those groups. If the path matches and the
+  // derived string is absent from the file, the rule fires. @implements ADR-020
+  std::string path_capture;
+  std::string derived_template;
   bool skip_comments = false;  // strip comments before matching (ADR-004 stage 1)
   bool skip_strings = false;   // strip string literals before matching
   RuleRequires requires_;      // ADR-009: facts guard (empty = always applies)

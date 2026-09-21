@@ -56,7 +56,8 @@ TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
-IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp cmd/rules.cpp \
+IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp \
+             config/scopes.cpp config/hookmgr.cpp config/scanners.cpp \
              learn/history.cpp learn/sysinfo.cpp learn/monitor.cpp \
              adapters/git.cpp adapters/fs.cpp adapters/proc.cpp adapters/sysinfo.cpp report/report.cpp \
              render/display_width.cpp render/box.cpp
@@ -122,7 +123,7 @@ $(MAIN_OBJ): main.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/learn.h
 $(BINDIR)/keur_cmd_check.o: cmd/check.cpp cmd/check.h cmd/policy.h adapters/git.h util/keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_hook.o: cmd/hook.cpp cmd/hook.h adapters/git.h adapters/fs.h adapters/proc.h | $(BINDIR)
+$(BINDIR)/keur_cmd_hook.o: cmd/hook.cpp cmd/hook.h adapters/git.h adapters/fs.h adapters/proc.h config/hookmgr.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_cmd_scan.o: cmd/scan.cpp cmd/scan.h report/report.h util/keur_utils.h | $(BINDIR)
@@ -144,6 +145,21 @@ $(BINDIR)/keur_learn_monitor.o: learn/monitor.cpp learn/monitor.h learn/history.
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_cmd_rules.o: cmd/rules.cpp cmd/rules.h ../rules/rule_engine.h util/keur_utils.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_cmd_config.o: cmd/config.cpp cmd/config.h config/scopes.h adapters/git.h adapters/fs.h util/keur_utils.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_cmd_manager.o: cmd/manager.cpp cmd/manager.h cmd/config.h config/scopes.h config/hookmgr.h config/scanners.h adapters/git.h adapters/fs.h ../rules/rule_engine.h util/keur_utils.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_config_scopes.o: config/scopes.cpp config/scopes.h common/platform.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_config_hookmgr.o: config/hookmgr.cpp config/hookmgr.h common/platform.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_config_scanners.o: config/scanners.cpp config/scanners.h common/platform.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_render_display_width.o: render/display_width.cpp render/display_width.h | $(BINDIR)
@@ -181,7 +197,7 @@ $(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
 
 ## ---- Test binary ----------------------------------------------------------
 
-$(TEST_OBJ): keur_test.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h \
+$(TEST_OBJ): keur_test.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/config.h cmd/manager.h config/scopes.h config/hookmgr.h config/scanners.h \
              adapters/git.h adapters/fs.h adapters/proc.h adapters/sysinfo.h learn/sysinfo.h report/report.h util/keur_utils.h \
              ../rules/tokenizer.h ../../vendor/doctest.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@

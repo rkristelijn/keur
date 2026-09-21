@@ -118,6 +118,18 @@ ENGINES you may choose (pick the simplest that fits the task):
                     window: 3
                     patterns:
                       - regex: (?i)secret\s*=\s*["'][^"']{12,}["'][\s\S]*?use\s*\(
+- path-derived : the expected string is COMPUTED from the file's PATH, so ONE
+              rule covers a whole family (every layer/module) with no per-case
+              edit. path_capture is a regex with capture group(s) run on the path;
+              derived_template is the expected string with \1..\4 substituted from
+              those groups; if the path matches and the derived string is ABSENT,
+              flag. No patterns block — use a rule-level message. Use for
+              "identifier must match its location" rules (namespace/package/export
+              must match the directory or filename). Example:
+                    engine: path-derived
+                    path_capture: '([a-z_]+)/[a-z0-9_]+\.(cpp|h)$'
+                    derived_template: 'namespace keur::\1'
+                    message: "file must declare namespace keur::<its dir>"
 - composite : combine OTHER rules with a boolean tree — no patterns of its own.
               Each leaf is a rule id that also runs standalone; the composite runs
               after the normal pass over the ids that fired. Use it for conditional

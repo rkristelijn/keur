@@ -14,6 +14,7 @@
 #include <iostream>
 
 #include "common/platform.h"
+#include "config/hookmgr.h"
 
 namespace keur::cmd {
 
@@ -196,6 +197,24 @@ int hook(const HookOptions& opts, const HookDeps& deps) {
                     std::cout << "  repo   " << name << ": " << (fs.exists(p) ? "installed" : "(absent)") << "\n";
                 }
             }
+
+            // Coexisting hook managers (Husky, pre-commit, …). Resolves the
+            // repo-LOCAL core.hooksPath (which git prefers over the global one),
+            // so we report who EFFECTIVELY owns hooks here — not a misleading
+            // "global installed" when e.g. Husky's local hooksPath shadows it.
+            config::HookProbe probe;
+            probe.git_config = [&](const std::string& a) { return git.run(a); };
+            probe.exists = [&](const std::string& p) { return fs.exists(p); };
+            probe.repo_root = git.run("rev-parse --show-toplevel");
+            config::HookSituation hs = config::detect_hook_situation(probe);
+            std::cout << "Effective hooks owner : " << config::owner_name(hs.owner);
+            if (!hs.effective_path.empty()) std::cout << "  (core.hooksPath -> " << hs.effective_path << ")";
+            std::cout << "\n";
+            if (!hs.local_hooks_path.empty())
+                std::cout << "  note: repo-local core.hooksPath overrides the global one\n";
+            for (const auto& m : hs.managers)
+                if (m.detected)
+                    std::cout << "  detected manager: " << m.name << " (" << m.signature << ")\n";
             return 0;
         }
 

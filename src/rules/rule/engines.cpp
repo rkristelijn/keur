@@ -129,9 +129,49 @@ void eng_multiline(const ScanContext& cx, std::vector<RuleFinding>& out) {
   }
 }
 
-}  // namespace
+// path-derived: the expected string is COMPUTED from the file's path, not a
+// constant. `path_capture` (regex with capture groups) is applied to cx.rel; if
+// it matches, \1.. are substituted into `derived_template` to build the string
+// this file must contain. Absent → flag. Lets ONE rule express "a file in
+// src/keur/<layer>/ must declare namespace keur::<layer>" for every layer, with
+// no per-layer edit (ADR-020). RE2-safe: ordinary capture, no backrefs. The
+// derived string is matched as literal text (not regex), so it is ReDoS-free.
+// @id engine-path-derived
+void eng_path_derived(const ScanContext& cx, std::vector<RuleFinding>& out) {
+  const Rule& r = *cx.compiled.rule;
+  fprintf(stderr, "[PDDEBUG] engine ran rel=%s cap=[%s] tmpl=[%s]\n", cx.rel.c_str(), r.path_capture.c_str(), r.derived_template.c_str());
+  if (r.path_capture.empty() || r.derived_template.empty()) return;
 
-// The registry. Adding an engine = one entry here (ADR-014).
+  RE2 cap(r.path_capture);
+  if (!cap.ok()) return;
+
+  // Extract up to 4 capture groups from the path. A file whose path does not
+  // match is simply out of scope for this rule (no finding).
+  std::string g1, g2, g3, g4;
+  const int n = cap.NumberOfCapturingGroups();
+  RE2::Arg a1(&g1), a2(&g2), a3(&g3), a4(&g4);
+  const RE2::Arg* args[] = {&a1, &a2, &a3, &a4};
+  if (!RE2::PartialMatchN(cx.rel, cap, args, n > 4 ? 4 : (n < 0 ? 0 : n))) return;
+
+  // Build the expected literal by substituting \1..\4 into the template.
+  std::string expected = r.derived_template;
+  auto sub = [&expected](const std::string& ph, const std::string& val) {
+    for (size_t p = expected.find(ph); p != std::string::npos; p = expected.find(ph, p))
+      expected.replace(p, ph.size(), val);
+  };
+  sub("\\1", g1); sub("\\2", g2); sub("\\3", g3); sub("\\4", g4);
+  if (expected.empty()) return;
+
+  // Present-or-flag: pass if any non-suppressed line contains the literal.
+  for (const auto& ln : cx.lines) {
+    std::string_view sv(ln.data(), ln.size());
+    if (sv.find(expected) != std::string_view::npos) return;
+  }
+  std::string msg = r.patterns.empty() ? std::string() : r.patterns[0].message;
+  emit(r, cx.rel, 1, finding_msg(r, msg), out);
+}
+
+}  // namespace
 EngineFn engine_lookup(const std::string& name) {
   static const std::unordered_map<std::string, EngineFn> registry = {
       {"pattern", &eng_pattern},
@@ -140,6 +180,7 @@ EngineFn engine_lookup(const std::string& name) {
       {"block-absence", &eng_block_absence},
       {"count", &eng_count},
       {"multiline", &eng_multiline},
+      {"path-derived", &eng_path_derived},
   };
   auto it = registry.find(name);
   return it == registry.end() ? nullptr : it->second;
