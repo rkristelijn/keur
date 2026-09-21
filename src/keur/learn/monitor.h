@@ -9,6 +9,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace keur::learn {
 
@@ -16,7 +17,8 @@ namespace keur::learn {
 struct Supervisor {
   bool running = false;
   std::string phase;
-  std::string last_log;
+  std::string last_log;                  ///< most recent log line (compat)
+  std::vector<std::string> last_logs;    ///< last N non-empty log lines, oldest→newest
 };
 
 Supervisor read_supervisor(const std::string& home);
