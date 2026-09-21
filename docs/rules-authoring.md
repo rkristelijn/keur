@@ -17,7 +17,7 @@ id: KEUR-SEC-010               # unique, stable ID (never renamed once used)
 title: Hardcoded password      # short human title
 category: secret               # secret | sast | cmdi | cbi | pii | quality | inclusivity | ...
 severity: critical             # critical | error | warning | info
-engine: pattern                # pattern | presence | absence | file-absence | file-presence | block-absence | count | multiline
+engine: pattern                # pattern | presence | absence | file-absence | file-presence | block-absence | count | multiline | path-derived
 action: block                  # optional: block | warn | advisory (else derived from severity)
 confidence: 0.9                # optional: 0.0..1.0 (else derived from action)
 message: default finding text  # optional rule-level message (fallback for patterns without one)
@@ -200,6 +200,47 @@ target:
 patterns:
   - regex: (?i)(secret|token|api[_-]?key)\s*=\s*["'][^"']{12,}["'][\s\S]*?(client|connect|use)\s*\(
 ```
+
+### `path-derived`
+Flag a file when a string **computed from its own path** is absent. The
+expectation is not a constant in the rule — it is derived per file, so ONE rule
+covers a whole family (every layer, every module) with no per-case edit. This is
+the engine behind the layer↔namespace self-check (ADR-020): "a file in
+`src/keur/<layer>/` must declare `namespace keur::<layer>`" is one rule, and a
+brand-new layer is checked automatically.
+
+- `path_capture` — a regex with capture group(s) applied to the file's path. If
+  it does not match, the rule is out of scope for that file (no finding). RE2
+  linear, no backreferences.
+- `derived_template` — the expected string, with `\1`..`\4` substituted from the
+  captured groups. Matched as literal text (ReDoS-free).
+- `message` — the finding message (rule-level; no `patterns:` block needed).
+
+Present-or-flag: if the derived string appears on any line, pass; else flag at
+line 1. Because the derived string is matched literally, this suits identifier
+conventions (namespace/package/export must match the directory or filename).
+Note it needs the relevant path segment to be *in the scanned path*, so run it
+repo-wide (`keur scan src/keur`), not scoped inside the layer dir.
+
+```yaml
+# every file in src/keur/<layer>/ must declare namespace keur::<layer> (ADR-003)
+id: KEUR-ARCH-002
+title: Layer directory must match its C++ namespace
+category: architecture
+severity: error
+engine: path-derived
+action: block
+target:
+  extensions: .cpp .h
+  exclude_paths: common/ util/ main.cpp _test.cpp test/ tests/ vendor/
+path_capture: '([a-z_]+)/[a-z0-9_]+\.(cpp|h)$'
+derived_template: 'namespace keur::\1'
+message: "File under src/keur/<layer>/ must declare 'namespace keur::<layer>' (ADR-003)."
+```
+
+Other uses of the same shape: filename must equal an exported symbol,
+`package x.y.z` must match the directory path (Java/Go), a test file must sit
+beside its source.
 
 ## Facts, `requires:` and composite rules (ADR-009)
 

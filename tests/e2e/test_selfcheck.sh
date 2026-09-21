@@ -32,16 +32,20 @@ rm -f "$tmp"
   && ok "control detects an injected raw popen() in cmd/ ($probe finding)" \
   || fail "control did NOT detect an injected violation — rule may be dead"
 
-# 3. Namespace-matches-layer controls (KEUR-ARCH-002..004): source is clean.
-ns="$("$BINARY" scan "$ROOT/src/keur" 2>/dev/null | grep -cE 'KEUR-ARCH-00[234]' || true)"
+# 3. Namespace-matches-layer control (KEUR-ARCH-002, path-derived, ADR-020):
+#    ONE rule now derives the expected namespace from each file's directory,
+#    so the real source must be clean.
+ns="$("$BINARY" scan "$ROOT/src/keur" 2>/dev/null | grep -c 'KEUR-ARCH-002' || true)"
 [ "$ns" -eq 0 ] \
-  && ok "namespaces match their directory layer (0 KEUR-ARCH-002..004)" \
+  && ok "namespaces match their directory layer (0 KEUR-ARCH-002)" \
   || fail "namespace/layer mismatch ($ns findings)"
 
 # 4. The namespace control fires when an adapter file uses the wrong namespace.
+#    Scan src/keur (not just adapters/) so the layer directory is part of the
+#    scanned path — path-derived derives the expected namespace from that dir.
 nsprobe="$ROOT/src/keur/adapters/selfcheck_ns.cpp"
 printf 'namespace keur { void x(){} }\n' > "$nsprobe"
-nshit="$("$BINARY" scan "$ROOT/src/keur/adapters" 2>/dev/null | grep -c 'KEUR-ARCH-002' || true)"
+nshit="$("$BINARY" scan "$ROOT/src/keur" 2>/dev/null | grep -c 'KEUR-ARCH-002' || true)"
 rm -f "$nsprobe"
 [ "$nshit" -ge 1 ] \
   && ok "namespace control detects wrong namespace in adapters/ ($nshit finding)" \

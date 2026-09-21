@@ -54,7 +54,26 @@ Status legend: [x] done · [~] partially done · [ ] open
       finishes it for the built-in layer.)
 - [ ] libmode: run external scanners (semgrep, gitleaks, trivy, ...) via the
       Proc adapter, OR ruleengine mode, or both — normalise into one findings
-      report. (Proc adapter seam is ready.)
+      report. (ADR-019.)
+      REALITY CHECK (2026-09-20): the Proc seam (run_argv shell-free + capture)
+      is ready AND config/keur.toml already lists every [scanners.*], but
+      cmd/check.cpp dispatches ONLY the built-in RE2 rule engine today — no
+      external-tool or script scanner is invoked yet (the `pii` script-scanner in
+      config is config-ahead-of-code). So the real prerequisite is a
+      scanner-DISPATCH loop in check(): read the [scanners.*] inventory, run each
+      enabled adapter over the staged files, normalise stdout → Finding, feed the
+      one policy engine. Once that loop exists, both shapes below are thin.
+      - [ ] shape A: proven-tool adapters (shellcheck first — covers the SC2034
+            class that slipped past keur locally but failed GitLab CI in
+            security-tooling; then semgrep/gitleaks/trivy/checkov). PATH-resolved,
+            missing → skip. Shared coverage across all repos.
+      - [ ] shape B: project-local adapter — run a git-TRACKED `.keur/check.sh`
+            (fallback `.config/keur/check.sh`), staged files on argv, JSONL on
+            stdout → Finding. Trust model DECIDED (ADR-019): not config-opt-in;
+            tracked-only execution (untracked/dropped scripts ignored) + shell-
+            free spawn (run_argv) + confidence cap (~0.80) so a repo can't
+            self-BLOCK above calibrated tools. Config `enabled=false` still
+            disables entirely. Thin runner + JSONL parser over the dispatch loop.
 - [ ] ollama learn/loop as designed (eval/ harness exists; optimiser missing).
 - [ ] surface traceability / doc-coverage + test-coverage metrics on the
       dashboard (ADR-017). Decide Route A (own CI gate: doc-coverage.sh --strict

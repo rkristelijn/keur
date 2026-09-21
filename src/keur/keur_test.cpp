@@ -37,9 +37,13 @@
 #include "rule/semver.h"
 #include "tokenizer.h"
 #include "cmd/check.h"
+#include "cmd/config.h"
 #include "cmd/hook.h"
+#include "cmd/manager.h"
 #include "cmd/policy.h"
 #include "cmd/scan.h"
+#include "config/hookmgr.h"
+#include "config/scanners.h"
 #include "adapters/fs.h"
 #include "adapters/git.h"
 #include "util/keur_utils.h"
@@ -460,7 +464,279 @@ SCENARIO("[feature:rule-engine] rule_dirs appends KEUR_RULES_DIRS overrides in o
     unsetenv("KEUR_RULES_DIRS");
 }
 
-// --- [feature:git] git adapter (injected fake, no real git) -----------------
+// --- [feature:config] config layer stack (pure + spoofed adapters) ----------
+
+SCENARIO("[feature:config] config_parse reads list / --json / --config") {
+    auto o = keur::cmd::config_parse({"list", "--json"});
+    CHECK(o.subcommand == "list");
+    CHECK(o.json == true);
+    auto o2 = keur::cmd::config_parse({"--config", "/x/keur.toml"});
+    CHECK(o2.config == "/x/keur.toml");
+    CHECK(o2.json == false);
+}
+
+SCENARIO("[feature:config] resolve_layers orders defaults->global->keur-home->repo->explicit") {
+    keur::config::ScopeEnv env;
+    env.xdg_config_home = "/xdg";
+    env.keur_home = "/kh";
+    env.repo_root = "/repo";
+    env.explicit_path = "/exp/keur.toml";
+    // everything "exists" so we assert on ordering + paths, not presence.
+    auto layers = keur::config::resolve_layers(env, [](const std::string&) { return true; });
+    REQUIRE(layers.size() == 5);
+    CHECK(layers[0].scope == keur::config::Scope::Defaults);
+    CHECK(layers[0].path.empty());
+    CHECK(layers[1].scope == keur::config::Scope::Global);
+    CHECK(layers[1].path == "/xdg/keur/keur.toml");
+    CHECK(layers[2].scope == keur::config::Scope::KeurHome);
+    CHECK(layers[2].path == "/kh/config/keur.toml");
+    CHECK(layers[3].scope == keur::config::Scope::Repo);
+    CHECK(layers[3].path == "/repo/keur.toml");
+    CHECK(layers[4].scope == keur::config::Scope::Explicit);
+    CHECK(layers[4].path == "/exp/keur.toml");
+}
+
+SCENARIO("[feature:config] resolve_layers omits layers whose env is unset") {
+    keur::config::ScopeEnv env;  // all empty: no global base, no keur-home, no repo
+    auto layers = keur::config::resolve_layers(env, [](const std::string&) { return false; });
+    // only the always-present Defaults layer remains.
+    REQUIRE(layers.size() == 1);
+    CHECK(layers[0].scope == keur::config::Scope::Defaults);
+}
+
+SCENARIO("[feature:config] resolve_layers records existence per layer") {
+    keur::config::ScopeEnv env;
+    env.home = "/home/u";      // → global /home/u/.config/keur/keur.toml
+    env.repo_root = "/repo";   // → /repo/keur.toml
+    // only the repo file "exists".
+    auto layers = keur::config::resolve_layers(
+        env, [](const std::string& p) { return p == "/repo/keur.toml"; });
+    REQUIRE(layers.size() == 3);  // defaults + global + repo
+    CHECK(layers[1].scope == keur::config::Scope::Global);
+    CHECK(layers[1].exists == false);
+    CHECK(layers[2].scope == keur::config::Scope::Repo);
+    CHECK(layers[2].exists == true);
+}
+
+SCENARIO("[feature:config] config_render_json is valid and reflects existence") {
+    std::vector<keur::config::Layer> layers = {
+        {keur::config::Scope::Defaults, "", true},
+        {keur::config::Scope::Repo, "/repo/keur.toml", false},
+    };
+    std::string j = keur::cmd::config_render_json(layers);
+    CHECK(j == "[{\"scope\":\"defaults\",\"path\":\"\",\"exists\":true},"
+               "{\"scope\":\"repo\",\"path\":\"/repo/keur.toml\",\"exists\":false}]");
+}
+
+SCENARIO("[feature:config] config_render_text labels present/absent and built-in") {
+    std::vector<keur::config::Layer> layers = {
+        {keur::config::Scope::Defaults, "", true},
+        {keur::config::Scope::Repo, "/repo/keur.toml", false},
+    };
+    auto lines = keur::cmd::config_render_text(layers);
+    REQUIRE(lines.size() == 3);  // header + 2 layers
+    CHECK(lines[1].find("(built-in)") != std::string::npos);
+    CHECK(lines[2].find("/repo/keur.toml") != std::string::npos);
+    CHECK(lines[2].find("[absent]") != std::string::npos);
+}
+
+SCENARIO("[feature:config] config orchestrator resolves repo root via git, existence via fs") {
+    keur::cmd::ConfigDeps deps;
+    deps.git.run = [](const std::string& args) -> std::string {
+        if (args == "rev-parse --show-toplevel") return "/my/repo";
+        return "";
+    };
+    // fs reports only the repo keur.toml as existing.
+    deps.fs.exists = [](const std::string& p) { return p == "/my/repo/keur.toml"; };
+    keur::cmd::ConfigOptions opts;  // list, text
+    CHECK(keur::cmd::config(opts, deps) == 0);
+    keur::cmd::ConfigOptions bad;
+    bad.subcommand = "frobnicate";
+    CHECK(keur::cmd::config(bad, deps) == 1);
+}
+
+// --- [feature:hook] coexisting hook-manager detection (KEUR-HOOKMGR) --------
+
+SCENARIO("[feature:hook] detects Husky as owner via repo-local core.hooksPath") {  // @proves KEUR-HOOKMGR
+    keur::config::HookProbe probe;
+    probe.repo_root = "/repo";
+    probe.git_config = [](const std::string& a) -> std::string {
+        if (a == "config --local core.hooksPath")  return ".husky/_";
+        if (a == "config --global core.hooksPath") return "/home/u/.config/git/hooks";
+        return "";
+    };
+    probe.exists = [](const std::string& p) { return p == "/repo/.husky"; };
+    auto s = keur::config::detect_hook_situation(probe);
+    CHECK(s.owner == keur::config::HookOwner::Husky);
+    CHECK(s.effective_path == ".husky/_");     // local overrides global
+    bool husky_detected = false;
+    for (const auto& m : s.managers) if (m.name == "husky") husky_detected = m.detected;
+    CHECK(husky_detected);
+}
+
+SCENARIO("[feature:hook] keur owns hooks when only a global core.hooksPath is set") {  // @proves KEUR-HOOKMGR
+    keur::config::HookProbe probe;
+    probe.repo_root = "/repo";
+    probe.git_config = [](const std::string& a) -> std::string {
+        if (a == "config --global core.hooksPath") return "/home/u/.config/git/hooks";
+        return "";  // no local hooksPath
+    };
+    probe.exists = [](const std::string&) { return false; };  // no manager signatures
+    auto s = keur::config::detect_hook_situation(probe);
+    CHECK(s.owner == keur::config::HookOwner::Keur);
+    CHECK(s.local_hooks_path.empty());
+    CHECK(s.effective_path == "/home/u/.config/git/hooks");
+}
+
+SCENARIO("[feature:hook] detects pre-commit by its config signature") {  // @proves KEUR-HOOKMGR
+    keur::config::HookProbe probe;
+    probe.repo_root = "/repo";
+    probe.git_config = [](const std::string&) -> std::string { return ""; };  // no hooksPath at all
+    probe.exists = [](const std::string& p) { return p == "/repo/.pre-commit-config.yaml"; };
+    auto s = keur::config::detect_hook_situation(probe);
+    bool pc = false;
+    for (const auto& m : s.managers) if (m.name == "pre-commit") pc = m.detected;
+    CHECK(pc);
+    CHECK(s.owner == keur::config::HookOwner::PreCommit);  // present, default .git/hooks
+}
+
+SCENARIO("[feature:hook] no manager and no hooksPath means no owner") {  // @proves KEUR-HOOKMGR
+    keur::config::HookProbe probe;
+    probe.repo_root = "/repo";
+    probe.git_config = [](const std::string&) -> std::string { return ""; };
+    probe.exists = [](const std::string&) { return false; };
+    auto s = keur::config::detect_hook_situation(probe);
+    CHECK(s.owner == keur::config::HookOwner::None);
+}
+
+// --- [feature:config] scanner inventory (KEUR-SCANNERS) ---------------------
+
+static const char* k_scanner_toml =
+    "[policy]\n"
+    "block-at = 0.85\n"
+    "\n"
+    "[scanners.gitleaks]\n"
+    "bin = \"gitleaks\"\n"
+    "group = \"secrets\"\n"
+    "default-action = \"block\"\n"
+    "\n"
+    "[scanners.semgrep]\n"
+    "bin = \"semgrep\"\n"
+    "group = \"sast\"\n"
+    "default-action = \"warn\"\n"
+    "\n"
+    "[scanners.presidio]\n"
+    "enabled = false\n"
+    "group = \"pii\"\n"
+    "\n"
+    "[policy.weights]\n"
+    "secrets = 1.0\n";
+
+SCENARIO("[feature:config] parse_scanners reads [scanners.*] and stops at other sections") {  // @proves KEUR-SCANNERS
+    auto sc = keur::config::parse_scanners(k_scanner_toml);
+    REQUIRE(sc.size() == 3);
+    CHECK(sc[0].name == "gitleaks");
+    CHECK(sc[0].bin == "gitleaks");
+    CHECK(sc[0].group == "secrets");
+    CHECK(sc[0].default_action == "block");
+    CHECK(sc[0].enabled == true);
+    CHECK(sc[1].name == "semgrep");
+    CHECK(sc[2].name == "presidio");
+    CHECK(sc[2].enabled == false);  // enabled = false parsed
+}
+
+SCENARIO("[feature:config] known_config_files maps a scanner to its dotfiles") {  // @proves KEUR-SCANNERS
+    auto gl = keur::config::known_config_files("gitleaks");
+    REQUIRE(gl.size() == 2);
+    CHECK(gl[0] == ".gitleaks.toml");
+    CHECK(gl[1] == ".gitleaksignore");
+    CHECK(keur::config::known_config_files("nonexistent").empty());
+}
+
+SCENARIO("[feature:config] resolve_scanners fills PATH availability and config-file presence") {  // @proves KEUR-SCANNERS
+    auto declared = keur::config::parse_scanners(k_scanner_toml);
+    keur::config::ScannerProbe probe;
+    probe.repo_root = "/repo";
+    // gitleaks on PATH, semgrep not; only .gitleaksignore exists.
+    probe.tool_on_path = [](const std::string& t) { return t == "gitleaks"; };
+    probe.exists = [](const std::string& p) { return p == "/repo/.gitleaksignore"; };
+    auto sc = keur::config::resolve_scanners(declared, probe);
+    REQUIRE(sc.size() == 3);
+    CHECK(sc[0].on_path == true);   // gitleaks
+    CHECK(sc[1].on_path == false);  // semgrep
+    REQUIRE(sc[0].config_files.size() == 2);
+    CHECK(sc[0].config_files[0].path == ".gitleaks.toml");
+    CHECK(sc[0].config_files[0].present == false);
+    CHECK(sc[0].config_files[1].path == ".gitleaksignore");
+    CHECK(sc[0].config_files[1].present == true);
+}
+
+// --- [feature:manager] aggregated board (status overview) -------------------
+
+SCENARIO("[feature:manager] manager_parse reads status / --json / --config") {
+    auto o = keur::cmd::manager_parse({"--status", "--json"});
+    CHECK(o.subcommand == "status");
+    CHECK(o.json == true);
+    auto o2 = keur::cmd::manager_parse({"--config", "/x/keur.toml"});
+    CHECK(o2.config == "/x/keur.toml");
+}
+
+SCENARIO("[feature:manager] manager_render_text shows all four sections") {
+    keur::cmd::ManagerBoard b;
+    b.config_layers = {{keur::config::Scope::Defaults, "", true},
+                       {keur::config::Scope::Repo, "/repo/keur.toml", true}};
+    b.hooks.owner = keur::config::HookOwner::Keur;
+    b.hooks.effective_path = "/home/u/.config/git/hooks";
+    b.scanners = {{"gitleaks", "gitleaks", "secrets", "block", true, true, {}}};
+    b.rule_categories = {{"security", 5}};
+    b.rule_total = 5;
+    auto lines = keur::cmd::manager_render_text(b);
+    // Join for a simple contains-check across the whole board.
+    std::string all;
+    for (auto& l : lines) all += l + "\n";
+    CHECK(all.find("Config scopes") != std::string::npos);
+    CHECK(all.find("Hooks:") != std::string::npos);
+    CHECK(all.find("keur") != std::string::npos);           // hook owner
+    CHECK(all.find("Scanners") != std::string::npos);
+    CHECK(all.find("gitleaks") != std::string::npos);
+    CHECK(all.find("Rules (5 total)") != std::string::npos);
+    CHECK(all.find("security") != std::string::npos);
+}
+
+SCENARIO("[feature:manager] manager_render_json is a well-formed object") {
+    keur::cmd::ManagerBoard b;
+    b.config_layers = {{keur::config::Scope::Defaults, "", true}};
+    b.hooks.owner = keur::config::HookOwner::Husky;
+    b.hooks.effective_path = ".husky/_";
+    b.scanners = {{"semgrep", "semgrep", "sast", "warn", true, false, {}}};
+    b.rule_categories = {{"sast", 7}};
+    b.rule_total = 7;
+    std::string j = keur::cmd::manager_render_json(b);
+    CHECK(j.front() == '{');
+    CHECK(j.back() == '}');
+    CHECK(j.find("\"config_layers\":[") != std::string::npos);
+    CHECK(j.find("\"owner\":\"husky\"") != std::string::npos);
+    CHECK(j.find("\"name\":\"semgrep\"") != std::string::npos);
+    CHECK(j.find("\"total\":7") != std::string::npos);
+}
+
+SCENARIO("[feature:manager] manager orchestrator runs read-only via spoofed adapters") {
+    keur::cmd::ManagerDeps deps;
+    deps.git.run = [](const std::string& a) -> std::string {
+        if (a == "rev-parse --show-toplevel") return "/my/repo";
+        return "";  // no hooksPath
+    };
+    deps.fs.exists = [](const std::string&) { return false; };
+    deps.fs.read_file = [](const std::string&) {
+        return keur::adapters::ReadResult{false, ""};
+    };
+    keur::cmd::ManagerOptions opts;  // status, text
+    CHECK(keur::cmd::manager(opts, deps) == 0);
+    keur::cmd::ManagerOptions bad;
+    bad.subcommand = "frobnicate";
+    CHECK(keur::cmd::manager(bad, deps) == 1);
+}
+
 
 SCENARIO("[feature:git] git_repo_hooks_dir appends /hooks to git-dir") {
     keur::adapters::Git fake;
@@ -903,6 +1179,59 @@ SCENARIO("[feature:rule-engine] custom pattern rule fires on trigger file") {  /
     auto fs = keur::rules_scan_files(rules, {path});
     CHECK(has_rule(fs, "TEST-PAT-001"));
     cleanup_dir(dir);
+}
+
+// --- path-derived engine (ADR-020) ------------------------------------------
+// The expected string (namespace keur::<dir>) is COMPUTED from the file path,
+// so ONE rule covers every layer. We exercise the real KEUR-ARCH-002 rule from
+// rules/keur-internal against staged files whose path implies a layer.
+
+SCENARIO("[feature:rule-engine] path-derived fires when namespace does not match its dir") {  // @proves ADR-020 engine-path-derived
+    auto rules = keur::rules_load(keur_rules_dir() + "/keur-internal");
+    REQUIRE(!rules.empty());
+    std::string base = create_temp_dir();
+    // A file in an adapters/ dir declaring the WRONG namespace must fire.
+    std::string layer = base + "/adapters";
+    mkdir(layer.c_str(), 0755);
+    std::string bad = layer + "/thing.cpp";
+    write_file(bad, "namespace keur::wrong {\n}\n");
+    auto fs = keur::rules_scan_files(rules, {bad});
+    CHECK(has_rule(fs, "KEUR-ARCH-002"));
+    cleanup_dir(base);
+}
+
+SCENARIO("[feature:rule-engine] path-derived passes when namespace matches its dir") {  // @proves ADR-020 engine-path-derived
+    auto rules = keur::rules_load(keur_rules_dir() + "/keur-internal");
+    REQUIRE(!rules.empty());
+    std::string base = create_temp_dir();
+    // A file in a cmd/ dir declaring the derived namespace keur::cmd passes —
+    // and this holds for ANY layer name, which is the whole point (dynamic).
+    std::string layer = base + "/cmd";
+    mkdir(layer.c_str(), 0755);
+    std::string good = layer + "/thing.cpp";
+    write_file(good, "namespace keur::cmd {\n}\n");
+    auto fs = keur::rules_scan_files(rules, {good});
+    CHECK(!has_rule(fs, "KEUR-ARCH-002"));
+    cleanup_dir(base);
+}
+
+SCENARIO("[feature:rule-engine] path-derived is self-scaling: a brand-new layer name is checked") {  // @proves ADR-020
+    auto rules = keur::rules_load(keur_rules_dir() + "/keur-internal");
+    REQUIRE(!rules.empty());
+    std::string base = create_temp_dir();
+    // A layer that no rule ever named ("widget") is still checked: matching
+    // namespace passes, mismatching fires — proving no per-layer rule edit.
+    std::string layer = base + "/widget";
+    mkdir(layer.c_str(), 0755);
+    std::string ok = layer + "/a.cpp";
+    std::string bad = layer + "/b.cpp";
+    write_file(ok, "namespace keur::widget {\n}\n");
+    write_file(bad, "namespace keur::something_else {\n}\n");
+    auto fs_ok = keur::rules_scan_files(rules, {ok});
+    auto fs_bad = keur::rules_scan_files(rules, {bad});
+    CHECK(!has_rule(fs_ok, "KEUR-ARCH-002"));
+    CHECK(has_rule(fs_bad, "KEUR-ARCH-002"));
+    cleanup_dir(base);
 }
 
 SCENARIO("[feature:rule-engine] absence rule fires on file missing header") {
