@@ -1,0 +1,9 @@
+id: KEUR-QUAL-002
+title: Repository has no SECURITY.md
+category: quality
+severity: warning
+engine: file-absence
+target:
+  filenames: SECURITY.md
+message: "No SECURITY.md — add one so people know how to report vulnerabilities responsibly."
+confidence: 0.6
