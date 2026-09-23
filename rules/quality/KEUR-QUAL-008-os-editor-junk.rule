@@ -1,0 +1,28 @@
+# keur quality control — OS / editor junk file committed.
+#
+# Why this exists: guide items #6..#7 — .DS_Store (macOS), Thumbs.db (Windows),
+# and per-user editor state leak into commits via `git add .`. They reveal the
+# author's OS/editor, clutter diffs, and occasionally carry local paths. Not a
+# security defect, so WARN.
+#
+# NOTE: directory-based junk (node_modules/, dist/, build/, __pycache__/) is not
+# covered here — file-presence matches a file's BASENAME/extension, not a path
+# segment, so "any file under node_modules/" needs a path-segment match the
+# engine does not yet have. Tracked as a follow-up (a `path_contains` target or a
+# dir-presence engine). This rule covers the exact-basename junk the engine can
+# match reliably today.
+#
+# @see the "never commit" guides (.DS_Store, Thumbs.db, editor state).
+id: KEUR-QUAL-008
+title: OS / editor junk file committed
+category: quality
+severity: warning
+engine: file-presence
+action: warn
+target:
+  filenames: .DS_Store Thumbs.db desktop.ini .netrwhist
+  extensions: .swp .swo
+  exclude_paths: eval/corpus/repos/ vendor/ build/ dist/
+message: "OS/editor junk committed (.DS_Store, Thumbs.db, editor state). Remove it and add to .gitignore (ideally a global core.excludesfile) — it clutters diffs and leaks local environment detail. @see KEUR-QUAL-008"
+confidence: 0.7
+fix: "Remove the file and add it to .gitignore. For machine-wide junk, set a global ignore once: add .DS_Store/Thumbs.db to ~/.gitignore_global and run 'git config --global core.excludesfile ~/.gitignore_global'."
