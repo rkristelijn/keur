@@ -259,6 +259,21 @@ Status legend: [x] done · [~] partially done · [ ] open
       cap; regroup (eval/ into subdirs: corpus/, groundtruth/, loop/, report/).
       Consider making these checks KEUR's OWN dogfooding rules once measurable.
 - [ ] rules: do they follow an ISO *ilities structure? would that be applicable?
+- [ ] CENTRALISE the corpus path (DRY) + move it out of the tracked tree.
+      Today the corpus path is hardcoded ~146x across ~8 eval/*.sh scripts
+      (corpus/repos, corpus/groundtruth, corpus/measure, corpus/split) — no
+      shared config. Fix: one `eval/lib.sh` (or env.sh) that defines
+      KEUR_CORPUS_DIR + CORPUS_REPOS/GT/MEASURE/SPLIT as variables; every eval
+      script sources it and uses the vars. THEN move the generated corpus into a
+      conventionally-ignored dot-dir (e.g. eval/.corpus/ or .tmp/corpus/) by
+      changing ONE line — so it's one .gitignore rule (not 4), auto-skipped by
+      the scan walker (hidden dir), and tracked manifest (repos.txt) stays put.
+      Do it in two verifiable steps: (1) introduce the vars pointing at the
+      CURRENT path (behaviour-neutral, bash -n + path-resolves-same per script);
+      (2) flip the path to the dot-dir and verify the learn loop still finds the
+      same ground truth. Ties into the eval/ regroup item above.
+      INTERIM (done 2026-09-23): `corpus` added to the scan walker's skip-dir
+      list so `keur scan .` no longer descends into the ~290MB clones.
 - [ ] run cpm in extreme mode here + semgrep — dead code, dead docs, links
       between code and docs; all should be green.
 - [ ] TUI / a11y / design: are there TUI designs, are we accessible? (see cpm
