@@ -3,13 +3,13 @@
 source "$(dirname "$0")/helpers.sh"
 set +o errexit
 BINARY="$(resolve_binary "${1:-}")"
-[ -n "$BINARY" ] || { echo "FAIL: keur binary not found (run make build)"; exit 1; }
+[[ -n "$BINARY" ]] || { echo "FAIL: keur binary not found (run make build)"; exit 1; }
 
 echo "==> test_version ($BINARY)"
 
 # version prints something non-empty
 out="$("$BINARY" version 2>/dev/null)"
-[ -n "$out" ] && ok "version prints output: $out" || fail "version printed nothing"
+[[ -n "$out" ]] && ok "version prints output: $out" || fail "version printed nothing"
 
 # help mentions the subcommands
 help="$("$BINARY" help 2>/dev/null)"

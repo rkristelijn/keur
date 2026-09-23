@@ -3,14 +3,14 @@
 source "$(dirname "$0")/helpers.sh"
 set +o errexit
 BINARY="$(resolve_binary "${1:-}")"
-[ -n "$BINARY" ] || { echo "FAIL: keur binary not found"; exit 1; }
+[[ -n "$BINARY" ]] || { echo "FAIL: keur binary not found"; exit 1; }
 
 echo "==> test_manager ($BINARY)"
 
 # text output: exits 0 and shows all four sections.
 out="$("$BINARY" manager --status 2>&1)"
 rc=$?
-[ "$rc" -eq 0 ] && ok "manager --status exits 0" || fail "manager --status exit $rc"
+[[ "$rc" -eq 0 ]] && ok "manager --status exits 0" || fail "manager --status exit $rc"
 echo "$out" | grep -q "Config scopes" && ok "shows config scopes" || fail "no config scopes"
 echo "$out" | grep -q "Hooks:"        && ok "shows hooks"         || fail "no hooks section"
 echo "$out" | grep -q "Scanners"      && ok "shows scanners"      || fail "no scanners section"
