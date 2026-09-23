@@ -18,7 +18,7 @@ HERE="$(cd "$(dirname "$0")" && pwd -P)"
 OUT="$HERE/knowledge/owasp.jsonl"
 STATS=0
 
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) OUT="$2"; shift 2;;
     --stats) STATS=1; shift;;
@@ -26,8 +26,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ "$STATS" -eq 1 ]; then
-  [ -f "$OUT" ] || { echo "no cache yet: $OUT"; exit 0; }
+if [[ "$STATS" -eq 1 ]]; then
+  [[ -f "$OUT" ]] || { echo "no cache yet: $OUT"; exit 0; }
   wc -l < "$OUT" | sed 's/^/concepts: /'
   exit 0
 fi

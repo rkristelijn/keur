@@ -26,7 +26,7 @@ REPO="${2:?repo-name required (matches eval/corpus/repos/<name>)}"
 PREFIX="${KEUR_ASA_PREFIX:-}"
 
 command -v pdftotext >/dev/null 2>&1 || { echo "awssec: pdftotext required" >&2; exit 1; }
-[ -f "$REPORT" ] || { echo "awssec: report not found: $REPORT" >&2; exit 1; }
+[[ -f "$REPORT" ]] || { echo "awssec: report not found: $REPORT" >&2; exit 1; }
 
 pdftotext -layout "$REPORT" - 2>/dev/null > "$(dirname "$0")/.awssec.tmp" || true
 TXT="$(dirname "$0")/.awssec.tmp"

@@ -20,11 +20,11 @@ HERE="$(cd "$(dirname "$0")" && pwd -P)"
 ROOT="$(cd "$HERE/.." && pwd -P)"
 cd "$ROOT"
 
-STRICT=0; [ "${1:-}" = "--strict" ] && STRICT=1
+STRICT=0; [[ "${1:-}" = "--strict" ]] && STRICT=1
 FAIL=0
 green() { printf "\033[32m%s\033[0m" "$1"; }
 red()   { printf "\033[31m%s\033[0m" "$1"; }
-pct()   { [ "$2" -eq 0 ] && echo 100 || echo $(( $1 * 100 / $2 )); }
+pct()   { [[ "$2" -eq 0 ]] && echo 100 || echo $(( $1 * 100 / $2 )); }
 row()   { printf '  %-30s %s\n' "$1" "$2"; }
 hdr()   { echo; echo "── $1 ──"; }
 # fail row + an explicit, copy-pasteable fix line (for a human OR an AI agent).
@@ -59,7 +59,7 @@ EXTERNAL=$("${GREP_REF[@]}" '@external[[:space:]]+[A-Za-z]+:[A-Za-z0-9._-]+' $SC
 
 adr_coverage() {  # ADR-NNN<TAB>code|none
     for f in docs/adr/ADR-*.md; do
-        [ -f "$f" ] || continue
+        [[ -f "$f" ]] || continue
         local id cov
         id=$(basename "$f" | grep -oE 'ADR-[0-9]+')
         cov=$(grep -ioE '\*\*Coverage\*\*:[[:space:]]*(code|none)' "$f" | grep -oiE '(code|none)$' | tr 'A-Z' 'a-z' | head -1)
@@ -72,7 +72,7 @@ adr_coverage() {  # ADR-NNN<TAB>code|none
 ENGINES=$( { grep -oE '\{"[a-z-]+",[[:space:]]*&eng_' src/rules/rule/engines.cpp 2>/dev/null | grep -oE '"[a-z-]+"' | tr -d '"'; \
              grep -oE '@id engine-[a-z-]+' src/rules/rule/scan.cpp 2>/dev/null | sed 's/@id engine-//'; } | sort -u)
 FEATURES=$(grep -rhoE '\[feature:[a-z-]+\]' src/ 2>/dev/null | sed -E 's/\[feature:(.*)\]/\1/' | sort -u)
-CMDS=""; [ -x bin/keur ] && CMDS=$(bin/keur help 2>/dev/null | sed -nE 's/^  ([a-z]+)([[:space:]]+.*)?$/\1/p' | sort -u)
+CMDS=""; [[ -x bin/keur ]] && CMDS=$(bin/keur help 2>/dev/null | sed -nE 's/^  ([a-z]+)([[:space:]]+.*)?$/\1/p' | sort -u)
 
 echo "════════════════════════════════════════════════════════════"
 echo "  keur traceability coverage (explicit @id tags, refactor-proof)"
@@ -81,7 +81,7 @@ echo "════════════════════════�
 # --- 0. @id uniqueness ------------------------------------------------------
 hdr "0. @id uniqueness (each declared concept exactly once)"
 DUPES=$(printf '%s\n%s\n' "$ID_DECL" "$RULE_IDS" | grep -v '^$' | sort | uniq -d)
-if [ -n "$DUPES" ]; then
+if [[ -n "$DUPES" ]]; then
     for d in $DUPES; do failrow "$d" "✗ declared more than once" \
         "grep -rn '@id $d' src rules docs — keep ONE @id $d, rename or remove the duplicate(s)."; done
     FAIL=1
@@ -93,23 +93,23 @@ fi
 hdr "1. doc -> code   (every 'Coverage: code' ADR has >=1 @implements)"
 n=0; hit=0
 while IFS=$'\t' read -r id cov; do
-    [ -z "$id" ] && continue
-    if [ "$cov" = "none" ]; then row "$id" "$(green '✓ no-code (deliberate)')"; continue; fi
+    [[ -z "$id" ]] && continue
+    if [[ "$cov" = "none" ]]; then row "$id" "$(green '✓ no-code (deliberate)')"; continue; fi
     n=$((n+1))
     # An ADR is covered if it is @implemented directly OR any of its sub-@id's is
     # (a large ADR is "in progress" once at least one part is built).
     subs=$(echo "$DECLARED" | grep -E "^${id}\." || true)
     sub_hit=""; for s in $subs; do echo "$IMPLEMENTS" | grep -qx "$s" && sub_hit=1 && break; done
     if echo "$IMPLEMENTS" | grep -qx "$id"; then row "$id" "$(green ✓)"; hit=$((hit+1))
-    elif [ -n "$sub_hit" ]; then row "$id" "$(green '✓ (via sub-@id)')"; hit=$((hit+1))
+    elif [[ -n "$sub_hit" ]]; then row "$id" "$(green '✓ (via sub-@id)')"; hit=$((hit+1))
     else failrow "$id" "✗ orphan — no @implements" \
         "Add '@implements $id' in the file that builds it (any comment style). If it is a build/process decision with no code site, mark it '**Coverage**: none' in its ADR. See docs/design/traceability.md."; fi
 done < <(adr_coverage)
-P=$(pct $hit $n); row "coverage" "$hit/$n ($P%)"; [ "$P" -lt 100 ] && FAIL=1
+P=$(pct $hit $n); row "coverage" "$hit/$n ($P%)"; [[ "$P" -lt 100 ]] && FAIL=1
 
 # --- 1b. sub-concept detail (large ADRs, per-part) --------------------------
 SUBS=$(echo "$DECLARED" | grep -E '\.' || true)
-if [ -n "$SUBS" ]; then
+if [[ -n "$SUBS" ]]; then
     hdr "1b. sub-concepts (per-part status of large ADRs)"
     for s in $SUBS; do
         if echo "$IMPLEMENTS" | grep -qx "$s"; then row "$s" "$(green '✓ built')"
@@ -135,10 +135,10 @@ for t in $SEE_TOK; do
     echo "$DECLARED" | grep -qE "^${t}$|^ADR-|^KEUR-" >/dev/null 2>&1 || true
     if echo "$t" | grep -qE '^(ADR-[0-9]+|KEUR-[A-Z]+-[0-9]+)$'; then check_ref "$t"; fi
 done
-P=$(pct $hit $n); row "coverage" "$hit/$n ($P%)"; [ "$P" -lt 100 ] && FAIL=1
+P=$(pct $hit $n); row "coverage" "$hit/$n ($P%)"; [[ "$P" -lt 100 ]] && FAIL=1
 
 # --- @external: recorded, not validated -------------------------------------
-if [ -n "$EXTERNAL" ]; then
+if [[ -n "$EXTERNAL" ]]; then
     hdr "@external (other-repo prior art — recorded, not validated)"
     for x in $EXTERNAL; do row "$x" "$(green '· external')"; done
 fi
@@ -166,11 +166,11 @@ n=0; hit=0
 for e in $ENGINES; do
     n=$((n+1))
     t=$(prove_type "engine-$e")
-    if [ "$t" != "-" ]; then row "$e" "$(green "✓ proven ($t)")"; hit=$((hit+1))
+    if [[ "$t" != "-" ]]; then row "$e" "$(green "✓ proven ($t)")"; hit=$((hit+1))
     else failrow "$e" "✗ no @proves engine-$e" \
         "Add a test that runs a rule with 'engine: $e', assert the finding, and tag it '@proves engine-$e' (any test type — unit/e2e/regression). See docs/design/traceability.md."; fi
 done
-P=$(pct $hit $n); row "coverage" "$hit/$n ($P%)"; [ "$P" -lt 100 ] && FAIL=1
+P=$(pct $hit $n); row "coverage" "$hit/$n ($P%)"; [[ "$P" -lt 100 ]] && FAIL=1
 
 # --- 3b. engine -> doc ------------------------------------------------------
 # A DIFFERENT axis: does the SPEC still describe the engine? (doc <-> code
@@ -188,11 +188,11 @@ for e in $ENGINES; do
     else failrow "$e" "✗ not described in the rule-authoring reference" \
         "Add a section describing what the '$e' engine matches to your rule-authoring doc (a '### \`$e\`' heading). See docs/design/traceability.md."; fi
 done
-P=$(pct $hit $n); row "coverage" "$hit/$n ($P%)"; [ "$P" -lt 100 ] && FAIL=1
+P=$(pct $hit $n); row "coverage" "$hit/$n ($P%)"; [[ "$P" -lt 100 ]] && FAIL=1
 
 # --- 4. cmd -> test ---------------------------------------------------------
 hdr "4. cmd -> test   (every subcommand has a [feature:] test)"
-if [ -z "$CMDS" ]; then row "(skipped)" "bin/keur not built"; else
+if [[ -z "$CMDS" ]]; then row "(skipped)" "bin/keur not built"; else
     n=0; hit=0
     for c in $CMDS; do
         n=$((n+1))
@@ -200,10 +200,10 @@ if [ -z "$CMDS" ]; then row "(skipped)" "bin/keur not built"; else
         else failrow "$c" "✗ no [feature:$c]" \
             "Add a test scenario tagged [feature:$c] for the '$c' subcommand (any test type). See docs/design/traceability.md."; fi
     done
-    P=$(pct $hit $n); row "coverage" "$hit/$n ($P%)"; [ "$P" -lt 100 ] && FAIL=1
+    P=$(pct $hit $n); row "coverage" "$hit/$n ($P%)"; [[ "$P" -lt 100 ]] && FAIL=1
 fi
 
 echo
 echo "────────────────────────────────────────────────────────────"
-if [ "$STRICT" -eq 1 ] && [ "$FAIL" -eq 1 ]; then echo "  $(red FAIL) — gaps above (--strict)"; exit 1; fi
+if [[ "$STRICT" -eq 1 ]] && [[ "$FAIL" -eq 1 ]]; then echo "  $(red FAIL) — gaps above (--strict)"; exit 1; fi
 echo "  report complete$([ "$FAIL" -eq 1 ] && echo ' — gaps above (not gating without --strict)')"

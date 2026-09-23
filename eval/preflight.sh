@@ -37,12 +37,12 @@ disk="$(free_disk_mb "$PATH_CHECK")"; disk="${disk:-0}"
 mem="$(free_mem_mb)"; mem="${mem:-0}"
 
 ok=0
-if [ "$disk" -lt "$MIN_DISK_MB" ]; then
+if [[ "$disk" -lt "$MIN_DISK_MB" ]]; then
     echo "preflight: LOW DISK ${disk}MB < ${MIN_DISK_MB}MB" >&2; ok=1
 fi
-if [ "$mem" -lt "$MIN_MEM_MB" ]; then
+if [[ "$mem" -lt "$MIN_MEM_MB" ]]; then
     echo "preflight: LOW MEM ${mem}MB < ${MIN_MEM_MB}MB" >&2; ok=1
 fi
 
-[ "$ok" -eq 0 ] && echo "preflight: OK (disk ${disk}MB, mem ${mem}MB)"
+[[ "$ok" -eq 0 ]] && echo "preflight: OK (disk ${disk}MB, mem ${mem}MB)"
 exit "$ok"

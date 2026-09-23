@@ -22,8 +22,8 @@ case "${1:-run}" in
     end=$(( $(date +%s) + MINUTES*60 ))
     echo "[$(date +%H:%M:%S)] eval-loop start: budget=${MINUTES}m  stop: touch $STOP" | tee -a "$LOG"
     i=0
-    while [ "$(date +%s)" -lt "$end" ]; do
-      [ -f "$STOP" ] && { echo "[$(date +%H:%M:%S)] stop-file seen" | tee -a "$LOG"; break; }
+    while [[ "$(date +%s)" -lt "$end" ]]; do
+      [[ -f "$STOP" ]] && { echo "[$(date +%H:%M:%S)] stop-file seen" | tee -a "$LOG"; break; }
       i=$((i+1))
       line="$("$KEUR_HOME/eval/evaluate.sh" --quiet 2>/dev/null | head -1)"
       echo "[$(date +%H:%M:%S)] iter $i: $line" | tee -a "$LOG"
@@ -35,7 +35,7 @@ case "${1:-run}" in
     echo "[$(date +%H:%M:%S)] eval-loop done after $i iteration(s)" | tee -a "$LOG"
     ;;
   analyze)
-    [ -f "$METRICS_CSV" ] || { echo "no metrics yet: $METRICS_CSV"; exit 0; }
+    [[ -f "$METRICS_CSV" ]] || { echo "no metrics yet: $METRICS_CSV"; exit 0; }
     python3 - "$METRICS_CSV" <<'PY'
 import csv,sys
 rows=list(csv.DictReader(open(sys.argv[1])))
