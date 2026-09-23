@@ -26,10 +26,16 @@
 
 namespace keur::config {
 
-/// A known third-party hook manager and whether this repo uses it.
+/// What role a detected tool plays in the hook system:
+///   Manager — owns/installs git hooks (husky, pre-commit, lefthook, …).
+///   Runner  — runs INSIDE a hook, doesn't own it (lint-staged, commitlint, …).
+enum class HookKind { Manager, Runner };
+
+/// A known third-party hook tool and whether this repo uses it.
 struct HookManager {
-    std::string name;        ///< "husky" | "pre-commit" | "lefthook" | "overcommit"
+    std::string name;        ///< "husky" | "lint-staged" | "commitlint" | …
     std::string signature;   ///< the file/dir that identifies it (e.g. ".husky/")
+    HookKind    kind = HookKind::Manager;  ///< manager (owns hooks) vs runner (in a hook)
     bool        detected = false;
 };
 

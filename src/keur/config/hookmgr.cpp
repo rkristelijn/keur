@@ -18,13 +18,23 @@ struct KnownManager {
     const char* name;
     const char* signature;   // repo-relative path to test for existence
     HookOwner   owner;
+    HookKind    kind;
 };
 
 const KnownManager k_known[] = {
-    {"husky",      ".husky",                 HookOwner::Husky},
-    {"pre-commit", ".pre-commit-config.yaml", HookOwner::PreCommit},
-    {"lefthook",   "lefthook.yml",           HookOwner::Lefthook},
-    {"overcommit", ".overcommit.yml",        HookOwner::Overcommit},
+    // Managers — own/install git hooks.
+    {"husky",           ".husky",                  HookOwner::Husky,      HookKind::Manager},
+    {"pre-commit",      ".pre-commit-config.yaml", HookOwner::PreCommit,  HookKind::Manager},
+    {"lefthook",        "lefthook.yml",            HookOwner::Lefthook,   HookKind::Manager},
+    {"overcommit",      ".overcommit.yml",         HookOwner::Overcommit, HookKind::Manager},
+    {"simple-git-hooks", ".simple-git-hooks.json", HookOwner::Other,      HookKind::Manager},
+    {"githooks",        ".githooks",               HookOwner::Other,      HookKind::Manager},
+    // Runners — run INSIDE a hook, don't own it (context, not an owner).
+    {"lint-staged",     ".lintstagedrc",           HookOwner::Other,      HookKind::Runner},
+    {"lint-staged-json", ".lintstagedrc.json",     HookOwner::Other,      HookKind::Runner},
+    {"commitlint",      "commitlint.config.js",    HookOwner::Other,      HookKind::Runner},
+    {"commitlint-rc",   ".commitlintrc.json",      HookOwner::Other,      HookKind::Runner},
+    {"commitizen",      ".czrc",                   HookOwner::Other,      HookKind::Runner},
 };
 
 }  // namespace
@@ -51,13 +61,13 @@ HookSituation detect_hook_situation(const HookProbe& probe) {
     s.effective_path = !s.local_hooks_path.empty() ? s.local_hooks_path
                                                     : s.global_hooks_path;
 
-    // Probe each known manager by its signature file under the repo root.
+    // Probe each known tool by its signature file under the repo root.
     for (const auto& km : k_known) {
         std::string sig = probe.repo_root.empty()
                               ? std::string(km.signature)
                               : platform::path_join(probe.repo_root, km.signature);
         bool present = probe.exists(sig);
-        s.managers.push_back({km.name, km.signature, present});
+        s.managers.push_back({km.name, km.signature, km.kind, present});
     }
 
     // Decide the effective owner. A repo-local core.hooksPath pointing into a
@@ -73,9 +83,12 @@ HookSituation detect_hook_situation(const HookProbe& probe) {
     else if (path_points_into(".pre-commit")) s.owner = HookOwner::PreCommit;
     else {
         // No manager-owned path: fall back to signature detection, then keur.
+        // Runners (lint-staged, commitlint, …) never own hooks — skip them.
         HookOwner detected_owner = HookOwner::None;
         for (size_t i = 0; i < s.managers.size(); ++i)
-            if (s.managers[i].detected) { detected_owner = k_known[i].owner; break; }
+            if (s.managers[i].detected && k_known[i].kind == HookKind::Manager) {
+                detected_owner = k_known[i].owner; break;
+            }
 
         if (detected_owner != HookOwner::None && !s.local_hooks_path.empty())
             s.owner = detected_owner;                 // local path + a manager present

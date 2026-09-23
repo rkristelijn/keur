@@ -16,6 +16,7 @@
 #include "rules/rule_engine.h"
 #include "cmd/policy.h"
 #include "adapters/git.h"
+#include "config/ruleset.h"
 #include "util/keur_utils.h"
 
 namespace keur::cmd {
@@ -77,12 +78,8 @@ int check(const CheckOptions& opts, FileSource file_src) {
     std::cerr << "KEUR (" << tier_str << "): scanning "
               << files.size() << " staged file(s)...\n";
 
-    // 2. Load rules
-    std::vector<Rule> rules;
-    for (auto& d : rule_dirs()) {
-        auto rs = rules_load(d);
-        for (auto& r : rs) rules.push_back(std::move(r));
-    }
+    // 2. Load the active rule set (resolved dirs minus the disable-list).
+    std::vector<Rule> rules = keur::config::load_active_rules();
 
     // 3. Scan in-process
     PolicyInput input{};

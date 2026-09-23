@@ -15,7 +15,7 @@ action: block
 # I/O — see ADR-005), and outside tests (which exercise the real impls).
 target:
   extensions: .cpp .h
-  exclude_paths: adapters/ common/ _test.cpp test/ tests/ vendor/ ../rules/
+  exclude_paths: adapters/ common/ _test.cpp test/ tests/ vendor/ ../rules/ _generated.cpp
 patterns:
   - regex: \bpopen\s*\(
     message: "Raw popen() outside an adapter. Spawn tools via the Proc adapter (adapters/proc.h) or query git via the Git adapter (adapters/git.h)."

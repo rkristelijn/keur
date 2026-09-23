@@ -28,6 +28,8 @@ bin/keur
 bin/keur-rules
 bin/keur-test
 *.o
+# generated at build time from the .rule files (scripts/gen-catalog.sh)
+src/keur/manager/catalog_generated.cpp
 *.d
 *.gcda
 *.gcno

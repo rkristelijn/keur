@@ -69,6 +69,76 @@ std::vector<std::string> known_config_files(const std::string& scanner_name) {
     return {};
 }
 
+namespace {
+// Per-tool install packages/commands. brew (macOS), apt (Debian/Ubuntu),
+// apk (Alpine). A "" field means no simple package on that OS (fall back to the
+// tool's own installer/docs). Data-driven — a new tool is one row.
+struct InstallMap {
+    const char* scanner;
+    const char* brew;   // `brew install <brew>`
+    const char* apt;    // `apt install <apt>`
+    const char* apk;    // `apk add <apk>`
+};
+const InstallMap k_install[] = {
+    {"gitleaks",    "gitleaks",    "gitleaks",   "gitleaks"},
+    {"trufflehog",  "trufflehog",  "",           ""},
+    {"semgrep",     "semgrep",     "",           "py3-pip (then: pip install semgrep)"},
+    {"trivy",       "trivy",       "trivy",      "trivy"},
+    {"grype",       "grype",       "",           ""},
+    {"osv-scanner", "osv-scanner", "",           ""},
+    {"checkov",     "checkov",     "",           "py3-pip (then: pip install checkov)"},
+    {"tfsec",       "tfsec",       "",           "tfsec"},
+    {"cpm",         "",            "",           ""},   // installed from source
+};
+}  // namespace
+
+std::string install_hint(const std::string& scanner_name) {
+    const InstallMap* m = nullptr;
+    for (const auto& row : k_install)
+        if (scanner_name == row.scanner) { m = &row; break; }
+    if (!m) return "";
+    switch (platform::os_kind()) {
+        case platform::OsKind::MacOS:
+            return (m->brew && *m->brew) ? std::string("brew install ") + m->brew : "";
+        case platform::OsKind::Linux:
+            // Prefer apt; fall back to apk hint when apt has no package.
+            if (m->apt && *m->apt) return std::string("apt install ") + m->apt;
+            if (m->apk && *m->apk) return std::string("apk add ") + m->apk;
+            return "";
+        case platform::OsKind::Windows:
+        case platform::OsKind::Unknown:
+        default:
+            // No universal package manager; point at the tool's own docs.
+            return "";
+    }
+}
+
+std::vector<Scanner> default_scanners() {
+    // The proven-tool baseline keur ships with (mirrors config/keur.toml's
+    // [scanners.*]). Enabled by default except presidio (opt-in higher-fidelity
+    // PII). group/default-action match the shipped template.
+    struct Def { const char* name; const char* group; const char* action; bool enabled; };
+    static const Def k[] = {
+        {"gitleaks",    "secrets", "block", true},
+        {"trufflehog",  "secrets", "block", true},
+        {"trivy",       "deps",    "warn",  true},
+        {"grype",       "deps",    "warn",  true},
+        {"osv-scanner", "deps",    "warn",  true},
+        {"semgrep",     "sast",    "warn",  true},
+        {"checkov",     "iac",     "warn",  true},
+        {"tfsec",       "iac",     "warn",  true},
+        {"presidio",    "pii",     "warn",  false},
+    };
+    std::vector<Scanner> out;
+    for (const auto& d : k) {
+        Scanner s;
+        s.name = d.name; s.bin = d.name; s.group = d.group;
+        s.default_action = d.action; s.enabled = d.enabled;
+        out.push_back(std::move(s));
+    }
+    return out;
+}
+
 std::vector<Scanner> parse_scanners(const std::string& toml_body) {
     std::vector<Scanner> scanners;
     Scanner* cur = nullptr;

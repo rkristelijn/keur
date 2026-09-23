@@ -139,7 +139,6 @@ void eng_multiline(const ScanContext& cx, std::vector<RuleFinding>& out) {
 // @id engine-path-derived
 void eng_path_derived(const ScanContext& cx, std::vector<RuleFinding>& out) {
   const Rule& r = *cx.compiled.rule;
-  fprintf(stderr, "[PDDEBUG] engine ran rel=%s cap=[%s] tmpl=[%s]\n", cx.rel.c_str(), r.path_capture.c_str(), r.derived_template.c_str());
   if (r.path_capture.empty() || r.derived_template.empty()) return;
 
   RE2 cap(r.path_capture);
