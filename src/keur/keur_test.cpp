@@ -1861,6 +1861,53 @@ SCENARIO("[feature:rule-engine] count engine fires once at min_count, not below"
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] max-nesting flags control blocks deeper than max_count") {  // @proves engine-max-nesting
+    // The max-nesting engine tracks control-flow nesting depth using the same
+    // string/regex-aware brace lexer as block-absence, and flags a function
+    // whose control nesting exceeds max_count (SonarQube S134). Non-control
+    // braces (struct/initializer/lambda) do NOT raise the control depth.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/NEST.rule",
+        "id: NEST-1\ntitle: too deeply nested\ncategory: quality\nseverity: warning\n"
+        "engine: max-nesting\nmin_count: 3\n"
+        "target:\n  extensions: .cpp\n"
+        "patterns:\n  - regex: nesting too deep\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+
+    // 3 levels of control nesting: at the limit → no finding.
+    std::string ok = dir + "/ok.cpp";
+    write_file(ok,
+        "void f() {\n"
+        "  if (a) {\n"
+        "    for (;;) {\n"
+        "      while (x) { g(); }\n"   // depth 3 (if/for/while) — at limit
+        "    }\n"
+        "  }\n"
+        "}\n");
+    auto f1 = keur::rules_scan_files(rules, {ok});
+    int hits_ok = 0; for (auto& f : f1) if (f.rule_id == "NEST-1") hits_ok++;
+    CHECK(hits_ok == 0);
+
+    // 4 levels of control nesting: over the limit → exactly one finding.
+    std::string deep = dir + "/deep.cpp";
+    write_file(deep,
+        "void f() {\n"
+        "  if (a) {\n"
+        "    for (;;) {\n"
+        "      while (x) {\n"
+        "        switch (y) { case 1: g(); }\n"   // depth 4 — over limit
+        "      }\n"
+        "    }\n"
+        "  }\n"
+        "}\n");
+    auto f2 = keur::rules_scan_files(rules, {deep});
+    int hits_deep = 0; for (auto& f : f2) if (f.rule_id == "NEST-1") hits_deep++;
+    CHECK(hits_deep == 1);   // fires once for the over-deep function
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] multiline window fires within N lines, not beyond") {  // @proves engine-multiline
     // RE2 matches one line at a time; the window engine joins a sliding window of
     // `window` lines so a pattern can span them — but STAYS bounded to the window

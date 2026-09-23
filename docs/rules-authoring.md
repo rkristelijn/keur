@@ -242,6 +242,34 @@ Other uses of the same shape: filename must equal an exported symbol,
 `package x.y.z` must match the directory path (Java/Go), a test file must sit
 beside its source.
 
+### `max-nesting`
+Flag a function whose CONTROL-FLOW nesting depth exceeds `min_count` (default 3,
+matching SonarQube S134). It reuses the same string/regex-aware brace lexer as
+`block-absence`, so braces inside strings, char-literals and regex literals do
+not skew the depth. Only braces opened by a control keyword
+(`if`/`else`/`for`/`while`/`switch`/`do`) raise the control depth — a
+struct/lambda/initializer/plain-block brace balances the raw scope but does not
+count. Fires once per over-deep function, at the function's opening line.
+
+- `min_count` — the maximum allowed control-nesting depth (default 3). A
+  function whose peak depth is `> min_count` is flagged.
+- `patterns[0].regex` — unused for matching (the depth is structural); keep a
+  short marker regex so the rule parses and to carry the `message`.
+
+```yaml
+# >3 nested control blocks → refactor (guard clauses, extract a helper). S134.
+id: KEUR-QUAL-004
+title: Function nested more than 3 control blocks deep
+category: quality
+severity: warning
+engine: max-nesting
+min_count: 3
+target:
+  extensions: .c .cpp .cc .h .hpp
+patterns:
+  - regex: nesting too deep
+```
+
 ## Facts, `requires:` and composite rules (ADR-009)
 
 Beyond single patterns, a rule can reason about *context* and *combine* other

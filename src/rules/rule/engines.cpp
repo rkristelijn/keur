@@ -170,6 +170,18 @@ void eng_path_derived(const ScanContext& cx, std::vector<RuleFinding>& out) {
   emit(r, cx.rel, 1, finding_msg(r, msg), out);
 }
 
+// max-nesting: flag a function whose CONTROL-FLOW nesting depth exceeds
+// max_count (min_count field; default 3, matching SonarQube S134). Reuses the
+// string/regex-aware brace lexer from block.cpp so literal braces in strings do
+// not skew depth, and only counts braces opened by a control keyword
+// (if/else/for/while/switch/do) — a struct/lambda/initializer brace does not
+// raise the control depth. @id engine-max-nesting
+void eng_max_nesting(const ScanContext& cx, std::vector<RuleFinding>& out) {
+  const Rule& r = *cx.compiled.rule;
+  const int limit = r.min_count > 0 ? r.min_count : 3;
+  eval_max_nesting(r, limit, cx.lines, cx.rel, out);
+}
+
 }  // namespace
 EngineFn engine_lookup(const std::string& name) {
   static const std::unordered_map<std::string, EngineFn> registry = {
@@ -180,6 +192,7 @@ EngineFn engine_lookup(const std::string& name) {
       {"count", &eng_count},
       {"multiline", &eng_multiline},
       {"path-derived", &eng_path_derived},
+      {"max-nesting", &eng_max_nesting},
   };
   auto it = registry.find(name);
   return it == registry.end() ? nullptr : it->second;
