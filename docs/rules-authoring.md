@@ -328,6 +328,30 @@ patterns:
   - regex: too many units
 ```
 
+### `extract-duplicates`
+Per file, apply the `extract` regex (which must contain a capture group), collect
+the captured value from each line, and flag the SECOND and later occurrence of the
+same value — an in-file duplicate. A seen-set makes it O(n). Unique values never
+fire. Use `{match}` in the message to interpolate the duplicated value.
+
+- `extract` — a regex with a capture group (e.g. `it\(\s*['"]([^'"]+)['"]`).
+- `capture` — which group holds the value (default 1).
+- `patterns[0].message` — supports `{match}` → the duplicated value.
+
+```yaml
+# duplicate test name in one file (it('x') / test('x') twice).
+id: TEST-038
+title: Duplicate test name in same file
+category: quality
+severity: warning
+engine: extract-duplicates
+extract: (?:it|test)\(\s*['"]([^'"]+)['"]
+capture: 1
+patterns:
+  - regex: x
+    message: "Duplicate test name '{match}' — give each test a unique name"
+```
+
 ## Facts, `requires:` and composite rules (ADR-009)
 
 Beyond single patterns, a rule can reason about *context* and *combine* other

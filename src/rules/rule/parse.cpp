@@ -131,6 +131,8 @@ Rule rule_parse(const std::string& path) {
     else if (key == "window") rule.window = std::atoi(val.c_str());
     else if (key == "path_capture") rule.path_capture = val;
     else if (key == "derived_template") rule.derived_template = val;
+    else if (key == "extract") rule.extract = val;
+    else if (key == "capture") rule.capture = std::atoi(val.c_str());
     else if (key == "skip_comments") rule.skip_comments = (val == "true" || val == "yes");
     else if (key == "skip_strings") rule.skip_strings = (val == "true" || val == "yes");
     else if (key == "extensions") rule.target.extensions = split_ws(val);

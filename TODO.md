@@ -89,6 +89,29 @@ Status legend: [x] done · [~] partially done · [ ] open
       corpus-exclude (eval/corpus/repos/ + the cpm-sourced rules, now
       `source: cpm` within rules/) — the exact cpm exclude mechanism is
       unconfirmed. Then add cpm.toml + optional CI job.
+- [ ] SCAN DISPATCH: a rule with an `extract:`/file-metric engine but NO
+      `patterns:` block does not fire — the per-file dispatch only runs a rule
+      that reached `filtered`, and a no-patterns rule is dropped from the
+      candidate path. Workaround in place: the 3 imported extract-duplicates
+      rules carry a dummy `patterns: - regex: "{extract-duplicates}"` block so
+      they dispatch. Proper fix: let engines that don't consume `patterns`
+      (extract-duplicates, max-lines, max-dir-files, max-nesting) dispatch on the
+      rule's own field (extract/min_count) without requiring a patterns block.
+      See src/rules/rule/scan.cpp (candidate/filtered path).
+- [ ] IMPORT THE FULL CPM CORPUS + MATURITY GATING (ADR-026). ~811 more cpm rules
+      use engines keur now supports and could be imported (source: cpm). But
+      shipping ~1000 rules all-active is far too strict. First implement ADR-026:
+      a `maturity:` field per rule (1 prototype .. 5 optimising) + profile
+      templates under config/profiles/ (prototype/startup/standard/hardened/
+      mission-critical) that activate rules with maturity <= the project's level
+      (ADR-011 cascade). THEN bulk-import with maturity seeded from cpm severity/
+      category. No engine change (rules stay data). Backfill maturity on the
+      existing corpus too (deadly rules → 1, opinionated/framework → 5).
+- [ ] PERF: eval/doc-coverage.sh feels slow — investigate + speed up. It greps
+      tags across src/ rules/ docs/ eval/ repeatedly (multiple full-tree greps
+      per section, 235+ rule files now). Profile it (which section dominates),
+      then cache the tag scan once and reuse, or narrow the scan set. It runs as
+      a gate, so sub-second matters.
       Bonus: feed multiline/count engine support upstream to cpm to drop the
       "unsupported engine" warnings. See docs/adr/ADR-018-cpm-second-gate.md.
 - [ ] NO PYTHON in the eval scripting layer — replace inline `python3 -c` JSON

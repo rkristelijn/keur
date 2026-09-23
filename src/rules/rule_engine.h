@@ -93,6 +93,11 @@ struct Rule {
   // derived string is absent from the file, the rule fires. @implements ADR-020
   std::string path_capture;
   std::string derived_template;
+  // extract-duplicates engine: `extract` is a regex with a capture group; the
+  // captured value (group `capture`, default 1) is collected per file and the
+  // rule fires on the SECOND+ occurrence of the same value. @implements ADR-004.stage2
+  std::string extract;
+  int capture = 1;
   bool skip_comments = false;  // strip comments before matching (ADR-004 stage 1)
   bool skip_strings = false;   // strip string literals before matching
   RuleRequires requires_;      // ADR-009: facts guard (empty = always applies)
