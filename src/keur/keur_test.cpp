@@ -44,6 +44,8 @@
 #include "cmd/scan.h"
 #include "config/hookmgr.h"
 #include "config/scanners.h"
+#include "config/disabled.h"
+#include "config/ruleset.h"
 #include "adapters/fs.h"
 #include "adapters/git.h"
 #include "util/keur_utils.h"
@@ -51,6 +53,10 @@
 #include "adapters/sysinfo.h"
 #include "learn/sysinfo.h"
 #include "report/report.h"
+#include "common/platform.h"
+#include "manager/model.h"
+#include "manager/view.h"
+#include "manager/catalog.h"
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -358,6 +364,56 @@ SCENARIO("[feature:hook] cmd_hook_parse --remove --global") {
     CHECK(o.global);
 }
 
+SCENARIO("[feature:hook] cmd_hook_parse --augment [--remove]") {
+    auto a = keur::cmd::hook_parse({"--augment"});
+    CHECK(a.action == keur::cmd::HookAction::Augment);
+    CHECK(!a.remove_augment);
+    auto r = keur::cmd::hook_parse({"--augment", "--remove"});
+    CHECK(r.action == keur::cmd::HookAction::Augment);
+    CHECK(r.remove_augment);
+}
+
+SCENARIO("[feature:hook] augment_hook inserts a guarded keur line at the top") {
+    // Existing husky-style hook.
+    std::string husky = "#!/bin/sh\nnpx lint-staged\n";
+    std::string out = keur::cmd::augment_hook(husky, "pre-commit");
+    CHECK(keur::cmd::is_augmented(out));
+    // keur runs BEFORE husky's own command (fail-fast): keur line precedes it.
+    auto keur_pos = out.find("keur check --tier pre-commit");
+    auto husky_pos = out.find("npx lint-staged");
+    REQUIRE(keur_pos != std::string::npos);
+    REQUIRE(husky_pos != std::string::npos);
+    CHECK(keur_pos < husky_pos);
+    // Guarded: only runs when keur is installed (safe for teammates without it).
+    CHECK(out.find("command -v keur") != std::string::npos);
+    // Shebang preserved at the very top.
+    CHECK(out.rfind("#!/bin/sh", 0) == 0);
+    // Respects a BLOCK.
+    CHECK(out.find("|| exit 1") != std::string::npos);
+}
+
+SCENARIO("[feature:hook] augment_hook is idempotent") {
+    std::string husky = "#!/bin/sh\nnpx lint-staged\n";
+    std::string once = keur::cmd::augment_hook(husky, "pre-commit");
+    std::string twice = keur::cmd::augment_hook(once, "pre-commit");
+    CHECK(once == twice);   // second augment is a no-op
+}
+
+SCENARIO("[feature:hook] unaugment_hook removes exactly the keur block") {
+    std::string husky = "#!/bin/sh\nnpx lint-staged\n";
+    std::string aug = keur::cmd::augment_hook(husky, "pre-commit");
+    std::string back = keur::cmd::unaugment_hook(aug);
+    CHECK(!keur::cmd::is_augmented(back));
+    CHECK(back.find("npx lint-staged") != std::string::npos);  // manager's line kept
+    CHECK(back.find("keur check") == std::string::npos);        // keur block gone
+}
+
+SCENARIO("[feature:hook] augment_hook adds a shebang when the file has none") {
+    std::string out = keur::cmd::augment_hook("", "pre-push");
+    CHECK(out.rfind("#!/bin/sh", 0) == 0);
+    CHECK(out.find("keur check --tier pre-push") != std::string::npos);
+}
+
 SCENARIO("[feature:hook] hooks_install creates executable stubs") {
     std::string tmp = create_temp_dir();
     REQUIRE(!tmp.empty());
@@ -609,6 +665,33 @@ SCENARIO("[feature:hook] no manager and no hooksPath means no owner") {  // @pro
     CHECK(s.owner == keur::config::HookOwner::None);
 }
 
+SCENARIO("[feature:hook] a runner (lint-staged) is detected but never an owner") {  // @proves KEUR-HOOKMGR
+    keur::config::HookProbe probe;
+    probe.repo_root = "/repo";
+    probe.git_config = [](const std::string&) -> std::string { return ""; };
+    probe.exists = [](const std::string& p) { return p == "/repo/.lintstagedrc"; };
+    auto s = keur::config::detect_hook_situation(probe);
+    bool ls = false; keur::config::HookKind kind = keur::config::HookKind::Manager;
+    for (const auto& m : s.managers)
+        if (m.name == "lint-staged") { ls = m.detected; kind = m.kind; }
+    CHECK(ls);                                              // detected
+    CHECK(kind == keur::config::HookKind::Runner);          // classified as a runner
+    CHECK(s.owner == keur::config::HookOwner::None);        // a runner never owns hooks
+}
+
+SCENARIO("[feature:hook] detects the raw .githooks/ convention as a manager") {  // @proves KEUR-HOOKMGR
+    keur::config::HookProbe probe;
+    probe.repo_root = "/repo";
+    probe.git_config = [](const std::string&) -> std::string { return ""; };
+    probe.exists = [](const std::string& p) { return p == "/repo/.githooks"; };
+    auto s = keur::config::detect_hook_situation(probe);
+    bool gh = false; keur::config::HookKind kind = keur::config::HookKind::Runner;
+    for (const auto& m : s.managers)
+        if (m.name == "githooks") { gh = m.detected; kind = m.kind; }
+    CHECK(gh);
+    CHECK(kind == keur::config::HookKind::Manager);
+}
+
 // --- [feature:config] scanner inventory (KEUR-SCANNERS) ---------------------
 
 static const char* k_scanner_toml =
@@ -669,6 +752,72 @@ SCENARIO("[feature:config] resolve_scanners fills PATH availability and config-f
     CHECK(sc[0].config_files[0].present == false);
     CHECK(sc[0].config_files[1].path == ".gitleaksignore");
     CHECK(sc[0].config_files[1].present == true);
+}
+
+// --- [feature:rules] disable-list (KEUR-DISABLED) ---------------------------
+
+SCENARIO("[feature:rules] parse_disabled reads inline and multi-line arrays") {  // @proves KEUR-DISABLED
+    auto a = keur::config::parse_disabled("[rules]\ndisabled = [\"KEUR-SEC-001\", \"KEUR-QUAL-002\"]\n");
+    CHECK(a.count("KEUR-SEC-001"));
+    CHECK(a.count("KEUR-QUAL-002"));
+    CHECK(a.size() == 2);
+    // multi-line array form
+    auto b = keur::config::parse_disabled("[rules]\ndisabled = [\n  \"A-1\",\n  \"B-2\",\n]\n");
+    CHECK(b.count("A-1"));
+    CHECK(b.count("B-2"));
+    // disabled outside [rules] is ignored
+    auto c = keur::config::parse_disabled("[other]\ndisabled = [\"X\"]\n");
+    CHECK(c.empty());
+}
+
+SCENARIO("[feature:rules] filter_disabled drops exactly the listed ids") {  // @proves KEUR-DISABLED
+    std::vector<keur::Rule> rules;
+    keur::Rule r1; r1.id = "KEEP-1"; rules.push_back(r1);
+    keur::Rule r2; r2.id = "DROP-2"; rules.push_back(r2);
+    keur::Rule r3; r3.id = "KEEP-3"; rules.push_back(r3);
+    auto kept = keur::config::filter_disabled(rules, {"DROP-2"});
+    REQUIRE(kept.size() == 2);
+    CHECK(kept[0].id == "KEEP-1");
+    CHECK(kept[1].id == "KEEP-3");
+    // empty disable-set keeps everything
+    CHECK(keur::config::filter_disabled(rules, {}).size() == 3);
+}
+
+SCENARIO("[feature:rules] upsert_disabled_section round-trips and preserves other config") {  // @proves KEUR-DISABLED
+    std::string base = "version = \"0.1.0\"\nblock-at = 0.85\n";
+    // add two ids → a [rules] section is appended, other keys preserved
+    std::string one = keur::config::upsert_disabled_section(base, {"R-2", "R-1"});
+    CHECK(one.find("version = \"0.1.0\"") != std::string::npos);
+    CHECK(one.find("block-at = 0.85") != std::string::npos);
+    CHECK(one.find("[rules]") != std::string::npos);
+    // ids are sorted for a stable diff
+    CHECK(one.find("\"R-1\", \"R-2\"") != std::string::npos);
+    // parsing it back yields the same set (round-trip)
+    auto back = keur::config::parse_disabled(one);
+    CHECK(back.count("R-1"));
+    CHECK(back.count("R-2"));
+    // removing one id rewrites the array in place
+    std::string two = keur::config::upsert_disabled_section(one, {"R-2"});
+    auto back2 = keur::config::parse_disabled(two);
+    CHECK(back2.count("R-2"));
+    CHECK(!back2.count("R-1"));
+    CHECK(two.find("block-at = 0.85") != std::string::npos);  // still preserved
+}
+
+SCENARIO("[feature:rules] resolve_disabled unions ids across existing layers") {  // @proves KEUR-DISABLED
+    std::vector<keur::config::Layer> layers = {
+        {keur::config::Scope::Global, "/g/keur.toml", true},
+        {keur::config::Scope::Repo, "/r/keur.toml", true},
+        {keur::config::Scope::KeurHome, "/kh/keur.toml", false},  // absent → skipped
+    };
+    auto set = keur::config::resolve_disabled(layers, [](const std::string& p) -> std::string {
+        if (p == "/g/keur.toml") return "[rules]\ndisabled = [\"GLOBAL-1\"]\n";
+        if (p == "/r/keur.toml") return "[rules]\ndisabled = [\"REPO-1\"]\n";
+        return "SHOULD-NOT-BE-READ";  // /kh is absent, must be skipped
+    });
+    CHECK(set.count("GLOBAL-1"));
+    CHECK(set.count("REPO-1"));
+    CHECK(set.size() == 2);  // the absent keur-home layer contributed nothing
 }
 
 // --- [feature:manager] aggregated board (status overview) -------------------
@@ -1853,3 +2002,570 @@ SCENARIO("[feature:policy] 100x policy_load is fast (<5ms)") {
 }
 
 } // TEST_SUITE("perf")
+
+// Reopen the unit suite for the pure Layer 4/5 tests below (decode_key +
+// manager tree model/view) so `make test-unit` runs them.
+TEST_SUITE("unit") {
+
+// --- [feature:keyinput] pure terminal key decoding --------------------------
+
+SCENARIO("[feature:keyinput] decode_key maps arrow CSI sequences") {  // @proves KEUR-KEYINPUT
+    using keur::platform::decode_key;
+    using keur::platform::Key;
+    CHECK(decode_key("\033[A").key == Key::Up);
+    CHECK(decode_key("\033[B").key == Key::Down);
+    CHECK(decode_key("\033[C").key == Key::Right);
+    CHECK(decode_key("\033[D").key == Key::Left);
+    // Unknown CSI final byte → Unknown, not a misread arrow.
+    CHECK(decode_key("\033[Z").key == Key::Unknown);
+}
+
+SCENARIO("[feature:keyinput] decode_key maps named control keys") {  // @proves KEUR-KEYINPUT
+    using keur::platform::decode_key;
+    using keur::platform::Key;
+    CHECK(decode_key("\r").key == Key::Enter);   // CR (raw mode)
+    CHECK(decode_key("\n").key == Key::Enter);   // LF (piped)
+    CHECK(decode_key(" ").key  == Key::Space);
+    CHECK(decode_key("\t").key == Key::Tab);
+    CHECK(decode_key("\x7f").key == Key::Backspace);
+    CHECK(decode_key("\b").key   == Key::Backspace);
+    CHECK(decode_key("\033").key == Key::Escape);  // lone ESC
+    CHECK(decode_key("").key     == Key::Unknown); // empty buffer
+}
+
+SCENARIO("[feature:keyinput] decode_key returns printable chars for hjkl/s/q/?") {  // @proves KEUR-KEYINPUT
+    using keur::platform::decode_key;
+    using keur::platform::Key;
+    for (char c : std::string("hjklsgGq?a")) {
+        auto ev = decode_key(std::string(1, c));
+        CHECK(ev.key == Key::Char);
+        CHECK(ev.ch == c);
+    }
+    // Space is Space (not Char), even though it is printable.
+    CHECK(decode_key(" ").key == Key::Space);
+}
+
+// --- [feature:manager-tree] pure tree model + reducers ----------------------
+
+// Build a RuleItem with the 4 facets (subcategory/language/framework default to
+// "generic"/"any"), so tests read clearly and survive facet-field additions.
+static keur::manager::RuleItem ri(const std::string& category, const std::string& id,
+                                  const std::string& detail, bool enabled) {
+    keur::manager::RuleItem it;
+    it.category = category; it.subcategory = "generic"; it.language = "any";
+    it.framework = "any"; it.id = id; it.detail = detail; it.enabled = enabled;
+    return it;
+}
+
+// Recursively expand every group so navigation tests see rule leaves at any depth.
+static void expand_all(keur::manager::Node& n) {
+    n.expanded = true;
+    for (auto& c : n.children) expand_all(c);
+}
+
+static keur::manager::Model make_test_model() {
+    // Global: 2 categories (security x2, secrets x1). Repo: security x1.
+    std::vector<keur::manager::RuleItem> g = {
+        ri("security", "KEUR-SEC-001", "[critical] private-key", true),
+        ri("security", "KEUR-SEC-002", "[high] aws-key", false),   // starts off
+        ri("secrets",  "KEUR-SECRET-1", "[high] token", true),
+    };
+    std::vector<keur::manager::RuleItem> r = {
+        ri("security", "KEUR-SEC-001", "[critical] private-key", true),
+    };
+    keur::manager::DefaultsInfo d;
+    d.settings = {{"Scanners", "gitleaks", "secrets block"},
+                  {"Policy", "block-at", "0.85"}};
+    d.catalog = g;  // baseline catalogue
+    auto m = keur::manager::build_model(d, g, r, /*repo_available=*/true);
+    for (auto& root : m.roots) expand_all(root);
+    return m;
+}
+
+// A minimal editable-only model for tests that focus a group root.
+static keur::manager::Model make_editable_model() {
+    std::vector<keur::manager::RuleItem> g = {
+        ri("security", "KEUR-SEC-001", "[critical] private-key", true),
+        ri("security", "KEUR-SEC-002", "[high] aws-key", false),
+        ri("secrets",  "KEUR-SECRET-1", "[high] token", true),
+    };
+    std::vector<keur::manager::RuleItem> r = {
+        ri("security", "KEUR-SEC-001", "[critical] private-key", true),
+    };
+    keur::manager::DefaultsInfo d;  // empty defaults
+    auto m = keur::manager::build_model(d, g, r, true);
+    return m;
+}
+
+SCENARIO("[feature:manager-tree] build_model builds Scope->Category->Rule") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_test_model();
+    REQUIRE(m.roots.size() == 3);                 // Defaults + Global + This repo
+    CHECK(m.roots[0].label == "Defaults");
+    CHECK(m.roots[0].read_only == true);
+    CHECK(m.roots[1].label.find("Global") == 0);
+    CHECK(m.roots[2].label.find("This repo") == 0);
+    // Global has the editable security + secrets categories (each with a
+    // subcategory level below — 'generic' for this test data).
+    const auto& global = m.roots[1];
+    REQUIRE(global.children.size() == 2);
+    CHECK(global.children[0].label == "security");
+    // security → generic → 2 rules
+    REQUIRE(global.children[0].children.size() == 1);
+    CHECK(global.children[0].children[0].label == "generic");
+    const auto& sec_rules = global.children[0].children[0].children;
+    REQUIRE(sec_rules.size() == 2);
+    CHECK(sec_rules[1].enabled == false);   // SEC-002 off
+    CHECK(sec_rules[1].baseline == false);
+    CHECK(sec_rules[1].read_only == false);
+}
+
+SCENARIO("[feature:manager-tree] Defaults branch is read-only baseline") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_test_model();
+    const auto& defaults = m.roots[0];
+    CHECK(defaults.read_only == true);
+    // It carries a Scanners group and a Policy group (from settings).
+    bool has_scanners = false, has_policy = false, has_catalog = false;
+    for (const auto& c : defaults.children) {
+        if (c.label == "Scanners") has_scanners = true;
+        if (c.label == "Policy") has_policy = true;
+        if (c.label.find("catalogue") != std::string::npos) has_catalog = true;
+        CHECK(c.read_only == true);
+    }
+    CHECK(has_scanners);
+    CHECK(has_policy);
+    CHECK(has_catalog);
+}
+
+SCENARIO("[feature:manager-tree] toggling a Defaults rule is a no-op") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_test_model();
+    // Put the cursor on the first read-only rule under Defaults.
+    auto rows = keur::manager::visible_rows(m);
+    int idx = -1;
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i)
+        if (rows[static_cast<std::size_t>(i)].node->kind == keur::manager::NodeKind::RuleNode &&
+            rows[static_cast<std::size_t>(i)].node->read_only) { idx = i; break; }
+    REQUIRE(idx >= 0);
+    m.cursor = idx;
+    CHECK(keur::manager::toggle_focused_rule(m) == false);   // read-only → no-op
+    CHECK(m.dirty == false);
+    CHECK(keur::manager::pending_edits(m).empty());
+}
+
+SCENARIO("[feature:manager-tree] facet grouping builds a variable-depth tree") {  // @proves KEUR-MANAGER-MODEL
+    // Two rules in the same category but different subcategory → the tree nests
+    // category → subcategory → rule (variable depth from the facet order).
+    auto a = ri("security", "R-SAST", "", true); a.subcategory = "sast";
+    auto b = ri("security", "R-SQLI", "", true); b.subcategory = "sqli";
+    keur::manager::DefaultsInfo d;
+    auto m = keur::manager::build_model(d, {a, b}, {}, false);
+    const auto& global = m.roots[1];
+    REQUIRE(global.children.size() == 1);
+    CHECK(global.children[0].label == "security");
+    REQUIRE(global.children[0].children.size() == 2);
+    CHECK(global.children[0].children[0].label == "sast");
+    CHECK(global.children[0].children[1].label == "sqli");
+    CHECK(global.children[0].children[0].children.size() == 1);
+}
+
+SCENARIO("[feature:manager-tree] next_facet_order cycles category<->language first") {  // @proves KEUR-MANAGER-MODEL
+    auto def = keur::manager::default_facet_order();
+    CHECK(def[0] == keur::manager::Facet::Category);
+    auto lang = keur::manager::next_facet_order(def);
+    CHECK(lang[0] == keur::manager::Facet::Language);
+    auto back = keur::manager::next_facet_order(lang);
+    CHECK(back[0] == keur::manager::Facet::Category);
+}
+
+SCENARIO("[feature:manager-tree] language-first order groups by language at top") {  // @proves KEUR-MANAGER-MODEL
+    auto cpp = ri("security", "R-CPP", "", true); cpp.language = "cpp";
+    auto py  = ri("secrets",  "R-PY",  "", true); py.language = "python";
+    keur::manager::DefaultsInfo d;
+    auto order = keur::manager::next_facet_order(keur::manager::default_facet_order());
+    auto m = keur::manager::build_model(d, {cpp, py}, {}, false, "", "", order);
+    const auto& global = m.roots[1];
+    REQUIRE(global.children.size() == 2);
+    CHECK(global.children[0].label == "cpp");
+    CHECK(global.children[1].label == "python");
+}
+
+SCENARIO("[feature:manager-tree] no repo scope when repo unavailable") {  // @proves KEUR-MANAGER-MODEL
+    keur::manager::DefaultsInfo d;
+    auto m = keur::manager::build_model(d, {ri("security","A","",true)}, {}, false);
+    REQUIRE(m.roots.size() == 2);                 // Defaults + Global (no repo)
+    CHECK(m.roots[1].label.find("Global") == 0);
+}
+
+// Helper: visible index of the first RuleNode with a given id.
+static int row_index_of_rule(const keur::manager::Model& m, const std::string& id) {
+    auto rows = keur::manager::visible_rows(m);
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i)
+        if (rows[static_cast<std::size_t>(i)].node->rule_id == id) return i;
+    return -1;
+}
+
+SCENARIO("[feature:manager-tree] visible_rows honours collapse") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_test_model();
+    int full = static_cast<int>(keur::manager::visible_rows(m).size());
+    // Collapse the Global scope (roots[1]) — find its row index first.
+    auto rows = keur::manager::visible_rows(m);
+    int gidx = -1;
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i)
+        if (rows[static_cast<std::size_t>(i)].node->label.find("Global") == 0) { gidx = i; break; }
+    REQUIRE(gidx >= 0);
+    m.cursor = gidx;
+    CHECK(keur::manager::collapse_focused(m));
+    int collapsed = static_cast<int>(keur::manager::visible_rows(m).size());
+    CHECK(collapsed < full);
+}
+
+SCENARIO("[feature:manager-tree] collapse on leaf jumps to parent") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_test_model();
+    int idx = row_index_of_rule(m, "KEUR-SEC-001");  // an editable Global rule leaf
+    // Find the Global one (repo also has SEC-001); pick the first non-read-only.
+    auto rows = keur::manager::visible_rows(m);
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+        const auto* n = rows[static_cast<std::size_t>(i)].node;
+        if (n->rule_id == "KEUR-SEC-001" && !n->read_only) { idx = i; break; }
+    }
+    REQUIRE(idx >= 0);
+    m.cursor = idx;
+    CHECK(keur::manager::collapse_focused(m));
+    CHECK(keur::manager::focused(m)->label == "generic");  // jumped to parent (subcategory)
+}
+
+SCENARIO("[feature:manager-tree] move_cursor clamps to visible range") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_test_model();
+    keur::manager::move_cursor(m, -5);
+    CHECK(m.cursor == 0);
+    keur::manager::cursor_bottom(m);
+    int last = static_cast<int>(keur::manager::visible_rows(m).size()) - 1;
+    CHECK(m.cursor == last);
+    keur::manager::move_cursor(m, 99);
+    CHECK(m.cursor == last);
+}
+
+SCENARIO("[feature:manager-tree] toggle_focused_rule flips state + tracks edits") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_test_model();
+    // Focus the editable Global KEUR-SEC-001 (on by default).
+    auto rows = keur::manager::visible_rows(m);
+    int idx = -1;
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+        const auto* n = rows[static_cast<std::size_t>(i)].node;
+        if (n->rule_id == "KEUR-SEC-001" && !n->read_only &&
+            n->scope == keur::manager::Scope::Global) { idx = i; break; }
+    }
+    REQUIRE(idx >= 0);
+    m.cursor = idx;
+    CHECK(keur::manager::toggle_focused_rule(m));
+    CHECK(m.dirty == true);
+    auto edits = keur::manager::pending_edits(m);
+    REQUIRE(edits.size() == 1);
+    CHECK(edits[0].id == "KEUR-SEC-001");
+    CHECK(edits[0].scope == keur::manager::Scope::Global);
+    CHECK(edits[0].disable == true);   // was on → now off
+    // Toggling back to baseline clears the edit and dirty flag.
+    CHECK(keur::manager::toggle_focused_rule(m));
+    CHECK(keur::manager::pending_edits(m).empty());
+    CHECK(m.dirty == false);
+}
+
+SCENARIO("[feature:manager-tree] toggle on a group node does not create an edit") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_editable_model();
+    m.cursor = 0;  // the Defaults scope root (a group)
+    CHECK(keur::manager::toggle_focused_rule(m) == false);
+    CHECK(keur::manager::pending_edits(m).empty());
+}
+
+// --- [feature:manager-tree] pure view ---------------------------------------
+
+SCENARIO("[feature:manager-tree] render_row shows glyphs + disabled marker") {  // @proves KEUR-MANAGER-VIEW
+    auto m = make_test_model();
+    auto rows = keur::manager::visible_rows(m);
+    // Row 0 = Defaults scope (expanded ▼).
+    CHECK(keur::manager::render_row(rows[0]).find("\u25bc") != std::string::npos);
+    // A disabled editable rule shows ☐ and (disabled). SEC-002 is off in Global.
+    std::string joined;
+    for (auto& r : rows) joined += keur::manager::render_row(r) + "\n";
+    CHECK(joined.find("\u2610 KEUR-SEC-002") != std::string::npos);   // ☐ todo
+    CHECK(joined.find("(disabled)") != std::string::npos);
+    CHECK(joined.find("\u2713 KEUR-SEC-001") != std::string::npos);   // ✓ done
+}
+
+SCENARIO("[feature:manager-tree] render frame has header, footer, cursor marker") {  // @proves KEUR-MANAGER-VIEW
+    auto m = make_test_model();
+    keur::manager::ViewOpts opts; opts.rows = 40; opts.cols = 80; opts.color = false;
+    auto lines = keur::manager::render(m, opts);
+    std::string all;
+    for (auto& l : lines) all += l + "\n";
+    CHECK(all.find("keur manager") != std::string::npos);      // header
+    CHECK(all.find("Space toggle") != std::string::npos);       // footer hint
+    CHECK(all.find("\u276f") != std::string::npos);             // cursor marker ❯
+    // Dirty flag surfaces in the header after toggling an editable Global rule.
+    auto rows = keur::manager::visible_rows(m);
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+        const auto* n = rows[static_cast<std::size_t>(i)].node;
+        if (n->rule_id == "KEUR-SEC-001" && !n->read_only &&
+            n->scope == keur::manager::Scope::Global) { m.cursor = i; break; }
+    }
+    keur::manager::toggle_focused_rule(m);
+    auto lines2 = keur::manager::render(m, opts);
+    CHECK(lines2[0].find("unsaved") != std::string::npos);
+}
+
+// --- [feature:manager-tree] save keeps one backup ---------------------------
+
+SCENARIO("[feature:manager-tree] Fs backup pattern keeps the previous version") {  // @proves KEUR-MANAGER-MODEL
+    // Exercises the single-slot backup contract rules_toggle relies on: before
+    // overwriting keur.toml, its current content is copied to keur.toml.bak.
+    keur::adapters::Fs fs{};  // real POSIX Fs
+    std::string dir = std::string(KEUR_TEST_ROOT) + "/bin/.keur_backup_test";
+    fs.mkdir_p(dir);
+    std::string path = dir + "/keur.toml";
+    std::string bak  = path + ".bak";
+
+    // Simulate two saves via the same read→backup→write sequence.
+    auto save = [&](const std::string& content) {
+        if (fs.exists(path)) { auto rr = fs.read_file(path); if (rr.ok) fs.write_file(bak, rr.content); }
+        fs.write_file(path, content);
+    };
+    save("version = \"1\"\n");            // first save: no prior file → no backup yet
+    CHECK(fs.exists(path));
+    save("version = \"2\"\n");            // second save: backup captures "1"
+    auto cur = fs.read_file(path);
+    auto old = fs.read_file(bak);
+    REQUIRE(cur.ok); REQUIRE(old.ok);
+    CHECK(cur.content == "version = \"2\"\n");
+    CHECK(old.content == "version = \"1\"\n");  // exactly the previous version
+    // Cleanup.
+    fs.remove(path); fs.remove(bak);
+}
+
+SCENARIO("[feature:manager-tree] global rule overruled by repo is marked inherited") {  // @proves KEUR-MANAGER-MODEL
+    // Cascade: the more specific scope (repo) wins. When repo governs a rule,
+    // the GLOBAL row is greyed with "(overruled by repo)" — the effective
+    // decision lives in the repo scope.
+    auto gi = ri("security", "R1", "", true); gi.inherited = true;
+    std::vector<keur::manager::RuleItem> g = {gi};
+    std::vector<keur::manager::RuleItem> r = {ri("security", "R1", "", false)};  // off in repo
+    keur::manager::DefaultsInfo d;
+    auto m = keur::manager::build_model(d, g, r, true);
+    // Expand all groups so the leaves are visible.
+    for (auto& root : m.roots) { root.expanded = true;
+        for (auto& cat : root.children) { cat.expanded = true;
+            for (auto& sub : cat.children) sub.expanded = true; } }
+    // Find the GLOBAL R1 leaf.
+    auto rows = keur::manager::visible_rows(m);
+    const keur::manager::Node* global_leaf = nullptr;
+    for (auto& row : rows) {
+        const auto* n = row.node;
+        if (n->rule_id == "R1" && n->scope == keur::manager::Scope::Global) global_leaf = n;
+    }
+    REQUIRE(global_leaf != nullptr);
+    CHECK(global_leaf->inherited == true);
+    // The view marks it "(overruled by repo)".
+    keur::manager::Row rr{global_leaf};
+    CHECK(keur::manager::render_row(rr).find("(overruled by repo)") != std::string::npos);
+}
+
+SCENARIO("[feature:manager-tree] Hooks action row exposes an augment action") {  // @proves KEUR-MANAGER-MODEL
+    keur::manager::DefaultsInfo d;
+    std::vector<keur::manager::HookInfoItem> hi = {
+        {"keur chained", "no  (run: keur hook --augment)", true, ""},
+        {"fix this with keur hook --augment", "", false, "augment"},
+    };
+    auto m = keur::manager::build_model(d, {}, {}, true, "", "/repo/keur.toml",
+                                        keur::manager::default_facet_order(), {}, {}, {}, hi);
+    for (auto& root : m.roots) expand_all(root);
+    // Find the action row and focus it → focused_action returns "augment".
+    auto rows = keur::manager::visible_rows(m);
+    int idx = -1;
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i)
+        if (rows[static_cast<std::size_t>(i)].node->kind == keur::manager::NodeKind::ActionNode) { idx = i; break; }
+    REQUIRE(idx >= 0);
+    m.cursor = idx;
+    CHECK(keur::manager::focused_action(m) == "augment");
+    // A non-action row yields no action.
+    m.cursor = 0;
+    CHECK(keur::manager::focused_action(m).empty());
+    // The action row renders with a ☐ todo box + its label.
+    keur::manager::Row r{rows[static_cast<std::size_t>(idx)].node};
+    CHECK(keur::manager::render_row(r).find("\u2610") != std::string::npos);
+    CHECK(keur::manager::render_row(r).find("fix this") != std::string::npos);
+}
+
+SCENARIO("[feature:manager-tree] Hooks branch shows manager + keur status (read-only)") {  // @proves KEUR-MANAGER-MODEL
+    keur::manager::DefaultsInfo d;
+    std::vector<keur::manager::HookInfoItem> hi = {
+        {"effective owner", "husky"},
+        {"keur global", "shadowed by husky (repo-local core.hooksPath)"},
+        {"manager detected", "husky"},
+        {"keur chained", "no  (run: keur hook --augment)"},
+    };
+    auto m = keur::manager::build_model(d, {}, {}, true, "", "/repo/keur.toml",
+                                        keur::manager::default_facet_order(), {}, {}, {}, hi);
+    for (auto& root : m.roots) expand_all(root);
+    // Find the Hooks group under This repo and its leaves.
+    const keur::manager::Node* hooks = nullptr;
+    for (auto& root : m.roots)
+        if (root.scope == keur::manager::Scope::Repo)
+            for (auto& c : root.children)
+                if (c.label == "Hooks") hooks = &c;
+    REQUIRE(hooks != nullptr);
+    CHECK(hooks->read_only == true);                 // informational, not toggleable
+    REQUIRE(hooks->children.size() == 4);
+    // The rendered rows convey the shadow situation + the fix command.
+    std::string joined;
+    for (auto& leaf : hooks->children) {
+        keur::manager::Row r{&leaf};
+        joined += keur::manager::render_row(r) + "\n";
+    }
+    CHECK(joined.find("effective owner = husky") != std::string::npos);
+    CHECK(joined.find("shadowed by husky") != std::string::npos);
+    CHECK(joined.find("keur hook --augment") != std::string::npos);
+}
+
+SCENARIO("[feature:manager-tree] desired_state extracts the plan for one scope") {  // @proves KEUR-MANAGER-MODEL
+    // Plan → apply: desired_state is the COMPLETE state to write in one shot.
+    keur::manager::DefaultsInfo d;
+    std::vector<keur::manager::RuleItem> g = {
+        ri("security", "R-OFF", "", false),   // disabled → in the plan
+        ri("security", "R-ON",  "", true),    // enabled  → NOT in the disabled list
+    };
+    std::vector<keur::manager::ScannerItem> gs = {
+        {"gitleaks", "secrets", false, true, "", false},   // off
+        {"semgrep",  "sast",    true,  true, "", false},   // on
+    };
+    auto m = keur::manager::build_model(d, g, {}, false, "", "",
+                                        keur::manager::default_facet_order(), gs, {});
+    auto st = keur::manager::desired_state(m, keur::manager::Scope::Global);
+    REQUIRE(st.disabled_rules.size() == 1);
+    CHECK(st.disabled_rules[0] == "R-OFF");            // only the off rule
+    REQUIRE(st.scanner_enabled.size() == 2);           // both scanners recorded
+    // Find each scanner's state.
+    bool gitleaks_off = false, semgrep_on = false;
+    for (auto& [name, en] : st.scanner_enabled) {
+        if (name == "gitleaks" && !en) gitleaks_off = true;
+        if (name == "semgrep"  &&  en) semgrep_on  = true;
+    }
+    CHECK(gitleaks_off);
+    CHECK(semgrep_on);
+}
+
+SCENARIO("[feature:manager-tree] scanner leaf toggles + emits a scanner edit") {  // @proves KEUR-MANAGER-MODEL
+    keur::manager::DefaultsInfo d;
+    std::vector<keur::manager::ScannerItem> gs = {
+        {"gitleaks", "secrets", true, true, "", false},
+        {"semgrep",  "sast",    true, true, "", false},
+    };
+    auto m = keur::manager::build_model(d, {}, {}, false, "", "",
+                                        keur::manager::default_facet_order(), gs, {});
+    for (auto& root : m.roots) expand_all(root);
+    // Find the gitleaks scanner leaf under Global.
+    auto rows = keur::manager::visible_rows(m);
+    int idx = -1;
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+        const auto* n = rows[static_cast<std::size_t>(i)].node;
+        if (n->kind == keur::manager::NodeKind::ScannerNode && n->label == "gitleaks") { idx = i; break; }
+    }
+    REQUIRE(idx >= 0);
+    m.cursor = idx;
+    CHECK(keur::manager::toggle_focused_rule(m));   // toggles a scanner too
+    auto edits = keur::manager::pending_edits(m);
+    REQUIRE(edits.size() == 1);
+    CHECK(edits[0].id == "gitleaks");
+    CHECK(edits[0].is_scanner == true);             // routed to [scanners.*] enabled
+    CHECK(edits[0].disable == true);                // was on → off
+}
+
+SCENARIO("[feature:manager-tree] toggle_focused_group flips a whole category") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_test_model();
+    // Focus the Global > security category node.
+    auto rows = keur::manager::visible_rows(m);
+    int cidx = -1;
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+        const auto* n = rows[static_cast<std::size_t>(i)].node;
+        if (n->kind == keur::manager::NodeKind::CategoryNode && n->label == "security" &&
+            !n->read_only && n->scope == keur::manager::Scope::Global) { cidx = i; break; }
+    }
+    REQUIRE(cidx >= 0);
+    m.cursor = cidx;
+    // security has SEC-001 (on) + SEC-002 (off) → not all on → all on.
+    CHECK(keur::manager::toggle_focused_group(m));
+    auto gc = keur::manager::group_count(*keur::manager::focused(m));
+    CHECK(gc.enabled == gc.total);       // whole group turned on
+    // Toggle again → all off.
+    CHECK(keur::manager::toggle_focused_group(m));
+    gc = keur::manager::group_count(*keur::manager::focused(m));
+    CHECK(gc.enabled == 0);
+}
+
+SCENARIO("[feature:manager-tree] rebaseline clears dirty and keeps expand state") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_test_model();
+    // Toggle an editable rule → dirty.
+    auto rows = keur::manager::visible_rows(m);
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+        const auto* n = rows[static_cast<std::size_t>(i)].node;
+        if (n->rule_id == "KEUR-SEC-001" && !n->read_only &&
+            n->scope == keur::manager::Scope::Global) { m.cursor = i; break; }
+    }
+    keur::manager::toggle_focused_rule(m);
+    REQUIRE(m.dirty == true);
+    int rows_before = static_cast<int>(keur::manager::visible_rows(m).size());
+    keur::manager::rebaseline(m);
+    CHECK(m.dirty == false);                                   // saved → clean
+    CHECK(keur::manager::pending_edits(m).empty());            // baseline updated
+    // Expand state preserved: same number of visible rows (no collapse).
+    CHECK(static_cast<int>(keur::manager::visible_rows(m).size()) == rows_before);
+}
+
+SCENARIO("[feature:manager-tree] group_count reports enabled/total") {  // @proves KEUR-MANAGER-MODEL
+    auto m = make_test_model();
+    // Global > security: SEC-001 on, SEC-002 off → 1/2.
+    const keur::manager::Node* sec = nullptr;
+    for (auto& root : m.roots)
+        if (root.scope == keur::manager::Scope::Global)
+            for (auto& c : root.children)
+                if (c.label == "security") sec = &c;
+    REQUIRE(sec != nullptr);
+    auto gc = keur::manager::group_count(*sec);
+    CHECK(gc.total == 2);
+    CHECK(gc.enabled == 1);
+}
+
+// --- [feature:manager-catalog] baked compile-time catalogue -----------------
+
+SCENARIO("[feature:manager-catalog] catalog is non-empty and sorted") {  // @proves KEUR-MANAGER-CATALOG
+    const auto& c = keur::manager::catalog();
+    REQUIRE(!c.empty());                       // baked at build time from .rule files
+    // Sorted by category, then subcategory, then id → stable, reproducible.
+    for (std::size_t i = 1; i < c.size(); ++i) {
+        const auto& a = c[i-1]; const auto& b = c[i];
+        auto key = [](const keur::manager::CatalogEntry& e) {
+            return e.category + "\x1f" + e.subcategory + "\x1f" + e.id;
+        };
+        CHECK(key(a) <= key(b));
+    }
+    // Every entry has an id and a category.
+    for (const auto& e : c) { CHECK(!e.id.empty()); CHECK(!e.category.empty()); }
+}
+
+SCENARIO("[feature:manager-catalog] overlay enabled-state comes from the disabled-set") {  // @proves KEUR-MANAGER-CATALOG
+    // Simulate the manager loop's core: build items from the catalog, disabling
+    // exactly the ids in a scope's disabled-set (the [rules] disabled list).
+    const auto& c = keur::manager::catalog();
+    REQUIRE(c.size() >= 2);
+    std::set<std::string> disabled = { c[0].id };   // turn the first one off
+    std::vector<keur::manager::RuleItem> items;
+    for (const auto& e : c) {
+        keur::manager::RuleItem it;
+        it.category = e.category; it.subcategory = e.subcategory;
+        it.language = e.language; it.framework = e.framework;
+        it.id = e.id; it.detail = e.description;
+        it.enabled = !disabled.count(e.id); it.deprecated = e.deprecated;
+        items.push_back(std::move(it));
+    }
+    CHECK(items[0].enabled == false);          // in disabled-set → off
+    CHECK(items[1].enabled == true);           // not listed → on (default)
+}
+
+} // TEST_SUITE("unit") — Layer 4/5 pure tests

@@ -12,7 +12,9 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
+#include <fcntl.h>
 #include <spawn.h>
+#include <termios.h>
 #include <unistd.h>
 #include <csignal>
 
@@ -138,6 +140,49 @@ int capture_bytes(const std::string& cmd, std::string& sink) {
     return wait_exit(pclose(p));
 }
 
+// Shell-free capture: posix_spawnp with stdout redirected to a pipe and stderr
+// to /dev/null. No /bin/sh, so argv content can never be interpreted as shell.
+int capture_bytes_argv(const std::vector<std::string>& argv, std::string& sink) {
+    if (argv.empty()) return -1;
+    int pipefd[2];
+    if (pipe(pipefd) != 0) return -1;
+
+    posix_spawn_file_actions_t fa;
+    posix_spawn_file_actions_init(&fa);
+    // Child: stdout → pipe write end; stderr → /dev/null; close the read end.
+    posix_spawn_file_actions_adddup2(&fa, pipefd[1], STDOUT_FILENO);
+    posix_spawn_file_actions_addopen(&fa, STDERR_FILENO, "/dev/null", O_WRONLY, 0);
+    posix_spawn_file_actions_addclose(&fa, pipefd[0]);
+    posix_spawn_file_actions_addclose(&fa, pipefd[1]);
+
+    std::vector<char*> cargv;
+    cargv.reserve(argv.size() + 1);
+    for (const auto& a : argv) cargv.push_back(const_cast<char*>(a.c_str()));
+    cargv.push_back(nullptr);
+
+    pid_t pid = 0;
+    int rc = posix_spawnp(&pid, cargv[0], &fa, nullptr, cargv.data(), environ);
+    posix_spawn_file_actions_destroy(&fa);
+    close(pipefd[1]);                 // parent doesn't write
+    if (rc != 0) { close(pipefd[0]); return -1; }
+
+    char buf[512];
+    ssize_t n;
+    while ((n = ::read(pipefd[0], buf, sizeof(buf))) > 0)
+        sink.append(buf, static_cast<std::size_t>(n));
+    close(pipefd[0]);
+
+    int status = 0;
+    if (waitpid(pid, &status, 0) == -1) return -1;
+    return wait_exit(status);
+}
+
+CaptureResult capture_argv(const std::vector<std::string>& argv) {
+    CaptureResult r;
+    r.exit_code = capture_bytes_argv(argv, r.out);
+    return r;
+}
+
 bool tool_on_path(const std::string& tool) {
     // Shell-free PATH resolution: no system()/popen and no string interpolation,
     // so a tool name can never break out into a shell (CWE-78). A name with a
@@ -252,6 +297,82 @@ TermSize terminal_size() {
 bool process_alive(long pid) {
     if (pid <= 0) return false;
     return kill(static_cast<pid_t>(pid), 0) == 0;
+}
+
+// ---------------------------------------------------------------------------
+// Interactive terminal input (POSIX): raw mode + one-key read.
+// The decode_key() mapping is shared (common/keyinput.cpp); here we only enter
+// raw mode and pull the right bytes off stdin.
+// ---------------------------------------------------------------------------
+
+RawModeGuard::RawModeGuard() {
+    if (!isatty(STDIN_FILENO)) return;  // no tty (piped) → inert, active()==false
+    struct termios cur{};
+    if (tcgetattr(STDIN_FILENO, &cur) != 0) return;
+    // Save the original so the destructor can restore it exactly.
+    static_assert(sizeof(struct termios) <= sizeof(saved_),
+                  "saved_ buffer too small for termios");
+    std::memcpy(saved_, &cur, sizeof(struct termios));
+
+    struct termios raw = cur;
+    // Input flags: no CR→NL translation, and disable XON/XOFF so Ctrl-S/Ctrl-Q
+    // reach the app instead of freezing/resuming the terminal (IXON off).
+    raw.c_iflag &= ~(unsigned)(ICRNL | IXON | INPCK | ISTRIP | BRKINT);
+    // Local flags: no echo, no canonical (line) mode, no signal chars, no
+    // Ctrl-V literal-next.
+    raw.c_lflag &= ~(unsigned)(ECHO | ICANON | IEXTEN | ISIG);
+    // Blocking single-byte reads: return as soon as 1 byte is available.
+    raw.c_cc[VMIN]  = 1;
+    raw.c_cc[VTIME] = 0;
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &raw) == 0) active_ = true;
+}
+
+void RawModeGuard::restore() {
+    if (!active_) return;
+    struct termios prev{};
+    std::memcpy(&prev, saved_, sizeof(struct termios));
+    tcsetattr(STDIN_FILENO, TCSANOW, &prev);
+    active_ = false;
+}
+
+RawModeGuard::~RawModeGuard() { restore(); }
+
+RawModeGuard::RawModeGuard(RawModeGuard&& other) noexcept {
+    active_ = other.active_;
+    std::memcpy(saved_, other.saved_, sizeof(saved_));
+    other.active_ = false;
+}
+
+RawModeGuard& RawModeGuard::operator=(RawModeGuard&& other) noexcept {
+    if (this != &other) {
+        restore();
+        active_ = other.active_;
+        std::memcpy(saved_, other.saved_, sizeof(saved_));
+        other.active_ = false;
+    }
+    return *this;
+}
+
+KeyEvent read_key() {
+    unsigned char c = 0;
+    ssize_t n = ::read(STDIN_FILENO, &c, 1);
+    if (n <= 0) return {Key::Unknown, '\0'};
+
+    std::string buf(1, static_cast<char>(c));
+    if (c == 0x1b) {
+        // Possible CSI sequence. Peek for '[' then the final byte. Use a short
+        // read; if the bytes aren't there it was a bare ESC.
+        unsigned char b1 = 0;
+        if (::read(STDIN_FILENO, &b1, 1) == 1) {
+            buf.push_back(static_cast<char>(b1));
+            if (b1 == '[') {
+                unsigned char b2 = 0;
+                if (::read(STDIN_FILENO, &b2, 1) == 1)
+                    buf.push_back(static_cast<char>(b2));
+            }
+        }
+    }
+    return decode_key(buf);
 }
 
 }  // namespace keur::platform

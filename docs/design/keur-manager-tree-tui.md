@@ -1,7 +1,38 @@
 # Design: `keur manager` — interactive tree TUI for hooks & rules
 
-**Status:** proposed, not implemented
+**Status:** partially implemented — Layers 4–6 built (interactive rules tree).
 **Raised:** 2026-09-21
+**Implemented:** 2026-09-22 (platform input, pure model/view, interactive loop,
+read-only Defaults baseline branch, save-with-one-backup)
+
+Built so far:
+- **Layer 4 — platform input:** `platform::RawModeGuard` + `read_key()` +
+  pure `decode_key()` (`common/keyinput.cpp`, @id KEUR-KEYINPUT). Arrows/hjkl,
+  Space, Enter, `s`, `q`, `g`/`G`. POSIX termios (IXON off so `s` is a normal
+  key) and Win32 `ENABLE_VIRTUAL_TERMINAL_INPUT` deliver the same VT sequences.
+- **Layer 5 — pure model + view:** `manager/model.*` (@id KEUR-MANAGER-MODEL)
+  is the Scope→Category→Rule tree with pure reducers (`move`, `expand`,
+  `collapse`, `toggle_focused_rule`) producing a `ChangeSet` of `{scope, rule_id,
+  disable}` edits by diffing against the build-time baseline. `manager/view.*`
+  (@id KEUR-MANAGER-VIEW) renders `(model, opts) → lines`, colour via SGR,
+  `NO_COLOR`/`--no-color` honoured. Both fully unit-tested with no terminal.
+- **Layer 6 — interactive loop:** bare `keur manager` enters raw mode, renders,
+  reads keys, applies reducers; `s` saves every pending edit through the SAME
+  writer the CLI uses (`cmd::rules_toggle`) — one write path, no CLI/TUI drift;
+  `q` prompts when dirty. Falls back to a helpful message (not a crash) when
+  there is no tty. `keur manager --status [--json]` stays the read-only board.
+- **Read-only Defaults branch:** the tree's first root is `Defaults` — the
+  shipped template's Scanners + Policy settings and the **full rule catalogue**
+  as the baseline (every rule shown "on"), all read-only. `Global` and
+  `This repo` layer their editable overrides on top.
+- **Save keeps one backup:** before overwriting a scope's `keur.toml`, its
+  current content is copied to `keur.toml.bak` (single slot), so the previous
+  version is always recoverable.
+
+Not yet built (later layers): change journal / undo / stash (Layer 2 below),
+editable scanner + policy settings, custom-scripts nodes, the `/` filter, and
+the full headless CLI parity surface (`config set`, `scanner register`, …).
+
 **Relates to:** `docs/design/keur-configure-repl.md` (the status-board REPL),
 `cmd/hook.cpp` (hook state), `learn/monitor.cpp` (existing fullscreen render),
 `render/box.*` (drawing primitives), ADR-003 (I/O via adapters),

@@ -29,6 +29,8 @@ struct ManagerOptions {
     std::string subcommand = "status";  ///< only "status" for now
     std::string config;                 ///< --config explicit path ("" = none)
     bool        json = false;           ///< --json machine-readable output
+    bool        interactive = false;    ///< bare `keur manager` → tree TUI
+    bool        no_color = false;       ///< --no-color / NO_COLOR: plain output
 };
 
 /// Injectable adapters for the manager command (defaults = real).
@@ -57,6 +59,12 @@ ManagerOptions manager_parse(const std::vector<std::string>& args);
 
 /// Run the manager subcommand. Returns 0 on success, 1 on error.
 int manager(const ManagerOptions& opts, const ManagerDeps& deps = ManagerDeps{});
+
+/// Run the interactive tree TUI (bare `keur manager`). Enters raw mode, renders
+/// the Scope→Category→Rule tree, and applies pure reducers to key events;
+/// `s` saves pending toggles through the shared rules persister, `q` prompts
+/// when there are unsaved changes. Returns 0 on clean exit.
+int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps = ManagerDeps{});
 
 /// Render the board as human-readable text lines. Pure.
 [[nodiscard]] std::vector<std::string> manager_render_text(const ManagerBoard& board);

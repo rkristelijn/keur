@@ -54,6 +54,16 @@ struct ScannerProbe {
 /// none are known). E.g. "gitleaks" → {".gitleaks.toml", ".gitleaksignore"}.
 [[nodiscard]] std::vector<std::string> known_config_files(const std::string& scanner_name);
 
+/// A one-line hint for installing a tool that is not on PATH, tailored to the
+/// current OS (Homebrew on macOS, apt on Debian/Ubuntu, apk on Alpine). Returns
+/// "" when no hint is known. Data-driven — a new tool is one row. @id KEUR-SCANNER-INSTALL
+[[nodiscard]] std::string install_hint(const std::string& scanner_name);
+
+/// The built-in default scanner inventory (name + group + default-action),
+/// used when no keur.toml template is resolvable so the manager's Scanners
+/// branch is never empty — the same "baked default" idea as the rule catalogue.
+[[nodiscard]] std::vector<Scanner> default_scanners();
+
 /// Resolve runtime state for each scanner: PATH availability + which known
 /// config files exist. Returns the enriched inventory. Pure over the probe.
 [[nodiscard]] std::vector<Scanner> resolve_scanners(const std::vector<Scanner>& declared,
