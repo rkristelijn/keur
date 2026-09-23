@@ -27,11 +27,11 @@ BUILDER="${KEUR_BUILD_INDEX:-$KEUR_HOME/eval/build-index.sh}"
 PASS_LOG="$KEUR_EVAL/review-queue/.gate-pass.jsonl"
 
 usage() { sed -n '3,26p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
-[ $# -ge 1 ] || usage 1
+[[ $# -ge 1 ]] || usage 1
 
 case "$1" in
   --list)
-    [ -f "$PASS_LOG" ] || { echo "no gate-pass log yet — run selfcheck-gate.sh"; exit 0; }
+    [[ -f "$PASS_LOG" ]] || { echo "no gate-pass log yet — run selfcheck-gate.sh"; exit 0; }
     echo "Gate-passed drafts awaiting human review:"
     echo ""
     python3 - "$PASS_LOG" "$KEUR_EVAL" <<'PY'
@@ -56,29 +56,29 @@ PY
     ;;
 
   --show)
-    [ $# -ge 2 ] || usage 1
+    [[ $# -ge 2 ]] || usage 1
     f="$KEUR_EVAL/$2"
-    [ -f "$f" ] || { echo "not found: $f" >&2; exit 1; }
+    [[ -f "$f" ]] || { echo "not found: $f" >&2; exit 1; }
     echo "── $2 ──────────────────────────────────────────"
     cat "$f"
     echo "────────────────────────────────────────────────"
     ;;
 
   --promote)
-    [ $# -ge 2 ] || usage 1
+    [[ $# -ge 2 ]] || usage 1
     rel="$2"; src="$KEUR_EVAL/$rel"
-    [ -f "$src" ] || { echo "not found: $src" >&2; exit 1; }
+    [[ -f "$src" ]] || { echo "not found: $src" >&2; exit 1; }
     # target class: negative if the file is a negative draft, else positive,
     # or regression when --regression is passed.
     cls="positive"; case "$(basename "$src")" in *negative*) cls="negative";; esac
-    [ "${3:-}" = "--regression" ] && cls="regression"
+    [[ "${3:-}" = "--regression" ]] && cls="regression"
     # category: the review-queue subdir (review-queue/<category>/file)
     cat="$(basename "$(dirname "$src")")"
     dest_dir="$KEUR_EVAL/$cls/$cat"
     dest="$dest_dir/$(basename "$src")"
     mkdir -p "$dest_dir"
 
-    if [ -e "$dest" ]; then
+    if [[ -e "$dest" ]]; then
       echo "refusing to overwrite existing case: $cls/$cat/$(basename "$src")" >&2
       exit 1
     fi

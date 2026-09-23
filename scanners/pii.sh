@@ -17,16 +17,16 @@ set -euo pipefail
 
 # Locate the proven scanner without hardcoding a user path.
 resolve_pii_scan() {
-  if [ -n "${KEUR_PII_SCAN:-}" ] && [ -x "$KEUR_PII_SCAN" ]; then echo "$KEUR_PII_SCAN"; return; fi
+  if [[ -n "${KEUR_PII_SCAN:-}" ]] && [[ -x "$KEUR_PII_SCAN" ]]; then echo "$KEUR_PII_SCAN"; return; fi
   if command -v pii-sensitive-scan.sh >/dev/null 2>&1; then command -v pii-sensitive-scan.sh; return; fi
   # Best-effort known location in the sibling security-tooling repo.
   local guess="$HOME/git/lab/tech-services/security/security-tooling/src/tools/ticket-audit/pii-sensitive-scan.sh"
-  [ -x "$guess" ] && { echo "$guess"; return; }
+  [[ -x "$guess" ]] && { echo "$guess"; return; }
   echo ""   # not found
 }
 
 PII_SCAN="$(resolve_pii_scan)"
-[ -n "$PII_SCAN" ] || { echo "keur:pii: proven pii-sensitive-scan.sh not found (set KEUR_PII_SCAN)" >&2; exit 0; }
+[[ -n "$PII_SCAN" ]] || { echo "keur:pii: proven pii-sensitive-scan.sh not found (set KEUR_PII_SCAN)" >&2; exit 0; }
 
 # Map the scanner verdict to a KEUR action/confidence.
 emit_finding() {
@@ -44,7 +44,7 @@ emit_finding() {
 }
 
 for f in "$@"; do
-  [ -f "$f" ] || continue
+  [[ -f "$f" ]] || continue
   # Skip obvious binaries / large files cheaply.
   case "$f" in *.png|*.jpg|*.gif|*.pdf|*.zip|*.gz|*.woff|*.ttf|*.bin) continue ;; esac
   # The proven scanner reads text on argv or stdin; feed file content (capped).

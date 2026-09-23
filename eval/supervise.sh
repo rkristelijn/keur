@@ -52,11 +52,11 @@ supervise_run() {
     # explicit minute-budget ladder.
     local phase_list="$PHASES"
     local loop_mode=0 loop_mins="${KEUR_LOOP_MINS:-30}"
-    if [ "$PHASES" = "loop" ]; then loop_mode=1; fi
+    if [[ "$PHASES" = "loop" ]]; then loop_mode=1; fi
 
     while :; do
-      if [ "$loop_mode" = "1" ]; then
-        [ -f "$STOP" ] && { log "stop requested; ending loop-mode run"; break; }
+      if [[ "$loop_mode" = "1" ]]; then
+        [[ -f "$STOP" ]] && { log "stop requested; ending loop-mode run"; break; }
         set -- "$loop_mins"           # one phase of loop_mins, repeat forever
       else
         set -- $phase_list
@@ -65,15 +65,15 @@ supervise_run() {
         phase_no=$((phase_no+1))
         echo "$phase_no/$mins" > "$PHASE_FILE"
 
-        [ -f "$STOP" ] && { log "stop requested; exiting before phase $phase_no"; break; }
+        [[ -f "$STOP" ]] && { log "stop requested; exiting before phase $phase_no"; break; }
 
         # Preflight: only start a phase when disk + memory are healthy. Wait and
         # retry a few times; if still unhealthy, stop cleanly (do not thrash).
         local waited=0
         until "$HERE/preflight.sh" "$KEUR_HOME" >>"$LOG" 2>&1; do
-            [ -f "$STOP" ] && { log "stop requested during preflight wait"; break 2; }
+            [[ -f "$STOP" ]] && { log "stop requested during preflight wait"; break 2; }
             waited=$((waited+1))
-            if [ "$waited" -gt 10 ]; then
+            if [[ "$waited" -gt 10 ]]; then
                 log "preflight still failing after $waited checks; stopping to protect the machine"
                 break 2
             fi
@@ -84,7 +84,7 @@ supervise_run() {
         log "PHASE $phase_no: ${mins}m budget"
         local restarts=0
         while :; do
-            [ -f "$STOP" ] && { log "stop requested; leaving phase $phase_no"; break; }
+            [[ -f "$STOP" ]] && { log "stop requested; leaving phase $phase_no"; break; }
             # Run the worker for this phase's budget. Time it so we can detect a
             # phase that "completes" instantly — a symptom of a stale stop-flag
             # or a worker that exits 0 without doing work. Blindly looping on
@@ -97,7 +97,7 @@ supervise_run() {
                 # A real phase runs for many seconds (>=1 iter + sleeps). A near-
                 # instant "complete" means no work happened. In loop-mode this
                 # would spin forever, so stop and surface it instead.
-                if [ "$loop_mode" = "1" ] && [ "$elapsed" -lt 10 ]; then
+                if [[ "$loop_mode" = "1" ]] && [[ "$elapsed" -lt 10 ]]; then
                     log "PHASE $phase_no finished in ${elapsed}s (<10s) with no work; \
 suspected stop-flag or instant-exit worker. Stopping to avoid a busy-spin. \
 Check for a stale /tmp/stop-keur-eval-loop or $STOP, then restart."
@@ -107,7 +107,7 @@ Check for a stale /tmp/stop-keur-eval-loop or $STOP, then restart."
             fi
             rc=$?
             restarts=$((restarts+1))
-            if [ "$restarts" -gt "$MAX_RESTARTS" ]; then
+            if [[ "$restarts" -gt "$MAX_RESTARTS" ]]; then
                 log "PHASE $phase_no exceeded $MAX_RESTARTS restarts (last rc=$rc); stopping"
                 break 2
             fi
@@ -119,7 +119,7 @@ Check for a stale /tmp/stop-keur-eval-loop or $STOP, then restart."
         done
     done
     # loop-mode repeats the phase set until STOP; explicit ladder runs once.
-    [ "$loop_mode" = "1" ] || break
+    [[ "$loop_mode" = "1" ]] || break
     done
     log "supervisor done"
     rm -f "$PIDFILE" "$PHASE_FILE"
@@ -127,7 +127,7 @@ Check for a stale /tmp/stop-keur-eval-loop or $STOP, then restart."
 
 case "${1:-status}" in
   start)
-    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+    if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
       echo "already running (pid $(cat "$PIDFILE"))"; exit 0
     fi
     # Preflight once up front so `start` fails fast if the machine is not ready.
@@ -138,7 +138,7 @@ case "${1:-status}" in
     # Background the internal __run entry via nohup; it writes its own PID.
     nohup "$HERE/supervise.sh" __run >/dev/null 2>&1 &
     sleep 1
-    if [ -f "$PIDFILE" ]; then
+    if [[ -f "$PIDFILE" ]]; then
       echo "supervisor started (pid $(cat "$PIDFILE")). Watch: eval/supervise.sh tail"
     else
       echo "supervisor started. Watch: eval/supervise.sh tail"
@@ -152,13 +152,13 @@ case "${1:-status}" in
     ;;
 
   status)
-    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+    if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
       echo "supervisor: RUNNING (pid $(cat "$PIDFILE"))"
-      [ -f "$PHASE_FILE" ] && echo "phase: $(cat "$PHASE_FILE") (n/minutes)"
+      [[ -f "$PHASE_FILE" ]] && echo "phase: $(cat "$PHASE_FILE") (n/minutes)"
       echo "--- last log ---"; tail -8 "$LOG" 2>/dev/null
     else
       echo "supervisor: not running"
-      [ -f "$LOG" ] && { echo "--- last log ---"; tail -8 "$LOG"; }
+      [[ -f "$LOG" ]] && { echo "--- last log ---"; tail -8 "$LOG"; }
     fi
     ;;
 
@@ -169,7 +169,7 @@ case "${1:-status}" in
   stop)
     touch "$STOP"                      # supervisor's own stop flag
     touch "/tmp/stop-keur-eval-loop"   # loop.sh's stop flag
-    if [ -f "$PIDFILE" ]; then
+    if [[ -f "$PIDFILE" ]]; then
       pid="$(cat "$PIDFILE")"
       log "stop: signalling supervisor pid $pid"
       kill "$pid" 2>/dev/null || true

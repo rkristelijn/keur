@@ -36,7 +36,7 @@ CPM="${CPM_HOME:-$HOME/git/hub/cpm}"
 OUT="$HERE/knowledge/cpm.jsonl"
 STATS=0
 
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) OUT="$2"; shift 2;;
     --cpm) CPM="$2"; shift 2;;
@@ -45,8 +45,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ "$STATS" -eq 1 ]; then
-  [ -f "$OUT" ] || { echo "no cache yet: $OUT"; exit 0; }
+if [[ "$STATS" -eq 1 ]]; then
+  [[ -f "$OUT" ]] || { echo "no cache yet: $OUT"; exit 0; }
   python3 - "$OUT" <<'PY'
 import json, sys, collections
 doms = collections.Counter(); cwe = collections.Counter(); n = 0
@@ -63,7 +63,7 @@ PY
   exit 0
 fi
 
-[ -d "$CPM/rules" ] || { echo "cpm rules not found: $CPM/rules" >&2; exit 1; }
+[[ -d "$CPM/rules" ]] || { echo "cpm rules not found: $CPM/rules" >&2; exit 1; }
 mkdir -p "$(dirname "$OUT")"
 
 python3 - "$CPM/rules" "$OUT" <<'PY'

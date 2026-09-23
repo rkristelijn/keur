@@ -15,7 +15,7 @@
 set -uo pipefail
 
 SRC="${1:?case file required}"
-[ -f "$SRC" ] || { echo "perturb: not found: $SRC" >&2; exit 1; }
+[[ -f "$SRC" ]] || { echo "perturb: not found: $SRC" >&2; exit 1; }
 
 python3 - "$SRC" <<'PY'
 import sys, re, os

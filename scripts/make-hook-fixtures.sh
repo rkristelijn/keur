@@ -11,11 +11,11 @@
 set -euo pipefail
 
 BIN="${1:-}"
-if [ -z "$BIN" ]; then
+if [[ -z "$BIN" ]]; then
   here="$(cd "$(dirname "$0")" && pwd -P)"
   BIN="$here/../bin/keur"
 fi
-[ -x "$BIN" ] || { echo "FAIL: keur binary not found ($BIN)"; exit 1; }
+[[ -x "$BIN" ]] || { echo "FAIL: keur binary not found ($BIN)"; exit 1; }
 BIN="$(cd "$(dirname "$BIN")" && pwd -P)/$(basename "$BIN")"
 
 PASS=0; FAIL=0
@@ -55,7 +55,7 @@ count=0
 # Feed the loop without a pipe (process substitution) so PASS/FAIL live in this
 # shell and the exit code is accurate.
 while IFS='|' read -r tool sig expect; do
-  [ -n "$tool" ] || continue
+  [[ -n "$tool" ]] || continue
   count=$((count+1))
   repo="$(make_repo "$sig")"
   out="$(cd "$repo" && env HOME="$repo/.home" XDG_CONFIG_HOME="$repo/.home/.config" \
@@ -73,5 +73,5 @@ EOF
 nfail="$(wc -l < "$fails" | tr -d ' ')"
 echo ""
 echo "  Results: $((count - nfail)) passed, ${nfail} failed (of ${count} tools)"
-[ "$nfail" -eq 0 ]
+[[ "$nfail" -eq 0 ]]
 

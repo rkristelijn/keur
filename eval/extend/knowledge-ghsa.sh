@@ -24,7 +24,7 @@ PER=30
 SEVERITY=""
 STATS=0
 
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) OUT="$2"; shift 2;;
     --per-page) PER="$2"; shift 2;;
@@ -34,8 +34,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ "$STATS" -eq 1 ]; then
-  [ -f "$OUT" ] || { echo "no cache yet: $OUT"; exit 0; }
+if [[ "$STATS" -eq 1 ]]; then
+  [[ -f "$OUT" ]] || { echo "no cache yet: $OUT"; exit 0; }
   python3 - "$OUT" <<'PY'
 import json, sys, collections
 doms = collections.Counter(); n = 0
@@ -51,17 +51,17 @@ command -v curl >/dev/null || { echo "curl required" >&2; exit 1; }
 mkdir -p "$(dirname "$OUT")"
 
 url="https://api.github.com/advisories?per_page=$PER"
-[ -n "$SEVERITY" ] && url="$url&severity=$SEVERITY"
+[[ -n "$SEVERITY" ]] && url="$url&severity=$SEVERITY"
 
 hdr=(-H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
-[ -n "${GITHUB_TOKEN:-}" ] && hdr+=(-H "Authorization: Bearer $GITHUB_TOKEN")
+[[ -n "${GITHUB_TOKEN:-}" ]] && hdr+=(-H "Authorization: Bearer $GITHUB_TOKEN")
 
 echo "fetching $url ..."
 resp="$(curl -sfL "${hdr[@]}" "$url")" || {
   echo "GHSA fetch failed (rate limit or no network). Set GITHUB_TOKEN and retry." >&2
   exit 1
 }
-if [ -z "$resp" ] || [ "$(printf '%s' "$resp" | tr -d '[:space:]' | cut -c1)" != "[" ]; then
+if [[ -z "$resp" ]] || [ "$(printf '%s' "$resp" | tr -d '[:space:]' | cut -c1)" != "[" ]; then
   echo "GHSA returned no JSON array (likely unauthenticated rate limit)." >&2
   echo "Set GITHUB_TOKEN=<a token> and retry for a higher limit." >&2
   exit 1

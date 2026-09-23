@@ -25,7 +25,7 @@ echo "check-basics: <=${MAX_LINES} net lines/file, <=${MAX_FILES} files/dir"
 # 1. net lines per C++ source (exclude comments/blank; skip vendor + test files)
 while IFS= read -r f; do
   net=$(grep -vcE '^[[:space:]]*(//|/\*|\*|$)' "$f")
-  if [ "$net" -gt "$MAX_LINES" ]; then
+  if [[ "$net" -gt "$MAX_LINES" ]]; then
     echo "  FILE  $f ($net net lines) — split by responsibility"
     fail=1
   fi
@@ -37,13 +37,13 @@ done < <(find "$ROOT/src" \( -name '*.cpp' -o -name '*.h' \) \
 #    not raw file count (6 command pairs in cmd/ is fine, 30 loose files is not).
 while IFS= read -r d; do
   n=$(find "$d" -maxdepth 1 -type f | sed -E 's/\.(h|hpp|cpp|cc|c)$//' | sort -u | wc -l | tr -d ' ')
-  if [ "$n" -gt "$MAX_FILES" ]; then
+  if [[ "$n" -gt "$MAX_FILES" ]]; then
     echo "  DIR   $d ($n units) — regroup into subdirs"
     fail=1
   fi
 done < <(find "$ROOT/src" -type d ! -path '*/vendor/*')
 
-if [ "$fail" -eq 0 ]; then
+if [[ "$fail" -eq 0 ]]; then
   echo "check-basics: OK"
 else
   echo "check-basics: violations found (see TODO.md)"

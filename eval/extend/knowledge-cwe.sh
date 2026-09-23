@@ -24,7 +24,7 @@ CSV_URL="https://cwe.mitre.org/data/csv/699.csv.zip"
 CSV_LOCAL=""
 STATS=0
 
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) OUT="$2"; shift 2;;
     --csv) CSV_LOCAL="$2"; shift 2;;
@@ -33,8 +33,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ "$STATS" -eq 1 ]; then
-  [ -f "$OUT" ] || { echo "no cache yet: $OUT"; exit 0; }
+if [[ "$STATS" -eq 1 ]]; then
+  [[ -f "$OUT" ]] || { echo "no cache yet: $OUT"; exit 0; }
   python3 - "$OUT" <<'PY'
 import json, sys, collections
 doms = collections.Counter(); n = 0
@@ -52,7 +52,7 @@ trap 'rm -rf "$tmp"' EXIT
 
 # Obtain the CSV: use a local copy if given, else download (needs curl+unzip).
 csv=""
-if [ -n "$CSV_LOCAL" ]; then
+if [[ -n "$CSV_LOCAL" ]]; then
   case "$CSV_LOCAL" in
     *.zip) unzip -o -q "$CSV_LOCAL" -d "$tmp" && csv="$(ls "$tmp"/*.csv | head -1)";;
     *)     csv="$CSV_LOCAL";;
@@ -68,7 +68,7 @@ else
   unzip -o -q "$tmp/699.csv.zip" -d "$tmp"
   csv="$(ls "$tmp"/*.csv | head -1)"
 fi
-[ -f "$csv" ] || { echo "no CSV found" >&2; exit 1; }
+[[ -f "$csv" ]] || { echo "no CSV found" >&2; exit 1; }
 
 python3 - "$csv" "$OUT" <<'PY'
 import csv, json, re, sys

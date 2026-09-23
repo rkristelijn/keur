@@ -58,7 +58,7 @@ normalize_cat() {  # $1 raw category → prints "category\tsubcategory"
 # language family gets that language.
 derive_language() {  # $1 = space-separated extensions → prints a language
   local exts="$1" langs="" e l
-  [ -n "$exts" ] || { printf 'any'; return; }
+  [[ -n "$exts" ]] || { printf 'any'; return; }
   for e in $exts; do
     case "$e" in
       .cpp|.cc|.c|.h|.hpp)  l=cpp ;;
@@ -81,7 +81,7 @@ derive_language() {  # $1 = space-separated extensions → prints a language
   done
   langs="$(trim "$langs")"
   # exactly one language family → that language; otherwise agnostic.
-  if [ "$(printf '%s\n' $langs | wc -l | tr -d ' ')" = "1" ] && [ "$langs" != "config" ] && [ "$langs" != "other" ]; then
+  if [[ "$(printf '%s\n' $langs | wc -l | tr -d ' ')" = "1" ]] && [[ "$langs" != "config" ]] && [[ "$langs" != "other" ]]; then
     printf '%s' "$langs"
   else
     printf 'any'
@@ -89,7 +89,7 @@ derive_language() {  # $1 = space-separated extensions → prints a language
 }
 
 for dir in "${dirs[@]}"; do
-  [ -d "$dir" ] || continue
+  [[ -d "$dir" ]] || continue
   while IFS= read -r f; do
     id=""; title=""; rawcat=""; status="active"; exts=""; in_target=0
     while IFS= read -r line; do
@@ -103,7 +103,7 @@ for dir in "${dirs[@]}"; do
         *extensions:*) [ "$in_target" = 1 ] && exts="${line#*extensions:}" ;;
       esac
     done < "$f"
-    [ -n "$id" ] || continue
+    [[ -n "$id" ]] || continue
     id="$(trim "$id")"; title="$(trim "$title")"; rawcat="$(trim "$rawcat")"; status="$(trim "$status")"; exts="$(trim "$exts")"
 
     IFS=$'\t' read -r category subcategory <<EOF
@@ -133,9 +133,9 @@ cpp_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
   echo
   echo 'const std::vector<CatalogEntry>& catalog() {'
   echo '    static const std::vector<CatalogEntry> k = {'
-  if [ -n "$sorted" ]; then
+  if [[ -n "$sorted" ]]; then
     while IFS=$'\t' read -r category subcategory language framework id title status; do
-      dep="false"; [ "$status" = "deprecated" ] && dep="true"
+      dep="false"; [[ "$status" = "deprecated" ]] && dep="true"
       printf '        {"%s", "%s", "%s", "%s", "%s", "%s", %s},\n' \
         "$(cpp_escape "$id")" \
         "$(cpp_escape "$category")" \
