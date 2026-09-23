@@ -16,8 +16,8 @@
 # (`${arr[i]}`), globs (`[abc]*`), or `[` inside a string.
 #
 # WARN, not block: this is a consistency smell, not a bug. It nudges toward the
-# safer form without stopping a commit. Scope: bash/sh scripts only. Test
-# fixtures under tests/ are excluded so intentionally-varied fixtures don't trip.
+# safer form without stopping a commit. Scope: bash/sh scripts only. SonarCloud
+# checks test scripts too, so tests/ is NOT excluded — only vendored/build dirs.
 #
 # @see docs/adr/ADR-013 (self-guarding controls), SonarCloud script:S6748.
 id: KEUR-QUAL-003
@@ -29,7 +29,7 @@ action: warn
 skip_comments: true
 target:
   extensions: .sh .bash
-  exclude_paths: vendor/ build/ dist/ tests/ test/
+  exclude_paths: vendor/ build/ dist/
 patterns:
   # A `[` acting as the test command: at line start, or right after a
   # conditional keyword, or after a && / || operator. The trailing space/`]`

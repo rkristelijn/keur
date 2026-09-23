@@ -3,7 +3,7 @@
 source "$(dirname "$0")/helpers.sh"
 set +o errexit
 BINARY="$(resolve_binary "${1:-}")"
-[ -n "$BINARY" ] || { echo "FAIL: keur binary not found"; exit 1; }
+[[ -n "$BINARY" ]] || { echo "FAIL: keur binary not found"; exit 1; }
 
 echo "==> test_hook ($BINARY)"
 
@@ -16,8 +16,8 @@ trap 'rm -rf "$REPO"' EXIT
 )
 
 # hooks land in .git/hooks
-[ -x "$REPO/.git/hooks/pre-commit" ] && ok "pre-commit installed" || fail "pre-commit missing"
-[ -x "$REPO/.git/hooks/pre-push" ]   && ok "pre-push installed"   || fail "pre-push missing"
+[[ -x "$REPO/.git/hooks/pre-commit" ]] && ok "pre-commit installed" || fail "pre-commit missing"
+[[ -x "$REPO/.git/hooks/pre-push" ]]   && ok "pre-push installed"   || fail "pre-push missing"
 
 # stub content
 grep -q "exec keur check" "$REPO/.git/hooks/pre-commit" \
@@ -31,8 +31,8 @@ grep -q "pre-push" "$REPO/.git/hooks/pre-push" \
 
 # remove
 (cd "$REPO" && "$BINARY" hook --remove >/dev/null 2>&1)
-[ ! -e "$REPO/.git/hooks/pre-commit" ] && ok "pre-commit removed" || fail "pre-commit still present"
-[ ! -e "$REPO/.git/hooks/pre-push" ]   && ok "pre-push removed"   || fail "pre-push still present"
+[[ ! -e "$REPO/.git/hooks/pre-commit" ]] && ok "pre-commit removed" || fail "pre-commit still present"
+[[ ! -e "$REPO/.git/hooks/pre-push" ]]   && ok "pre-push removed"   || fail "pre-push still present"
 
 # install outside a git repo fails
 ( cd /tmp && "$BINARY" hook --install >/dev/null 2>&1 ) \

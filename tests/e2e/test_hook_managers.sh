@@ -7,7 +7,7 @@
 source "$(dirname "$0")/helpers.sh"
 set +o errexit
 BINARY="$(resolve_binary "${1:-}")"
-[ -n "$BINARY" ] || { echo "FAIL: keur binary not found"; exit 1; }
+[[ -n "$BINARY" ]] || { echo "FAIL: keur binary not found"; exit 1; }
 
 ROOT="$(repo_root)"
 echo "==> test_hook_managers ($BINARY)"

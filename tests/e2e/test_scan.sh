@@ -3,7 +3,7 @@
 source "$(dirname "$0")/helpers.sh"
 set +o errexit
 BINARY="$(resolve_binary "${1:-}")"
-[ -n "$BINARY" ] || { echo "FAIL: keur binary not found"; exit 1; }
+[[ -n "$BINARY" ]] || { echo "FAIL: keur binary not found"; exit 1; }
 
 RULES="$(repo_root)/rules"
 FIX="$(repo_root)/tests/fixtures"
@@ -19,10 +19,10 @@ echo "$out" | grep -q "KEUR-SEC-001" \
 # Output must be valid JSONL (each non-empty line starts with {)
 bad=0
 while IFS= read -r line; do
-  [ -z "$line" ] && continue
+  [[ -z "$line" ]] && continue
   case "$line" in {*) ;; *) bad=1 ;; esac
 done <<< "$out"
-[ "$bad" -eq 0 ] && ok "scan output is JSONL" || fail "scan output not valid JSONL"
+[[ "$bad" -eq 0 ]] && ok "scan output is JSONL" || fail "scan output not valid JSONL"
 
 # Scanning the clean fixture dir should emit no KEUR-SEC-001
 clean_out="$("$BINARY" scan "$FIX/clean" 2>/dev/null)"

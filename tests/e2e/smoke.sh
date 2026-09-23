@@ -21,7 +21,7 @@ case "$BIN" in
   *)  BIN="$ROOT/$BIN" ;;
 esac
 
-if [ ! -x "$BIN" ]; then
+if [[ ! -x "$BIN" ]]; then
   echo "ERROR: keur binary not found/executable at: $BIN"
   exit 1
 fi
@@ -33,9 +33,9 @@ check() {  # check "<label>" <expected_exit> "<must-contain>" -- <cmd...>
   local out rc
   out="$("$@" 2>&1)"; rc=$?
   local ok=1
-  [ "$rc" -eq "$want_exit" ] || ok=0
-  if [ -n "$needle" ] && ! printf '%s' "$out" | grep -qF "$needle"; then ok=0; fi
-  if [ "$ok" -eq 1 ]; then
+  [[ "$rc" -eq "$want_exit" ]] || ok=0
+  if [[ -n "$needle" ]] && ! printf '%s' "$out" | grep -qF "$needle"; then ok=0; fi
+  if [[ "$ok" -eq 1 ]]; then
     printf "  ok    %s\n" "$label"; PASS=$((PASS+1))
   else
     printf "  FAIL  %s (exit=%s, want=%s)\n" "$label" "$rc" "$want_exit"
@@ -59,4 +59,4 @@ check "check (no stage)" 0 "PASS" -- "$BIN" check
 
 echo ""
 echo "  Smoke: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+[[ "$FAIL" -eq 0 ]]

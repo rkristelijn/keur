@@ -3,14 +3,14 @@
 source "$(dirname "$0")/helpers.sh"
 set +o errexit
 BINARY="$(resolve_binary "${1:-}")"
-[ -n "$BINARY" ] || { echo "FAIL: keur binary not found"; exit 1; }
+[[ -n "$BINARY" ]] || { echo "FAIL: keur binary not found"; exit 1; }
 
 echo "==> test_config ($BINARY)"
 
 # text output: exits 0, shows the defaults layer + a header.
 out="$("$BINARY" config list 2>&1)"
 rc=$?
-[ "$rc" -eq 0 ] && ok "config list exits 0" || fail "config list exit $rc"
+[[ "$rc" -eq 0 ]] && ok "config list exits 0" || fail "config list exit $rc"
 echo "$out" | grep -q "defaults" && ok "lists the defaults layer" || fail "no defaults layer in output"
 echo "$out" | grep -q "layers"   && ok "prints the layer header"  || fail "no header in output"
 
