@@ -182,6 +182,26 @@ void eng_max_nesting(const ScanContext& cx, std::vector<RuleFinding>& out) {
   eval_max_nesting(r, limit, cx.lines, cx.rel, out);
 }
 
+// max-lines: flag a file whose NET line count (non-blank lines; comment lines
+// are already stripped when the rule sets skip_comments) exceeds max_count
+// (min_count field; default 300). Fires once per file, at line 1. Replaces the
+// per-file size check in scripts/check-basics.sh with a real rule. A file-size
+// metric is a per-file property, so it fits a plain line engine — no lexer,
+// no cross-file state. @id engine-max-lines
+void eng_max_lines(const ScanContext& cx, std::vector<RuleFinding>& out) {
+  const Rule& r = *cx.compiled.rule;
+  const int limit = r.min_count > 0 ? r.min_count : 300;
+  int net = 0;
+  for (const auto& ln : cx.lines) {
+    std::string_view sv(ln.data(), ln.size());
+    // Non-blank = has a non-whitespace char. (Comments are already stripped to
+    // blanks upstream when skip_comments is set.)
+    if (sv.find_first_not_of(" \t\r") != std::string_view::npos) net++;
+  }
+  if (net > limit)
+    emit(r, cx.rel, 1, finding_msg(r, r.patterns.empty() ? std::string() : r.patterns[0].message), out);
+}
+
 }  // namespace
 EngineFn engine_lookup(const std::string& name) {
   static const std::unordered_map<std::string, EngineFn> registry = {
@@ -193,6 +213,7 @@ EngineFn engine_lookup(const std::string& name) {
       {"multiline", &eng_multiline},
       {"path-derived", &eng_path_derived},
       {"max-nesting", &eng_max_nesting},
+      {"max-lines", &eng_max_lines},
   };
   auto it = registry.find(name);
   return it == registry.end() ? nullptr : it->second;

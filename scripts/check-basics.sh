@@ -1,40 +1,33 @@
 #!/usr/bin/env bash
-# check-basics.sh — lint keur's OWN code-quality basics (not a functional test).
+# check-basics.sh — lint the ONE code-quality norm that the rule engine cannot
+# express: directory size (logical units per source directory).
 #
-# Enforces the norms agreed for this codebase:
-#   1. no source file > MAX_LINES net lines (comments/blank excluded);
-#   2. no source directory > MAX_FILES files.
+# The sibling norm — "no source file > ~300 net lines" — is now a real keur rule
+# (KEUR-QUAL-005, engine: max-lines), so it lives in the binary and runs on every
+# scan/commit. It was verified to reproduce this script's old file-size verdict
+# exactly (manager.cpp, model.cpp). See rules/quality/KEUR-QUAL-005 and
+# docs/rules-authoring.md (`max-lines`).
 #
-# This is a LINT/quality check over keur's source (counting lines/files), NOT an
-# end-to-end behavioural test — hence it lives in scripts/ and hangs off `make
-# lint`, not the e2e suite. These are AGGREGATION checks the current line/pattern
-# rule engine cannot express; that needs the file/aggregation engine adopted
-# from cpm (ADR-004 stage 2). When that lands, port these to real .rule files.
+# Directory size stays HERE (shell / `make lint`) on purpose: it is a CROSS-FILE
+# AGGREGATION — count the logical units in a directory and group .h/.cpp pairs by
+# stem — which a per-file rule engine (one file at a time, no sibling knowledge)
+# fundamentally cannot express. It would need a directory/aggregation engine
+# (ADR-004 stage 2 / the cross-reference engine, ADR-022). Until that lands, this
+# one check is the honest home for it.
 #
 # Usage: scripts/check-basics.sh
-# Env:   KEUR_MAX_FILE_LINES (default 300), KEUR_MAX_DIR_FILES (default 10)
+# Env:   KEUR_MAX_DIR_FILES (default 10)
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
-MAX_LINES="${KEUR_MAX_FILE_LINES:-300}"
 MAX_FILES="${KEUR_MAX_DIR_FILES:-10}"
 fail=0
 
-echo "check-basics: <=${MAX_LINES} net lines/file, <=${MAX_FILES} files/dir"
+echo "check-basics: <=${MAX_FILES} logical units/dir (file-size → KEUR-QUAL-005)"
 
-# 1. net lines per C++ source (exclude comments/blank; skip vendor + test files)
-while IFS= read -r f; do
-  net=$(grep -vcE '^[[:space:]]*(//|/\*|\*|$)' "$f")
-  if [[ "$net" -gt "$MAX_LINES" ]]; then
-    echo "  FILE  $f ($net net lines) — split by responsibility"
-    fail=1
-  fi
-done < <(find "$ROOT/src" \( -name '*.cpp' -o -name '*.h' \) \
-           ! -path '*/vendor/*' ! -name '*_test.cpp')
-
-# 2. logical units per source directory (skip vendor). A .h/.cpp pair with the
-#    same stem counts as ONE unit — the norm is about logical modules per dir,
-#    not raw file count (6 command pairs in cmd/ is fine, 30 loose files is not).
+# Logical units per source directory (skip vendor). A .h/.cpp pair with the same
+# stem counts as ONE unit — the norm is about logical modules per dir, not raw
+# file count (6 command pairs in cmd/ is fine, 30 loose files is not).
 while IFS= read -r d; do
   n=$(find "$d" -maxdepth 1 -type f | sed -E 's/\.(h|hpp|cpp|cc|c)$//' | sort -u | wc -l | tr -d ' ')
   if [[ "$n" -gt "$MAX_FILES" ]]; then

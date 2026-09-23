@@ -270,6 +270,37 @@ patterns:
   - regex: nesting too deep
 ```
 
+### `max-lines`
+Flag a file whose NET line count exceeds `min_count` (default 300). With
+`skip_comments: true` the scanner strips comment lines to blanks first, so blank
+and comment lines are not counted — the same "net lines" notion as a
+`grep -vcE '^\s*(//|/*|*|$)'` lint. Fires once per over-long file, at line 1. A
+file-size metric is a per-file property, so it needs no lexer or cross-file
+state; the directory-file-count sibling check is a cross-file aggregation and
+stays outside the per-file engine.
+
+- `min_count` — the maximum allowed net lines (default 300). A file with more is
+  flagged.
+- `skip_comments: true` — recommended, so comments/blank lines do not inflate the
+  count.
+- `patterns[0].regex` — unused for matching (the size is structural); keep a
+  short marker regex so the rule parses and carries the `message`.
+
+```yaml
+# files well under ~300 net lines — split by responsibility (AGENTS.md).
+id: KEUR-QUAL-005
+title: Source file over ~300 net lines
+category: quality
+severity: warning
+engine: max-lines
+skip_comments: true
+min_count: 300
+target:
+  extensions: .c .cpp .cc .h .hpp
+patterns:
+  - regex: file too long
+```
+
 ## Facts, `requires:` and composite rules (ADR-009)
 
 Beyond single patterns, a rule can reason about *context* and *combine* other

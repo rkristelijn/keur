@@ -1908,6 +1908,38 @@ SCENARIO("[feature:rule-engine] max-nesting flags control blocks deeper than max
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] max-lines flags a file with more net lines than max_count") {  // @proves engine-max-lines
+    // The max-lines engine counts a file's net lines (non-blank; comment lines
+    // are stripped when skip_comments is set) and flags ONCE when the count
+    // exceeds max_count (min_count field). Replaces scripts/check-basics.sh's
+    // per-file size check with a real rule.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/LINES.rule",
+        "id: LINES-1\ntitle: file too long\ncategory: quality\nseverity: warning\n"
+        "engine: max-lines\nmin_count: 5\nskip_comments: true\n"
+        "target:\n  extensions: .cpp\n"
+        "patterns:\n  - regex: file too long\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+
+    // 5 net lines: at the limit → no finding. (blank + comment lines ignored)
+    std::string ok = dir + "/ok.cpp";
+    write_file(ok,
+        "int a;\n\n// a comment (stripped)\nint b;\nint c;\nint d;\nint e;\n");
+    auto f1 = keur::rules_scan_files(rules, {ok});
+    int hits_ok = 0; for (auto& f : f1) if (f.rule_id == "LINES-1") hits_ok++;
+    CHECK(hits_ok == 0);
+
+    // 6 net lines: over the limit → exactly one finding.
+    std::string big = dir + "/big.cpp";
+    write_file(big, "int a;\nint b;\nint c;\nint d;\nint e;\nint f;\n");
+    auto f2 = keur::rules_scan_files(rules, {big});
+    int hits_big = 0; for (auto& f : f2) if (f.rule_id == "LINES-1") hits_big++;
+    CHECK(hits_big == 1);   // fires once for the over-long file
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] multiline window fires within N lines, not beyond") {  // @proves engine-multiline
     // RE2 matches one line at a time; the window engine joins a sliding window of
     // `window` lines so a pattern can span them — but STAYS bounded to the window
