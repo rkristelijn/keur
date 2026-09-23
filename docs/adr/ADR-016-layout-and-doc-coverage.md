@@ -62,8 +62,7 @@ correct; this ADR makes it the *rule*, not a happenstance.
 | `tests/e2e/` | system/functional shell tests | e2e only; unit tests stay colocated |
 | `docs/adr/` | decisions | one ADR per decision |
 | `docs/design/` | concepts/vision | cross-cutting design |
-| `rules/` | keur's own rule corpus (by category) | shipped rules |
-| `rules-imported/` | rules adopted from elsewhere (190, cpm-compatible) | third-party/imported, kept separate from `rules/` |
+| `rules/` | keur's own + adopted rules (by category); origin in a `source:` field | shipped rules |
 | `eval/` | the learn loop + meters (shell) | training/measurement, not shipped in the binary |
 | `config/` | default `keur.toml` | documented defaults |
 | `scanners/`, `scripts/` | helper shims | small glue |

@@ -33,7 +33,8 @@ Wire cpm in as a **second, independent quality gate** over keur's OWN code:
 
 1. Add a `cpm.toml` at the keur root (project metadata + `[checks]` + `[limits]`,
    modelled on cpm's own cpm.toml).
-2. **Exclude the corpus** (`eval/corpus/repos/`) and `rules-imported/` from cpm's
+2. **Exclude the corpus** (`eval/corpus/repos/`) and the cpm-sourced rules
+   (now `source: cpm` within `rules/`, formerly `rules-imported/`) from cpm's
    scan — OPEN QUESTION: the exact cpm exclude mechanism was not confirmed
    (cpm scanned the corpus despite .gitignore). Must be determined first
    (config key, scan-root, or a cpm-side fix) or the gate is unusable (drowned

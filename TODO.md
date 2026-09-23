@@ -86,8 +86,9 @@ Status legend: [x] done · [~] partially done · [ ] open
 - [ ] wire cpm in as a second quality gate over keur's own code (ADR-018).
       cpm's mature checks already find ZERO issues on keur's source (good
       regression gate), but cpm scans the corpus fixtures too. Prereq: solve the
-      corpus-exclude (eval/corpus/repos/ + rules-imported/) — the exact cpm
-      exclude mechanism is unconfirmed. Then add cpm.toml + optional CI job.
+      corpus-exclude (eval/corpus/repos/ + the cpm-sourced rules, now
+      `source: cpm` within rules/) — the exact cpm exclude mechanism is
+      unconfirmed. Then add cpm.toml + optional CI job.
       Bonus: feed multiline/count engine support upstream to cpm to drop the
       "unsupported engine" warnings. See docs/adr/ADR-018-cpm-second-gate.md.
 - [ ] NO PYTHON in the eval scripting layer — replace inline `python3 -c` JSON

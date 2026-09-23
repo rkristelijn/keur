@@ -1,0 +1,13 @@
+id: SCA-017
+source: cpm
+title: Suspicious composer.json suspicious lifecycle scripts
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  filenames: composer.json
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: "(post-install-cmd|post-update-cmd|pre-install-cmd|post-autoload-dump)"\s*:.*\b(curl|wget|bash|php\s+-r)
+    message: Composer lifecycle script executes network or shell command during install/update — supply chain attack vector.
+fix: Audit all composer scripts. Remove any that make network calls or execute arbitrary code.
