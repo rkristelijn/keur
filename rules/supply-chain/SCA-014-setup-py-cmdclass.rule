@@ -1,0 +1,13 @@
+id: SCA-014
+source: cpm
+title: Suspicious setup.py cmdclass override
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: setup.py
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: cmdclass\s*=\s*\{[^}]*(install|develop|build_ext|bdist_wheel|sdist)
+    message: Overriding setuptools command classes (install, develop, build_ext) allows arbitrary code execution during any pip operation.
+fix: Avoid cmdclass overrides unless necessary. Audit any override for network calls, file writes outside the package, or encoded payloads.

@@ -208,10 +208,10 @@ $(BINDIR)/keur_manager_view.o: manager/view.cpp manager/view.h manager/model.h r
 
 # Compile-time rule catalogue: generated from the .rule files by
 # scripts/gen-catalog.sh, then baked into the binary. Regenerated whenever any
-# .rule under rules/ or rules-imported/ changes. @implements KEUR-MANAGER-CATALOG
-RULE_FILES := $(shell find $(REPO_ROOT)/rules $(REPO_ROOT)/rules-imported -name '*.rule' 2>/dev/null)
+# .rule under rules/ changes. @implements KEUR-MANAGER-CATALOG
+RULE_FILES := $(shell find $(REPO_ROOT)/rules -name '*.rule' 2>/dev/null)
 manager/catalog_generated.cpp: $(REPO_ROOT)/scripts/gen-catalog.sh $(RULE_FILES)
-	$(REPO_ROOT)/scripts/gen-catalog.sh $@ $(REPO_ROOT)/rules $(REPO_ROOT)/rules-imported
+	$(REPO_ROOT)/scripts/gen-catalog.sh $@ $(REPO_ROOT)/rules
 
 .PHONY: catalog
 catalog: manager/catalog_generated.cpp ## Regenerate the baked rule catalogue

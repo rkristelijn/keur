@@ -1,0 +1,13 @@
+id: SCA-013
+source: cpm
+title: Suspicious setup.py with dynamic import
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: setup.py
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (__import__|importlib\.import_module)\s*\(
+    message: Dynamic imports in setup.py can load arbitrary code at install time, bypassing static analysis.
+fix: Use static imports only. Dynamic imports in setup.py are a red flag for code injection.

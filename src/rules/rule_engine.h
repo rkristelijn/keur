@@ -75,6 +75,11 @@ struct Rule {
   std::string action;      // optional: "block"|"warn"|"advisory"
   std::string confidence;  // optional: "0.0".."1.0"
   std::string fix;
+  std::string source;      // optional provenance: e.g. "cpm" for rules adopted
+                           // from cpm. Metadata only — the engine ignores it;
+                           // it records origin (attribution, upstream-sync,
+                           // corpus-exclude) so imported rules need no separate
+                           // directory. Empty = keur's own rule.
   std::string message;     // optional: default finding message (fallback for patterns without their own)
   std::string block_inner;    // block-absence: regex that MUST appear inside the block
   std::string block_trigger;  // block-absence: optional gate — only check blocks containing this

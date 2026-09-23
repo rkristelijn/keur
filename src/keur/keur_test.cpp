@@ -1971,6 +1971,34 @@ SCENARIO("[feature:rule-engine] max-dir-files flags a directory with too many un
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] source: field parses as provenance metadata") {  // @proves rule-source-field
+    // `source:` records where a rule came from (e.g. "cpm") so imported rules
+    // need no separate directory. It is metadata: the engine parses it and
+    // otherwise ignores it. Absent → empty.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/SRC.rule",
+        "id: SRC-1\ntitle: imported\ncategory: security\nseverity: error\n"
+        "engine: pattern\nsource: cpm\n"
+        "target:\n  extensions: .py\n"
+        "patterns:\n  - regex: \\beval\\b\n");
+    write_file(dir + "/OWN.rule",
+        "id: OWN-1\ntitle: own\ncategory: security\nseverity: error\n"
+        "engine: pattern\n"
+        "target:\n  extensions: .py\n"
+        "patterns:\n  - regex: \\bexec\\b\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(rules.size() >= 2);
+    std::string src_of_src, src_of_own;
+    for (const auto& r : rules) {
+        if (r.id == "SRC-1") src_of_src = r.source;
+        if (r.id == "OWN-1") src_of_own = r.source;
+    }
+    CHECK(src_of_src == "cpm");   // parsed
+    CHECK(src_of_own.empty());    // absent → empty (keur's own)
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] multiline window fires within N lines, not beyond") {  // @proves engine-multiline
     // RE2 matches one line at a time; the window engine joins a sliding window of
     // `window` lines so a pattern can span them — but STAYS bounded to the window

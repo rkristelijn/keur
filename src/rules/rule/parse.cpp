@@ -4,8 +4,8 @@
  */
 #include "rule/internal.h"
 
-#include <dirent.h>
-#include <sys/stat.h>
+#include <dirent.h>     // keur:ignore KEUR-PORT-002 — engine I/O seam; rules/ is exempt (rule exclude_paths + TODO I/O-via-platform)
+#include <sys/stat.h>   // keur:ignore KEUR-PORT-002 — same tracked seam
 
 #include <algorithm>
 #include <cstdlib>
@@ -122,6 +122,7 @@ Rule rule_parse(const std::string& path) {
     else if (key == "action") rule.action = val;
     else if (key == "confidence") rule.confidence = val;
     else if (key == "fix") rule.fix = val;
+    else if (key == "source") rule.source = val;
     else if (key == "message") rule.message = val;
     else if (key == "block_inner") rule.block_inner = val;
     else if (key == "block_trigger") rule.block_trigger = val;
