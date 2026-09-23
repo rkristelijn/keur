@@ -7,14 +7,14 @@ read-only Defaults baseline branch, save-with-one-backup)
 
 Built so far:
 - **Layer 4 — platform input:** `platform::RawModeGuard` + `read_key()` +
-  pure `decode_key()` (`common/keyinput.cpp`, @id KEUR-KEYINPUT). Arrows/hjkl,
+  pure `decode_key()` (`common/keyinput.cpp`, @see KEUR-KEYINPUT). Arrows/hjkl,
   Space, Enter, `s`, `q`, `g`/`G`. POSIX termios (IXON off so `s` is a normal
   key) and Win32 `ENABLE_VIRTUAL_TERMINAL_INPUT` deliver the same VT sequences.
-- **Layer 5 — pure model + view:** `manager/model.*` (@id KEUR-MANAGER-MODEL)
+- **Layer 5 — pure model + view:** `manager/model.*` (@see KEUR-MANAGER-MODEL)
   is the Scope→Category→Rule tree with pure reducers (`move`, `expand`,
   `collapse`, `toggle_focused_rule`) producing a `ChangeSet` of `{scope, rule_id,
   disable}` edits by diffing against the build-time baseline. `manager/view.*`
-  (@id KEUR-MANAGER-VIEW) renders `(model, opts) → lines`, colour via SGR,
+  (@see KEUR-MANAGER-VIEW) renders `(model, opts) → lines`, colour via SGR,
   `NO_COLOR`/`--no-color` honoured. Both fully unit-tested with no terminal.
 - **Layer 6 — interactive loop:** bare `keur manager` enters raw mode, renders,
   reads keys, applies reducers; `s` saves every pending edit through the SAME

@@ -1,7 +1,7 @@
 # ADR-021 — `--debug` / `--trace`: engine observability & feature-liveness
 
 @id ADR-021
-**Status**: proposed · **Date**: 2026-09-21 · **Coverage**: code · **Relates to**: ADR-001 (RE2 engine — the thing we observe), ADR-003 (I/O via adapters — the trace sink is one), ADR-014 (engine registry — each engine is a traceable unit), ADR-020 (path-derived engine — debugging it is what surfaced this need)
+**Status**: proposed · **Date**: 2026-09-21 · **Coverage**: none · **Relates to**: ADR-001 (RE2 engine — the thing we observe), ADR-003 (I/O via adapters — the trace sink is one), ADR-014 (engine registry — each engine is a traceable unit), ADR-020 (path-derived engine — debugging it is what surfaced this need)
 
 ## Context
 
