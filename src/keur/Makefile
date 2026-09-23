@@ -331,8 +331,20 @@ lint: ## Run clang-tidy if installed; otherwise a -Wall -Wextra syntax check
 	   echo "syntax + warning check clean"; \
 	 fi
 	@echo ""
-	@echo "basics (file/dir size norms):"
-	@bash ../../scripts/check-basics.sh
+	@echo "basics (file/dir size norms — KEUR-QUAL-005/006, via the engine):"
+	@if [ -x "$(BIN)" ]; then \
+	   hits=$$(KEUR_RULES_DIRS="$(REPO_ROOT)/rules/quality" "$(BIN)" scan "$(REPO_ROOT)/src" 2>/dev/null \
+	           | grep -cE '"rule":"KEUR-QUAL-00[56]"' || true); \
+	   if [ "$$hits" -gt 0 ]; then \
+	     KEUR_RULES_DIRS="$(REPO_ROOT)/rules/quality" "$(BIN)" scan "$(REPO_ROOT)/src" 2>/dev/null \
+	       | grep -E '"rule":"KEUR-QUAL-00[56]"'; \
+	     echo "basics: $$hits violation(s) (file>300 net lines / dir>10 units)"; \
+	   else \
+	     echo "basics: OK"; \
+	   fi; \
+	 else \
+	   echo "basics: keur not built yet (run 'make build') — skipping"; \
+	 fi
 
 clean: ## Remove build artifacts
 	rm -f $(BIN) $(TEST_BIN) $(MAIN_OBJ) $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)

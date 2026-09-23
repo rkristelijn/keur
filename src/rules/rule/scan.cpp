@@ -11,8 +11,8 @@
 #include "rule/internal.h"
 #include "tokenizer.h"
 
-#include <dirent.h>
-#include <sys/stat.h>
+#include <dirent.h>     // keur:ignore KEUR-PORT-002 — engine I/O seam; rules/ is exempt (see rule exclude_paths + TODO I/O-via-platform)
+#include <sys/stat.h>   // keur:ignore KEUR-PORT-002 — same tracked seam
 
 #include <algorithm>
 #include <fstream>
@@ -58,6 +58,44 @@ void eval_file_level_rules(
       if (rule_matches_file(*rule, rel))
         findings.push_back({rule->id, rule->title, rule->category, rule->severity,
                             default_action(*rule), default_conf(*rule), rel, 0, finding_msg(*rule, "")});
+}
+
+// max-dir-files: FILE-LEVEL engine — flag a directory holding more logical units
+// than min_count. A logical unit is a source stem: `a.h` + `a.cpp` count as ONE
+// (a header/impl pair is one module). Runs once over the whole fileset, grouping
+// by each file's parent directory. This is the cross-file aggregation that a
+// per-line engine cannot do, but the file-level layer (which already sees the
+// whole fileset, like file-absence) can. Only files matching the rule's target
+// (extensions/filenames) are counted, so a rule can scope it to source dirs.
+// @id engine-max-dir-files
+void eval_max_dir_files(const std::vector<const Rule*>& rules,
+                        const std::vector<std::pair<std::string, std::string>>& files,
+                        std::vector<RuleFinding>& findings) {
+  for (const auto* rule : rules) {
+    const int limit = rule->min_count > 0 ? rule->min_count : 10;
+    // dir -> set of logical unit stems (path with any source extension removed).
+    std::unordered_map<std::string, std::unordered_set<std::string>> units;
+    for (const auto& [rel, abs] : files) {
+      if (!rule_matches_file(*rule, rel)) continue;
+      // Split into directory + filename.
+      std::string dir, name = rel;
+      if (auto slash = rel.find_last_of("/\\"); slash != std::string::npos) {
+        dir = rel.substr(0, slash);
+        name = rel.substr(slash + 1);
+      }
+      // Strip a trailing source extension so a.h and a.cpp share one stem.
+      std::string stem = name;
+      for (const char* ext : {".hpp", ".cpp", ".cc", ".h", ".c"})
+        if (ends_with(stem, ext)) { stem.resize(stem.size() - std::string(ext).size()); break; }
+      units[dir].insert(stem);
+    }
+    for (const auto& [dir, stems] : units)
+      if (static_cast<int>(stems.size()) > limit)
+        findings.push_back({rule->id, rule->title, rule->category, rule->severity,
+                            default_action(*rule), default_conf(*rule), dir, 0,
+                            finding_msg(*rule, rule->patterns.empty() ? std::string()
+                                                                      : rule->patterns[0].message)});
+  }
 }
 
 std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
@@ -203,7 +241,8 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
       if (EngineFn fn = engine_lookup(engine)) {
         ScanContext cx{c, lines, rel};
         fn(cx, findings);
-      } else if (engine != "file-absence" && engine != "file-presence") {
+      } else if (engine != "file-absence" && engine != "file-presence" &&
+                 engine != "max-dir-files") {
         static std::unordered_set<std::string> warned;
         if (warned.insert(engine).second)
           std::cerr << "keur: unsupported engine '" << engine << "' (rule " << r->id << ")\n";
@@ -228,14 +267,17 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
   }
 
   // file-level engines run once over the whole fileset (respect requires: too).
-  std::vector<const Rule*> file_absence, file_presence;
+  std::vector<const Rule*> file_absence, file_presence, max_dir_files;
   for (const auto& r : rules) {
     if (!requires_satisfied(r, facts)) continue;
     if (r.engine == "file-absence") file_absence.push_back(&r);
     else if (r.engine == "file-presence") file_presence.push_back(&r);
+    else if (r.engine == "max-dir-files") max_dir_files.push_back(&r);
   }
   if (!file_absence.empty() || !file_presence.empty())
     eval_file_level_rules(file_absence, file_presence, files, findings);
+  if (!max_dir_files.empty())
+    eval_max_dir_files(max_dir_files, files, findings);
 
   // ADR-009: composite pass. After the single-rule pass, collect the ids that
   // fired, then evaluate each composite's boolean tree over that set. A composite

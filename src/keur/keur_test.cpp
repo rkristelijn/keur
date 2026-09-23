@@ -1940,6 +1940,37 @@ SCENARIO("[feature:rule-engine] max-lines flags a file with more net lines than 
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] max-dir-files flags a directory with too many units") {  // @proves engine-max-dir-files
+    // The max-dir-files engine is FILE-LEVEL: it runs once over the whole
+    // fileset, groups files by directory, counts logical units (a .h/.cpp pair
+    // with the same stem = one unit), and flags a directory over max_count.
+    // This is the cross-file aggregation that scripts/check-basics.sh did in
+    // shell — expressible because file-level engines see the whole fileset.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/DIRS.rule",
+        "id: DIRS-1\ntitle: too many units in a dir\ncategory: quality\nseverity: warning\n"
+        "engine: max-dir-files\nmin_count: 2\n"
+        "target:\n  extensions: .cpp .h\n"
+        "patterns:\n  - regex: too many units\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+
+    // A dir with 3 units (a.h/a.cpp = 1, b.cpp = 2, c.cpp = 3) over limit 2.
+    std::string sub = dir + "/pkg";
+    keur::adapters::Fs fs;
+    fs.default_mkdir_p(sub);
+    write_file(sub + "/a.h", "int a;\n");
+    write_file(sub + "/a.cpp", "int a;\n");   // a.h + a.cpp = ONE unit
+    write_file(sub + "/b.cpp", "int b;\n");
+    write_file(sub + "/c.cpp", "int c;\n");
+    auto f = keur::rules_scan_files(rules,
+        {sub + "/a.h", sub + "/a.cpp", sub + "/b.cpp", sub + "/c.cpp"});
+    int hits = 0; for (auto& x : f) if (x.rule_id == "DIRS-1") hits++;
+    CHECK(hits == 1);   // 3 units > 2 → the directory is flagged once
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] multiline window fires within N lines, not beyond") {  // @proves engine-multiline
     // RE2 matches one line at a time; the window engine joins a sliding window of
     // `window` lines so a pattern can span them — but STAYS bounded to the window

@@ -1,12 +1,11 @@
 # keur quality control — source file over ~300 net lines.
 #
 # Why this exists: keur's own norm (AGENTS.md) is "files well under ~300 net
-# lines; split by responsibility." That was enforced by scripts/check-basics.sh,
-# an external shell lint. This rule captures the file-size half of that check as
-# a real, in-engine control — fix + control, and one less thing that lives
-# outside the binary. The directory-count half of check-basics stays in C++/shell
-# because it is a cross-file aggregation (files per directory), which a per-file
-# rule engine cannot express.
+# lines; split by responsibility." That used to be enforced by an external shell
+# lint (scripts/check-basics.sh); this rule replaced it, so the norm now lives in
+# the binary and runs on every scan/commit. The directory-count sibling norm is
+# KEUR-QUAL-006 (engine: max-dir-files) — a cross-file aggregation the file-level
+# engine layer handles.
 #
 # HOW: the `max-lines` engine counts a file's NET lines. With skip_comments the
 # scanner strips comment lines to blanks first, so blank + comment lines do not
@@ -17,8 +16,7 @@
 # toward splitting by responsibility. Tests are excluded (a big test file is
 # often legitimately one cohesive suite); generated/vendor/build dirs too.
 #
-# @see docs/rules-authoring.md (`max-lines`), AGENTS.md ("Files small"),
-#      scripts/check-basics.sh (the shell lint this replaces).
+# @see docs/rules-authoring.md (`max-lines`), AGENTS.md ("Files small").
 id: KEUR-QUAL-005
 title: Source file over ~300 net lines (split by responsibility)
 category: quality
