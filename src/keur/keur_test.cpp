@@ -1999,6 +1999,32 @@ SCENARIO("[feature:rule-engine] source: field parses as provenance metadata") { 
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] KEUR-QUAL-007 blocks committed conflict markers") {  // @proves KEUR-QUAL-007
+    // A leftover git conflict marker is a hard defect → the rule BLOCKS. Exactly
+    // 7 marker chars + space/EOL; an 8-char markdown underline must NOT match.
+    auto rules = keur::rules_load(keur_rules_dir());
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+
+    std::string bad = dir + "/conflicted.cpp";
+    write_file(bad, "int a = 1;\n<<<<<<< HEAD\nint b = 2;\n=======\nint b = 3;\n>>>>>>> feat\n");
+    auto f1 = keur::rules_scan_files(rules, {bad});
+    int hits = 0; std::string action;
+    for (auto& f : f1) if (f.rule_id == "KEUR-QUAL-007") { hits++; action = f.action; }
+    CHECK(hits >= 1);
+    CHECK(action == "block");     // conflict markers block, not warn
+
+    // Markdown H1 underline is exactly 7 '=' under a title — must NOT match
+    // (that is why the rule matches only the <<<<<<< / >>>>>>> angle markers).
+    std::string clean = dir + "/clean.md";
+    write_file(clean, "My Heading\n=======\n\nbody\n");
+    auto f2 = keur::rules_scan_files(rules, {clean});
+    int fp = 0; for (auto& f : f2) if (f.rule_id == "KEUR-QUAL-007") fp++;
+    CHECK(fp == 0);               // no false positive on a markdown H1 underline
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] multiline window fires within N lines, not beyond") {  // @proves engine-multiline
     // RE2 matches one line at a time; the window engine joins a sliding window of
     // `window` lines so a pattern can span them — but STAYS bounded to the window

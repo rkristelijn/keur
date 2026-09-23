@@ -1,0 +1,34 @@
+# keur quality control — committed git merge-conflict marker.
+#
+# Why this exists: a leftover conflict marker (<<<<<<<, =======, >>>>>>>, or the
+# diff3 |||||||) means an unresolved merge was committed. The code almost never
+# compiles/parses, and it is a textbook "slop" defect — exactly what an anti-slop
+# pre-commit gate must catch. Unlike the maintainability QUAL rules (WARN), this
+# BLOCKS: a conflict marker is a definite defect, not a nudge.
+#
+# HOW: a line-anchored pattern for the UNAMBIGUOUS markers — 7 `<`, 7 `>`, or the
+# diff3 7 `|` — followed by a space or end-of-line. We deliberately do NOT match a
+# bare `=======` (7 `=`): a real conflict always carries the `<<<<<<<`/`>>>>>>>`
+# pair, so the angle markers are sufficient to detect it, and matching `=======`
+# would false-positive on a Markdown H1 underline (`Title` over `=======`). The
+# ` |$` boundary means an 8+-char run does not match.
+#
+# Scoped to text/source files; excludes the corpus (deliberately messy fixtures)
+# and vendored/build output. skip_comments is OFF — a marker inside a comment is
+# still a committed conflict.
+#
+# @see AGENTS.md (anti-slop), docs/design/vision.md ("contains AI-slop").
+id: KEUR-QUAL-007
+title: Committed git merge-conflict marker
+category: quality
+severity: critical
+engine: pattern
+action: block
+target:
+  extensions: .c .cpp .cc .h .hpp .py .js .ts .jsx .tsx .go .rs .rb .php .java .sh .bash .rule .md .yml .yaml .toml .json
+  exclude_paths: eval/corpus/repos/ vendor/ build/ dist/
+patterns:
+  - regex: ^(<{7}|>{7}|\|{7})( |$|\t)
+    message: "Git merge-conflict marker committed (<<<<<<<, >>>>>>>, or diff3 |||||||). Resolve the conflict and remove the markers before committing — the file is almost certainly broken. @see KEUR-QUAL-007"
+confidence: 0.98
+fix: "Open the file, resolve the merge conflict (keep the intended side), and delete every conflict marker line (<<<<<<<, =======, >>>>>>>, |||||||). Re-run the build/tests before committing."
