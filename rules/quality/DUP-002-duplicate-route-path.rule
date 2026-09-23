@@ -1,0 +1,24 @@
+id: DUP-002
+source: cpm
+title: Duplicate route path registered in the same file
+category: quality
+severity: warning
+engine: extract-duplicates
+target:
+  extensions: .js .ts .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: .
+# Capture the URL path literal from an Express/Koa/Fastify-style route
+# registration (app.get/post/put/patch/delete/all, or router.<verb>). Two
+# handlers registered for the exact same path+verb-family in one file is almost
+# always a copy-paste mistake: the second silently shadows or duplicates the
+# first. This uses the extract-duplicates engine (like DOC-001 / TEST-038) and
+# does not overlap any existing rule. Sourced from the GitLab review-audit:
+# duplication was called out under the "rule-able nit" topic.
+extract: (?:app|router)\.(?:get|post|put|patch|delete|all)\(\s*['"`]([^'"`]+)['"`]
+capture: 1
+message: "Duplicate route path '{match}' registered more than once in this file — the second registration shadows or conflicts with the first. Merge them or give each a distinct path."
+fix: "Register each path once. If two verbs legitimately share a path, that is fine across files; within one file, consolidate the handlers. Reviewed exception: add 'cpm:ignore DUP-002' on the route line."
+patterns:
+  - regex: "{extract-duplicates}"
+    message: "Duplicate route path '{match}' registered more than once in this file — the second registration shadows or conflicts with the first. Merge them or give each a distinct path."

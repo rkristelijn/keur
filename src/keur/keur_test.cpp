@@ -1999,6 +1999,36 @@ SCENARIO("[feature:rule-engine] source: field parses as provenance metadata") { 
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] extract-duplicates flags a repeated capture value") {  // @proves engine-extract-duplicates
+    // Per file: apply `extract` (regex with a capture group), collect the
+    // captured value, and fire on the SECOND+ occurrence of the same value.
+    // Unique values never fire. {match} is substituted into the message.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/DUP.rule",
+        "id: DUP-1\ntitle: duplicate test name\ncategory: quality\nseverity: warning\n"
+        "engine: extract-duplicates\n"
+        "extract: (?:it|test)\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\ncapture: 1\n"
+        "target:\n  extensions: .js\n"
+        "patterns:\n  - regex: x\n    message: \"Duplicate test name '{match}'\"\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+
+    // Two tests share the name "logs in" → one finding on the 2nd; "signs up"
+    // is unique → no finding.
+    std::string f = dir + "/spec.js";
+    write_file(f,
+        "it('logs in', () => {})\n"
+        "it('signs up', () => {})\n"
+        "it('logs in', () => {})\n");   // duplicate of line 1
+    auto res = keur::rules_scan_files(rules, {f});
+    int hits = 0; int line = 0;
+    for (auto& x : res) if (x.rule_id == "DUP-1") { hits++; line = x.line; }
+    CHECK(hits == 1);     // fires once, on the duplicate
+    CHECK(line == 3);     // at the SECOND occurrence
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] KEUR-QUAL-007 blocks committed conflict markers") {  // @proves KEUR-QUAL-007
     // A leftover git conflict marker is a hard defect → the rule BLOCKS. Exactly
     // 7 marker chars + space/EOL; an 8-char markdown underline must NOT match.

@@ -15,6 +15,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace keur::detail {
 
@@ -202,6 +203,46 @@ void eng_max_lines(const ScanContext& cx, std::vector<RuleFinding>& out) {
     emit(r, cx.rel, 1, finding_msg(r, r.patterns.empty() ? std::string() : r.patterns[0].message), out);
 }
 
+// extract-duplicates: per file, apply the `extract` regex (with a capture group)
+// to each line, collect the captured value, and flag the SECOND+ occurrence of
+// the same value — an in-file duplicate (duplicate test name, route path,
+// heading). A seen-set gives O(n). `{match}` in the message is replaced with the
+// duplicated value. @id engine-extract-duplicates @implements ADR-004.stage2
+void eng_extract_duplicates(const ScanContext& cx, std::vector<RuleFinding>& out) {
+  const Rule& r = *cx.compiled.rule;
+  if (r.extract.empty()) return;
+  RE2 re(r.extract);
+  if (!re.ok()) return;
+  const int grp = r.capture > 0 ? r.capture : 1;
+
+  // cpm's extract-duplicates rules carry a top-level `message:` (with {match}),
+  // not a patterns[] block; keur's own may use either. Prefer the rule-level
+  // message, fall back to the first pattern's.
+  std::string msg_tmpl = !r.message.empty()
+      ? r.message
+      : (r.patterns.empty() ? std::string() : r.patterns[0].message);
+
+  std::unordered_set<std::string> seen;
+  for (size_t li = 0; li < cx.lines.size(); li++) {
+    // Extract up to `grp` groups; we only keep the requested one.
+    std::string g1, g2, g3;
+    RE2::Arg a1(&g1), a2(&g2), a3(&g3);
+    const RE2::Arg* args[] = {&a1, &a2, &a3};
+    int n = re.NumberOfCapturingGroups();
+    if (n < grp) continue;                 // rule asks for a group the regex lacks
+    if (!RE2::PartialMatchN(cx.lines[li], re, args, n > 3 ? 3 : n)) continue;
+    const std::string& val = grp == 1 ? g1 : (grp == 2 ? g2 : g3);
+    if (val.empty()) continue;
+    if (!seen.insert(val).second) {        // already seen → this is a duplicate
+      std::string msg = msg_tmpl;
+      // Substitute {match} with the duplicated value.
+      for (size_t p = msg.find("{match}"); p != std::string::npos; p = msg.find("{match}", p))
+        msg.replace(p, 7, val);
+      emit(r, cx.rel, (int)(li + 1), finding_msg(r, msg), out);
+    }
+  }
+}
+
 }  // namespace
 EngineFn engine_lookup(const std::string& name) {
   static const std::unordered_map<std::string, EngineFn> registry = {
@@ -214,6 +255,7 @@ EngineFn engine_lookup(const std::string& name) {
       {"path-derived", &eng_path_derived},
       {"max-nesting", &eng_max_nesting},
       {"max-lines", &eng_max_lines},
+      {"extract-duplicates", &eng_extract_duplicates},
   };
   auto it = registry.find(name);
   return it == registry.end() ? nullptr : it->second;

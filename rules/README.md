@@ -76,6 +76,7 @@ Engines:
 - `max-nesting` flags control nesting deeper than `min_count` (S134).
 - `max-lines` flags a file over `min_count` net lines.
 - `max-dir-files` (file-level) flags a directory over `min_count` logical units.
+- `extract-duplicates` flags a capture-group value that repeats within a file.
 - `file-absence` / `file-presence` file-level: required/forbidden files.
 
 See `docs/rules-authoring.md` for the full reference.
