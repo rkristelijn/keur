@@ -353,25 +353,26 @@ RawModeGuard& RawModeGuard::operator=(RawModeGuard&& other) noexcept {
     return *this;
 }
 
+// Read the tail of a possible CSI escape sequence into buf: after the initial
+// ESC, peek for '[' and then one final byte. Early returns keep this shallow
+// (SonarQube S134: no >3 nested blocks). A short read means it was a bare ESC.
+static void read_escape_tail(std::string& buf) {
+    unsigned char b1 = 0;
+    if (::read(STDIN_FILENO, &b1, 1) != 1) return;   // bare ESC
+    buf.push_back(static_cast<char>(b1));
+    if (b1 != '[') return;                           // ESC + other, not CSI
+    unsigned char b2 = 0;
+    if (::read(STDIN_FILENO, &b2, 1) == 1)
+        buf.push_back(static_cast<char>(b2));
+}
+
 KeyEvent read_key() {
     unsigned char c = 0;
     ssize_t n = ::read(STDIN_FILENO, &c, 1);
     if (n <= 0) return {Key::Unknown, '\0'};
 
     std::string buf(1, static_cast<char>(c));
-    if (c == 0x1b) {
-        // Possible CSI sequence. Peek for '[' then the final byte. Use a short
-        // read; if the bytes aren't there it was a bare ESC.
-        unsigned char b1 = 0;
-        if (::read(STDIN_FILENO, &b1, 1) == 1) {
-            buf.push_back(static_cast<char>(b1));
-            if (b1 == '[') {
-                unsigned char b2 = 0;
-                if (::read(STDIN_FILENO, &b2, 1) == 1)
-                    buf.push_back(static_cast<char>(b2));
-            }
-        }
-    }
+    if (c == 0x1b) read_escape_tail(buf);   // possible CSI sequence
     return decode_key(buf);
 }
 

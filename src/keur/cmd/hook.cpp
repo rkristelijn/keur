@@ -133,6 +133,29 @@ std::string unaugment_hook(const std::string& content) {
     return content.substr(0, b) + content.substr(e);
 }
 
+// Result of augmenting a single hook file — lets the caller loop flat.
+enum class AugmentResult { Skipped, Unchanged, Written, WriteFailed };
+
+// Augment (or unaugment) ONE hook file. Pure orchestration over the Fs adapter;
+// the caller loops and aggregates. Extracted so the loop body stays shallow
+// (SonarQube S134: no >3 nested blocks) — the branchy work lives here, once.
+static AugmentResult augment_one_target(const std::string& path, const std::string& tier,
+                                        bool remove, const adapters::Fs& fs) {
+    bool exists = fs.exists(path);
+    // Never create a stray pre-push; pre-commit is the primary gate so allow it
+    // even when absent.
+    if (!exists && tier != "pre-commit") return AugmentResult::Skipped;
+
+    std::string content;
+    if (exists) { auto rr = fs.read_file(path); if (rr.ok) content = rr.content; }
+
+    std::string updated = remove ? unaugment_hook(content) : augment_hook(content, tier);
+    if (updated == content) return AugmentResult::Unchanged;
+
+    if (!fs.write_executable(path, updated)) return AugmentResult::WriteFailed;
+    return AugmentResult::Written;
+}
+
 // ---------------------------------------------------------------------------
 // Install / remove (via the adapters::Fs adapter)
 // ---------------------------------------------------------------------------
@@ -342,26 +365,18 @@ int hook(const HookOptions& opts, const HookDeps& deps) {
 
             int changed = 0;
             for (const auto& [path, tier] : targets) {
-                // Only augment a hook file that already exists (the manager's),
-                // except for pre-commit which we always want; but to avoid
-                // creating stray pre-push files, only touch existing ones —
-                // plus pre-commit even if absent (the primary gate).
-                bool exists = fs.exists(path);
-                if (!exists && tier != "pre-commit") continue;
-                std::string content;
-                if (exists) { auto rr = fs.read_file(path); if (rr.ok) content = rr.content; }
-
-                std::string updated = opts.remove_augment ? unaugment_hook(content)
-                                                          : augment_hook(content, tier);
-                if (updated == content) {
+                AugmentResult r = augment_one_target(path, tier, opts.remove_augment, fs);
+                if (r == AugmentResult::WriteFailed) {
+                    std::cerr << "keur hook: failed to write " << path << "\n";
+                    return 1;
+                }
+                if (r == AugmentResult::Skipped) continue;
+                if (r == AugmentResult::Unchanged) {
                     std::cout << "  " << (opts.remove_augment ? "no keur block in " : "already augmented: ")
                               << path << "\n";
                     continue;
                 }
-                if (!fs.write_executable(path, updated)) {
-                    std::cerr << "keur hook: failed to write " << path << "\n";
-                    return 1;
-                }
+                // Written
                 std::cout << "  " << (opts.remove_augment ? "removed keur from " : "augmented ")
                           << path << "\n";
                 ++changed;
