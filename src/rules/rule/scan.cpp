@@ -323,6 +323,11 @@ void walk(const std::string& dir, const std::string& prefix,
          name == "out" || name == "target" || name == "coverage" || name == "__pycache__" ||
          name == "venv" || name == "env" || name == "bin" || name == "obj" || name == "tmp"))
       continue;
+    // keur's OWN gitignored generated data (eval/corpus/ clones + eval/history/
+    // logs) — huge and not code. This is a keur-specific interim skip; the proper
+    // fix (respect .gitignore / move under a dot-dir) is tracked in TODO.md.
+    if (S_ISDIR(st.st_mode) && (rel == "eval/corpus" || rel == "eval/history"))
+      continue;
     if (S_ISDIR(st.st_mode)) walk(full, rel, out);
     else if (S_ISREG(st.st_mode) && st.st_size < 1024 * 1024) out.emplace_back(rel, full);
   }
