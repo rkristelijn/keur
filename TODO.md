@@ -37,9 +37,10 @@ Status legend: [x] done · [~] partially done · [ ] open
 - [ ] extract-duplicates engine (last of cpm's 7 engines; ADR-004 stage 2). Per
       file, extract a capture group via `extract:` regex + `capture:` index and
       flag duplicate captured values (e.g. duplicate test names in one file).
-      Needs fields extract/capture/message and an eval_extract in rule/. Once it
-      lands, scripts/check-basics.sh (an aggregation check) can become a real
-      .rule. cpm ref: adr-166 phase 5.
+      Needs fields extract/capture/message and an eval_extract in rule/. cpm ref:
+      adr-166 phase 5. (NOTE: the file/dir-size aggregation that check-basics.sh
+      did is already ported — max-lines + max-dir-files engines, KEUR-QUAL-005/006;
+      the script is retired. This item is now only the extract-duplicates engine.)
 - [ ] KEUR_HOME should be DERIVED, not a required global env var. Today keur
       hard-reads getenv("KEUR_HOME") in 4 places (util/keur_utils.h rule_dirs,
       cmd/policy.cpp resolve_config, cmd/learn.cpp keur_home, src/rules/main.cpp)
@@ -243,7 +244,8 @@ Status legend: [x] done · [~] partially done · [ ] open
       * little copy-paste; build once in a lib/module, then reuse.
       Status: file-size violations RESOLVED (learn.cpp + rule_engine.cpp split).
       cmd/ folder count resolved by counting logical units (.h+.cpp = 1 unit).
-      check-basics is GREEN. Historical notes:
+      check-basics GREEN and now RETIRED into engines (max-lines/max-dir-files,
+      KEUR-QUAL-005/006). Historical notes:
       * src/keur/cmd/learn.cpp (~411 net lines, 4 responsibilities: JSONL parse +
       resource read + TUI render + orchestration) — SPLIT into
       learn/history.{h,cpp} (parse), learn/sysinfo (resources; also the

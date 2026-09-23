@@ -301,6 +301,33 @@ patterns:
   - regex: file too long
 ```
 
+### `max-dir-files`
+A FILE-LEVEL engine (like `file-absence`/`file-presence`): it runs once over the
+whole fileset, groups matched files by their parent directory, counts logical
+units — a `.h` + `.cpp` with the same stem is ONE unit — and flags a directory
+holding more than `min_count` units. This is a cross-file aggregation, which the
+per-line engines cannot do but the file-level layer can (it sees every file).
+Fires once per over-full directory (the finding's path is the directory).
+
+- `min_count` — the maximum allowed units per directory (default 10).
+- `target.extensions` — which files count (scope it to source dirs).
+- `patterns[0].regex` — unused for matching (the count is structural); keep a
+  short marker regex to carry the `message`.
+
+```yaml
+# no source dir > ~10 logical units — regroup into subdirs (AGENTS.md).
+id: KEUR-QUAL-006
+title: Directory holds more than ~10 logical units
+category: quality
+severity: warning
+engine: max-dir-files
+min_count: 10
+target:
+  extensions: .c .cpp .cc .h .hpp
+patterns:
+  - regex: too many units
+```
+
 ## Facts, `requires:` and composite rules (ADR-009)
 
 Beyond single patterns, a rule can reason about *context* and *combine* other
