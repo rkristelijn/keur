@@ -35,7 +35,7 @@ exactly the **corroboration** model: independent tools agreeing → higher confi
   - IBAN → mod-97 checksum validation
   - NL phone, email
 - Reuses **cpm's shared secret regexes** (sk-, AKIA, ghp_, glpat-, private keys…).
-- APS-specific SENSITIVE patterns (internal hostnames `HQOV-MAN01`, RFC1918 IPs,
+- Organisation-specific SENSITIVE patterns (internal hostnames, RFC1918 IPs,
   internal domains) — **deliberately kept private** ("must NOT live in public cpm").
 - Output contract: one line `PII|SENSITIVE|CLEAN <detail>`, exit 0 always.
 - Precedence: PII > SENSITIVE > CLEAN.
@@ -80,9 +80,9 @@ KEUR is **less "build detectors" and more "encapsulate + normalise + decide"**:
    `pii-sensitive-scan.sh`, optional Presidio.
 2. **Evidence aggregator + corroboration**: when 2+ independent tools agree on a
    fingerprint, raise confidence (secrets: gitleaks+trufflehog; deps: trivy+grype+osv).
-3. **KEUR's own `.rule` engine = gap-filler only** — for domain/APS-specific patterns
-   that no proven tool covers (kept private, like the pii-scan's APS patterns). Never
-   the primary detection layer.
+3. **KEUR's own `.rule` engine = gap-filler only** — for domain/organisation-specific
+   patterns that no proven tool covers (kept private, like the pii-scan's internal
+   patterns). Never the primary detection layer.
 4. **Reuse the redacted-eval harness** from `multi-scan-eval.sh` as the CPM-Eval bridge.
 5. **Reuse the scan.sh JSON+JUnit contract** as KEUR's output layer.
 
@@ -90,7 +90,7 @@ KEUR is **less "build detectors" and more "encapsulate + normalise + decide"**:
 
 Encapsulating (shelling out to) these tools is fine — they run as external
 processes. We ship adapters + config, not their code. `pii-sensitive-scan.sh` and
-the APS patterns are ours (private tooling). Sonar rules: study only, don't clone
+the internal patterns are ours (private tooling). Sonar rules: study only, don't clone
 (SSALv1 for post-2024-11 analyzers).
 
 ## Concrete next step

@@ -130,6 +130,49 @@ ENGINES you may choose (pick the simplest that fits the task):
                     path_capture: '([a-z_]+)/[a-z0-9_]+\.(cpp|h)$'
                     derived_template: 'namespace keur::\1'
                     message: "file must declare namespace keur::<its dir>"
+- max-nesting : flag each FUNCTION whose control-flow nesting depth exceeds
+              min_count (default 3, matching SonarQube S134). No patterns — a
+              string/regex-aware brace lexer counts only braces opened by a
+              control keyword (if/else/for/while/switch/do); struct/lambda/
+              initializer braces do not raise depth. Use a rule-level message.
+              Example:
+                    engine: max-nesting
+                    min_count: 3
+                    target:
+                      extensions: .c .cpp .h .js .ts .go
+                    message: function nests control flow too deeply (>3) — refactor.
+- max-lines : flag a FILE whose NET line count (non-blank lines) exceeds
+              min_count (default 300). No patterns; fires once at line 1. Set
+              skip_comments: true to exclude comment lines from the count. Use a
+              rule-level message. Example:
+                    engine: max-lines
+                    min_count: 300
+                    skip_comments: true
+                    target:
+                      extensions: .c .cpp .h
+                    message: file exceeds 300 net lines — split by responsibility.
+- max-dir-files : FILE-LEVEL — flag a DIRECTORY holding more logical units than
+              min_count (default 10). A header/impl pair (a.h + a.cpp) counts as
+              ONE unit (a source stem). Runs once over the fileset, grouped by
+              parent directory; scope which files count via target extensions/
+              filenames. No patterns — use a rule-level message. Example:
+                    engine: max-dir-files
+                    min_count: 10
+                    target:
+                      extensions: .cpp .h
+                    message: directory holds too many modules — consider a subpackage.
+- extract-duplicates : per file, apply the `extract` regex (with a capture group)
+              to each line, collect the captured value, and flag the SECOND+
+              occurrence of the same value — an in-file duplicate (duplicate test
+              name, route path, heading). `capture: N` picks the group (default 1).
+              `{match}` in the message is replaced with the duplicated value. No
+              patterns block — the regex lives in `extract`. Example:
+                    engine: extract-duplicates
+                    extract: \b(?:it|test)\s*\(\s*["']([^"']+)["']
+                    capture: 1
+                    target:
+                      extensions: .test.js .spec.ts
+                    message: duplicate test name "{match}" in this file.
 - composite : combine OTHER rules with a boolean tree — no patterns of its own.
               Each leaf is a rule id that also runs standalone; the composite runs
               after the normal pass over the ids that fired. Use it for conditional

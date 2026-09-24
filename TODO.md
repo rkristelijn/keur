@@ -155,6 +155,20 @@ Status legend: [x] done · [~] partially done · [ ] open
 - [x] expand the corpus: 19 repos now (added WebGoat, crAPI, OWASPWebGoatPHP,
       Pixi, VyAPI + clean OSS flask/express/gin/requests/sinatra). 2 candidates
       failed to clone (payloadbox/sql-injection-payload-list, OWASP/DVGA).
+- [ ] BUILD OUR OWN vulnerable Next.js corpus repo (no good off-the-shelf one
+      exists, and Next.js is a common, high-value target). A small, self-contained
+      "next-goat": intentionally vulnerable Next.js (App Router) app covering the
+      shapes keur should catch — server actions / route handlers with unsafe
+      input, SSRF via fetch to a user-controlled URL, hardcoded secrets in
+      env/config, `dangerouslySetInnerHTML` XSS, open redirect, missing authz on
+      an API route, and a leaky `.env`/`next.config`. Keep it --depth-1-small
+      (<100MB, well under the corpus cap). Two ways to use it:
+        (a) commit it as its own tiny repo and add its slug to repos.txt, or
+        (b) generate it under eval/corpus/repos/ as a local fixture (no clone).
+      Because the ground truth is source-agnostic, we can either run the proven
+      tools over it OR hand-label the planted issues (we know where we put them)
+      — a rare case where we OWN the ground truth exactly. Pairs well with the
+      TS/Node/GraphQL coverage already in the corpus. (idea 2026-09-23)
 - [x] more ground-truth tool adapters: trivy + checkov added (category `iac`).
       Ground truth now 683 combined findings from 5 tools (semgrep/gitleaks/
       trufflehog/trivy/checkov) across 21 repos. Clean security-scope baseline:

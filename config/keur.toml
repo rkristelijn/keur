@@ -109,9 +109,9 @@ deterministic = true
 default-action = "warn"
 
 # — PII / sensitive data (proven, reused verbatim — NOT reimplemented) —
-# Deterministic: BSN 11-proef, IBAN mod-97, validated email/phone, APS SENSITIVE
-# patterns (internal hostnames, RFC1918, internal domains — kept private).
-# Source: ~/tooling/src/tools/ticket-audit/pii-sensitive-scan.sh
+# Deterministic: BSN 11-proef, IBAN mod-97, validated email/phone, organisation
+# SENSITIVE patterns (internal hostnames, RFC1918, internal domains — kept private).
+# Source: resolved via KEUR_PII_SCAN or PATH (see scanners/pii.sh).
 [scanners.pii]
 bin = "pii-sensitive-scan.sh"
 group = "pii"
@@ -125,7 +125,7 @@ group = "pii"
 base-confidence = 0.75
 role = "evidence"
 
-# — KEUR's own rule engine: GAP-FILLER ONLY (domain/APS patterns no tool covers) —
+# — KEUR's own rule engine: GAP-FILLER ONLY (domain patterns no tool covers) —
 [scanners.keur-rules]
 bin = "keur-rules"              # built-in engine over rules/**/*.rule
 base-confidence = 0.60

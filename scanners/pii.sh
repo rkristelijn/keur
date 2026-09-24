@@ -2,14 +2,13 @@
 # scanners/pii.sh — KEUR adapter over the PROVEN pii-sensitive-scan.sh.
 #
 # We do NOT reimplement PII detection. We encapsulate the existing, production-
-# proven scanner (BSN 11-proef, IBAN mod-97, validated email/phone, APS SENSITIVE
-# patterns) and normalise its verdict into a KEUR Finding (one JSON line/finding).
+# proven scanner (BSN 11-proef, IBAN mod-97, validated email/phone, organisation
+# SENSITIVE patterns) and normalise its verdict into a KEUR Finding (one JSON line/finding).
 #
 # Resolution order for the underlying scanner (first hit wins), all overridable
 # via KEUR_PII_SCAN:
 #   1. $KEUR_PII_SCAN (explicit)
 #   2. pii-sensitive-scan.sh on PATH
-#   3. the known tooling location
 #
 # Usage: scanners/pii.sh <file> [<file> ...]
 # Output: zero or more Finding JSON lines on stdout. No content, no values.
@@ -19,9 +18,6 @@ set -euo pipefail
 resolve_pii_scan() {
   if [[ -n "${KEUR_PII_SCAN:-}" ]] && [[ -x "$KEUR_PII_SCAN" ]]; then echo "$KEUR_PII_SCAN"; return; fi
   if command -v pii-sensitive-scan.sh >/dev/null 2>&1; then command -v pii-sensitive-scan.sh; return; fi
-  # Best-effort known location in the sibling security-tooling repo.
-  local guess="$HOME/git/lab/tech-services/security/security-tooling/src/tools/ticket-audit/pii-sensitive-scan.sh"
-  [[ -x "$guess" ]] && { echo "$guess"; return; }
   echo ""   # not found
 }
 

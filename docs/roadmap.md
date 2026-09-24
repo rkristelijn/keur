@@ -109,7 +109,7 @@ holds up on the held-out evaluation set, and is recorded — reproducibly.
   extract-duplicates → 100% · 🔴
 - **T-404** rule import: point KEUR at the cpm rules dir (or vendor a snapshot);
   map category+severity → gate/advisory + BLOCK/WARN/info per the scope table · 🔴
-- **T-405** private/APS gap-filler rules kept in KEUR only (never public cpm), e.g.
+- **T-405** private/organisation-specific gap-filler rules kept in KEUR only (never public cpm), e.g.
   the internal-hostname patterns from pii-sensitive-scan · 🔴
 - **T-406** feed advisory findings into the AI-input filter (shrink diff → few regions
   worth sending to an LLM) · 🔴
