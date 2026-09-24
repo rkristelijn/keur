@@ -88,7 +88,7 @@ std::vector<std::string> manager_render_text(const ManagerBoard& board) {
     out.emplace_back("");
 
     // Config scopes — reuse the shared per-layer renderer (one renderer, no drift).
-    out.emplace_back("Config scopes (general \u2192 specific):");
+    out.emplace_back("Config scopes (general → specific):");
     for (const auto& l : board.config_layers)
         out.emplace_back(config_layer_line(l));
 
@@ -98,7 +98,7 @@ std::vector<std::string> manager_render_text(const ManagerBoard& board) {
     out.emplace_back("  effective owner : " + config::owner_name(board.hooks.owner) +
                      (board.hooks.effective_path.empty()
                           ? ""
-                          : "  (core.hooksPath \u2192 " + board.hooks.effective_path + ")"));
+                          : "  (core.hooksPath → " + board.hooks.effective_path + ")"));
     for (const auto& m : board.hooks.managers)
         if (m.detected) out.emplace_back("  detected manager: " + m.name);
 
