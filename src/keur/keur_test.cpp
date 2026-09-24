@@ -1345,7 +1345,7 @@ SCENARIO("[feature:rule-engine] path-derived fires when namespace does not match
     std::string base = create_temp_dir();
     // A file in an adapters/ dir declaring the WRONG namespace must fire.
     std::string layer = base + "/adapters";
-    mkdir(layer.c_str(), 0755);
+    mkdir(layer.c_str(), 0700);
     std::string bad = layer + "/thing.cpp";
     write_file(bad, "namespace keur::wrong {\n}\n");
     auto fs = keur::rules_scan_files(rules, {bad});
@@ -1360,7 +1360,7 @@ SCENARIO("[feature:rule-engine] path-derived passes when namespace matches its d
     // A file in a cmd/ dir declaring the derived namespace keur::cmd passes —
     // and this holds for ANY layer name, which is the whole point (dynamic).
     std::string layer = base + "/cmd";
-    mkdir(layer.c_str(), 0755);
+    mkdir(layer.c_str(), 0700);
     std::string good = layer + "/thing.cpp";
     write_file(good, "namespace keur::cmd {\n}\n");
     auto fs = keur::rules_scan_files(rules, {good});
@@ -1375,7 +1375,7 @@ SCENARIO("[feature:rule-engine] path-derived is self-scaling: a brand-new layer 
     // A layer that no rule ever named ("widget") is still checked: matching
     // namespace passes, mismatching fires — proving no per-layer rule edit.
     std::string layer = base + "/widget";
-    mkdir(layer.c_str(), 0755);
+    mkdir(layer.c_str(), 0700);
     std::string ok = layer + "/a.cpp";
     std::string bad = layer + "/b.cpp";
     write_file(ok, "namespace keur::widget {\n}\n");
