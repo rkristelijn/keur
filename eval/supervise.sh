@@ -28,6 +28,8 @@ LOG="$RUN_DIR/supervisor.log"
 STOP="$RUN_DIR/STOP"
 STOP_LOOP="/tmp/stop-keur-eval-loop"   # loop.sh / optimise.sh honour this too
 PHASE_FILE="$RUN_DIR/phase"
+RUN_START="$RUN_DIR/run-start"         # marks THIS run's boundary for progress.sh
+HIST_FILE="$HERE/history/optimiser.jsonl"  # cumulative optimiser history
 
 PHASES="${KEUR_PHASES:-5 25 50 50 50}"
 MAX_RESTARTS="${KEUR_MAX_RESTARTS:-3}"
@@ -45,6 +47,15 @@ supervise_run() {
                                  # a stale /tmp flag otherwise makes every phase
                                  # abort instantly and busy-spins the loop.
     log "supervisor start: phases=[$PHASES] max_restarts=$MAX_RESTARTS pid=$$"
+
+    # Mark THIS run's boundary so progress.sh can separate "this run" from the
+    # cumulative history. Line 1: start epoch. Line 2: iter-count in the history
+    # at start (records after this index belong to this run). Robust against
+    # date-parsing quirks — progress.sh reads the number, not a formatted time.
+    {
+        date +%s
+        wc -l < "$HIST_FILE" 2>/dev/null | tr -d ' ' || echo 0
+    } > "$RUN_START"
     local phase_no=0
 
     # "loop" mode: run indefinitely in fixed-length phases until STOP is set

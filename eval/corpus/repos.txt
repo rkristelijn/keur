@@ -27,6 +27,79 @@ DevSlop/Pixi
 appsecco/VyAPI
 OWASP/Damn-Vulnerable-GraphQL-Application
 
+# --- deliberately vulnerable (recall) — batch 2: broaden stacks (2026-09-23) --
+# 29 vulnerable-by-design repos, verified to exist, chosen to spread recall
+# across languages/stacks the corpus barely covers today (mostly JS). Slugs are
+# the canonical GitHub owner/name (from OWASP VWAD + awesome-vulnerable-apps).
+# Keep --depth 1; KEUR_CORPUS_MAX_MB guards any large outlier.
+
+# PHP / classic web
+raesene/bWAPP
+s4n7h0/xvwa
+webpwnized/mutillidae
+OSTEsayed/OSTE-Vulnerable-Web-Application
+
+# Python
+stamparm/DSVW
+gbleaney/python_security
+
+# Java / JVM
+SasanLabs/VulnerableApp
+blabla1337/skf-labs
+
+# .NET / C#
+Aif4thah/VulnerableLightApp
+srini0x00/dvta
+
+# Node.js
+vegabird/xvna
+snoopysecurity/dvws-node
+
+# API-focused (REST / GraphQL)
+erev0s/VAmPI
+theowni/Damn-Vulnerable-RESTaurant-API-Game
+dolevf/Damn-Vulnerable-GraphQL-Application
+
+# Mobile (Android / Kotlin)
+t0thkr1s/allsafe-android
+optiv/InsecureShop
+satishpatnayak/AndroGoat
+B3nac/InjuredAndroid
+dineshshetty/Android-InsecureBankv2
+
+# Secrets (secret-scanning recall)
+Plazmaz/leaky-repo
+OWASP/wrongsecrets
+
+# IaC / Cloud (Terraform, CloudFormation, CDK, AWS/Azure)
+bridgecrewio/terragoat
+bridgecrewio/cfngoat
+bridgecrewio/cdkgoat
+ine-labs/AWSGoat
+ine-labs/AzureGoat
+
+# CI/CD & Kubernetes
+step-security/github-actions-goat
+cider-security-research/cicd-goat
+
+# --- deliberately vulnerable (recall) — batch 3: broaden stacks (2026-09-23) --
+# More stacks the corpus barely covers: WordPress/PHP, Terraform/IaC, secrets.
+# All slugs verified to exist. Keep --depth 1; KEUR_CORPUS_MAX_MB guards outliers.
+
+# WordPress (wp-config + plugin surface)
+vavkamil/dvwp
+ChoiSG/vwp
+david-prv/vulnerable-wordpress-plugins
+
+# Terraform / IaC — misconfig-rich
+tenable/terrascan
+futurice/terraform-examples
+
+# Secrets (secret-scanning recall; repos with .env / config secrets)
+Plazmaz/leaky-repo
+digininja/leakyrepo
+trufflesecurity/test_keys
+
 # --- realistic clean OSS (precision) — candidates to add ---------------------
 # Popular, well-maintained projects with FEW real issues. These measure whether
 # keur stays quiet on ordinary code (false-positive control). Keep --depth 1;
