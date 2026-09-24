@@ -279,8 +279,8 @@ int hook(const HookOptions& opts, const HookDeps& deps) {
             // so we report who EFFECTIVELY owns hooks here — not a misleading
             // "global installed" when e.g. Husky's local hooksPath shadows it.
             config::HookProbe probe;
-            probe.git_config = [&](const std::string& a) { return git.run(a); };
-            probe.exists = [&](const std::string& p) { return fs.exists(p); };
+            probe.git_config = [&git](const std::string& a) { return git.run(a); };
+            probe.exists = [&fs](const std::string& p) { return fs.exists(p); };
             probe.repo_root = git.run("rev-parse --show-toplevel");
             config::HookSituation hs = config::detect_hook_situation(probe);
             std::cout << "Effective hooks owner : " << config::owner_name(hs.owner);
@@ -321,8 +321,8 @@ int hook(const HookOptions& opts, const HookDeps& deps) {
             }
             // Detect which manager owns hooks here, to pick the file to edit.
             config::HookProbe probe;
-            probe.git_config = [&](const std::string& a) { return git.run(a); };
-            probe.exists = [&](const std::string& p) { return fs.exists(p); };
+            probe.git_config = [&git](const std::string& a) { return git.run(a); };
+            probe.exists = [&fs](const std::string& p) { return fs.exists(p); };
             probe.repo_root = root;
             config::HookSituation hs = config::detect_hook_situation(probe);
 

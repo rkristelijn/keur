@@ -83,7 +83,7 @@ int config(const ConfigOptions& opts, const ConfigDeps& deps) {
     std::string repo_root = deps.git.run("rev-parse --show-toplevel");
     config::ScopeEnv env = config::capture_scope_env(opts.config, repo_root);
     auto layers = config::resolve_layers(
-        env, [&](const std::string& p) { return deps.fs.exists(p); });
+        env, [&deps](const std::string& p) { return deps.fs.exists(p); });
 
     if (opts.json) {
         std::cout << config_render_json(layers) << "\n";
