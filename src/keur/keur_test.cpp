@@ -206,6 +206,30 @@ SCENARIO("[feature:policy] resolve_config returns hint unchanged") {
     CHECK(keur::cmd::resolve_config("/tmp/explicit.toml") == "/tmp/explicit.toml");
 }
 
+SCENARIO("[feature:policy] find_config_upward finds keur.toml in the same dir") {
+    std::string tmp = create_temp_dir();
+    REQUIRE(!tmp.empty());
+    write_file(tmp + "/keur.toml", "block-at = 0.95\n");
+    CHECK(keur::cmd::find_config_upward(tmp) == tmp + "/keur.toml");
+}
+
+SCENARIO("[feature:policy] find_config_upward walks up from a subdir") {
+    // Write the config in a fresh temp dir, then search from an existing SUBDIR
+    // reference (the dir itself via a trailing '/.') so no new directories are
+    // created — keeps the test cross-platform (no POSIX-only mkdir).
+    std::string tmp = create_temp_dir();
+    REQUIRE(!tmp.empty());
+    write_file(tmp + "/keur.toml", "block-at = 1.01\n");
+    CHECK(keur::cmd::find_config_upward(tmp + "/.") == tmp + "/keur.toml");
+}
+
+SCENARIO("[feature:policy] find_config_upward returns empty when none exists") {
+    std::string tmp = create_temp_dir();
+    REQUIRE(!tmp.empty());
+    // no keur.toml written anywhere under this fresh tmp tree
+    CHECK(keur::cmd::find_config_upward(tmp).empty());
+}
+
 SCENARIO("[feature:policy] resolve_config falls back to XDG path") {
     auto r = keur::cmd::resolve_config("");
     CHECK(r.find("keur/keur.toml") != std::string::npos);
@@ -251,6 +275,30 @@ SCENARIO("[feature:check] policy_evaluate — rule block → Block") {
 SCENARIO("[feature:check] policy_evaluate — secret block → Block") {
     keur::cmd::PolicyInput in{}; in.has_secret_block = true;
     CHECK(keur::cmd::policy_evaluate(in) == keur::cmd::Verdict::Block);
+}
+
+SCENARIO("[feature:check] finding_blocks — block action at/above threshold blocks") {
+    // action=block, confidence 0.9, block-at 0.85 → blocks
+    CHECK(keur::cmd::finding_blocks("block", "0.9", 0.85));
+    CHECK(keur::cmd::finding_blocks("block", "0.85", 0.85));  // == threshold
+}
+
+SCENARIO("[feature:check] finding_blocks — below threshold does not block") {
+    // action=block but confidence under block-at → does NOT block (WARN)
+    CHECK_FALSE(keur::cmd::finding_blocks("block", "0.90", 1.01));  // unreachable threshold
+    CHECK_FALSE(keur::cmd::finding_blocks("block", "0.5", 0.85));
+}
+
+SCENARIO("[feature:check] finding_blocks — non-block action never blocks") {
+    CHECK_FALSE(keur::cmd::finding_blocks("warn", "0.99", 0.5));
+    CHECK_FALSE(keur::cmd::finding_blocks("advisory", "1.0", 0.5));
+}
+
+SCENARIO("[feature:check] finding_blocks — malformed confidence is treated as blocking") {
+    // A block-action rule with an unparseable confidence must fail safe (block),
+    // not silently pass the gate.
+    CHECK(keur::cmd::finding_blocks("block", "", 0.85));
+    CHECK(keur::cmd::finding_blocks("block", "notanumber", 0.85));
 }
 
 SCENARIO("[feature:check] cmd_check_parse defaults") {

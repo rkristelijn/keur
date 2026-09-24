@@ -11,7 +11,7 @@ action: block
 target:
   extensions: .js .php .rb .py .ts .go .java
 patterns:
-  - regex: (?i)\b(?:execute|query|prepare)\s*\(\s*["'][^"']*\bselect\b[^"']*["']\s*[%+.]
+  - regex: (?i)\b(?:execute|query|prepare)\s*\(\s*(?:"[^"]*\bselect\b[^"]*"|'[^']*\bselect\b[^']*')\s*[%+.]
     message: A SQL query sink is called with a SELECT string that is then combined with other values (%, +, ., format args) — potential SQL injection (CWE-89). Use parameterised queries / prepared statements with bound parameters.
 confidence: 0.8
 fix: Use parameterised queries or an ORM with bound parameters; never concatenate untrusted input into SQL.

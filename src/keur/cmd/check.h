@@ -61,6 +61,15 @@ CheckOptions check_parse(const std::vector<std::string>& args);
  */
 Verdict policy_evaluate(const PolicyInput& input);
 
+/**
+ * Pure threshold test: does one finding block the commit?
+ * A finding blocks only when its action is "block" AND its confidence is at or
+ * above block_at. A malformed/empty confidence fails safe (treated as blocking).
+ * This is what makes block-at in keur.toml actually govern the gate.
+ */
+bool finding_blocks(const std::string& action, const std::string& confidence,
+                    double block_at);
+
 // ---------------------------------------------------------------------------
 // I/O boundary (injectable for tests)
 // ---------------------------------------------------------------------------
