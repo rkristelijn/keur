@@ -50,3 +50,6 @@ eval/composite-candidates/*.rule
 !eval/composite-candidates/README.md
 eval/corpus/split.txt
 eval/.awssec.tmp
+
+# local agent coordination channel (not project history)
+.agent-mailbox/
