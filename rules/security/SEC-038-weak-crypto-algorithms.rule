@@ -5,7 +5,10 @@ category: security
 severity: error
 engine: pattern
 skip_comments: true
-skip_strings: true
+# NOTE: skip_strings must stay OFF here. These patterns match the algorithm
+# name inside a string literal (createHash('md5'), getInstance("MD5")), so
+# stripping strings would blank the very payload they detect. skip_comments
+# alone keeps a "md5" mention in a comment from firing.
 target:
   extensions: .ts .js .py .java .go .cpp .h .rb .cs .php
   exclude_paths: test/ node_modules/ vendor/ _test.go

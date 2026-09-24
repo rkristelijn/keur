@@ -40,6 +40,20 @@ Verdict policy_evaluate(const PolicyInput& input) {
     return Verdict::Pass;
 }
 
+// Pure threshold test — a block-action finding only blocks when its confidence
+// reaches block_at. Malformed/empty confidence fails safe (blocks). This is how
+// block-at in keur.toml governs the gate; a repo can raise block-at above 1.0
+// to make keur report-only (everything degrades to WARN).
+bool finding_blocks(const std::string& action, const std::string& confidence,
+                    double block_at) {
+    if (action != "block") return false;
+    try {
+        return std::stod(confidence) >= block_at;
+    } catch (const std::exception&) {
+        return true;  // fail safe: a blocking rule with a bad confidence blocks
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Arg parser
 // ---------------------------------------------------------------------------
@@ -81,13 +95,19 @@ int check(const CheckOptions& opts, FileSource file_src) {
     // 2. Load the active rule set (resolved dirs minus the disable-list).
     std::vector<Rule> rules = keur::config::load_active_rules();
 
+    // Resolve the policy thresholds (repo-local keur.toml wins over global).
+    // block-at decides whether a blocking finding actually blocks; a repo can
+    // set block-at above 1.0 to make keur report-only.
+    auto policy = policy_load(resolve_config(opts.config));
+
     // 3. Scan in-process
     PolicyInput input{};
     if (!rules.empty()) {
         auto findings = rules_scan_files(rules, files);
         for (auto& f : findings) {
             input.has_any_finding = true;
-            if (f.action == "block") input.has_rule_block = true;
+            if (finding_blocks(f.action, f.confidence, policy.block_at))
+                input.has_rule_block = true;
         }
     }
 
