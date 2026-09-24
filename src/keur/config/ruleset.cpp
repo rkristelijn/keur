@@ -39,8 +39,8 @@ std::vector<Rule> load_active_rules(std::set<std::string>* out_disabled) {
     adapters::Fs fs{};
     std::string repo_root = git.run("rev-parse --show-toplevel");
     ScopeEnv env = capture_scope_env("", repo_root);
-    auto layers = resolve_layers(env, [&](const std::string& p) { return fs.exists(p); });
-    auto disabled = resolve_disabled(layers, [&](const std::string& p) {
+    auto layers = resolve_layers(env, [&fs](const std::string& p) { return fs.exists(p); });
+    auto disabled = resolve_disabled(layers, [&fs](const std::string& p) {
         auto rr = fs.read_file(p);
         return rr.ok ? rr.content : std::string();
     });
