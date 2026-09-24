@@ -33,10 +33,10 @@ std::string indent_for(int depth) {
 std::string glyph(const Node& n) {
     if (n.kind == NodeKind::SettingNode) return " ";
     if (n.kind == NodeKind::RuleNode || n.kind == NodeKind::ScannerNode) {
-        if (n.read_only) return n.enabled ? "\u2022" : "\u25e6";  // • / ◦
-        return n.enabled ? "\u2713" : "\u2610";  // ✓ (done) / ☐ (todo)
+        if (n.read_only) return n.enabled ? "•" : "◦";  // • / ◦
+        return n.enabled ? "✓" : "☐";  // ✓ (done) / ☐ (todo)
     }
-    return n.expanded ? "\u25bc" : "\u25b6";  // ▼ / ▶ (expand state)
+    return n.expanded ? "▼" : "▶";  // ▼ / ▶ (expand state)
 }
 
 // Editable-group checkbox reflecting how many of its rules are on:
@@ -49,9 +49,9 @@ std::string group_checkbox(const Node& n) {
     if (n.read_only) return "";
     GroupCount gc = group_count(n);
     if (gc.total == 0) return "";
-    if (gc.enabled == 0)        return " \u2610";  // ☐ all off
-    if (gc.enabled == gc.total) return " \u2713";  // ✓ all on
-    return " \u25e6";  // ◦ partial (some on)
+    if (gc.enabled == 0)        return " ☐";  // ☐ all off
+    if (gc.enabled == gc.total) return " ✓";  // ✓ all on
+    return " ◦";  // ◦ partial (some on)
 }
 
 }  // namespace
@@ -64,17 +64,17 @@ std::string render_row(const Row& row) {
     // A group flagged with a problem (e.g. Hooks shadowed) shows the ⚠ marker
     // after its expand arrow so the title itself signals the issue.
     if (n.kind == NodeKind::CategoryNode && n.warn)
-        s = indent_for(n.depth) + glyph(n) + " \u26a0 " + n.label;
+        s = indent_for(n.depth) + glyph(n) + " ⚠ " + n.label;
     if (n.kind == NodeKind::ActionNode) {
         // An interactive action: ☐ + label (Space runs it). Shown at leaf depth.
-        s = indent_for(n.depth) + "\u2610 " + n.label;
+        s = indent_for(n.depth) + "☐ " + n.label;
     } else if (n.kind == NodeKind::SettingNode) {
-        if (n.warn) s = indent_for(n.depth) + "\u26a0 " + n.label;  // ⚠ prefix for problems
+        if (n.warn) s = indent_for(n.depth) + "⚠ " + n.label;  // ⚠ prefix for problems
         if (!n.detail.empty()) s += " = " + n.detail;
     } else if (n.kind == NodeKind::ScannerNode) {
         if (!n.detail.empty()) s += "  " + n.detail;                 // group (secrets/sast/…)
-        if (n.on_path)          s += "   on PATH \u2713";            // installed ✓
-        else if (!n.hint.empty()) s += "   NOT installed \u2014 " + n.hint;  // install hint
+        if (n.on_path)          s += "   on PATH ✓";            // installed ✓
+        else if (!n.hint.empty()) s += "   NOT installed — " + n.hint;  // install hint
         else                     s += "   NOT installed";
         if (n.inherited)         s += "   (overruled by repo)";
         else if (!n.enabled)     s += "   (disabled)";
@@ -109,9 +109,9 @@ std::vector<std::string> render(const Model& m, const ViewOpts& opts) {
     // Header (3 lines): title + tagline + separator. The tagline makes a
     // screenshot self-explanatory — you see what keur manager does at a glance.
     std::string title = "keur manager";
-    if (!opts.version.empty()) title += " \u00b7 v" + opts.version;  // keur manager · vX.Y.Z
+    if (!opts.version.empty()) title += " · v" + opts.version;  // keur manager · vX.Y.Z
     std::string hdr = title;
-    if (m.dirty) hdr += "  \u2022 unsaved changes";
+    if (m.dirty) hdr += "  • unsaved changes";
     out.push_back(render::truncate_to(hdr, width));
     {
         // Tagline + current grouping order, so a screenshot shows both what the
@@ -147,7 +147,7 @@ std::vector<std::string> render(const Model& m, const ViewOpts& opts) {
         const bool focused_row = (i == cursor);
 
         if (!opts.color) {
-            line = (focused_row ? "\u276f " : "  ") + text;  // ❯ marker, no SGR
+            line = (focused_row ? "❯ " : "  ") + text;  // ❯ marker, no SGR
         } else {
             std::string body = text;
             if (n.kind == NodeKind::ScopeNode) {
@@ -169,7 +169,7 @@ std::vector<std::string> render(const Model& m, const ViewOpts& opts) {
             else if (group_all_off(n))
                 body = std::string(kDim) + text + kReset;   // whole group off: greyed
             if (focused_row)
-                line = std::string(kReverse) + "\u276f " + body + kReset;
+                line = std::string(kReverse) + "❯ " + body + kReset;
             else
                 line = "  " + body;
         }
@@ -180,7 +180,7 @@ std::vector<std::string> render(const Model& m, const ViewOpts& opts) {
     for (int i = end - start; i < body_h; ++i) out.push_back("");
 
     // Footer: keybinding hint.
-    std::string foot = "\u2191\u2193/jk move  \u2190\u2192/hl fold  "
+    std::string foot = "↑↓/jk move  ←→/hl fold  "
                        "Space toggle  o reorder  s save  q quit  ? help";
     if (opts.color) foot = std::string(kDim) + foot + kReset;
     out.push_back(foot);
