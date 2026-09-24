@@ -24,8 +24,8 @@ namespace {
 // Emit one finding for rule r at (rel, line) with the given message.
 void emit(const Rule& r, const std::string& rel, int line,
           const std::string& msg, std::vector<RuleFinding>& out) {
-  out.push_back({r.id, r.title, r.category, r.severity, default_action(r),
-                 default_conf(r), rel, line, msg});
+  out.emplace_back(r.id, r.title, r.category, r.severity, default_action(r),
+                 default_conf(r), rel, line, msg);
 }
 
 // pattern: flag EACH line matching a pattern; pattern-not (exclude) suppresses

@@ -67,7 +67,7 @@ HookSituation detect_hook_situation(const HookProbe& probe) {
                               ? std::string(km.signature)
                               : platform::path_join(probe.repo_root, km.signature);
         bool present = probe.exists(sig);
-        s.managers.push_back({km.name, km.signature, km.kind, present});
+        s.managers.emplace_back(km.name, km.signature, km.kind, present);
     }
 
     // Decide the effective owner. A repo-local core.hooksPath pointing into a
