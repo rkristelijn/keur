@@ -49,15 +49,15 @@ void eval_file_level_rules(
       std::string expected = rule->target.filenames.empty()
           ? (rule->target.extensions.empty() ? "matching file" : rule->target.extensions[0])
           : rule->target.filenames[0];
-      findings.push_back({rule->id, rule->title, rule->category, rule->severity,
-                          default_action(*rule), default_conf(*rule), expected, 0, finding_msg(*rule, "")});
+      findings.emplace_back(rule->id, rule->title, rule->category, rule->severity,
+                          default_action(*rule), default_conf(*rule), expected, 0, finding_msg(*rule, ""));
     }
   }
   for (const auto* rule : presence_rules)
     for (const auto& [rel, abs] : files)
       if (rule_matches_file(*rule, rel))
-        findings.push_back({rule->id, rule->title, rule->category, rule->severity,
-                            default_action(*rule), default_conf(*rule), rel, 0, finding_msg(*rule, "")});
+        findings.emplace_back(rule->id, rule->title, rule->category, rule->severity,
+                            default_action(*rule), default_conf(*rule), rel, 0, finding_msg(*rule, ""));
 }
 
 // max-dir-files: FILE-LEVEL engine — flag a directory holding more logical units
@@ -91,10 +91,10 @@ void eval_max_dir_files(const std::vector<const Rule*>& rules,
     }
     for (const auto& [dir, stems] : units)
       if (static_cast<int>(stems.size()) > limit)
-        findings.push_back({rule->id, rule->title, rule->category, rule->severity,
+        findings.emplace_back(rule->id, rule->title, rule->category, rule->severity,
                             default_action(*rule), default_conf(*rule), dir, 0,
                             finding_msg(*rule, rule->patterns.empty() ? std::string()
-                                                                      : rule->patterns[0].message)});
+                                                                      : rule->patterns[0].message));
   }
 }
 
@@ -290,10 +290,10 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
       if (!requires_satisfied(r, facts)) continue;
       if (!r.has_composite) continue;
       if (composite_eval(r.composite, fired)) {
-        findings.push_back({r.id, r.title, r.category, r.severity,
+        findings.emplace_back(r.id, r.title, r.category, r.severity,
                             default_action(r), default_conf(r),
                             r.target.filenames.empty() ? std::string(".") : r.target.filenames[0],
-                            0, finding_msg(r, "")});
+                            0, finding_msg(r, ""));
       }
     }
   }

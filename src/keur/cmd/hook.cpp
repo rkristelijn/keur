@@ -348,19 +348,19 @@ int hook(const HookOptions& opts, const HookDeps& deps) {
 
             std::vector<std::pair<std::string, std::string>> targets;  // {path, tier}
             if (husky) {
-                targets.push_back({platform::path_join(platform::path_join(root, ".husky"), "pre-commit"), "pre-commit"});
-                targets.push_back({platform::path_join(platform::path_join(root, ".husky"), "pre-push"), "pre-push"});
+                targets.emplace_back(platform::path_join(platform::path_join(root, ".husky"), "pre-commit"), "pre-commit");
+                targets.emplace_back(platform::path_join(platform::path_join(root, ".husky"), "pre-push"), "pre-push");
             } else if (githooks) {
                 // Raw .githooks/ convention (a tracked hooks dir set via
                 // core.hooksPath). Augment its hook files directly.
                 std::string gh = platform::path_join(root, ".githooks");
-                targets.push_back({platform::path_join(gh, "pre-commit"), "pre-commit"});
-                targets.push_back({platform::path_join(gh, "pre-push"), "pre-push"});
+                targets.emplace_back(platform::path_join(gh, "pre-commit"), "pre-commit");
+                targets.emplace_back(platform::path_join(gh, "pre-push"), "pre-push");
             } else {
                 std::string dir = repo_hooks_dir(git);
                 if (dir.empty()) { std::cerr << "keur hook: cannot resolve hooks dir\n"; return 1; }
-                targets.push_back({platform::path_join(dir, "pre-commit"), "pre-commit"});
-                targets.push_back({platform::path_join(dir, "pre-push"), "pre-push"});
+                targets.emplace_back(platform::path_join(dir, "pre-commit"), "pre-commit");
+                targets.emplace_back(platform::path_join(dir, "pre-push"), "pre-push");
             }
 
             int changed = 0;

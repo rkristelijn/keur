@@ -57,7 +57,7 @@ bool composite_eval(const CompositeNode& node,
                     const std::unordered_set<std::string>& fired_ids) {
   switch (node.kind) {
     case CompositeNode::Ref:
-      return fired_ids.count(node.ref) > 0;
+      return fired_ids.contains(node.ref);
     case CompositeNode::All:
       for (const auto& c : node.children)
         if (!composite_eval(c, fired_ids)) return false;

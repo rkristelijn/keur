@@ -81,9 +81,9 @@ void eval_block_absence(const Rule& rule,
     if (opened && trigger_found && !inner_found) {
       std::string msg = finding_msg(
           rule, rule.patterns.empty() ? std::string() : rule.patterns[0].message);
-      findings.push_back({rule.id, rule.title, rule.category, rule.severity,
+      findings.emplace_back(rule.id, rule.title, rule.category, rule.severity,
                           default_action(rule), default_conf(rule), rel,
-                          static_cast<int>(li + 1), msg});
+                          static_cast<int>(li + 1), msg);
     }
     li = end;  // resume after this block (no stacked/nested reports)
   }
@@ -166,9 +166,9 @@ void eval_max_nesting(const Rule& rule, int limit,
           if (control_depth > limit && !reported) {
             std::string msg = finding_msg(
                 rule, rule.patterns.empty() ? std::string() : rule.patterns[0].message);
-            findings.push_back({rule.id, rule.title, rule.category, rule.severity,
+            findings.emplace_back(rule.id, rule.title, rule.category, rule.severity,
                                 default_action(rule), default_conf(rule), rel,
-                                (int)(j + 1), msg});
+                                (int)(j + 1), msg);
             reported = true;
           }
         }

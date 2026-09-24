@@ -69,7 +69,7 @@ std::vector<RuleCategoryCount> count_rules_by_category(int& total_out) {
     for (const auto& [cat, ids] : ids_by_cat) {
         int n = 0;
         for (auto it = ids.begin(); it != ids.end(); ++it) ++n;  // count as int (no size_t truncation, ADR-006)
-        out.push_back({cat, n});
+        out.emplace_back(cat, n);
         total += n;
     }
     total_out = total;
@@ -187,7 +187,7 @@ std::vector<manager::RuleItem> rule_items_for_scope(
     const auto& cat = manager::catalog();
     items.reserve(cat.size());
     for (const auto& e : cat) {
-        bool inherited = governing.count(e.id) > 0;
+        bool inherited = governing.contains(e.id);
         manager::RuleItem it;
         it.category = e.category;
         it.subcategory = e.subcategory;
@@ -243,7 +243,7 @@ std::vector<manager::ScannerItem> scanner_items_for_scope(
         it.enabled = enabled;
         it.on_path = sc.on_path;
         it.install_hint = sc.on_path ? "" : config::install_hint(sc.name);
-        it.inherited = governing_off.count(sc.name) > 0;
+        it.inherited = governing_off.contains(sc.name);
         items.push_back(std::move(it));
     }
     return items;
@@ -259,8 +259,8 @@ std::vector<manager::HookInfoItem> hook_info_for_scope(
     std::vector<manager::HookInfoItem> out;
     if (scope == manager::Scope::Global) {
         // The machine baseline: is a global core.hooksPath set to keur's dir?
-        out.push_back({"global hooksPath",
-                       hs.global_hooks_path.empty() ? "(unset)" : hs.global_hooks_path});
+        out.emplace_back("global hooksPath",
+                       hs.global_hooks_path.empty() ? "(unset)" : hs.global_hooks_path);
         return out;
     }
     // Repo scope: the live situation, including whether a manager shadows keur.
@@ -281,33 +281,33 @@ std::vector<manager::HookInfoItem> hook_info_for_scope(
     bool chained = false;
     if (!target.empty()) { auto rr = fs.read_file(target); chained = rr.ok && keur::cmd::is_augmented(rr.content); }
 
-    out.push_back({"effective owner", owner});
+    out.emplace_back("effective owner", owner);
     // "keur global" is a warning ONLY when keur does not run here at all
     // (shadowed AND not chained). Shadowed-but-chained is fine — keur runs.
     if (shadowed && chained)
-        out.push_back({"keur global", "shadowed by " + owner + ", but keur is chained (runs)", /*warn=*/false});
+        out.emplace_back("keur global", "shadowed by " + owner + ", but keur is chained (runs)", /*warn=*/false);
     else if (shadowed)
-        out.push_back({"keur global", "shadowed by " + owner + " (repo-local core.hooksPath)", /*warn=*/true});
+        out.emplace_back("keur global", "shadowed by " + owner + " (repo-local core.hooksPath)", /*warn=*/true);
     else if (!hs.global_hooks_path.empty())
-        out.push_back({"keur global", "effective", false});
+        out.emplace_back("keur global", "effective", false);
     else
-        out.push_back({"keur global", "not installed", /*warn=*/true});
+        out.emplace_back("keur global", "not installed", /*warn=*/true);
     // Detected coexisting tools, labelled manager (owns hooks) vs runner (runs
     // inside a hook — not an owner).
     for (const auto& m : hs.managers)
         if (m.detected) {
             const char* kind = (m.kind == config::HookKind::Runner) ? "runner" : "manager";
-            out.push_back({std::string(kind) + " detected", m.name, false});
+            out.emplace_back(std::string(kind) + " detected", m.name, false);
         }
     // Chained state + the interactive fix/restore action.
     if (!target.empty()) {
-        out.push_back({"keur chained", chained ? "yes (keur hook --augment)"
+        out.emplace_back("keur chained", chained ? "yes (keur hook --augment)"
                                                 : "no  (run: keur hook --augment)",
-                       /*warn=*/(!chained && shadowed), /*action=*/""});
+                       /*warn=*/(!chained && shadowed), /*action=*/"");
         if (chained)
-            out.push_back({"restore " + owner + " (remove keur)", "", false, "unaugment"});
+            out.emplace_back("restore " + owner + " (remove keur)", "", false, "unaugment");
         else if (shadowed)
-            out.push_back({"fix this with keur hook --augment", "", false, "augment"});
+            out.emplace_back("fix this with keur hook --augment", "", false, "augment");
     }
     return out;
 }
@@ -384,7 +384,7 @@ int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps) {
             std::string v = sc.group;
             if (!sc.default_action.empty()) v += (v.empty() ? "" : " ") + sc.default_action;
             if (!sc.enabled) v += " (disabled)";
-            defaults.settings.push_back({"Scanners", sc.name, v});
+            defaults.settings.emplace_back("Scanners", sc.name, v);
         }
         // A couple of headline policy values, parsed leniently from the body.
         auto policy_val = [&](const std::string& key) -> std::string {
@@ -401,7 +401,7 @@ int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps) {
         };
         for (const char* k : {"block-at", "warn-at"}) {
             std::string v = policy_val(k);
-            if (!v.empty()) defaults.settings.push_back({"Policy", k, v});
+            if (!v.empty()) defaults.settings.emplace_back("Policy", k, v);
         }
         // Catalogue baseline: the full set, all enabled.
         defaults.catalog = rule_items_for_scope({});

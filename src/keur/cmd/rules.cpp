@@ -321,7 +321,7 @@ int rules(const RulesOptions& opts) {
         const char* mark = wins ? "✓" : "·";   // · = shadowed by a stronger layer
         if (!wins) ++shadowed;
         if (opts.winners_only && !wins) continue;
-        const bool is_off = disabled.count(r->id) > 0;
+        const bool is_off = disabled.contains(r->id);
         std::cout << "    " << (is_off ? "✗" : mark) << " " << r->id;
         if (!r->severity.empty()) std::cout << "  [" << r->severity << "]";
         if (!r->title.empty())    std::cout << "  " << r->title;
