@@ -229,7 +229,7 @@ std::vector<manager::ScannerItem> scanner_items_for_scope(
     auto overrides = config::parse_scanners(scope_body);
     config::ScannerProbe probe;
     probe.tool_on_path = [](const std::string& t) { return keur::platform::tool_on_path(t); };
-    probe.exists = [&](const std::string& p) { return fs.exists(p); };
+    probe.exists = [&fs](const std::string& p) { return fs.exists(p); };
     probe.repo_root = repo_root;
     auto resolved = config::resolve_scanners(declared, probe);
 
@@ -426,8 +426,8 @@ int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps) {
     // Hooks info per scope: detect the live hook situation (which manager owns
     // hooks, is keur shadowed, is keur chained) so the tree shows it read-only.
     config::HookProbe hp;
-    hp.git_config = [&](const std::string& a) { return deps.git.run(a); };
-    hp.exists = [&](const std::string& p) { return deps.fs.exists(p); };
+    hp.git_config = [&deps](const std::string& a) { return deps.git.run(a); };
+    hp.exists = [&deps](const std::string& p) { return deps.fs.exists(p); };
     hp.repo_root = repo_root;
     config::HookSituation hs = config::detect_hook_situation(hp);
     auto global_hooks = hook_info_for_scope(manager::Scope::Global, hs, repo_root, deps.fs);
@@ -612,12 +612,12 @@ int manager(const ManagerOptions& opts, const ManagerDeps& deps) {
     // Config scopes.
     config::ScopeEnv env = config::capture_scope_env(opts.config, repo_root);
     board.config_layers = config::resolve_layers(
-        env, [&](const std::string& p) { return deps.fs.exists(p); });
+        env, [&deps](const std::string& p) { return deps.fs.exists(p); });
 
     // Hook situation (+ coexisting managers).
     config::HookProbe hp;
-    hp.git_config = [&](const std::string& a) { return deps.git.run(a); };
-    hp.exists = [&](const std::string& p) { return deps.fs.exists(p); };
+    hp.git_config = [&deps](const std::string& a) { return deps.git.run(a); };
+    hp.exists = [&deps](const std::string& p) { return deps.fs.exists(p); };
     hp.repo_root = repo_root;
     board.hooks = config::detect_hook_situation(hp);
 
