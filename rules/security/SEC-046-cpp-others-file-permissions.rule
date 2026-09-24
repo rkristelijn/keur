@@ -1,0 +1,19 @@
+id: SEC-046
+title: World/other-accessible file permissions in a C/C++ mode argument (CWE-732)
+category: security
+severity: warning
+engine: pattern
+# Gap-filler for SEC-034: that rule only covers scripting languages (.py/.js/…)
+# and only the 777/666 literals. SonarCloud S2612 (cert/cwe) also flags any octal
+# mode whose "others" nibble is non-zero (e.g. mkdir(p, 0755)), including in test
+# code. We mirror that here for C/C++ so keur catches it before Sonar does.
+target:
+  extensions: .c .cpp .cc .cxx .h .hpp .hh
+  exclude_paths: vendor/ build/ dist/ .git/
+patterns:
+  # mkdir()/chmod() with a 3- or 4-digit octal mode whose LAST digit (the
+  # "others" bits) is non-zero — others get read/write/exec. 0700/0750/0640 pass.
+  - regex: \b(?:mkdir|chmod)\s*\([^,)]+,\s*0[0-7]?[0-7][1-7]\b
+    message: "File-mode grants permissions to 'others' (non-zero others nibble, e.g. 0755) via mkdir()/chmod() — any local user can access the path (CWE-732). Drop the others bits: use 0700 for private dirs, 0600 for private files."
+confidence: 0.7
+fix: "Use owner-only permissions (0700 for directories, 0600 for files). Only widen to group/others when a concrete requirement exists, and never grant 'others' write."
