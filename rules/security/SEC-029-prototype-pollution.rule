@@ -1,4 +1,5 @@
 id: SEC-029
+maturity: 2
 source: cpm
 title: JavaScript prototype pollution (CVE-2019-10744 lodash)
 category: security

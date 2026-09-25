@@ -1,4 +1,5 @@
 id: SCA-069
+maturity: 2
 source: cpm
 title: Reverse shell pattern detected
 category: supply-chain

@@ -1,4 +1,5 @@
 id: SCA-061
+maturity: 2
 source: cpm
 title: GitHub Actions production environment reference
 category: supply-chain

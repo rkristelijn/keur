@@ -18,6 +18,7 @@
 #
 # @see SonarCloud cpp:S6019.
 id: KEUR-QUAL-009
+maturity: 5
 title: Use emplace_back to construct in place instead of push_back(temporary)
 category: quality
 severity: warning

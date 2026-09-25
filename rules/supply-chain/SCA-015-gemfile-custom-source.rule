@@ -1,4 +1,5 @@
 id: SCA-015
+maturity: 2
 source: cpm
 title: Gemfile source pointing to non-rubygems registry
 category: supply-chain

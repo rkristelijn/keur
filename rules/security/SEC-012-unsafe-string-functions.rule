@@ -1,4 +1,5 @@
 id: SEC-012
+maturity: 2
 source: cpm
 title: Unsafe C string functions
 category: security

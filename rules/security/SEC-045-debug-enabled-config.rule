@@ -1,4 +1,5 @@
 id: SEC-045
+maturity: 2
 source: cpm
 title: Debug mode enabled in configuration
 category: security

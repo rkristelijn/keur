@@ -1,4 +1,5 @@
 id: SEC-017
+maturity: 2
 source: cpm
 title: Broken Object Level Authorization (OWASP API1:2023)
 category: security

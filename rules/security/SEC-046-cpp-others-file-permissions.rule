@@ -1,4 +1,5 @@
 id: SEC-046
+maturity: 2
 title: World/other-accessible file permissions in a C/C++ mode argument (CWE-732)
 category: security
 severity: warning

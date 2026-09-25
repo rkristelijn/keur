@@ -1,4 +1,5 @@
 id: SC-SEC-010
+maturity: 2
 source: cpm
 title: Dependency confusion attack surface (Birsan 2021)
 category: security

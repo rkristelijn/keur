@@ -1,4 +1,5 @@
 id: SCA-034
+maturity: 2
 source: cpm
 title: Suspicious npm unscoped package with private naming pattern
 category: supply-chain

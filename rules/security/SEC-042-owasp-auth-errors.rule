@@ -1,4 +1,5 @@
 id: SEC-042
+maturity: 2
 source: cpm
 title: OWASP Top 10 — A07 Auth Failures + A09 Logging Failures + A10 SSRF/Error Handling
 category: security

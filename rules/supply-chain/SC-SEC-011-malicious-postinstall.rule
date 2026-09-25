@@ -1,4 +1,5 @@
 id: SC-SEC-011
+maturity: 2
 source: cpm
 title: Suspicious npm lifecycle scripts (ua-parser-js/event-stream attacks)
 category: security

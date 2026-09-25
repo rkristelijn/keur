@@ -1,4 +1,5 @@
 id: SCA-037
+maturity: 2
 source: cpm
 title: Python .pth file with import (auto-execution on startup)
 category: supply-chain

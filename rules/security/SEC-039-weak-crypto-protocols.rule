@@ -1,4 +1,5 @@
 id: SEC-039
+maturity: 2
 source: cpm
 title: Weak cryptographic protocols and disabled certificate verification
 category: security

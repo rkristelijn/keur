@@ -1,4 +1,5 @@
 id: SCA-010
+maturity: 2
 source: cpm
 title: Suspicious npm lifecycle script with network call
 category: supply-chain

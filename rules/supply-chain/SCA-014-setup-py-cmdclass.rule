@@ -1,4 +1,5 @@
 id: SCA-014
+maturity: 2
 source: cpm
 title: Suspicious setup.py cmdclass override
 category: supply-chain

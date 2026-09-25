@@ -3,6 +3,7 @@
 # (LEARNED-1789868567-4). Anchored on the sink + the SQL keyword. Target narrowed
 # to code extensions on promotion.
 id: KEUR-SQLI-001
+maturity: 2
 title: Potential SQL injection via dynamically built query
 category: sqli
 severity: critical

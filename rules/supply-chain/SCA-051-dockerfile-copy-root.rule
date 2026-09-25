@@ -1,4 +1,5 @@
 id: SCA-051
+maturity: 2
 source: cpm
 title: Dockerfile multi-stage copying root directory
 category: supply-chain

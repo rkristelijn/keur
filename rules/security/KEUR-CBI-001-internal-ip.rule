@@ -4,6 +4,7 @@
 # concept; that branch is dropped. What remains is the general, durable signal:
 # an RFC1918 / TEST-NET internal address leaking into committed code/config.
 id: KEUR-CBI-001
+maturity: 2
 title: Internal (RFC1918 / TEST-NET) IP address in committed code
 category: cbi
 severity: warning

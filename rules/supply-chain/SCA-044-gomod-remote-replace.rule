@@ -1,4 +1,5 @@
 id: SCA-044
+maturity: 2
 source: cpm
 title: Suspicious go.mod replace directive pointing to remote
 category: supply-chain

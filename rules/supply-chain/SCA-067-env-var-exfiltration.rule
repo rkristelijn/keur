@@ -1,4 +1,5 @@
 id: SCA-067
+maturity: 2
 source: cpm
 title: Environment variable exfiltration pattern
 category: supply-chain

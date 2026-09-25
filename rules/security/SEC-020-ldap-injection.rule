@@ -1,4 +1,5 @@
 id: SEC-020
+maturity: 2
 source: cpm
 title: LDAP filter injection (CVE-2017-8028)
 category: security

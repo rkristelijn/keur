@@ -1,4 +1,5 @@
 id: SCA-050
+maturity: 2
 source: cpm
 title: Dockerfile COPY from untrusted image
 category: supply-chain
