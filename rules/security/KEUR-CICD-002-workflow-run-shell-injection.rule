@@ -4,6 +4,7 @@
 # nearby lines, so a single-line regex misses it — the window joins them,
 # bounded. Maps to semgrep run-shell-injection.
 id: KEUR-CICD-002
+maturity: 2
 title: Shell injection in a workflow run block (untrusted GitHub context)
 category: sast
 severity: error

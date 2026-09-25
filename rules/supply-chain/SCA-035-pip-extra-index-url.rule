@@ -1,4 +1,5 @@
 id: SCA-035
+maturity: 2
 source: cpm
 title: Risky pip extra-index-url dependency confusion risk
 category: supply-chain

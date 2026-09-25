@@ -1,4 +1,5 @@
 id: SCA-045
+maturity: 2
 source: cpm
 title: Risky go generate directive with network calls
 category: supply-chain

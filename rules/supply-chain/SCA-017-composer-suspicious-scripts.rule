@@ -1,4 +1,5 @@
 id: SCA-017
+maturity: 2
 source: cpm
 title: Suspicious composer.json suspicious lifecycle scripts
 category: supply-chain

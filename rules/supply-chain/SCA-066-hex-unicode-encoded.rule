@@ -1,4 +1,5 @@
 id: SCA-066
+maturity: 2
 source: cpm
 title: Hex or Unicode encoded shell commands
 category: supply-chain

@@ -1,4 +1,5 @@
 id: SCA-072
+maturity: 2
 source: cpm
 title: Typosquatting indicator in dependency name
 category: supply-chain

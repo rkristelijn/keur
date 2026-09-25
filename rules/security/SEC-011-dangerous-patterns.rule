@@ -1,4 +1,5 @@
 id: SEC-011
+maturity: 2
 source: cpm
 title: Dangerous patterns (eval, ts-ignore, as any)
 category: security

@@ -30,6 +30,7 @@
 # @see rules/security/KEUR-SEC-005 (libc sibling: system/popen), ADR-003
 #      (adapter layer), ADR-005 (platform layer), KEUR-PORT-005.
 id: KEUR-SEC-006
+maturity: 2
 title: Non-literal command passed to keur's shell adapter/platform sink
 category: cmdi
 severity: critical

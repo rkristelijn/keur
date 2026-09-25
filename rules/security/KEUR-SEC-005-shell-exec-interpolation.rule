@@ -31,6 +31,7 @@
 # layer is exactly where this shape appeared and must be held to it too.
 # @see rules/security/KEUR-SEC-003 (PHP sibling), ADR-005.
 id: KEUR-SEC-005
+maturity: 2
 title: Shell execution with interpolated (non-literal) input in C/C++
 category: cmdi
 severity: critical

@@ -1,4 +1,5 @@
 id: SCA-046
+maturity: 2
 source: cpm
 title: Rust build.rs with network calls
 category: supply-chain

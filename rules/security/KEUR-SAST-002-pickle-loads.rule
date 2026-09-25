@@ -1,4 +1,5 @@
 id: KEUR-SAST-002
+maturity: 2
 title: Unsafe deserialization via pickle.loads
 category: sast
 severity: error

@@ -1,4 +1,5 @@
 id: SCA-064
+maturity: 2
 source: cpm
 title: Base64 decode operation in code
 category: supply-chain

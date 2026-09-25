@@ -1,4 +1,5 @@
 id: SC-SEC-012
+maturity: 2
 source: cpm
 title: Unpinned GitHub Actions (supply chain risk)
 category: security

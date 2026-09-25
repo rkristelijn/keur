@@ -1,4 +1,5 @@
 id: SCA-032
+maturity: 2
 source: cpm
 title: CMake file(DOWNLOAD) without hash verification
 category: supply-chain

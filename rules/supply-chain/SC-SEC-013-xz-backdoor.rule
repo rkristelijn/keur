@@ -1,4 +1,5 @@
 id: SC-SEC-013
+maturity: 2
 source: cpm
 title: Obfuscated build system payload pattern (CVE-2024-3094 XZ)
 category: security

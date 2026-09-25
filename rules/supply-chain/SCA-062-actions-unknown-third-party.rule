@@ -1,4 +1,5 @@
 id: SCA-062
+maturity: 2
 source: cpm
 title: GitHub Actions unknown third-party action
 category: supply-chain
