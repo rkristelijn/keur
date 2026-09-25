@@ -3251,6 +3251,51 @@ SCENARIO("[feature:level] bucket_for_width maps terminal cols to a size band") {
     CHECK(bucket_for_width(9999) == Bucket::Xl);
 }
 
+SCENARIO("[feature:level] bucket_for_size fits BOTH width and height") {  // @proves KEUR-LOGO.fit
+    using keur::render::bucket_for_size;
+    using keur::render::logo_height;
+    using keur::render::Bucket;
+    // Wide but short terminal: width allows Xl, but only ~14 rows are free →
+    // must drop to Sm (13 rows) so the logo top does not scroll off ("neuk").
+    CHECK(bucket_for_size(200, 14) == Bucket::Sm);
+    // Plenty of both → the biggest that fits its own width.
+    CHECK(bucket_for_size(200, 40) == Bucket::Xl);
+    // Narrow terminal caps on width: 70 cols can't fit Md (needs 72) → Sm (48).
+    CHECK(bucket_for_size(70, 100) == Bucket::Sm);
+    // 72 cols + tall enough fits Md exactly.
+    CHECK(bucket_for_size(72, 40) == Bucket::Md);
+    // Enough rows for Md (20) and width for Lg, but only 20 rows → Md, not Lg(27).
+    CHECK(bucket_for_size(120, 20) == Bucket::Md);
+    // Never returns something taller than the space given.
+    for (int rows = 5; rows <= 40; ++rows) {
+        auto b = bucket_for_size(200, rows);
+        CHECK(logo_height(b) <= (rows < 13 ? 13 : rows));  // Sm floor may exceed a tiny space
+    }
+}
+
+SCENARIO("[feature:level] logo_height is positive and ordered") {  // @proves KEUR-LOGO.height
+    using keur::render::logo_height;
+    using keur::render::Bucket;
+    CHECK(logo_height(Bucket::Sm) > 0);
+    CHECK(logo_height(Bucket::Sm) < logo_height(Bucket::Md));
+    CHECK(logo_height(Bucket::Md) < logo_height(Bucket::Lg));
+    CHECK(logo_height(Bucket::Lg) < logo_height(Bucket::Xl));
+}
+
+SCENARIO("[feature:level] fits_logo hides the logo on short terminals") {  // @proves KEUR-LEVEL.fits-logo
+    // Below Sm-logo (13) + UI chrome (~12) the logo must be hidden, so a clipped
+    // "KEUR" never shows as "neuk".
+    CHECK_FALSE(keur::cmd::fits_logo(10));
+    CHECK_FALSE(keur::cmd::fits_logo(24));
+    CHECK(keur::cmd::fits_logo(25));
+    CHECK(keur::cmd::fits_logo(50));
+    // And render honours it: no braille glyphs when show_logo=false.
+    auto no_logo = keur::cmd::render_level_screen(keur::render::Bucket::Sm, false, 3, false);
+    CHECK(no_logo.find("Choose your Difficulty:") != std::string::npos);
+    CHECK(no_logo.find("⠀") == std::string::npos);   // no braille blank
+    CHECK(no_logo.find("KEUR Me Plenty") != std::string::npos);
+}
+
 SCENARIO("[feature:level] keur_logo is never null and is multi-line") {  // @proves KEUR-LOGO
     using keur::render::keur_logo;
     using keur::render::Bucket;
@@ -3312,7 +3357,7 @@ SCENARIO("[feature:level] level_table has the five DOOM->CMMI levels in order") 
         CHECK(t[i].cmmi == static_cast<int>(i) + 1);   // index 0..4 == CMMI 1..5
     CHECK(std::string(t[0].name) == "I'm Too Young to KEUR");
     CHECK(std::string(t[2].name) == "KEUR Me Plenty");
-    CHECK(std::string(t[4].name) == "Compliance!");
+    CHECK(std::string(t[4].name) == "H4x0r c0d3fl3x");
 }
 
 SCENARIO("[feature:level] render_level_screen marks the selection and shows the blurb") {  // @proves KEUR-LEVEL.render
@@ -3335,7 +3380,7 @@ SCENARIO("[feature:level] render_level_screen clamps out-of-range selection") { 
     std::string lo = keur::cmd::render_level_screen(keur::render::Bucket::Sm, false, -3);
     CHECK(lo.find("> I'm Too Young to KEUR") != std::string::npos);
     std::string hi = keur::cmd::render_level_screen(keur::render::Bucket::Sm, false, 99);
-    CHECK(hi.find("> Compliance!") != std::string::npos);
+    CHECK(hi.find("> H4x0r c0d3fl3x") != std::string::npos);
 }
 
 SCENARIO("[feature:level] upsert_policy_level adds, replaces, and preserves other lines") {  // @proves KEUR-LEVEL.persist

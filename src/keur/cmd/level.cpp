@@ -47,9 +47,9 @@ const std::vector<LevelInfo>& level_table() {
          "A practical baseline of checks for repeatable development."},
         {3, "KEUR Me Plenty", "Defined",
          "The standard KEUR experience: maintainability + correctness."},
-        {4, "Ultra-Assurance", "Quantitatively Managed",
+        {4, "Ultra Compliance", "Quantitatively Managed",
          "Stricter and measured: coverage, traceability, style consistency."},
-        {5, "Compliance!", "Optimizing",
+        {5, "H4x0r c0d3fl3x", "Optimizing",
          "Maximum guardrails: advisory nudges and opinionated idiom rules."},
     };
     return kLevels;
@@ -98,17 +98,29 @@ LevelOptions level_parse(const std::vector<std::string>& args) {
     return o;
 }
 
+// The chooser UI below the logo needs ~12 rows (blank, title, blank, 5 levels,
+// blank, up to 2 blurb lines). The smallest logo (Sm) is 13 rows. Show the logo
+// only when both fit; otherwise omit it so nothing clips. @implements KEUR-LEVEL.fits-logo
+bool fits_logo(int rows) {
+    constexpr int kUiRows = 12;
+    return rows >= render::logo_height(render::Bucket::Sm) + kUiRows;  // >= 25
+}
+
 // ---------------------------------------------------------------------------
 // render_level_screen — pure. logo (braille) + title + 5 text rows + blurb.
 // @implements KEUR-LEVEL.render
 // ---------------------------------------------------------------------------
-std::string render_level_screen(render::Bucket bucket, bool color, int selected) {
+std::string render_level_screen(render::Bucket bucket, bool color, int selected,
+                                bool show_logo) {
     const auto& levels = level_table();
     if (selected < 1) selected = 1;
     if (selected > k_level_count) selected = k_level_count;
 
     std::ostringstream os;
-    os << render::keur_logo(bucket, color) << "\n";
+    // The logo is omitted on short terminals (see fits_logo): a clipped logo
+    // scrolls its top off-screen and reads as "neuk" instead of "KEUR", so we'd
+    // rather show none than half. The chooser below is always shown.
+    if (show_logo) os << render::keur_logo(bucket, color) << "\n";
     os << paint("Choose your Difficulty:", k_red, color) << "\n\n";
 
     for (const auto& lv : levels) {
@@ -195,13 +207,39 @@ bool color_enabled(const LevelOptions& opts) {
 }
 
 render::Bucket detect_bucket() {
-    if (const char* cols = std::getenv("COLUMNS"); cols && *cols) {
-        try { return render::bucket_for_width(std::stoi(cols)); }
-        catch (const std::exception&) { /* fall through to ioctl */ }
+    // Rows the level-select UI needs BELOW the logo: a blank line, the title, a
+    // blank, the 5 level rows, a blank, and up to 2 blurb lines ≈ 11. Reserve
+    // that (plus 1 margin) so the logo is sized to fit what's left — otherwise a
+    // tall logo scrolls its top off-screen and "KEUR" truncates to its bottom.
+    constexpr int kUiRows = 12;
+
+    // Prefer real terminal dimensions; COLUMNS/LINES env override (both must be
+    // usable to trust the pair). Fall back to a sane 80x24 when piped.
+    int cols = 0, rows = 0;
+    if (const char* c = std::getenv("COLUMNS"); c && *c) {
+        try { cols = std::stoi(c); } catch (const std::exception&) { cols = 0; }
     }
-    int cols = platform::terminal_size().cols;
-    if (cols <= 0) cols = 80;  // sensible default when piped
-    return render::bucket_for_width(cols);
+    if (const char* r = std::getenv("LINES"); r && *r) {
+        try { rows = std::stoi(r); } catch (const std::exception&) { rows = 0; }
+    }
+    if (cols <= 0 || rows <= 0) {
+        auto ts = platform::terminal_size();
+        if (cols <= 0) cols = ts.cols;
+        if (rows <= 0) rows = ts.rows;
+    }
+    if (cols <= 0) cols = 80;
+    if (rows <= 0) rows = 24;
+    return render::bucket_for_size(cols, rows - kUiRows);
+}
+
+// The terminal height in rows (LINES env, else ioctl, else 24 when piped).
+// Used to decide whether the logo fits at all (fits_logo). @id KEUR-LEVEL.rows
+int detect_rows() {
+    if (const char* r = std::getenv("LINES"); r && *r) {
+        try { int v = std::stoi(r); if (v > 0) return v; } catch (const std::exception&) {}
+    }
+    int rows = platform::terminal_size().rows;
+    return rows > 0 ? rows : 24;
 }
 
 // Persist the chosen level to keur.toml via the Fs adapter. Returns true on
@@ -227,13 +265,17 @@ int level(const LevelOptions& opts) {
         if (sel > max_level) sel = max_level;
         render::Bucket b = opts.bucket_set ? opts.bucket : detect_bucket();
         bool color = !opts.no_color && std::getenv("NO_COLOR") == nullptr;
-        std::cout << render_level_screen(b, color, sel);
+        // Explicit --bucket forces the logo (deterministic for tests/pipes);
+        // otherwise show it only when the terminal is tall enough.
+        bool show_logo = opts.bucket_set || fits_logo(detect_rows());
+        std::cout << render_level_screen(b, color, sel, show_logo);
         return 0;
     }
 
     // Interactive: draw the screen, arrow keys move the selection, Enter saves.
     bool color = color_enabled(opts);
     render::Bucket bucket = detect_bucket();
+    bool show_logo = fits_logo(detect_rows());
 
     platform::RawModeGuard guard;
     if (!guard.active()) {
@@ -247,7 +289,7 @@ int level(const LevelOptions& opts) {
     int exit_code = 0;
     while (running) {
         std::cout << "\033[2J\033[H";  // clear + home
-        std::cout << render_level_screen(bucket, color, selected) << std::flush;
+        std::cout << render_level_screen(bucket, color, selected, show_logo) << std::flush;
 
         platform::KeyEvent ev = platform::read_key();
         switch (ev.key) {

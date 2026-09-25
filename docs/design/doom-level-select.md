@@ -15,8 +15,8 @@ A `keur` skill-level chooser modelled on DOOM's "Choose Skill Level" screen:
               I'm Too Young to KEUR
             > Hey, Not Too Sure          <- selected row (arrow keys)
               KEUR Me Plenty
-              Ultra-Assurance
-              Compliance!
+              Ultra Compliance
+              H4x0r c0d3fl3x
 
      Level 2 — Managed.
      A practical baseline of checks for repeatable development.
@@ -29,8 +29,8 @@ A `keur` skill-level chooser modelled on DOOM's "Choose Skill Level" screen:
   1. I'm Too Young to KEUR  — Level 1 Initial      (essential checks only)
   2. Hey, Not Too Sure      — Level 2 Managed       (practical baseline)
   3. KEUR Me Plenty         — Level 3 Defined       (standard KEUR experience)
-  4. Ultra-Assurance        — Level 4 Quantitatively Managed (stricter + measured)
-  5. Compliance!            — Level 5 Optimizing     (maximum guardrails)
+  4. Ultra Compliance      — Level 4 Quantitatively Managed (stricter + measured)
+  5. H4x0r c0d3fl3x         — Level 5 Optimizing     (maximum guardrails)
 
 ## Proven conversion pipeline (image -> coloured braille)
 

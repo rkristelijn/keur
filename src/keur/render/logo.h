@@ -18,6 +18,18 @@ enum class Bucket { Sm, Md, Lg, Xl };
 /// @id KEUR-LOGO.bucket
 [[nodiscard]] Bucket bucket_for_width(int cols);
 
+/// The rendered height of a bucket's logo, in terminal rows. Pure.
+/// @id KEUR-LOGO.height
+[[nodiscard]] int logo_height(Bucket b);
+
+/// The largest bucket that fits BOTH the terminal width and height. Prevents a
+/// tall logo from scrolling its top off-screen (which would truncate "KEUR" to
+/// its bottom half). `rows_available` is the terminal height minus the space the
+/// level-select UI needs below the logo (title + 5 rows + blurb). Falls back to
+/// Sm when nothing fits, so something legible always shows. Pure — table-tested.
+/// @id KEUR-LOGO.fit
+[[nodiscard]] Bucket bucket_for_size(int cols, int rows_available);
+
 /// The baked logo for a bucket. `color` picks the ANSI-256 coloured variant
 /// (DOOM orange/blue gradient) vs plain braille. Never null. Generated.
 [[nodiscard]] const char* keur_logo(Bucket b, bool color);
