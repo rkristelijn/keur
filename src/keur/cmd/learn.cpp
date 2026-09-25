@@ -71,15 +71,15 @@ int learn(const LearnOptions& opts) {
     std::vector<std::pair<std::string, std::string>> env;
     // MODEL is honoured by optimise.sh (env override); pass it only when set so
     // an empty --model falls back to optimise.sh's own default selection.
-    if (!opts.model.empty()) env.emplace_back("MODEL", opts.model);
-    env.emplace_back("KEUR_PHASES", "loop");
+    if (!opts.model.empty()) env.emplace_back("MODEL", opts.model);  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
+    env.emplace_back("KEUR_PHASES", "loop");  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
     // Loop command: normally optimise.sh on one source; with --source alternate
     // use alternate.sh, which flips corpus<->keureval each phase.
     if (opts.source == "alternate" || opts.source == "both") {
-      env.emplace_back("KEUR_LOOP_CMD", home + "/eval/alternate.sh");
+      env.emplace_back("KEUR_LOOP_CMD", home + "/eval/alternate.sh");  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
     } else {
-      env.emplace_back("KEUR_EVAL_SOURCE", opts.source);
-      env.emplace_back("KEUR_LOOP_CMD", home + "/eval/optimise.sh iterate 500");
+      env.emplace_back("KEUR_EVAL_SOURCE", opts.source);  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
+      env.emplace_back("KEUR_LOOP_CMD", home + "/eval/optimise.sh iterate 500");  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
     }
     std::vector<std::string> argv = {home + "/eval/supervise.sh", "start"};
     std::cerr << "keur learn: spinning background loop (source=" << opts.source;
