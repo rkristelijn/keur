@@ -155,7 +155,7 @@ $(BINDIR)/keur_cmd_config.o: cmd/config.cpp cmd/config.h config/scopes.h adapter
 $(BINDIR)/keur_cmd_manager.o: cmd/manager.cpp cmd/manager.h cmd/config.h cmd/policy.h cmd/rules.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h manager/model.h manager/view.h manager/catalog.h common/platform.h adapters/git.h adapters/fs.h ../rules/rule_engine.h util/keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_level.o: cmd/level.cpp cmd/level.h cmd/policy.h render/logo.h adapters/fs.h common/platform.h | $(BINDIR)
+$(BINDIR)/keur_cmd_level.o: cmd/level.cpp cmd/level.h cmd/policy.h render/logo.h adapters/fs.h adapters/git.h config/scopes.h common/platform.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_config_scopes.o: config/scopes.cpp config/scopes.h common/platform.h | $(BINDIR)
