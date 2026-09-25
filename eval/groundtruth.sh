@@ -194,12 +194,164 @@ PY
     rm -f "$out"
 }
 
+# --- osv-scanner: dependency vulnerabilities (OSV database) ------------------
+run_osv() {
+    have osv-scanner || { echo "groundtruth: osv-scanner absent, skipped" >&2; return; }
+    local out; out="$(mktemp)"
+    # recursive scan of the tree; JSON to a temp file (heredoc owns stdin).
+    osv-scanner scan --recursive --format json "$TARGET" > "$out" 2>/dev/null || true
+    python3 - "$out" "$TARGET" <<'PY'
+import json, sys, os
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    data = {}
+root = sys.argv[2].rstrip("/")
+def rel(p):
+    p = p or ""
+    return os.path.relpath(p, root) if os.path.isabs(p) else p
+for res in data.get("results", []) or []:
+    src = rel((res.get("source") or {}).get("path", ""))
+    for pkg in res.get("packages", []) or []:
+        for v in pkg.get("vulnerabilities", []) or []:
+            print(json.dumps({
+                "source": "groundtruth", "tool": "osv-scanner",
+                "rule": v.get("id", "vuln"), "category": "supply-chain",
+                "file": src, "line": 0,
+            }))
+PY
+    rm -f "$out"
+}
+
+# --- grype: dependency vulnerabilities (SBOM-based) --------------------------
+run_grype() {
+    have grype || { echo "groundtruth: grype absent, skipped" >&2; return; }
+    local out; out="$(mktemp)"
+    grype "dir:$TARGET" -o json > "$out" 2>/dev/null || true
+    python3 - "$out" "$TARGET" <<'PY'
+import json, sys, os
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    data = {}
+root = sys.argv[2].rstrip("/")
+for m in data.get("matches", []) or []:
+    vuln = m.get("vulnerability", {}) or {}
+    locs = ((m.get("artifact") or {}).get("locations") or [])
+    path = locs[0].get("path", "") if locs else ""
+    if os.path.isabs(path):
+        path = os.path.relpath(path, root)
+    print(json.dumps({
+        "source": "groundtruth", "tool": "grype",
+        "rule": vuln.get("id", "vuln"), "category": "supply-chain",
+        "file": path.lstrip("/"), "line": 0,
+    }))
+PY
+    rm -f "$out"
+}
+
+# --- bandit: Python SAST (code patterns) -------------------------------------
+run_bandit() {
+    have bandit || { echo "groundtruth: bandit absent, skipped" >&2; return; }
+    local out; out="$(mktemp)"
+    bandit -r "$TARGET" -f json -q > "$out" 2>/dev/null || true
+    python3 - "$out" "$TARGET" <<'PY'
+import json, sys, os
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    data = {}
+root = sys.argv[2].rstrip("/")
+def categorise(tid):
+    t = (tid or "").lower()
+    if "sql" in t: return "sqli"
+    if "subprocess" in t or "shell" in t or "exec" in t: return "cmdi"
+    if "hardcoded" in t or "password" in t: return "secret"
+    return "sast"
+for r in data.get("results", []) or []:
+    path = r.get("filename", "")
+    rel = os.path.relpath(path, root) if os.path.isabs(path) else path
+    tid = r.get("test_id", "bandit")
+    print(json.dumps({
+        "source": "groundtruth", "tool": "bandit",
+        "rule": tid, "category": categorise(r.get("test_name", tid)),
+        "file": rel, "line": r.get("line_number", 0) or 0,
+    }))
+PY
+    rm -f "$out"
+}
+
+# --- njsscan: Node.js/JS SAST (code patterns) --------------------------------
+run_njsscan() {
+    have njsscan || { echo "groundtruth: njsscan absent, skipped" >&2; return; }
+    local out; out="$(mktemp)"
+    njsscan --json -o "$out" "$TARGET" >/dev/null 2>&1 || true
+    python3 - "$out" "$TARGET" <<'PY'
+import json, sys, os
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    data = {}
+root = sys.argv[2].rstrip("/")
+def categorise(rule):
+    r = (rule or "").lower()
+    if "sql" in r: return "sqli"
+    if "command" in r or "exec" in r: return "cmdi"
+    if "secret" in r or "hardcoded" in r: return "secret"
+    return "sast"
+# njsscan: nodejs_security + template_injection groups -> results[rule].files[]
+for group in ("nodejs", "templates"):
+    sec = (data.get("nodejs") or {}) if group == "nodejs" else (data.get("templates") or {})
+    for rule, body in (sec or {}).items():
+        for f in (body.get("files") or []):
+            path = f.get("file_path", "")
+            rel = os.path.relpath(path, root) if os.path.isabs(path) else path
+            ln = (f.get("match_lines") or [0])
+            print(json.dumps({
+                "source": "groundtruth", "tool": "njsscan",
+                "rule": rule, "category": categorise(rule),
+                "file": rel, "line": ln[0] if isinstance(ln, list) and ln else 0,
+            }))
+PY
+    rm -f "$out"
+}
+
+# --- tfsec: Terraform security (code patterns) -------------------------------
+run_tfsec() {
+    have tfsec || { echo "groundtruth: tfsec absent, skipped" >&2; return; }
+    local out; out="$(mktemp)"
+    tfsec "$TARGET" --format json --no-color > "$out" 2>/dev/null || true
+    python3 - "$out" "$TARGET" <<'PY'
+import json, sys, os
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    data = {}
+root = sys.argv[2].rstrip("/")
+for r in data.get("results", []) or []:
+    loc = r.get("location", {}) or {}
+    path = loc.get("filename", "")
+    rel = os.path.relpath(path, root) if os.path.isabs(path) else path
+    print(json.dumps({
+        "source": "groundtruth", "tool": "tfsec",
+        "rule": r.get("rule_id", "tfsec"), "category": "iac",
+        "file": rel, "line": loc.get("start_line", 0) or 0,
+    }))
+PY
+    rm -f "$out"
+}
+
 case "$TOOL" in
   gitleaks)   run_gitleaks ;;
   semgrep)    run_semgrep ;;
   trufflehog) run_trufflehog ;;
   trivy)      run_trivy ;;
   checkov)    run_checkov ;;
-  all)        run_gitleaks; run_semgrep; run_trufflehog; run_trivy; run_checkov ;;
-  *) echo "unknown tool: $TOOL (use gitleaks|semgrep|trufflehog|trivy|checkov|all)" >&2; exit 1 ;;
+  osv)        run_osv ;;
+  grype)      run_grype ;;
+  bandit)     run_bandit ;;
+  njsscan)    run_njsscan ;;
+  tfsec)      run_tfsec ;;
+  all)        run_gitleaks; run_semgrep; run_trufflehog; run_trivy; run_checkov; run_osv; run_grype; run_bandit; run_njsscan; run_tfsec ;;
+  *) echo "unknown tool: $TOOL (use gitleaks|semgrep|trufflehog|trivy|checkov|osv|grype|bandit|njsscan|tfsec|all)" >&2; exit 1 ;;
 esac
