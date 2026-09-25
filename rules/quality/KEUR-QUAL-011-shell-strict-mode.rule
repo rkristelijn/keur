@@ -1,0 +1,35 @@
+# keur quality control — bash script without strict mode (`set -euo pipefail`).
+#
+# Why this exists: the consumer repo `security-tooling` runs a CI check
+# (check-strict-mode) that fails a bash script lacking `set -euo pipefail`.
+# Without strict mode an unset variable expands to empty, a failed command in
+# the middle of a script is ignored, and a failure in a pipeline is masked by
+# the exit status of the last stage — three silent-failure classes. Porting the
+# norm into keur gives every repo the same local pre-commit nudge, as a SECOND
+# net (the consumer's CI keeps its own dependency-free check; keur does not
+# replace it). @see .tmp/enrich-prompt-ci-checks-to-rules.md (Group 1).
+#
+# HOW (absence engine): the rule fires when NONE of the target's lines match the
+# strict-mode pattern. `set -euo pipefail` is matched flexibly (any order of the
+# e/u/o flags is common), anchored to a line so a mention in a comment/string is
+# less likely to satisfy it by accident.
+#
+# WARN, not block: a missing strict-mode line is a robustness smell, not a bug,
+# and some scripts deliberately manage errors by hand. Scope: bash/sh scripts;
+# tests and vendored/build dirs excluded. @see AGENTS.md, docs/rules-authoring.md.
+id: KEUR-QUAL-011
+title: Bash script without strict mode (set -euo pipefail)
+category: quality
+severity: warning
+engine: absence
+action: warn
+confidence: 0.6
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/ vendor/ build/ dist/
+patterns:
+  # Match a `set` line enabling errexit + nounset + pipefail in any flag order.
+  # absence engine fires when this pattern appears NOWHERE in the file.
+  - regex: (?m)^\s*set\s+-[a-z]*e[a-z]*\s+.*pipefail|^\s*set\s+-euo\s+pipefail
+    message: "Bash script has no `set -euo pipefail` — unset vars, mid-script failures and broken pipes pass silently. Add strict mode near the top. @see KEUR-QUAL-011"
+fix: "Add `set -euo pipefail` just after the shebang (and consider `IFS=$'\\n\\t'`). If a script genuinely needs to continue past failures, scope that with explicit `|| true` / `set +e` blocks rather than dropping strict mode entirely."
