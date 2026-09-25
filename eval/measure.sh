@@ -59,6 +59,10 @@ GT_CATS="${KEUR_GT_CATEGORIES:-}"
 #               within-category gaps so the loop has real work.
 #   category -> (repo, category)          — legacy coarse audit (keur firing any
 #               finding of that category in the repo counts as covered).
+# The measurement granularity: how a keur finding is matched against the ground
+# truth. `file` (repo,file,category) is the honest fine key that surfaces
+# within-category gaps; `category` (repo,category) is the legacy coarse audit.
+# @implements ADR-027
 GRAN="${KEUR_MATCH_GRANULARITY:-file}"
 in_split() {
     # in_split <repo-name> -> 0 if it belongs to the active split
