@@ -10,7 +10,9 @@ BINARY="$(resolve_binary "${1:-}")"
 echo "==> test_level ($BINARY)"
 
 # Non-interactive render at level 3, no colour. Deterministic, pipeable.
-out="$("$BINARY" level --print 3 --no-color 2>/dev/null)"
+# --bucket forces a fixed logo size (independent of the CI terminal height, which
+# would otherwise hide the logo via the short-terminal guard).
+out="$("$BINARY" level --print 3 --no-color --bucket md 2>/dev/null)"
 rc=$?
 [[ "$rc" -eq 0 ]] && ok "level --print exits 0" || fail "level --print exit $rc"
 
@@ -20,7 +22,7 @@ echo "$out" | grep -qE '[⠀-⣿]' && ok "output contains braille logo glyphs" \
 
 # All five level names appear (text, not braille).
 for name in "I'm Too Young to KEUR" "Hey, Not Too Sure" "KEUR Me Plenty" \
-            "Ultra-Assurance" "Compliance!"; do
+            "Ultra Compliance" "H4x0r c0d3fl3x"; do
   echo "$out" | grep -qF "$name" && ok "level name present: $name" \
                                   || fail "missing level name: $name"
 done

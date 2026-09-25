@@ -56,10 +56,17 @@ struct LevelOptions {
 /// Render the level-select screen (logo + title + 5 levels + description) to a
 /// string, with `selected` (1..5) marked. Pure: takes the bucket, colour flag
 /// and selection explicitly, does no I/O. This is what --print emits and what
-/// the interactive loop draws each frame.
+/// the interactive loop draws each frame. `show_logo` false omits the braille
+/// logo (used on short terminals — see fits_logo).
 /// @id KEUR-LEVEL.render
 [[nodiscard]] std::string render_level_screen(render::Bucket bucket, bool color,
-                                              int selected);
+                                              int selected, bool show_logo = true);
+
+/// Whether the logo should be shown at all for a terminal of `rows` height.
+/// Below the space the smallest logo + the chooser UI needs, we omit the logo
+/// entirely rather than clip it (a clipped "KEUR" reads as "neuk"). Pure.
+/// @id KEUR-LEVEL.fits-logo
+[[nodiscard]] bool fits_logo(int rows);
 
 /// Upsert `level = N` under a `[policy]` section in a keur.toml body, preserving
 /// every other line. Adds the section/key when absent, replaces the value when
