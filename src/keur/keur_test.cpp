@@ -1736,6 +1736,35 @@ SCENARIO("[feature:rule-engine] custom pattern rule fires on trigger file") {  /
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] KEUR-QUAL-011 fires on a bash script without strict mode") {  // @proves KEUR-QUAL-011
+    auto rules = keur::rules_load(keur_rules_dir() + "/quality");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    // No `set -euo pipefail` → absence rule fires.
+    write_file(dir + "/no_strict.sh", "#!/usr/bin/env bash\necho hi\n");
+    auto miss = keur::rules_scan_files(rules, {dir + "/no_strict.sh"});
+    CHECK(has_rule(miss, "KEUR-QUAL-011"));
+    // Strict mode present → no finding.
+    write_file(dir + "/has_strict.sh", "#!/usr/bin/env bash\nset -euo pipefail\necho hi\n");
+    auto ok = keur::rules_scan_files(rules, {dir + "/has_strict.sh"});
+    CHECK(!has_rule(ok, "KEUR-QUAL-011"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] KEUR-QUAL-012 fires on curl without a timeout") {  // @proves KEUR-QUAL-012
+    auto rules = keur::rules_load(keur_rules_dir() + "/quality");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    write_file(dir + "/no_timeout.sh", "#!/usr/bin/env bash\ncurl https://example.com/x\n");
+    auto miss = keur::rules_scan_files(rules, {dir + "/no_timeout.sh"});
+    CHECK(has_rule(miss, "KEUR-QUAL-012"));
+    // A timeout flag on the same line suppresses via exclude:.
+    write_file(dir + "/has_timeout.sh", "#!/usr/bin/env bash\ncurl --max-time 30 https://example.com/x\n");
+    auto ok = keur::rules_scan_files(rules, {dir + "/has_timeout.sh"});
+    CHECK(!has_rule(ok, "KEUR-QUAL-012"));
+    cleanup_dir(dir);
+}
+
 // --- path-derived engine (ADR-020) ------------------------------------------
 // The expected string (namespace keur::<dir>) is COMPUTED from the file path,
 // so ONE rule covers every layer. We exercise the real KEUR-ARCH-002 rule from
