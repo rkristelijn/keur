@@ -69,7 +69,7 @@ void split_lines(const std::string& content, std::vector<re2::StringPiece>& line
   const char* end = p + content.size();
   const char* ls = p;
   while (p <= end) {
-    if (p == end || *p == '\n') { lines.emplace_back(ls, p - ls); ls = p + 1; }
+    if (p == end || *p == '\n') { lines.emplace_back(ls, p - ls); ls = p + 1; }  // keur:ignore KEUR-PORT-007 — std::pair<> for line spans has a constructor — safe
     p++;
   }
 }

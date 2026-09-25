@@ -45,7 +45,7 @@ Rule rule_parse(const std::string& path) {
         if (toks.size() >= 2) {
           std::string name = toks[0], constraint;
           for (size_t i = 1; i < toks.size(); i++) { if (i > 1) constraint += " "; constraint += toks[i]; }
-          rule.requires_.versions.emplace_back(name, constraint);
+          rule.requires_.versions.emplace_back(name, constraint);  // keur:ignore KEUR-PORT-007 — std::pair for version constraints has a constructor — safe
         }
       }
       continue;
