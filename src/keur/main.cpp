@@ -23,6 +23,7 @@
 #include "cmd/config.h"
 #include "cmd/hook.h"
 #include "cmd/learn.h"
+#include "cmd/level.h"
 #include "cmd/manager.h"
 #include "cmd/policy.h"
 #include "cmd/rules.h"
@@ -61,6 +62,9 @@ static void usage() {
         "  rules enable  <id>         Turn a rule back on   [--scope repo|global]\n"
         "  config list [--json]       Show the resolved config layer stack (read-only)\n"
         "  manager --status [--json]  One overview: config, hooks, scanners, rules\n"
+        "  level [--print N]          DOOM-style difficulty picker (CMMI L1..L5).\n"
+        "        [--bucket sm|md|lg|xl] Interactive by default; --print/--bucket\n"
+        "        [--no-color]         render deterministically. Persists to keur.toml.\n"
         "  learn [--stop|--status]    Spin the optimise loop + live TUI monitor\n"
         "        [--source S]         S = corpus (default) | keureval | alternate\n"
         "        [--model M]          Ollama model for the loop (default: keur-rule-engineer)\n"
@@ -85,6 +89,7 @@ static const std::unordered_map<std::string, Handler> k_commands = {
     {"rules",  [](const Args& a) { return keur::cmd::rules(keur::cmd::rules_parse(a)); }},
     {"config", [](const Args& a) { return keur::cmd::config(keur::cmd::config_parse(a)); }},
     {"manager", [](const Args& a) { return keur::cmd::manager(keur::cmd::manager_parse(a)); }},
+    {"level",  [](const Args& a) { return keur::cmd::level(keur::cmd::level_parse(a)); }},
     {"learn",  [](const Args& a) { return keur::cmd::learn(keur::cmd::learn_parse(a)); }},
     {"version",  [](const Args&) {
         // Prefer the version from a resolved keur.toml; fall back to the

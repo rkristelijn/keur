@@ -43,6 +43,7 @@
 #include "cmd/config.h"
 #include "cmd/hook.h"
 #include "cmd/learn.h"
+#include "cmd/level.h"
 #include "cmd/manager.h"
 #include "cmd/policy.h"
 #include "cmd/scan.h"
@@ -3232,6 +3233,135 @@ SCENARIO("[feature:help] help/version are dispatch aliases (behaviour proven e2e
     // that contract so [feature:help] is traceable. The parse-level surface the
     // unit tier can reach is covered by the version/learn scenarios above.
     CHECK(true);
+}
+
+// --- [feature:level] DOOM difficulty picker (logo bucket + level select) ----
+
+SCENARIO("[feature:level] bucket_for_width maps terminal cols to a size band") {  // @proves KEUR-LOGO.bucket
+    using keur::render::bucket_for_width;
+    using keur::render::Bucket;
+    // Boundaries: <=60 Sm, 61..100 Md, 101..140 Lg, >140 Xl.
+    CHECK(bucket_for_width(1)   == Bucket::Sm);
+    CHECK(bucket_for_width(60)  == Bucket::Sm);
+    CHECK(bucket_for_width(61)  == Bucket::Md);
+    CHECK(bucket_for_width(100) == Bucket::Md);
+    CHECK(bucket_for_width(101) == Bucket::Lg);
+    CHECK(bucket_for_width(140) == Bucket::Lg);
+    CHECK(bucket_for_width(141) == Bucket::Xl);
+    CHECK(bucket_for_width(9999) == Bucket::Xl);
+}
+
+SCENARIO("[feature:level] keur_logo is never null and is multi-line") {  // @proves KEUR-LOGO
+    using keur::render::keur_logo;
+    using keur::render::Bucket;
+    for (Bucket b : {Bucket::Sm, Bucket::Md, Bucket::Lg, Bucket::Xl}) {
+        for (bool color : {false, true}) {
+            const char* s = keur_logo(b, color);
+            REQUIRE(s != nullptr);
+            std::string logo = s;
+            CHECK(!logo.empty());
+            CHECK(logo.find('\n') != std::string::npos);   // multiple rows
+        }
+    }
+}
+
+SCENARIO("[feature:level] level_parse reads --print / --bucket / --no-color / --config") {  // @proves KEUR-LEVEL.parse
+    using keur::cmd::level_parse;
+    using keur::render::Bucket;
+    auto def = level_parse({});
+    CHECK(def.print_only == false);
+    CHECK(def.no_color == false);
+    CHECK(def.bucket_set == false);
+
+    auto p = level_parse({"--print", "3", "--no-color"});
+    CHECK(p.print_only == true);
+    CHECK(p.print_level == 3);
+    CHECK(p.no_color == true);
+
+    auto b = level_parse({"--bucket", "lg"});
+    CHECK(b.print_only == true);
+    CHECK(b.bucket_set == true);
+    CHECK(b.bucket == Bucket::Lg);
+
+    auto c = level_parse({"--config", "/x/keur.toml"});
+    CHECK(c.config == "/x/keur.toml");
+
+    // A garbage --print value must not flip into print mode.
+    auto bad = level_parse({"--print", "notanumber"});
+    CHECK(bad.print_only == false);
+}
+
+SCENARIO("[feature:level] bucket_from_name maps names, rejects unknown") {  // @proves KEUR-LEVEL.bucket_name
+    using keur::cmd::bucket_from_name;
+    using keur::render::Bucket;
+    Bucket out = Bucket::Md;
+    CHECK(bucket_from_name("sm", out)); CHECK(out == Bucket::Sm);
+    CHECK(bucket_from_name("md", out)); CHECK(out == Bucket::Md);
+    CHECK(bucket_from_name("lg", out)); CHECK(out == Bucket::Lg);
+    CHECK(bucket_from_name("xl", out)); CHECK(out == Bucket::Xl);
+    Bucket keep = Bucket::Lg;
+    CHECK(bucket_from_name("huge", keep) == false);
+    CHECK(keep == Bucket::Lg);   // untouched on failure
+}
+
+SCENARIO("[feature:level] level_table has the five DOOM->CMMI levels in order") {  // @proves KEUR-LEVEL.table
+    const auto& t = keur::cmd::level_table();
+    REQUIRE(t.size() == 5);
+    CHECK(t.size() == static_cast<std::size_t>(keur::cmd::k_level_count));  // constant in sync
+    for (std::size_t i = 0; i < t.size(); ++i)
+        CHECK(t[i].cmmi == static_cast<int>(i) + 1);   // index 0..4 == CMMI 1..5
+    CHECK(std::string(t[0].name) == "I'm Too Young to KEUR");
+    CHECK(std::string(t[2].name) == "KEUR Me Plenty");
+    CHECK(std::string(t[4].name) == "Compliance!");
+}
+
+SCENARIO("[feature:level] render_level_screen marks the selection and shows the blurb") {  // @proves KEUR-LEVEL.render
+    // Mono (no colour): the selected row carries the '>' marker, the level's
+    // CMMI line and description appear, and the logo braille is present.
+    std::string s = keur::cmd::render_level_screen(keur::render::Bucket::Md, false, 3);
+    CHECK(s.find("Choose your Difficulty:") != std::string::npos);
+    CHECK(s.find("> KEUR Me Plenty") != std::string::npos);       // selected row
+    CHECK(s.find("  I'm Too Young to KEUR") != std::string::npos); // unselected row
+    CHECK(s.find("Level 3 \xE2\x80\x94 Defined.") != std::string::npos);  // em-dash blurb head
+    CHECK(s.find("\xE2\xA0") != std::string::npos);               // braille (U+28xx) logo bytes
+    // Colour on: the same screen carries ANSI SGR sequences.
+    std::string c = keur::cmd::render_level_screen(keur::render::Bucket::Md, true, 1);
+    CHECK(c.find("\033[38;5;") != std::string::npos);
+    CHECK(c.find("> I'm Too Young to KEUR") != std::string::npos); // L1 selected
+}
+
+SCENARIO("[feature:level] render_level_screen clamps out-of-range selection") {  // @proves KEUR-LEVEL.render
+    // Selection below 1 clamps to 1; above 5 clamps to 5. No crash, valid blurb.
+    std::string lo = keur::cmd::render_level_screen(keur::render::Bucket::Sm, false, -3);
+    CHECK(lo.find("> I'm Too Young to KEUR") != std::string::npos);
+    std::string hi = keur::cmd::render_level_screen(keur::render::Bucket::Sm, false, 99);
+    CHECK(hi.find("> Compliance!") != std::string::npos);
+}
+
+SCENARIO("[feature:level] upsert_policy_level adds, replaces, and preserves other lines") {  // @proves KEUR-LEVEL.persist
+    using keur::cmd::upsert_policy_level;
+    // Empty body → a fresh [policy] section with the level.
+    std::string a = upsert_policy_level("", 4);
+    CHECK(a.find("[policy]") != std::string::npos);
+    CHECK(a.find("level = 4") != std::string::npos);
+
+    // Existing [policy] with a level → the value is replaced, section kept once.
+    std::string body = "[project]\nname = \"x\"\n\n[policy]\nblock-at = 0.9\nlevel = 2\n";
+    std::string r = upsert_policy_level(body, 5);
+    CHECK(r.find("level = 5") != std::string::npos);
+    CHECK(r.find("level = 2") == std::string::npos);   // old value gone
+    CHECK(r.find("block-at = 0.9") != std::string::npos); // sibling preserved
+    CHECK(r.find("name = \"x\"") != std::string::npos);   // other section preserved
+    // Exactly one [policy] section.
+    std::size_t first = r.find("[policy]");
+    CHECK(first != std::string::npos);
+    CHECK(r.find("[policy]", first + 1) == std::string::npos);
+
+    // [policy] present without a level line → level appended inside the section.
+    std::string body2 = "[policy]\nblock-at = 0.8\n";
+    std::string r2 = upsert_policy_level(body2, 1);
+    CHECK(r2.find("level = 1") != std::string::npos);
+    CHECK(r2.find("block-at = 0.8") != std::string::npos);
 }
 
 } // TEST_SUITE("unit") — Layer 4/5 pure tests

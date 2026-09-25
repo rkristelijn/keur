@@ -56,12 +56,12 @@ TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
-IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp \
+IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp cmd/level.cpp \
              config/scopes.cpp config/hookmgr.cpp config/scanners.cpp config/disabled.cpp config/ruleset.cpp \
              scan/dispatch.cpp scan/mappers.cpp scan/json_util.cpp \
              learn/history.cpp learn/sysinfo.cpp learn/monitor.cpp \
              adapters/git.cpp adapters/fs.cpp adapters/proc.cpp adapters/sysinfo.cpp report/report.cpp \
-             render/display_width.cpp render/box.cpp common/keyinput.cpp \
+             render/display_width.cpp render/box.cpp render/logo.cpp render/logo_generated.cpp common/keyinput.cpp \
              manager/model.cpp manager/view.cpp manager/catalog_generated.cpp
 # Object files: flatten path (cmd/check.cpp -> keur_cmd_check.o) via subst
 IMPL_OBJS  = $(patsubst %.cpp,$(BINDIR)/keur_%.o,$(subst /,_,$(IMPL_SRCS)))
@@ -155,6 +155,9 @@ $(BINDIR)/keur_cmd_config.o: cmd/config.cpp cmd/config.h config/scopes.h adapter
 $(BINDIR)/keur_cmd_manager.o: cmd/manager.cpp cmd/manager.h cmd/config.h cmd/policy.h cmd/rules.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h manager/model.h manager/view.h manager/catalog.h common/platform.h adapters/git.h adapters/fs.h ../rules/rule_engine.h util/keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
+$(BINDIR)/keur_cmd_level.o: cmd/level.cpp cmd/level.h cmd/policy.h render/logo.h adapters/fs.h common/platform.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
 $(BINDIR)/keur_config_scopes.o: config/scopes.cpp config/scopes.h common/platform.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
@@ -183,6 +186,14 @@ $(BINDIR)/keur_render_display_width.o: render/display_width.cpp render/display_w
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_render_box.o: render/box.cpp render/box.h render/display_width.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+# Logo: pure width->bucket mapping (logo.cpp) + the baked braille blobs
+# (logo_generated.cpp, produced by scripts/gen-logo.sh — see the `logo` target).
+$(BINDIR)/keur_render_logo.o: render/logo.cpp render/logo.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_render_logo_generated.o: render/logo_generated.cpp render/logo.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_util_tokenizer.o: util/tokenizer.cpp util/tokenizer.h | $(BINDIR)
@@ -229,6 +240,18 @@ catalog: manager/catalog_generated.cpp ## Regenerate the baked rule catalogue
 $(BINDIR)/keur_manager_catalog_generated.o: manager/catalog_generated.cpp manager/catalog.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
+# Compile-time logo assets: baked from the logo PNG by scripts/gen-logo.sh into
+# render/logo_generated.cpp (committed, like the rule catalogue). Regenerated
+# on demand via `make logo`; the build does NOT run ffmpeg/node (ADR-002).
+# @implements KEUR-LOGO
+LOGO_PNG    ?= $(REPO_ROOT)/docs/design/assets/keur-logo-source.png
+LOGO_CONV   ?= $(REPO_ROOT)/scripts/img2braille.js
+render/logo_generated.cpp: $(REPO_ROOT)/scripts/gen-logo.sh $(LOGO_PNG) $(LOGO_CONV)
+	$(REPO_ROOT)/scripts/gen-logo.sh $@ $(LOGO_PNG) $(LOGO_CONV)
+
+.PHONY: logo
+logo: render/logo_generated.cpp ## Regenerate the baked braille logo (needs ffmpeg+node)
+
 $(BINDIR)/keur_report_report.o: report/report.cpp report/report.h util/keur_utils.h ../rules/rule_engine.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
@@ -238,7 +261,7 @@ $(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
 
 ## ---- Test binary ----------------------------------------------------------
 
-$(TEST_OBJ): keur_test.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/config.h cmd/manager.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h \
+$(TEST_OBJ): keur_test.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/config.h cmd/manager.h cmd/level.h render/logo.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h \
              adapters/git.h adapters/fs.h adapters/proc.h adapters/sysinfo.h learn/sysinfo.h report/report.h util/keur_utils.h \
              ../rules/tokenizer.h ../../vendor/doctest.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
