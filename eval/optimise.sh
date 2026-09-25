@@ -58,7 +58,9 @@ esac
 # measure with a given rules dir -> echoes "recall precision f1 fn" (space-sep)
 measure() {
     local dirs="$1"; local split="${2:-$TRAIN_SPLIT}"
-    KEUR_SPLIT="$split" KEUR_RULES_DIRS="$dirs" "$EVAL_CMD" >/dev/null 2>&1
+    # ADR-027: measure at file granularity so within-category gaps are real FNs.
+    KEUR_MATCH_GRANULARITY="${KEUR_MATCH_GRANULARITY:-file}" \
+      KEUR_SPLIT="$split" KEUR_RULES_DIRS="$dirs" "$EVAL_CMD" >/dev/null 2>&1
     python3 -c "import json;d=json.load(open('$HERE/corpus/measure.json'));print(d['recall'],d['precision'],d['f1'],d['fn'])"
 }
 

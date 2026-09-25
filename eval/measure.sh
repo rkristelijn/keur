@@ -133,6 +133,23 @@ def key(f):
         return (f.get("repo",""), f.get("category",""))
     return (f.get("repo",""), norm_file(f), f.get("category",""))
 
+# Ground-truth suppressions (ADR-027 triage): reviewed/LLM-judged FALSE
+# POSITIVES of the proven tools. One JSON line per suppressed finding:
+#   {"repo","file","category","reason","verdict","reviewed"}
+# A suppressed (repo,file,category) is dropped from the GT so the loop does not
+# chase a proven-tool FP. Nothing is deleted from groundtruth.jsonl — the
+# suppression list is a separate, auditable overlay a human can review.
+sup_path = os.path.join(os.path.dirname(gt_path), "gt-suppressions.jsonl")
+suppressed = set()
+if os.path.exists(sup_path):
+    for line in open(sup_path):
+        line=line.strip()
+        if not line: continue
+        try: s=json.loads(line)
+        except Exception: continue
+        if s.get("verdict") == "false-positive":
+            suppressed.add((s.get("repo",""), s.get("file",""), s.get("category","")))
+
 gt = collections.defaultdict(list)
 for line in open(gt_path):
     line=line.strip()
@@ -141,6 +158,8 @@ for line in open(gt_path):
     if not in_split(f.get("repo","")): continue   # only this split's repos
     if gt_tools and f.get("tool","") not in gt_tools: continue  # proven-tool filter
     if gt_cats and f.get("category","") not in gt_cats: continue  # category scope
+    if (f.get("repo",""), norm_file(f), f.get("category","")) in suppressed:
+        continue   # reviewed/judged proven-tool false positive — do not chase
     gt[key(f)].append(f)
 
 keur = collections.defaultdict(list)
