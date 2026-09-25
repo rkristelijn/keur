@@ -54,6 +54,16 @@ struct Proc {
      */
     std::function<ProcResult(const std::string& cmd)> capture = default_capture;
 
+    /**
+     * Shell-free capture: spawn argv[0] (PATH-resolved) with literal arguments,
+     * NO /bin/sh, and capture stdout. The safe form for scanner invocation
+     * where a repo-local config path or staged file name is passed as an
+     * argument — nothing in argv can be reinterpreted as a shell metacharacter
+     * (CWE-78, KEUR-SEC-006). Preferred over capture() for external scanners.
+     */
+    std::function<ProcResult(const std::vector<std::string>& argv)>
+        capture_argv = default_capture_argv;
+
     /** True if a binary is resolvable on PATH. */
     std::function<bool(const std::string& bin)> has = default_has;
 
@@ -63,6 +73,7 @@ struct Proc {
         const std::vector<std::string>& argv,
         const std::vector<std::pair<std::string, std::string>>& env);
     static ProcResult  default_capture(const std::string& cmd);
+    static ProcResult  default_capture_argv(const std::vector<std::string>& argv);
     static bool        default_has(const std::string& bin);
 };
 

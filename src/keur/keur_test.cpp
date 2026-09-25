@@ -54,6 +54,7 @@
 #include "adapters/git.h"
 #include "util/keur_utils.h"
 #include "adapters/proc.h"
+#include "scan/dispatch.h"
 #include "adapters/sysinfo.h"
 #include "learn/sysinfo.h"
 #include "report/report.h"
@@ -328,8 +329,25 @@ SCENARIO("[feature:check] cmd_check_parse ignores unknown flags") {
     CHECK(keur::cmd::check_parse({"--nope", "x"}).tier == keur::cmd::Tier::PreCommit);
 }
 
-SCENARIO("[feature:check] cmd_check PASS with empty file source") {
-    keur::cmd::CheckOptions opts;
+SCENARIO("[feature:check] format_finding_line — marks a blocker and shows file:line") {
+    auto s = keur::cmd::format_finding_line("KEUR-SEC-001", "block", "0.98",
+                                            "id_rsa.pem", 1, "Private key committed", true);
+    CHECK(s.rfind("BLOCK ", 0) == 0);          // starts with the blocker marker
+    CHECK(s.find("KEUR-SEC-001") != std::string::npos);
+    CHECK(s.find("conf 0.98") != std::string::npos);
+    CHECK(s.find("id_rsa.pem:1") != std::string::npos);
+    CHECK(s.find("Private key committed") != std::string::npos);
+}
+
+SCENARIO("[feature:check] format_finding_line — a warn finding is marked warn") {
+    auto s = keur::cmd::format_finding_line("KEUR-QUAL-002", "warn", "0.60",
+                                            "SECURITY.md", 0, "No SECURITY.md", false);
+    CHECK(s.rfind("warn  ", 0) == 0);
+    CHECK(s.find("SECURITY.md") != std::string::npos);
+    CHECK(s.find(":0") == std::string::npos);  // line 0 is not appended
+}
+
+SCENARIO("[feature:check] cmd_check PASS with empty file source") {    keur::cmd::CheckOptions opts;
     CHECK(keur::cmd::check(opts, []() { return std::vector<std::string>{}; }) == 0);
 }
 
@@ -341,8 +359,302 @@ SCENARIO("[feature:check] staged_files returns empty outside a git repo") {
     chdir(orig);
 }
 
-// --- [feature:scan] ---------------------------------------------------------
+// --- [feature:dispatch] -----------------------------------------------------
+// Scanner dispatch (ADR-019): resolve repo-local tool config, map proven-tool
+// JSON to Findings, and orchestrate enabled scanners over injected seams.
 
+SCENARIO("[feature:dispatch] resolve_tool_config — prefers repo root over .config/") {
+    // Both exist; root wins (the tool's documented default location).
+    auto exists = [](const std::string& p) {
+        return p == "/repo/.gitleaks.toml" || p == "/repo/.config/.gitleaks.toml";
+    };
+    CHECK(keur::scan::resolve_tool_config({".gitleaks.toml"}, "/repo", exists)
+          == "/repo/.gitleaks.toml");
+}
+
+SCENARIO("[feature:dispatch] resolve_tool_config — falls back to .config/") {
+    // Only the .config/ copy exists → that is returned.
+    auto exists = [](const std::string& p) {
+        return p == "/repo/.config/.gitleaks.toml";
+    };
+    CHECK(keur::scan::resolve_tool_config({".gitleaks.toml"}, "/repo", exists)
+          == "/repo/.config/.gitleaks.toml");
+}
+
+SCENARIO("[feature:dispatch] resolve_tool_config — none present → empty") {
+    auto exists = [](const std::string&) { return false; };
+    CHECK(keur::scan::resolve_tool_config({".gitleaks.toml"}, "/repo", exists).empty());
+}
+
+SCENARIO("[feature:dispatch] resolve_tool_config — tries candidates in order") {
+    // .semgrep.yml missing, .semgrep.yaml present → second candidate wins.
+    auto exists = [](const std::string& p) { return p == "/r/.semgrep.yaml"; };
+    CHECK(keur::scan::resolve_tool_config({".semgrep.yml", ".semgrep.yaml"}, "/r", exists)
+          == "/r/.semgrep.yaml");
+}
+
+SCENARIO("[feature:dispatch] map_gitleaks_json — maps a finding record") {
+    const std::string sample = R"([
+      {
+        "RuleID": "generic-api-key",
+        "Description": "Detected a generic API key",
+        "File": "src/config.js",
+        "StartLine": 42,
+        "Secret": "AKIA...redacted"
+      }
+    ])";
+    auto out = keur::scan::map_gitleaks_json(sample);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].source == "gitleaks");
+    CHECK(out[0].rule == "generic-api-key");
+    CHECK(out[0].category == "secret");
+    CHECK(out[0].action == "block");
+    CHECK(out[0].file == "src/config.js");
+    CHECK(out[0].line == 42);
+    CHECK(out[0].title == "Detected a generic API key");
+}
+
+SCENARIO("[feature:dispatch] map_gitleaks_json — empty/garbage yields no findings") {
+    CHECK(keur::scan::map_gitleaks_json("").empty());
+    CHECK(keur::scan::map_gitleaks_json("[]").empty());
+    CHECK(keur::scan::map_gitleaks_json("not json { }").empty());
+}
+
+SCENARIO("[feature:dispatch] map_semgrep_json — maps results[] records") {
+    const std::string sample = R"({
+      "results": [
+        {
+          "check_id": "javascript.lang.security.audit.sqli",
+          "path": "src/db.js",
+          "start": { "line": 7, "col": 3 },
+          "extra": { "severity": "ERROR", "message": "Possible SQL injection" }
+        }
+      ],
+      "errors": []
+    })";
+    auto out = keur::scan::map_semgrep_json(sample);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].source == "semgrep");
+    CHECK(out[0].rule == "javascript.lang.security.audit.sqli");
+    CHECK(out[0].category == "sast");
+    CHECK(out[0].severity == "error");
+    CHECK(out[0].action == "warn");
+    CHECK(out[0].file == "src/db.js");
+    CHECK(out[0].line == 7);
+    CHECK(out[0].message == "Possible SQL injection");
+}
+
+SCENARIO("[feature:dispatch] map_semgrep_json — no results key → empty") {
+    CHECK(keur::scan::map_semgrep_json("{\"errors\":[]}").empty());
+}
+
+SCENARIO("[feature:dispatch] dispatch — skips scanner not on PATH") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    keur::config::Scanner gl; gl.name = "gitleaks"; gl.enabled = true; gl.on_path = false;
+    ctx.scanners = {gl};
+    bool spawned = false;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    ctx.exists = [](const std::string&) { return false; };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    CHECK(out.empty());
+    CHECK_FALSE(spawned);  // a missing tool is never spawned
+}
+
+SCENARIO("[feature:dispatch] dispatch — runs gitleaks and passes repo-local config") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    ctx.repo_root = "/repo";
+    keur::config::Scanner gl; gl.name = "gitleaks"; gl.bin = "gitleaks";
+    gl.enabled = true; gl.on_path = true;
+    ctx.scanners = {gl};
+    // .gitleaks.toml present in repo root.
+    ctx.exists = [](const std::string& p) { return p == "/repo/.gitleaks.toml"; };
+    std::vector<std::string> seen_argv;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>& argv) {
+        seen_argv = argv;
+        keur::adapters::ProcResult r;
+        r.stdout_text = R"([{"RuleID":"aws-key","Description":"AWS key","File":"a.js","StartLine":1}])";
+        return r;
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].rule == "aws-key");
+    // The resolved repo-local config was passed through with --config.
+    bool has_config_flag = false;
+    for (size_t i = 0; i + 1 < seen_argv.size(); ++i)
+        if (seen_argv[i] == "--config" && seen_argv[i + 1] == "/repo/.gitleaks.toml")
+            has_config_flag = true;
+    CHECK(has_config_flag);
+}
+
+SCENARIO("[feature:dispatch] dispatch — no repo config → no --config flag for gitleaks") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    ctx.repo_root = "/repo";
+    keur::config::Scanner gl; gl.name = "gitleaks"; gl.bin = "gitleaks";
+    gl.enabled = true; gl.on_path = true;
+    ctx.scanners = {gl};
+    ctx.exists = [](const std::string&) { return false; };  // no tool config
+    std::vector<std::string> seen_argv;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>& argv) {
+        seen_argv = argv; return keur::adapters::ProcResult{};
+    };
+    keur::scan::dispatch_scanners(ctx);
+    bool has_config_flag = false;
+    for (const auto& a : seen_argv) if (a == "--config") has_config_flag = true;
+    CHECK_FALSE(has_config_flag);
+}
+
+SCENARIO("[feature:dispatch] dispatch — keur-rules layer flows through") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"x.py"};
+    ctx.keur_rules = [](const std::vector<std::string>&) {
+        keur::scan::Finding f; f.source = "keur-rules"; f.rule = "SEC-041";
+        f.action = "warn"; f.confidence = "0.60";
+        return std::vector<keur::scan::Finding>{f};
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].source == "keur-rules");
+    CHECK(out[0].rule == "SEC-041");
+}
+
+SCENARIO("[feature:dispatch] dispatch — disabled scanner is skipped") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    keur::config::Scanner gl; gl.name = "gitleaks"; gl.enabled = false; gl.on_path = true;
+    ctx.scanners = {gl};
+    bool spawned = false;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+    CHECK(keur::scan::dispatch_scanners(ctx).empty());
+    CHECK_FALSE(spawned);
+}
+
+SCENARIO("[feature:dispatch] map_shellcheck_json — error level blocks, warning warns") {
+    const std::string sample = R"({
+      "comments": [
+        {"file":"x.sh","line":3,"level":"warning","code":2034,"message":"unused var"},
+        {"file":"y.sh","line":9,"level":"error","code":1009,"message":"parse error"}
+      ]
+    })";
+    auto out = keur::scan::map_shellcheck_json(sample);
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].source == "shellcheck");
+    CHECK(out[0].rule == "SC2034");
+    CHECK(out[0].action == "warn");    // a lint warning must not block
+    CHECK(out[1].rule == "SC1009");
+    CHECK(out[1].action == "block");   // a hard error blocks
+    CHECK(out[1].file == "y.sh");
+    CHECK(out[1].line == 9);
+}
+
+SCENARIO("[feature:dispatch] dispatch — shellcheck only runs on shell files") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"README.md", "app.py"};  // no shell files
+    keur::config::Scanner sc; sc.name = "shellcheck"; sc.bin = "shellcheck";
+    sc.enabled = true; sc.on_path = true;
+    ctx.scanners = {sc};
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+    bool spawned = false;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    CHECK(keur::scan::dispatch_scanners(ctx).empty());
+    CHECK_FALSE(spawned);  // no shell files → not spawned
+}
+
+SCENARIO("[feature:dispatch] parse_finding_jsonl — caps confidence") {
+    // A script claiming confidence 1.0 must be clamped to the cap (0.80).
+    const std::string jsonl =
+        R"({"rule":"MY-001","action":"block","confidence":"1.0","file":"a","line":2,"message":"m"})";
+    auto out = keur::scan::parse_finding_jsonl(jsonl, 0.80);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].source == "project-local");
+    CHECK(out[0].rule == "MY-001");
+    CHECK(out[0].action == "block");
+    CHECK(out[0].confidence == "0.80");  // capped
+}
+
+SCENARIO("[feature:dispatch] parse_finding_jsonl — numeric confidence under cap kept") {
+    const std::string jsonl = R"({"rule":"MY-002","action":"warn","confidence":0.4})";
+    auto out = keur::scan::parse_finding_jsonl(jsonl, 0.80);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].confidence == "0.40");
+}
+
+SCENARIO("[feature:dispatch] project-local — untracked script is NOT run") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    ctx.repo_root = "/repo";
+    ctx.exists = [](const std::string& p) { return p == "/repo/.keur/check.sh"; };
+    ctx.is_tracked = [](const std::string&) { return false; };  // present but untracked
+    bool spawned = false;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    CHECK(keur::scan::dispatch_scanners(ctx).empty());
+    CHECK_FALSE(spawned);  // trust boundary: dropped script ignored
+}
+
+SCENARIO("[feature:dispatch] project-local — tracked script, non-zero exit blocks") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    ctx.repo_root = "/repo";
+    ctx.exists = [](const std::string& p) { return p == "/repo/.keur/check.sh"; };
+    ctx.is_tracked = [](const std::string& rel) { return rel == ".keur/check.sh"; };
+    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+        keur::adapters::ProcResult r; r.exit_code = 2; r.stdout_text = "";
+        return r;
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].source == "project-local");
+    CHECK(out[0].action == "block");
+    CHECK(out[0].confidence == "0.80");  // capped
+}
+
+SCENARIO("[feature:dispatch] project-local — .config/keur/check.sh fallback") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {};
+    ctx.repo_root = "/repo";
+    // Only the .config/ copy exists and is tracked.
+    ctx.exists = [](const std::string& p) { return p == "/repo/.config/keur/check.sh"; };
+    ctx.is_tracked = [](const std::string& rel) { return rel == ".config/keur/check.sh"; };
+    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+        keur::adapters::ProcResult r; r.exit_code = 0;
+        r.stdout_text = R"({"rule":"DEAD-LINK","action":"warn","message":"broken link"})";
+        return r;
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].rule == "DEAD-LINK");
+    CHECK(out[0].action == "warn");
+}
+
+SCENARIO("[feature:dispatch] project-local — disabled skips entirely") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {};
+    ctx.repo_root = "/repo";
+    ctx.project_local_enabled = false;
+    ctx.exists = [](const std::string& p) { return p == "/repo/.keur/check.sh"; };
+    ctx.is_tracked = [](const std::string&) { return true; };
+    bool spawned = false;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    CHECK(keur::scan::dispatch_scanners(ctx).empty());
+    CHECK_FALSE(spawned);
+}
+
+// --- [feature:scan] ---------------------------------------------------------
 SCENARIO("[feature:scan] cmd_scan_parse defaults to current dir") {
     auto o = keur::cmd::scan_parse({});
     CHECK(o.target == ".");
@@ -806,8 +1118,50 @@ SCENARIO("[feature:config] resolve_scanners fills PATH availability and config-f
     CHECK(sc[0].config_files[1].present == true);
 }
 
-// --- [feature:rules] disable-list (KEUR-DISABLED) ---------------------------
+SCENARIO("[feature:config] tier_scanners reads the scanners array for a tier") {  // @proves KEUR-TIER-SCANNERS
+    const std::string toml =
+        "[tiers.pre-commit]\n"
+        "budget-ms = 3000\n"
+        "scanners = [\"gitleaks\", \"pii\", \"keur-rules\"]\n"
+        "\n"
+        "[tiers.pre-push]\n"
+        "scanners = [\"gitleaks\", \"semgrep\", \"trivy\", \"keur-rules\"]\n";
+    auto pc = keur::config::tier_scanners(toml, "pre-commit");
+    REQUIRE(pc.size() == 3);
+    CHECK(pc[0] == "gitleaks");
+    CHECK(pc[1] == "pii");
+    CHECK(pc[2] == "keur-rules");
+    // The pre-push tier is a superset including the heavy tools.
+    auto pp = keur::config::tier_scanners(toml, "pre-push");
+    REQUIRE(pp.size() == 4);
+    CHECK(pp[1] == "semgrep");
+}
 
+SCENARIO("[feature:config] tier_scanners returns empty for an absent tier") {  // @proves KEUR-TIER-SCANNERS
+    CHECK(keur::config::tier_scanners("[tiers.ci]\nscanners = [\"x\"]\n", "pre-commit").empty());
+    CHECK(keur::config::tier_scanners("", "pre-commit").empty());
+}
+
+SCENARIO("[feature:dispatch] dispatch — tier filter keeps a tool out") {
+    // semgrep is enabled + on PATH, but the tier only allows gitleaks → semgrep
+    // must not be spawned (the pre-commit budget guard).
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    keur::config::Scanner sg; sg.name = "semgrep"; sg.bin = "semgrep";
+    sg.enabled = true; sg.on_path = true;
+    ctx.scanners = {sg};
+    ctx.tier_allowed = {"gitleaks"};  // semgrep not listed
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+    bool spawned = false;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    CHECK(keur::scan::dispatch_scanners(ctx).empty());
+    CHECK_FALSE(spawned);
+}
+
+// --- [feature:rules] disable-list (KEUR-DISABLED) ---------------------------
 SCENARIO("[feature:rules] parse_disabled reads inline and multi-line arrays") {  // @proves KEUR-DISABLED
     auto a = keur::config::parse_disabled("[rules]\ndisabled = [\"KEUR-SEC-001\", \"KEUR-QUAL-002\"]\n");
     CHECK(a.count("KEUR-SEC-001"));

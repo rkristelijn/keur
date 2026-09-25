@@ -50,6 +50,14 @@ struct ScannerProbe {
 /// (name/bin/group/action/enabled only — no I/O). Pure.
 [[nodiscard]] std::vector<Scanner> parse_scanners(const std::string& toml_body);
 
+/// The scanner names listed for a tier ([tiers.<tier>] scanners = [...]) in a
+/// keur.toml body. This is what keeps a heavy tool (semgrep) out of the fast
+/// pre-commit gate: only the tools named for the active tier are dispatched.
+/// Returns {} when the tier or its scanners key is absent (caller falls back to
+/// a sensible default). Pure. @id KEUR-TIER-SCANNERS
+[[nodiscard]] std::vector<std::string> tier_scanners(const std::string& toml_body,
+                                                     const std::string& tier);
+
 /// The known config/ignore files for a scanner name (data-driven; empty when
 /// none are known). E.g. "gitleaks" → {".gitleaks.toml", ".gitleaksignore"}.
 [[nodiscard]] std::vector<std::string> known_config_files(const std::string& scanner_name);
