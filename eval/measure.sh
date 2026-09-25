@@ -51,6 +51,15 @@ GT_TOOLS="${KEUR_GT_TOOLS:-}"
 # recall and precision are measured against the same scope — otherwise keur is
 # penalised (as FP) for firing in a category the filtered baseline no longer has.
 GT_CATS="${KEUR_GT_CATEGORIES:-}"
+
+# Match granularity (ADR-027): how finely a ground-truth finding must line up
+# with a keur finding to count as reproduced.
+#   file     -> (repo, file, category)  [DEFAULT] — keur must fire in the same
+#               file the proven tool flagged, for that category. Surfaces
+#               within-category gaps so the loop has real work.
+#   category -> (repo, category)          — legacy coarse audit (keur firing any
+#               finding of that category in the repo counts as covered).
+GRAN="${KEUR_MATCH_GRANULARITY:-file}"
 in_split() {
     # in_split <repo-name> -> 0 if it belongs to the active split
     [[ "$SPLIT" = "all" ]] && return 0
@@ -78,13 +87,14 @@ done
 
 # 2. Join keur findings with ground truth at (repo,category) granularity.
 # Pass the split so the ground truth is filtered to the same repos as keur's.
-python3 - "$GT" "$KEUR_FINDINGS" "$OUT" "$MODE" "$SPLIT" "$SPLIT_FILE" "$GT_TOOLS" "$GT_CATS" <<'PY'
+python3 - "$GT" "$KEUR_FINDINGS" "$OUT" "$MODE" "$SPLIT" "$SPLIT_FILE" "$GT_TOOLS" "$GT_CATS" "$GRAN" <<'PY'
 import json, sys, collections, os
 
 gt_path, keur_path, out_path, mode = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 split, split_file = sys.argv[5], sys.argv[6]
 gt_tools = set(t for t in sys.argv[7].split(",") if t) if len(sys.argv) > 7 else set()
 gt_cats  = set(c for c in sys.argv[8].split(",") if c) if len(sys.argv) > 8 else set()
+gran     = sys.argv[9] if len(sys.argv) > 9 else "file"
 
 # repo -> split assignment (unlisted = train)
 assign = {}
@@ -96,12 +106,32 @@ def in_split(repo):
     if split == "all": return True
     return assign.get(repo, "train") == split
 
+def norm_file(f):
+    # Normalise a finding's file to a REPO-RELATIVE path so keur (scanned with
+    # --dir <repo>, paths relative to the repo) and the ground truth (paths
+    # relative to the keur root, i.e. eval/corpus/repos/<repo>/...) align.
+    p = (f.get("file","") or "").replace("\\","/")
+    repo = f.get("repo","")
+    # strip a leading ".../repos/<repo>/" prefix if present (ground-truth side)
+    marker = "corpus/repos/" + repo + "/"
+    i = p.find(marker)
+    if i != -1:
+        return p[i+len(marker):]
+    # strip a leading "<repo>/" if present
+    if repo and p.startswith(repo + "/"):
+        return p[len(repo)+1:]
+    return p.lstrip("/")
+
 def key(f):
-    # repo + category (Option A): a ground-truth "secret" in a repo is reproduced
-    # if keur flags ANY secret in that repo. This measures category coverage, not
-    # exact file overlap, because proven tools and keur detect by different
-    # mechanisms (entropy/context vs keyword regex) and rarely hit the same file.
-    return (f.get("repo",""), f.get("category",""))
+    # ADR-027: granularity decides how finely GT and keur must line up.
+    #   category -> (repo, category): keur firing ANY finding of that category
+    #               in the repo counts as covered (coarse, legacy audit).
+    #   file     -> (repo, file, category): keur must fire in the SAME file the
+    #               proven tool flagged. Surfaces within-category gaps so the
+    #               optimiser has real, non-overfit work. (default)
+    if gran == "category":
+        return (f.get("repo",""), f.get("category",""))
+    return (f.get("repo",""), norm_file(f), f.get("category",""))
 
 gt = collections.defaultdict(list)
 for line in open(gt_path):
@@ -131,22 +161,26 @@ recall    = safe(len(tp), len(tp)+len(fn))
 precision = safe(len(tp), len(tp)+len(fp))
 f1        = safe(2*precision*recall, precision+recall)
 
+def cat_of(k):
+    return k[-1]   # category is the last element in both key shapes
+
 if mode == "fn":
     # FN clusters grouped by category: this is what the optimiser targets.
-    by_cat = collections.Counter(k[1] for k in fn)
-    print("FN clusters (ground truth keur misses), by category:")
+    by_cat = collections.Counter(cat_of(k) for k in fn)
+    print(f"FN clusters (ground truth keur misses) [granularity={gran}], by category:")
     for cat, n in by_cat.most_common():
         print(f"  {n:4d}  {cat}")
     print("\nsample missed findings:")
     for k in list(fn)[:10]:
         ex = gt[k][0]
-        print(f"  {ex.get('tool')}  {k[1]:8s}  {k[0]}/{ex.get('file')}")
+        print(f"  {ex.get('tool')}  {cat_of(k):8s}  {k[0]}/{ex.get('file')}")
 else:
-    result = {"tp":len(tp),"fn":len(fn),"fp":len(fp),
+    result = {"granularity":gran,
+              "tp":len(tp),"fn":len(fn),"fp":len(fp),
               "recall":round(recall,4),"precision":round(precision,4),"f1":round(f1,4),
-              "fn_by_category": dict(collections.Counter(k[1] for k in fn))}
+              "fn_by_category": dict(collections.Counter(cat_of(k) for k in fn))}
     json.dump(result, open(out_path,"w"), indent=2)
-    print(f"keur vs ground truth:  TP={len(tp)} FN={len(fn)} FP={len(fp)}")
+    print(f"keur vs ground truth [granularity={gran}]:  TP={len(tp)} FN={len(fn)} FP={len(fp)}")
     print(f"  recall    {recall:.3f}  (baseline reproduced)")
     print(f"  precision {precision:.3f}  (low noise)")
     print(f"  f1        {f1:.3f}")
