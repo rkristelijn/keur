@@ -70,6 +70,17 @@ Verdict policy_evaluate(const PolicyInput& input);
 bool finding_blocks(const std::string& action, const std::string& confidence,
                     double block_at);
 
+/**
+ * Format one finding as a single human-readable gate line:
+ *   "<mark> <rule> | <action> | conf <confidence> | <file>:<line> | <message>"
+ * `blocks` prepends a "BLOCK" vs "warn" marker so a user reading the gate output
+ * sees exactly which finding(s) caused a BLOCK. Pure — table-testable.
+ * @implements KEUR-SCAN-DISPATCH
+ */
+std::string format_finding_line(const std::string& rule, const std::string& action,
+                                const std::string& confidence, const std::string& file,
+                                int line, const std::string& message, bool blocks);
+
 // ---------------------------------------------------------------------------
 // I/O boundary (injectable for tests)
 // ---------------------------------------------------------------------------
