@@ -198,7 +198,7 @@ std::vector<Scanner> resolve_scanners(const std::vector<Scanner>& declared,
                                    ? rel
                                    : platform::path_join(probe.repo_root, rel);
             bool present = probe.exists ? probe.exists(full) : false;
-            s.config_files.emplace_back(rel, present);
+            s.config_files.push_back({rel, present});
         }
     }
     return out;
