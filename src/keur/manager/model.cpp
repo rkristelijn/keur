@@ -486,7 +486,7 @@ ScopeState desired_state(const Model& m, Scope scope) {
                     out->disabled_rules.push_back(n.rule_id);
             } else if (n.kind == NodeKind::ScannerNode) {
                 if (n.scope == scope && !n.inherited)
-                    out->scanner_enabled.emplace_back(n.rule_id, n.enabled);
+                    out->scanner_enabled.emplace_back(n.rule_id, n.enabled);  // keur:ignore KEUR-PORT-007 — std::pair<string,bool> has a constructor — safe
             } else {
                 for (const auto& c : n.children) walk(c);
             }
