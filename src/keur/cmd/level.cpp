@@ -15,8 +15,10 @@
 #include <vector>
 
 #include "adapters/fs.h"
+#include "adapters/git.h"
 #include "cmd/policy.h"
 #include "common/platform.h"
+#include "config/scopes.h"
 
 namespace keur::cmd {
 
@@ -79,6 +81,8 @@ LevelOptions level_parse(const std::vector<std::string>& args) {
         const std::string& a = args[i];
         if (a == "--no-color") {
             o.no_color = true;
+        } else if (a == "--global") {
+            o.global = true;
         } else if (a == "--config" && i + 1 < args.size()) {
             o.config = args[++i];
         } else if (a == "--print" && i + 1 < args.size()) {
@@ -248,9 +252,29 @@ bool persist_level(const std::string& config_path, int level, keur::adapters::Fs
     std::string body;
     auto rr = fs.read_file(config_path);
     if (rr.ok) body = rr.content;
+    // Ensure the parent dir exists (a first-time --global write lands in a
+    // not-yet-created ~/.config/keur/). mkdir_p is a no-op when it already is.
+    if (auto slash = config_path.find_last_of("/\\"); slash != std::string::npos)
+        fs.mkdir_p(config_path.substr(0, slash));
     return fs.write_file(config_path, upsert_policy_level(body, level));
 }
 
+}  // namespace
+
+namespace {
+// Where to persist the chosen level. --global targets the machine-wide config
+// (~/.config/keur/keur.toml) so a default difficulty applies to every repo;
+// otherwise the normal cascade (repo-local keur.toml wins). @id KEUR-LEVEL.target
+std::string target_config(const LevelOptions& opts) {
+    if (opts.global) {
+        adapters::Git git{};
+        config::ScopeEnv env = config::capture_scope_env(opts.config,
+                                                         git.run("rev-parse --show-toplevel"));
+        std::string g = config::global_config_path(env);
+        if (!g.empty()) return g;
+    }
+    return resolve_config(opts.config);
+}
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -296,7 +320,7 @@ int level(const LevelOptions& opts) {
             case platform::Key::Up:   if (selected > 1)         --selected; break;
             case platform::Key::Down: if (selected < max_level) ++selected; break;
             case platform::Key::Enter: {
-                auto cfg = resolve_config(opts.config);
+                auto cfg = target_config(opts);
                 keur::adapters::Fs fs;
                 if (persist_level(cfg, selected, fs)) {
                     std::cout << "\nSaved level " << selected << " to " << cfg << "\n";

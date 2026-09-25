@@ -84,6 +84,11 @@ struct Rule {
   std::string block_inner;    // block-absence: regex that MUST appear inside the block
   std::string block_trigger;  // block-absence: optional gate — only check blocks containing this
   int min_count = 0;          // count engine: fire only at >= this many matches (ADR-014)
+  // Maturity band (ADR-026): the LOWEST project level (1..5) at which this rule
+  // gates. keur activates a rule when its maturity <= the project's chosen level
+  // ([policy] level in keur.toml, set by `keur level`). 0 = unset -> defaults to
+  // 3 (defined) at filter time. Metadata only; the engine ignores it.
+  int maturity = 0;
   std::string within;         // count engine: scope — "file" (default). Reserved for "block".
   int window = 0;             // multiline engine: sliding window size in lines (default 2)
   // path-derived engine (ADR-020): the expected string is computed from the

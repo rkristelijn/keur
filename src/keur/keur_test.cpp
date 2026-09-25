@@ -1190,6 +1190,73 @@ SCENARIO("[feature:rules] filter_disabled drops exactly the listed ids") {  // @
     CHECK(keur::config::filter_disabled(rules, {}).size() == 3);
 }
 
+SCENARIO("[feature:rules] filter_by_maturity keeps rules at or below the level") {  // @proves KEUR-MATURITY.filter
+    std::vector<keur::Rule> rules;
+    keur::Rule s;  s.id = "SECRET"; s.maturity = 1; rules.push_back(s);
+    keur::Rule q;  q.id = "QUAL";   q.maturity = 3; rules.push_back(q);
+    keur::Rule i;  i.id = "IDIOM";  i.maturity = 5; rules.push_back(i);
+    keur::Rule d;  d.id = "DEFAULT"; /* maturity 0 -> treated as 3 */ rules.push_back(d);
+
+    // Level 1 (I'm Too Young to KEUR): only the maturity-1 rule.
+    auto l1 = keur::config::filter_by_maturity(rules, 1);
+    REQUIRE(l1.size() == 1);
+    CHECK(l1[0].id == "SECRET");
+
+    // Level 3 (KEUR Me Plenty): maturity<=3 → SECRET, QUAL, and the default(3).
+    auto l3 = keur::config::filter_by_maturity(rules, 3);
+    CHECK(l3.size() == 3);
+
+    // Level 5 (H4x0r c0d3fl3x): everything.
+    CHECK(keur::config::filter_by_maturity(rules, 5).size() == 4);
+
+    // Level 0/unset: no filter (backwards compatible).
+    CHECK(keur::config::filter_by_maturity(rules, 0).size() == 4);
+}
+
+SCENARIO("[feature:rules] rule parses maturity: N into rule.maturity") {  // @proves KEUR-MATURITY.parse
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/MAT.rule",
+        "id: MAT-EVAL\n"
+        "title: eval usage\n"
+        "category: sast\n"
+        "severity: warning\n"
+        "engine: pattern\n"
+        "maturity: 4\n"
+        "patterns:\n"
+        "  - regex: \\beval\\s*\\(\n"
+        "    message: eval usage\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    CHECK(rules[0].maturity == 4);   // maturity: 4 parsed into the int field
+
+    // An unset maturity stays 0 (the filter treats 0 as the default band).
+    write_file(dir + "/NOMAT.rule",
+        "id: NOMAT-EVAL\n"
+        "title: eval usage\n"
+        "category: sast\n"
+        "severity: warning\n"
+        "engine: pattern\n"
+        "patterns:\n"
+        "  - regex: \\beval\\s*\\(\n"
+        "    message: eval usage\n");
+    auto rules2 = keur::rules_load(dir);
+    bool saw_nomat = false;
+    for (const auto& r : rules2) if (r.id == "NOMAT-EVAL") { saw_nomat = true; CHECK(r.maturity == 0); }
+    CHECK(saw_nomat);
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rules] policy_level reads [policy] level from keur.toml") {  // @proves KEUR-MATURITY.level
+    CHECK(keur::config::policy_level("[policy]\nlevel = 2\n") == 2);
+    CHECK(keur::config::policy_level("version=\"1\"\n[policy]\nblock-at=0.85\nlevel = 5\n") == 5);
+    // absent -> 0 (no filter)
+    CHECK(keur::config::policy_level("[policy]\nblock-at = 0.85\n") == 0);
+    CHECK(keur::config::policy_level("") == 0);
+    // a level key outside [policy] must not count
+    CHECK(keur::config::policy_level("[other]\nlevel = 4\n") == 0);
+}
+
 SCENARIO("[feature:rules] upsert_disabled_section round-trips and preserves other config") {  // @proves KEUR-DISABLED
     std::string base = "version = \"0.1.0\"\nblock-at = 0.85\n";
     // add two ids → a [rules] section is appended, other keys preserved
@@ -3317,6 +3384,10 @@ SCENARIO("[feature:level] level_parse reads --print / --bucket / --no-color / --
     CHECK(def.print_only == false);
     CHECK(def.no_color == false);
     CHECK(def.bucket_set == false);
+    CHECK(def.global == false);
+
+    auto g = level_parse({"--global"});
+    CHECK(g.global == true);
 
     auto p = level_parse({"--print", "3", "--no-color"});
     CHECK(p.print_only == true);

@@ -41,6 +41,10 @@ struct LevelOptions {
     int         print_level = 0;     ///< --print <N> (1..5), 0 = unset
     bool        bucket_set  = false; ///< --bucket <sm|md|lg|xl> was given
     render::Bucket bucket = render::Bucket::Md;  ///< forced bucket (--bucket)
+    bool        global      = false; ///< --global: write to the GLOBAL keur.toml
+                                     ///< (~/.config/keur/keur.toml) instead of
+                                     ///< the repo-local one — a machine-wide
+                                     ///< default difficulty for all repos.
 };
 
 /// Parse argv into LevelOptions. Pure — no I/O. Unknown flags are ignored so

@@ -27,6 +27,47 @@ std::vector<Rule> filter_disabled(std::vector<Rule> rules,
     return kept;
 }
 
+std::vector<Rule> filter_by_maturity(std::vector<Rule> rules, int level,
+                                     int default_maturity) {
+    if (level <= 0) return rules;  // no level configured -> no maturity filter
+    std::vector<Rule> kept;
+    kept.reserve(rules.size());
+    for (auto& r : rules) {
+        int m = r.maturity > 0 ? r.maturity : default_maturity;
+        if (m <= level) kept.push_back(std::move(r));
+    }
+    return kept;
+}
+
+int policy_level(const std::string& toml_body) {
+    // Line scanner: find [policy], then its `level = N` (mirrors upsert in
+    // cmd/level.cpp). Small + dependency-free, like the other config readers.
+    bool in_policy = false;
+    size_t pos = 0;
+    auto trim = [](std::string s) {
+        auto a = s.find_first_not_of(" \t\r");
+        if (a == std::string::npos) return std::string();
+        auto b = s.find_last_not_of(" \t\r");
+        return s.substr(a, b - a + 1);
+    };
+    while (pos < toml_body.size()) {
+        size_t nl = toml_body.find('\n', pos);
+        std::string line = trim(nl == std::string::npos ? toml_body.substr(pos)
+                                                        : toml_body.substr(pos, nl - pos));
+        pos = (nl == std::string::npos) ? toml_body.size() : nl + 1;
+        if (line.empty() || line[0] == '#') continue;
+        if (line.front() == '[' && line.back() == ']') { in_policy = (line == "[policy]"); continue; }
+        if (in_policy && line.rfind("level", 0) == 0) {
+            size_t eq = line.find('=');
+            if (eq != std::string::npos) {
+                try { return std::stoi(trim(line.substr(eq + 1))); }
+                catch (const std::exception&) { return 0; }
+            }
+        }
+    }
+    return 0;
+}
+
 std::vector<Rule> load_active_rules(std::set<std::string>* out_disabled) {
     // 1. gather every rule from the resolved rule dirs.
     std::vector<Rule> rules;
@@ -46,7 +87,20 @@ std::vector<Rule> load_active_rules(std::set<std::string>* out_disabled) {
     });
 
     if (out_disabled) *out_disabled = disabled;
-    return filter_disabled(std::move(rules), disabled);
+    auto kept = filter_disabled(std::move(rules), disabled);
+
+    // 3. Maturity band (ADR-026): keep only rules that gate at or below the
+    //    project's chosen level ([policy] level, written by `keur level`).
+    //    Read from the resolved layer stack, most-specific-first (repo/explicit
+    //    win over global). Absent -> level 0 -> no filter (backwards compatible).
+    int level = 0;
+    for (auto it = layers.rbegin(); it != layers.rend() && level == 0; ++it) {
+        if (!it->exists || it->path.empty()) continue;
+        auto rr = fs.read_file(it->path);
+        if (rr.ok) level = policy_level(rr.content);
+    }
+    kept = filter_by_maturity(std::move(kept), level);
+    return kept;
 }
 
 }  // namespace keur::config

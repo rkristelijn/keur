@@ -127,6 +127,7 @@ Rule rule_parse(const std::string& path) {
     else if (key == "block_inner") rule.block_inner = val;
     else if (key == "block_trigger") rule.block_trigger = val;
     else if (key == "min_count") rule.min_count = std::atoi(val.c_str());
+    else if (key == "maturity") rule.maturity = std::atoi(val.c_str());  // @id KEUR-MATURITY.parse — maturity band (ADR-026)
     else if (key == "within") rule.within = val;
     else if (key == "window") rule.window = std::atoi(val.c_str());
     else if (key == "path_capture") rule.path_capture = val;
