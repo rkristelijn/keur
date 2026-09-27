@@ -1,0 +1,29 @@
+# OS command injection via os.popen (and its siblings) with a NON-literal
+# argument. Sibling of KEUR-CMDI-001 / KEUR-SEC-008, which cover
+# os.system / subprocess.* / exec / backticks but NOT the popen family.
+#
+# Found as a real keur false-negative (2026-09-26): DVGA core/helpers.py:9
+#   def run_cmd(cmd): return os.popen(cmd).read()
+# is a genuine command sink (bandit + semgrep both flag it) that keur missed
+# because os.popen was absent from every existing cmdi sink list.
+#
+# Match the popen-family sink when its argument is NOT a bare string literal
+# (a variable / concatenation / interpolation) — "match the sink, subtract the
+# safe literal case" (the same generalising shape as KEUR-CMDI-001), so a fixed
+# os.popen("ls -la") does not fire but os.popen(cmd) / os.popen("x"+y) does.
+id: KEUR-CMDI-003
+maturity: 2
+title: OS command injection — os.popen family sink with a non-literal argument
+category: cmdi
+severity: critical
+engine: pattern
+action: block
+skip_comments: true
+target:
+  extensions: .py
+patterns:
+  - regex: (?i)\b(?:os\.popen[234]?|os\.popen|subprocess\.getoutput|subprocess\.getstatusoutput|commands\.getoutput|commands\.getstatusoutput)\s*\([^)]*[^"'\s)][^)]*\)
+    exclude: (?i)\b(?:os\.popen[234]?|subprocess\.getoutput|subprocess\.getstatusoutput|commands\.getoutput|commands\.getstatusoutput)\s*\(\s*[fr]?["'][^"']*["']\s*\)
+    message: A popen-family shell sink (os.popen / subprocess.getoutput / commands.getoutput) is called with a non-literal (variable/assembled) argument — potential OS command injection (CWE-78). If any part is user-influenced this is command injection.
+confidence: 0.85
+fix: Use a shell-free argument vector (subprocess.run([...]) without shell=True) and never pass an assembled command string to os.popen / getoutput.
