@@ -33,6 +33,13 @@ struct Layer {
     Scope       scope;
     std::string path;          ///< resolved keur.toml path ("" for Defaults)
     bool        exists = false;///< whether the file is present on disk
+
+    Layer() = default;
+    // Explicit constructor so vector::emplace_back works on every toolchain:
+    // libc++ (macOS Xcode CI) cannot emplace a constructor-less aggregate.
+    // @see KEUR-PORT-007
+    Layer(Scope scope_, std::string path_, bool exists_)
+        : scope(scope_), path(std::move(path_)), exists(exists_) {}
 };
 
 /// Snapshot of the environment the resolution depends on. Captured once so the
