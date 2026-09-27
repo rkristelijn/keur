@@ -341,6 +341,83 @@ PY
     rm -f "$out"
 }
 
+# --- hadolint: Dockerfile linter (finds every Dockerfile, lints each) --------
+run_hadolint() {
+    have hadolint || { echo "groundtruth: hadolint absent, skipped" >&2; return; }
+    local tmp; tmp="$(mktemp)"
+    # hadolint takes one file at a time; collect JSON arrays, one per Dockerfile.
+    find "$TARGET" -type f \( -iname "Dockerfile" -o -iname "Dockerfile.*" -o -iname "*.dockerfile" \) 2>/dev/null \
+      | grep -v "/\.git/" | while IFS= read -r df; do
+        hadolint --format json "$df" 2>/dev/null || true
+        echo
+    done > "$tmp"
+    KEUR_ROOT="$TARGET" python3 - "$tmp" <<'PY'
+import json, sys, os
+root = os.environ["KEUR_ROOT"].rstrip("/")
+for line in open(sys.argv[1]):
+    line = line.strip()
+    if not line: continue
+    try:
+        arr = json.loads(line)
+    except Exception:
+        continue
+    for r in (arr if isinstance(arr, list) else [arr]):
+        path = r.get("file", "")
+        rel = os.path.relpath(path, root) if os.path.isabs(path) else path
+        print(json.dumps({
+            "source": "groundtruth", "tool": "hadolint",
+            "rule": r.get("code", "hadolint"), "category": "iac",
+            "file": rel, "line": r.get("line", 0) or 0,
+        }))
+PY
+    rm -f "$tmp"
+}
+
+# --- psalm: PHP static analysis (security-aware with taint) ------------------
+run_psalm() {
+    have psalm || { echo "groundtruth: psalm absent, skipped" >&2; return; }
+    # psalm needs a php project; run in --no-cache, JSON report, tolerate no-config.
+    local out; out="$(mktemp)"
+    # psalm needs a config; on a bare repo generate a minimal one so it still runs.
+    ( cd "$TARGET" 2>/dev/null || exit 0
+      if [[ -f psalm.xml || -f psalm.xml.dist ]]; then
+        psalm --output-format=json --no-progress --no-cache 2>/dev/null > "$out" || true
+      else
+        cfg="$(mktemp psalm-XXXX.xml)"
+        printf '%s\n' '<?xml version="1.0"?>' \
+          '<psalm errorLevel="8" resolveFromConfigFile="true" findUnusedCode="false">' \
+          '  <projectFiles><directory name="."/></projectFiles>' \
+          '</psalm>' > "$cfg"
+        psalm --config="$cfg" --output-format=json --no-progress --no-cache 2>/dev/null > "$out" || true
+        rm -f "$cfg"
+      fi
+    )
+    python3 - "$out" "$TARGET" <<'PY'
+import json, sys, os
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    data = []
+root = sys.argv[2].rstrip("/")
+issues = data if isinstance(data, list) else data.get("issues", [])
+def categorise(t):
+    t = (t or "").lower()
+    if "sql" in t or "taintedsql" in t: return "sqli"
+    if "shell" in t or "exec" in t or "command" in t: return "cmdi"
+    if "xss" in t or "html" in t: return "xss"
+    return "sast"
+for r in issues or []:
+    path = r.get("file_path", "") or r.get("file_name", "")
+    rel = os.path.relpath(path, root) if os.path.isabs(path) else path
+    print(json.dumps({
+        "source": "groundtruth", "tool": "psalm",
+        "rule": r.get("type", "psalm"), "category": categorise(r.get("type")),
+        "file": rel, "line": r.get("line_from", 0) or 0,
+    }))
+PY
+    rm -f "$out"
+}
+
 case "$TOOL" in
   gitleaks)   run_gitleaks ;;
   semgrep)    run_semgrep ;;
@@ -352,6 +429,8 @@ case "$TOOL" in
   bandit)     run_bandit ;;
   njsscan)    run_njsscan ;;
   tfsec)      run_tfsec ;;
-  all)        run_gitleaks; run_semgrep; run_trufflehog; run_trivy; run_checkov; run_osv; run_grype; run_bandit; run_njsscan; run_tfsec ;;
-  *) echo "unknown tool: $TOOL (use gitleaks|semgrep|trufflehog|trivy|checkov|osv|grype|bandit|njsscan|tfsec|all)" >&2; exit 1 ;;
+  hadolint)   run_hadolint ;;
+  psalm)      run_psalm ;;
+  all)        run_gitleaks; run_semgrep; run_trufflehog; run_trivy; run_checkov; run_osv; run_grype; run_bandit; run_njsscan; run_tfsec; run_hadolint; run_psalm ;;
+  *) echo "unknown tool: $TOOL (use gitleaks|semgrep|trufflehog|trivy|checkov|osv|grype|bandit|njsscan|tfsec|hadolint|psalm|all)" >&2; exit 1 ;;
 esac

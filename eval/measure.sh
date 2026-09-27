@@ -22,7 +22,10 @@ HERE="$(cd "$(dirname "$0")" && pwd -P)"
 KEUR_HOME="$(cd "$HERE/.." && pwd -P)"
 export KEUR_HOME
 CACHE="$HERE/corpus/repos"
-GT="$HERE/corpus/groundtruth.jsonl"
+# Ground-truth source. Default is the proven-tool GT (mimicry signal). Set
+# KEUR_GT_FILE to eval/corpus/authored-groundtruth.jsonl to train/measure against
+# the AUTHORED ground truth (the repos' own markers — correctness signal, ADR-032).
+GT="${KEUR_GT_FILE:-$HERE/corpus/groundtruth.jsonl}"
 OUT="$HERE/corpus/measure.json"
 NATIVE="$KEUR_HOME/bin/keur-rules"
 
@@ -155,6 +158,7 @@ if os.path.exists(sup_path):
             suppressed.add((s.get("repo",""), s.get("file",""), s.get("category","")))
 
 gt = collections.defaultdict(list)
+safe_keys = set()   # authored expect:safe loci — keur firing here is a real FP
 for line in open(gt_path):
     line=line.strip()
     if not line: continue
@@ -162,6 +166,16 @@ for line in open(gt_path):
     if not in_split(f.get("repo","")): continue   # only this split's repos
     if gt_tools and f.get("tool","") not in gt_tools: continue  # proven-tool filter
     if gt_cats and f.get("category","") not in gt_cats: continue  # category scope
+    # Authored-GT schema (has 'expect'): only trust ADJUDICATED labels, and split
+    # positive (vulnerable) from negative (safe). Scanner GT has no 'expect' and
+    # is used as-is (every finding is a positive).
+    if "expect" in f:
+        if f.get("reviewed") is not True:
+            continue   # unadjudicated candidate — not ground truth yet
+        if f.get("expect") == "safe":
+            safe_keys.add(key(f))
+            continue
+        # else expect == vulnerable -> a positive label (fall through)
     if (f.get("repo",""), norm_file(f), f.get("category","")) in suppressed:
         continue   # reviewed/judged proven-tool false positive — do not chase
     gt[key(f)].append(f)
@@ -177,7 +191,13 @@ for line in open(keur_path):
 gt_keys, keur_keys = set(gt), set(keur)
 tp = gt_keys & keur_keys
 fn = gt_keys - keur_keys      # ground truth found it, keur missed  -> LEARN
-fp = keur_keys - gt_keys      # keur fired, ground truth did not     -> NOISE
+# FP = keur fired on a locus the authored GT marked SAFE (a real, adjudicated
+# false positive). When there are no safe labels (scanner GT), fall back to the
+# legacy "keur fired where GT had nothing" heuristic so behaviour is unchanged.
+if safe_keys:
+    fp = keur_keys & safe_keys
+else:
+    fp = keur_keys - gt_keys      # keur fired, ground truth did not     -> NOISE
 
 def safe(a,b): return a/b if b else 0.0
 recall    = safe(len(tp), len(tp)+len(fn))

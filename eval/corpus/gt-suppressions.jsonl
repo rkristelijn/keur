@@ -1,0 +1,2 @@
+{"repo": "dolevf_Damn-Vulnerable-GraphQL-Application", "file": "config.py", "was": "path-traversal", "verdict": "false-positive", "reason": "os.getcwd() for DB path, no user input \u2014 not path traversal", "reviewed": true}
+{"repo": "OWASP_NodeGoat", "file": "Gruntfile.js", "was": "cmdi", "verdict": "false-positive", "reason": "exec in build tooling (Gruntfile), not an app vulnerability", "reviewed": true}
