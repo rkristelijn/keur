@@ -81,6 +81,11 @@ struct Edit {
 /// Model's tree (valid until the tree is mutated).
 struct Row {
     const Node* node;
+
+    // Explicit constructor so vector::emplace_back works on every toolchain:
+    // libc++ (macOS Xcode CI) cannot emplace a constructor-less aggregate.
+    // @see KEUR-PORT-007
+    explicit Row(const Node* node_) : node(node_) {}
 };
 
 // --- Build ------------------------------------------------------------------
