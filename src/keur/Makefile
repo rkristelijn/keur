@@ -57,7 +57,7 @@ TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
 IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp cmd/level.cpp \
-             config/scopes.cpp config/hookmgr.cpp config/scanners.cpp config/disabled.cpp config/ruleset.cpp \
+             config/scopes.cpp config/hookmgr.cpp config/scanners.cpp config/disabled.cpp config/keurignore.cpp config/ruleset.cpp \
              scan/dispatch.cpp scan/mappers.cpp scan/json_util.cpp \
              learn/history.cpp learn/sysinfo.cpp learn/monitor.cpp \
              adapters/git.cpp adapters/fs.cpp adapters/proc.cpp adapters/sysinfo.cpp report/report.cpp \
@@ -168,6 +168,9 @@ $(BINDIR)/keur_config_scanners.o: config/scanners.cpp config/scanners.h common/p
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_config_disabled.o: config/disabled.cpp config/disabled.h config/scopes.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_config_keurignore.o: config/keurignore.cpp config/keurignore.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_scan_dispatch.o: scan/dispatch.cpp scan/dispatch.h adapters/git.h adapters/proc.h config/scanners.h common/platform.h | $(BINDIR)
