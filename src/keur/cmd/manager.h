@@ -43,6 +43,13 @@ struct ManagerDeps {
 struct RuleCategoryCount {
     std::string category;
     int         count = 0;
+
+    RuleCategoryCount() = default;
+    // Explicit constructor so vector::emplace_back works on every toolchain:
+    // libc++ (macOS Xcode CI) cannot emplace a constructor-less aggregate.
+    // @see KEUR-PORT-007
+    RuleCategoryCount(std::string category_, int count_)
+        : category(std::move(category_)), count(count_) {}
 };
 
 /// The aggregated board — the tree's data model, resolved once.
