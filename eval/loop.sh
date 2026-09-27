@@ -21,12 +21,42 @@ case "${1:-run}" in
     rm -f "$STOP"
     end=$(( $(date +%s) + MINUTES*60 ))
     echo "[$(date +%H:%M:%S)] eval-loop start: budget=${MINUTES}m  stop: touch $STOP" | tee -a "$LOG"
-    i=0
+    # Early-stop on stagnation: this is a MEASUREMENT loop over a STATIC corpus,
+    # so once the metrics stop moving there is nothing more to observe — without
+    # an optimiser mutating rules between iterations, every further iteration
+    # measures the identical result. Repeating that for a whole time budget just
+    # burns CPU (observed: 45 min of identical iters). If the metric line is
+    # unchanged for KEUR_LOOP_MAX_STALL iterations (default 3), stop and say why.
+    # Set KEUR_LOOP_MAX_STALL=0 to disable (e.g. when an optimiser IS mutating
+    # rules between iterations and you want to keep measuring).
+    max_stall="${KEUR_LOOP_MAX_STALL:-3}"
+    i=0; stall=0; prev=""
     while [[ "$(date +%s)" -lt "$end" ]]; do
       [[ -f "$STOP" ]] && { echo "[$(date +%H:%M:%S)] stop-file seen" | tee -a "$LOG"; break; }
       i=$((i+1))
       line="$("$KEUR_HOME/eval/evaluate.sh" --quiet 2>/dev/null | head -1)"
       echo "[$(date +%H:%M:%S)] iter $i: $line" | tee -a "$LOG"
+
+      # FN=0 means keur already reproduces every authored positive — no recall
+      # left to gain; the only headroom is precision (the FP count). Surface it.
+      if echo "$line" | grep -q 'FN=0 '; then
+        echo "[$(date +%H:%M:%S)] note: FN=0 — full recall on this corpus; no recall to learn. Remaining headroom is precision (reduce FP). A recall-driven optimiser has nothing to do here." | tee -a "$LOG"
+      fi
+
+      # Stagnation check: compare the metric payload (ignoring the timestamp).
+      if [[ "$max_stall" -gt 0 ]]; then
+        if [[ "$line" == "$prev" ]]; then
+          stall=$((stall+1))
+        else
+          stall=0
+        fi
+        prev="$line"
+        if [[ "$stall" -ge "$max_stall" ]]; then
+          echo "[$(date +%H:%M:%S)] early-stop: metrics unchanged for $max_stall iterations (static corpus, no optimiser mutating rules). Nothing more to measure — stopping instead of busy-spinning. Set KEUR_LOOP_MAX_STALL=0 to keep measuring." | tee -a "$LOG"
+          break
+        fi
+      fi
+
       # small pause so we don't spin; the corpus is static within a run, so
       # repeated iterations measure stability + let the optimiser (later) mutate
       # rules between iterations.
