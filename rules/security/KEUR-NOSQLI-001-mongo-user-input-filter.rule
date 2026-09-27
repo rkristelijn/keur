@@ -1,0 +1,28 @@
+# NoSQL injection: user-controlled input (req.body / req.query / req.params)
+# passed DIRECTLY into a MongoDB query filter object. Mongo treats an object
+# like { _id: req.body.id } as a query — if req.body.id is itself an object
+# (e.g. {"$ne": null}) the attacker controls the query operator (CWE-943).
+#
+# Found via OWASP Juice Shop's own author marker (2026-09-26):
+#   routes/updateProductReviews.ts:18
+#   db.reviewsCollection.update({ _id: req.body.id }, ...) // vuln-line noSqlReviewsChallenge
+# keur had no NoSQL-injection rule at all (only KEUR-SQLI-* for classic SQL).
+#
+# Match a Mongo collection method (find/findOne/update/updateOne/delete*/remove/
+# aggregate/count) whose FIRST argument object embeds req.body/query/params
+# without a String()/sanitiser wrapper. A String(req.body.id) cast does not match.
+id: KEUR-NOSQLI-001
+maturity: 2
+title: NoSQL injection — user input in a MongoDB query filter
+category: sqli
+severity: critical
+engine: pattern
+action: block
+target:
+  extensions: .js .ts .mjs
+patterns:
+  - regex: (?i)\.(?:find|findOne|findOneAndUpdate|update|updateOne|updateMany|deleteOne|deleteMany|remove|count|countDocuments|aggregate)\s*\(\s*\{[^}]*\breq\.(?:body|query|params)\.[A-Za-z0-9_]+[^}]*\}
+    exclude: (?i)(?:String|Number|parseInt|parseFloat|Boolean|ObjectId)\s*\(\s*req\.(?:body|query|params)|\{\s*where\s*:
+    message: A MongoDB query filter embeds req.body/query/params directly (CWE-943). If the value is an object the attacker controls the query operators (e.g. {"$ne":null}) — NoSQL injection. Cast/validate the value (String(req.body.id)) or use a schema-validated, typed query.
+confidence: 0.8
+fix: Coerce and validate the input before it reaches the query — e.g. { _id: String(req.body.id) } — or use a validation layer (Joi/zod) so a query operator object can never be injected.

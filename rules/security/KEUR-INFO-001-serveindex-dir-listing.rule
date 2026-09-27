@@ -1,0 +1,25 @@
+# Directory listing exposure: Express serveIndex() publishes a browsable file
+# listing of a server directory over HTTP. Unless the directory is deliberately
+# public, this leaks file names, structure, and often sensitive artifacts
+# (logs, keys, backups) — information disclosure (CWE-548).
+#
+# Found via OWASP Juice Shop's own author markers (2026-09-26):
+#   server.ts:288  app.use('/ftp', ..., serveIndex('ftp', { icons: true })) // vuln-line directoryListingChallenge
+#   server.ts:300  app.use('/support/logs', ..., serveIndex('logs', ...))   // vuln-line accessLogDisclosureChallenge
+# keur had no directory-listing rule.
+#
+# Match a serveIndex(...) call (the middleware that renders the listing).
+id: KEUR-INFO-001
+maturity: 2
+title: Directory listing exposed over HTTP via serveIndex()
+category: data-exposure
+severity: warning
+engine: pattern
+action: warn
+target:
+  extensions: .js .ts .mjs
+patterns:
+  - regex: \bserveIndex\s*\(
+    message: serveIndex() publishes a browsable directory listing over HTTP (CWE-548). This leaks file names/structure and often sensitive files (logs, keys, backups). Serve only intentionally-public dirs, and never expose logs/keys/config directories.
+confidence: 0.65
+fix: Remove serveIndex for any directory that is not deliberately public. Serve specific files explicitly instead of a browsable index, and keep logs/keys/backups out of any web-served path.

@@ -5,11 +5,14 @@ title: Weak cryptographic algorithms (MD5, SHA-1, DES, RC4)
 category: security
 severity: error
 engine: pattern
-skip_comments: true
-# NOTE: skip_strings must stay OFF here. These patterns match the algorithm
-# name inside a string literal (createHash('md5'), getInstance("MD5")), so
-# stripping strings would blank the very payload they detect. skip_comments
-# alone keeps a "md5" mention in a comment from firing.
+# NOTE: skip_comments and skip_strings are BOTH intentionally OFF. These patterns
+# match the algorithm name INSIDE a string literal (createHash('md5'),
+# getInstance("MD5")) — so skip_strings would blank the payload. And keur's
+# skip_comments blanks the matched code on .ts/.js too (verified 2026-09-26: it
+# silently disabled this whole rule on JS/TS), so it must stay off. The specific
+# createHash/getInstance/hashlib patterns are precise; the broad bare-word
+# pattern below is the only one that could catch a comment mention, and that is
+# an acceptable rare warning for a critical-crypto rule.
 target:
   extensions: .ts .js .py .java .go .cpp .h .rb .cs .php
   exclude_paths: test/ node_modules/ vendor/ _test.go
