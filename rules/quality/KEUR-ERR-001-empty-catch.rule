@@ -1,0 +1,59 @@
+# Empty catch block that swallows the error entirely (jsts#31, CWE-390 /
+# CWE-703). A `catch` clause whose body contains no statements — only
+# whitespace and/or comments — silently discards the exception: the caller
+# sees a success (or an undefined result) even though the operation failed,
+# and there is nothing in logs to debug from.
+#
+# Why a NEW rule (verified false-negative on mestjs slop.service.ts,
+# 2026-09-26): the existing SEC-042 already matches the single-line form
+# `catch {}` and `catch (e) {}`, but a *multi-line* empty catch whose body
+# holds only a comment —
+#     } catch {
+#       // swallowed on purpose
+#     }
+# — was a genuine FN. This rule closes that gap with skip_comments so the
+# comment inside the block does NOT count as a statement.
+#
+# HOW: match a `catch` header (optionally with a binding `(e)`) followed by an
+# opening brace and then, allowing whitespace/newlines that skip_comments
+# leaves after blanking a comment-only body, a closing brace with nothing real
+# in between. skip_comments blanks comment CONTENT to spaces (newlines kept),
+# so a comment-only catch body collapses to whitespace between the braces and
+# the pattern fires; a catch with an actual statement (`log(e)`, `throw`, etc.)
+# does not, because a non-space/non-brace token sits between the braces.
+#
+# The `multiline` engine is required (not `pattern`): keur's pattern engine
+# matches per single line, but a real-world empty catch spans lines —
+#     } catch {
+#       // swallowed
+#     }
+# so we join a small window (3 lines) and match across it. That also covers
+# the single-line `catch {}` / `catch (e) {}` form in one rule.
+#
+# RE2-safe: no backreferences; `[^)]*` for the binding and `\s*` inside the
+# braces are single bounded stars over disjoint input — no catastrophic
+# backtracking. WARN, not block: swallowing is a robustness smell, and some
+# empty catches are deliberate (best-effort cleanup) — nudge, don't stop.
+#
+# @see docs/research/javascript-typescript.md #31, ESLint no-empty, CWE-390.
+id: KEUR-ERR-001
+maturity: 1
+title: Empty catch block swallows the error (no handling, log, or rethrow)
+category: quality
+severity: warning
+engine: multiline
+window: 3
+action: warn
+skip_comments: true
+target:
+  extensions: .js .ts .jsx .tsx
+  exclude_paths: node_modules/ dist/ build/ vendor/
+patterns:
+  # `catch` (with or without a binding) -> `{` -> only whitespace -> `}`.
+  # With skip_comments the body of a comment-only catch is blank, so the
+  # brace pair encloses whitespace only. `(?s)` lets `\s` cross the joined
+  # newlines of the window.
+  - regex: (?s)\bcatch\b\s*(?:\([^)]*\))?\s*\{\s*\}
+    message: "Empty catch block — the error is caught and silently swallowed (jsts#31, CWE-390). At minimum log it with context, otherwise rethrow or handle it. @see KEUR-ERR-001"
+confidence: 0.75
+fix: "Do something with the caught error: log it with context (`logger.error(e)`), rethrow (`throw e`) after cleanup, or convert it to a typed domain error. If the catch is a deliberate best-effort swallow, make that explicit with a comment AND a no-op that names the intent, and consider narrowing what you catch."

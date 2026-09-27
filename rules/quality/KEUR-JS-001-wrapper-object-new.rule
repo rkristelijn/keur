@@ -1,0 +1,46 @@
+# Wrapper-object `new` misuse — calling `new Array()`, `new Object()`,
+# `new String()`, `new Number()`, or `new Boolean()` instead of using literals
+# or primitive coercion (JS classic antipattern).
+#
+# Problems:
+#   - `new String('x')`, `new Number(1)`, `new Boolean(true)` create BOXED
+#     objects whose `typeof` is `'object'`, not `'string'`/`'number'`/
+#     `'boolean'`. `new Boolean(false)` is TRUTHY (it's an object), a classic
+#     footgun. Use the literal `'x'` / `0` / `false`, or the coercion
+#     functions `String(x)` / `Number(x)` / `Boolean(x)` (no `new`).
+#   - `new Array()` is slower and error-prone: `new Array(3)` makes a length-3
+#     empty array, `new Array(1,2)` makes `[1,2]` — inconsistent. Use `[]`.
+#   - `new Object()` is just a verbose `{}`.
+# ESLint's `no-new-wrappers`, `no-array-constructor` and `no-new-object`
+# encode exactly these.
+#
+# Why a NEW rule (verified false-negative on mestjs slop.service.ts,
+# 2026-09-26): `new Array()`, `new Object()`, `new String('x')` etc. were
+# flagged by no existing rule.
+#
+# HOW: match `new` + whitespace + one of the five wrapper globals + `(`,
+# anchored on a word boundary so `newArray`, `MyString`, `Numbers` etc. do not
+# match. An alternation over a fixed set of identifiers.
+#
+# RE2-safe: a fixed alternation and bounded `\s*`; no backreferences or nested
+# unbounded quantifiers. WARN, not block: correctness/clarity smell.
+#
+# @see docs/research/javascript-typescript.md (new-keyword misuse);
+#      ESLint no-new-wrappers / no-array-constructor / no-new-object.
+id: KEUR-JS-001
+maturity: 1
+title: Wrapper-object `new` (Array/Object/String/Number/Boolean) instead of a literal
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .js .ts .jsx .tsx
+  exclude_paths: node_modules/ dist/ build/ vendor/
+patterns:
+  # `new` + one of the five wrapper globals + `(`, word-boundary anchored.
+  - regex: \bnew\s+(?:Array|Object|String|Number|Boolean)\s*\(
+    message: "Wrapper-object `new` — creates a boxed object (typeof 'object') or a verbose/error-prone constructor. Use a literal (`[]`, `{}`, `''`, `0`, `false`) or coercion (`String(x)`, `Number(x)`, `Boolean(x)`). @see KEUR-JS-001"
+confidence: 0.85
+fix: "Replace `new Array()` -> `[]`, `new Object()` -> `{}`, `new String(x)` -> `String(x)` (or the literal `'x'`), `new Number(x)` -> `Number(x)`, `new Boolean(x)` -> `Boolean(x)`. Never rely on boxed wrappers — `typeof new Number(1) === 'object'` and `new Boolean(false)` is truthy."
