@@ -1,0 +1,31 @@
+# Session fixation: a login handler that adopts a session id supplied by the
+# incoming request (cookie/header/query) instead of generating a fresh one on
+# successful authentication. The id an attacker planted pre-auth stays valid
+# after the victim logs in. Best practice: regenerate/rotate the session id at
+# the privilege boundary (login). Sourced from OWASP Session Management CS
+# (https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+# and validated against the mestjs authored fixture (login.controller.ts, 2026-09-26).
+#
+# Shape (multiline window): a variable is read FROM the request's own
+# cookie/header/query, then that variable is used as the session id via a
+# nullish/or fallback to a token generator — "keep the incoming id, only mint
+# one if absent". That is the fixation smell (no unconditional rotate on login).
+# The sliding window bounds the span so [\s\S]*? cannot run away.
+id: KEUR-SESS-001
+maturity: 2
+title: Session id reused from request on login (session fixation)
+category: security
+severity: error
+engine: multiline
+within: window
+window: 6
+action: block
+skip_comments: true
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ node_modules/ .git/ dist/ build/
+patterns:
+  - regex: (?i)=\s*\w*(?:\.cookies?|\.headers|\.query)\b[\s\S]*?\b(?:sid|sessionid|session_id|sessiontoken)\b\s*=\s*\w+\s*(?:\?\?|\|\|)\s*[\s\S]*?(?:generate|random|uuid|createid|newid|sign)\w*\s*\(
+    message: "Session fixation — the login handler reads a session id from the incoming request and reuses it (only minting a new one if absent) instead of always rotating the id on successful login. Regenerate the session id at the login privilege boundary."
+confidence: 0.7
+fix: "On successful login, always create a NEW session id (rotate/regenerate) and discard any id the client supplied before authentication."

@@ -1,0 +1,30 @@
+# Session-bearing cookie set with no security flags. A session id / auth token
+# written into a cookie with an empty (or flag-less) options object is readable
+# by page JavaScript (no httpOnly → XSS steals it) and sent over plain HTTP
+# (no secure → network sniff), and rides cross-site requests (no sameSite →
+# CSRF). Best practice: { httpOnly:true, secure:true, sameSite:'lax'|'strict' }.
+# Sourced from OWASP Session Management CS (Cookies) + MDN Set-Cookie, and
+# validated against the mestjs authored fixture (login.controller.ts, 2026-09-26).
+#
+# Narrower than the generic empty-cookie check: this fires specifically when the
+# cookie NAME or VALUE is session/auth-bearing (sid/session/auth/token), which is
+# where flag-less cookies are dangerous. skip_strings is OFF so the cookie name
+# literal is visible to the pattern.
+id: KEUR-SESS-002
+maturity: 2
+title: Session cookie set without httpOnly/secure/sameSite flags
+category: security
+severity: error
+engine: pattern
+action: block
+skip_comments: true
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ node_modules/ .git/ dist/ build/
+patterns:
+  - regex: (?i)\.cookie\s*\(\s*['"](?:sid|session|sess|auth|token|jwt)[^'"]*['"]\s*,[^,]+,\s*\{\s*\}\s*\)
+    message: "Session/auth cookie set with empty options — no httpOnly (JS-readable, XSS-stealable), no secure (sent over plain HTTP), no sameSite (CSRF). Set { httpOnly:true, secure:true, sameSite:'lax' }."
+  - regex: (?i)\.cookie\s*\(\s*[^,]+,\s*(?:sid|session\w*|token|jwt)\s*,\s*\{\s*\}\s*\)
+    message: "A session-token value is written to a cookie with empty options — no httpOnly/secure/sameSite. The session id is JS-readable and sent in the clear. Set the security flags."
+confidence: 0.75
+fix: "Set session cookies with { httpOnly: true, secure: true, sameSite: 'lax' } (or 'strict') so they are not JS-readable, not sent over HTTP, and not attached to cross-site requests."
