@@ -1,0 +1,33 @@
+# NestJS server-hardening antipatterns — the framework's own security docs,
+# reversed. Each pattern is a "do the opposite of the documented best practice"
+# case, statically detectable. Sourced from docs/research/nestjs.md (which cites
+# the NestJS security docs + eslint-plugin-nestjs-security + OWASP cheat sheets)
+# and validated against the mestjs authored fixture (2026-09-26).
+#
+# These are NestJS-specific: the generic CORS rule (SEC-040) matches cors({...})
+# but not app.enableCors({...}), so the NestJS form was a false negative.
+id: KEUR-NEST-001
+maturity: 1
+title: NestJS insecure server configuration
+category: security
+severity: error
+engine: pattern
+action: block
+skip_comments: true
+target:
+  extensions: .ts .js
+patterns:
+  - regex: enableCors\s*\(\s*\{[^}]*origin:\s*['"]\*['"]
+    message: "NestJS antipattern #5 — enableCors({ origin: '*' }) allows any origin to call the API. Use an explicit allow-list of trusted origins."
+  - regex: enableCors\s*\(\s*\{[^}]*origin:\s*true[^}]*credentials:\s*true
+    message: "NestJS antipattern #6 — enableCors({ origin: true, credentials: true }) reflects any Origin AND allows cookies (forbidden by the Fetch spec). Use an explicit origin list."
+  - regex: ignoreExpiration:\s*true
+    message: "NestJS antipattern #24 — ignoreExpiration:true accepts expired JWTs, so the replay window never closes. Let verify enforce exp."
+  - regex: \.cookie\s*\([^,]+,[^,]+,\s*\{\s*\}\s*\)
+    message: "NestJS antipattern #46 — cookie set with empty options: no httpOnly/secure/sameSite. It is JS-readable (XSS steals it) and sent over plain HTTP. Set { httpOnly:true, secure:true, sameSite:'lax' }."
+  - regex: \.password\s*===?\s*\w+\.password
+    message: "NestJS antipattern #29 — plaintext password comparison. Hash with bcrypt/argon2 and compare hashes in constant time."
+  - regex: '@Get\s*\(\s*[''"][^''"]*(?:delete|remove|drop|destroy)[^''"]*[''"]'
+    message: "NestJS antipattern #32 — state-changing logic behind @Get is CSRF-bypassable (GET/HEAD are never CSRF-checked). Use @Post/@Delete for mutations."
+confidence: 0.8
+fix: "CORS: pass an explicit origin allow-list, never '*' or reflect+credentials. JWT: never set ignoreExpiration:true. See NestJS security docs."

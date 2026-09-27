@@ -1,0 +1,26 @@
+# SQL injection via a template-literal query: a query sink (execute/query/
+# prepare) called with a backtick string that contains SELECT/INSERT/UPDATE/
+# DELETE AND a ${...} interpolation. Template-literal interpolation of user
+# input into SQL is the same defect as string concatenation (CWE-89), but the
+# concat rule (KEUR-SQLI-001) only matches quote-delimited strings, so this
+# backtick form was a false negative (found via mestjs authored ground truth,
+# MEST-SQLITE-001, 2026-09-26).
+#
+# A parameterised query has no ${...} inside the SQL string, so it does not
+# match — the ${...} is the discriminator between safe and unsafe.
+id: KEUR-SQLI-002
+maturity: 1
+title: Potential SQL injection via template-literal interpolation
+category: sqli
+severity: critical
+engine: pattern
+action: block
+# skip_comments intentionally OFF: keur's skip_comments blanks matched
+# code on .ts/.js (verified 2026-09-26, same bug that killed SEC-038).
+target:
+  extensions: .js .ts
+patterns:
+  - regex: (?i)\b(?:execute|query|prepare|raw|run|all|get|exec)\s*\(\s*`[^`]*\b(?:select|insert|update|delete|drop|union|where|from)\b[^`]*\$\{[^}]+\}
+    message: A SQL query sink is called with a template literal that interpolates a value (${...}) directly into the SQL — potential SQL injection (CWE-89). Use parameterised queries with bound placeholders (?, $1) instead of template interpolation.
+confidence: 0.8
+fix: Use parameterised queries or an ORM with bound parameters. Replace `db.prepare(`... ${x}`)` with `db.prepare('... ?').get(x)`.
