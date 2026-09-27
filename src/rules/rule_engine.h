@@ -118,6 +118,18 @@ struct RuleFinding {
   std::string file;
   int line = 0;
   std::string message;
+
+  RuleFinding() = default;
+  // Explicit constructor so vector::emplace_back works on every toolchain:
+  // libc++ (macOS Xcode CI) cannot emplace a constructor-less aggregate.
+  // @see KEUR-PORT-007
+  RuleFinding(std::string rule_id_, std::string title_, std::string category_,
+              std::string severity_, std::string action_, std::string confidence_,
+              std::string file_, int line_, std::string message_)
+      : rule_id(std::move(rule_id_)), title(std::move(title_)),
+        category(std::move(category_)), severity(std::move(severity_)),
+        action(std::move(action_)), confidence(std::move(confidence_)),
+        file(std::move(file_)), line(line_), message(std::move(message_)) {}
 };
 
 /** Parse a single .rule file. */

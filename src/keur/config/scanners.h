@@ -26,6 +26,13 @@ namespace keur::config {
 struct ScannerConfigFile {
     std::string path;         ///< repo-relative (e.g. ".gitleaksignore")
     bool        present = false;
+
+    ScannerConfigFile() = default;
+    // Explicit constructor so vector::emplace_back works on every toolchain:
+    // libc++ (macOS Xcode CI) cannot emplace a constructor-less aggregate.
+    // @see KEUR-PORT-007
+    ScannerConfigFile(std::string path_, bool present_)
+        : path(std::move(path_)), present(present_) {}
 };
 
 /// A scanner as declared in keur.toml + resolved runtime state.
