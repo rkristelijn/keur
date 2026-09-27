@@ -60,6 +60,7 @@ measure() {
     local dirs="$1"; local split="${2:-$TRAIN_SPLIT}"
     # ADR-027: measure at file granularity so within-category gaps are real FNs.
     KEUR_MATCH_GRANULARITY="${KEUR_MATCH_GRANULARITY:-file}" \
+      KEUR_GT_FILE="${KEUR_GT_FILE:-}" \
       KEUR_SPLIT="$split" KEUR_RULES_DIRS="$dirs" "$EVAL_CMD" >/dev/null 2>&1
     python3 -c "import json;d=json.load(open('$HERE/corpus/measure.json'));print(d['recall'],d['precision'],d['f1'],d['fn'])"
 }
@@ -99,6 +100,58 @@ for pat in patterns:
     literal = re.sub(r"\\.|\[[^\]]*\]|\([^)]*\)|[.*+?{}|^$]", "", pat)
     if re.search(r"[A-Za-z0-9]{10,}", literal):
         sys.exit(1)   # long literal run -> memorised value
+sys.exit(0)
+'
+}
+
+# regex_safe <candidate-rule-text> -> exit 0 if every regex in the candidate is
+# SAFE to execute, 1 if any looks like a ReDoS / catastrophic-backtracking risk.
+#
+# WHY (ADR-034): we execute LLM-proposed regexes. keur's own engine is RE2
+# (linear, backtracking-immune), but candidates also pass through Python `re`
+# (regex_generalises) and could later run under other engines; a pathological
+# pattern (nested quantifiers, overlapping alternation under a quantifier,
+# stacked unbounded .*) can hang or drain CPU there. This pre-flight gate refuses
+# such patterns BEFORE any execution, so the loop cannot DoS itself. It also
+# rejects patterns RE2 cannot compile (so the gate measure won't silently
+# no-op). Same detection is intended to become standalone SEC-REDOS-* rules so
+# keur flags these in real repos too.
+regex_safe() {
+    printf '%s\n' "$1" | python3 -c '
+import sys, re
+text = sys.stdin.read()
+pats = re.findall(r"^\s*-\s*regex:\s*(.+?)\s*$", text, re.M)
+# also validate any exclude: patterns
+pats += re.findall(r"^\s*exclude:\s*(.+?)\s*$", text, re.M)
+if not pats:
+    sys.exit(0)
+
+# Known catastrophic-backtracking shapes (evil regex families):
+DANGER = [
+    r"\([^)]*[+*]\)[+*]",             # (a+)+ / (a*)* / (..+..)* : nested quantifier
+    r"\([^)]*[+*]\)\{\d+,?\d*\}",     # (a+){2,} : quantified group over quantifier
+    r"\([^)|]*\|[^)]*\)[+*]",         # (a|a)+ / (a|ab)* : alternation under quantifier
+    r"\.\*\.\*\.\*",                  # .*.*.* : stacked unbounded wildcards
+    r"\[[^\]]*\][+*]\[[^\]]*\][+*]",  # [..]+[..]+ adjacent unbounded classes
+]
+for pat in pats:
+    for d in DANGER:
+        if re.search(d, pat):
+            sys.stderr.write("regex_safe: dangerous construct in: %s\n" % pat[:80])
+            sys.exit(1)
+    # Enormous bounded repetition ({1000,}) can also blow up — cap it.
+    for m in re.findall(r"\{(\d+)(?:,(\d*))?\}", pat):
+        lo = int(m[0]); hi = int(m[1]) if m[1] else lo
+        if lo > 1000 or hi > 1000:
+            sys.stderr.write("regex_safe: oversized repetition in: %s\n" % pat[:80])
+            sys.exit(1)
+    # Must at least be a well-formed Python regex (catches unbalanced groups the
+    # LLM sometimes emits; RE2 would reject these too).
+    try:
+        re.compile(pat)
+    except re.error as e:
+        sys.stderr.write("regex_safe: does not compile: %s (%s)\n" % (pat[:80], e))
+        sys.exit(1)
 sys.exit(0)
 '
 }
@@ -326,6 +379,18 @@ iterate_once() {
     # one training case and generalise to nothing. Require the pattern to be a
     # GENERALISING matcher (character classes + quantifiers), not a long literal
     # copied from the secret, and not present verbatim in the corpus.
+    # PRE-FLIGHT (ADR-034): refuse ReDoS / non-compiling regexes BEFORE executing
+    # them against the corpus. keur is RE2 (linear) but the loop also runs the
+    # pattern through Python re; a pathological regex must never reach execution.
+    if ! regex_safe "$candidate"; then
+        log_attempt "$iter" "$attempt" "$(echo "$fn"|awk '{print $2}')" retry redos-unsafe "$cand_rx"
+        if [[ "$attempt" -lt "$max_attempts" ]]; then
+            feedback="the regex is a ReDoS / catastrophic-backtracking risk (nested or stacked quantifiers). Rewrite it with linear constructs: no (x+)+, no .*.*, no alternation under a quantifier"; attempt=$((attempt+1)); continue
+        fi
+        echo "[iter $iter] REJECT (unsafe regex: ReDoS risk)"
+        record "$iter" reject "$b_recall" "$b_prec" "redos-unsafe"
+        return 2
+    fi
     if ! regex_generalises "$candidate"; then
         log_attempt "$iter" "$attempt" "$(echo "$fn"|awk '{print $2}')" retry overfit-regex "$cand_rx"
         if [[ "$attempt" -lt "$max_attempts" ]]; then
@@ -445,6 +510,199 @@ log_attempt() {
         "$(date +%Y-%m-%dT%H:%M:%S)" "$1" "$2" "$3" "$4" "$5" "${6:-}" >> "$ATTEMPT_LOG"
 }
 
+# ============================================================================
+# SEED-INJECTED LEARNING (ADR-029). Opt-in, additive: none of the code above is
+# changed. `iterate` / `baseline` behave exactly as before. Seed logic is only
+# reachable via the `seed-iterate` subcommand.
+#
+# Instead of a cold-start attempt-0 (which overfits: 0 accepts / ~1900 attempts
+# overnight), feed the loop a PROVEN starting point — a CPM rule or a recovered
+# rejected near-miss from eval/extend/seed-harvest.sh — and let the SAME gate
+# decide. A CPM rule that already passes the gate is accepted directly (no LLM);
+# otherwise it becomes attempt-0 for the normal retry-feedback + gate loop.
+# ============================================================================
+SEED_QUEUE="$HERE/.run/seeds.jsonl"
+
+# reason a seed candidate failed the gate, reusing the same measurements the
+# main loop uses. Echoes "" on pass, else a short feedback string.
+gate_verdict() {
+    # $1 = rules dir to measure (BASE_RULES:tmpd). Sets globals used by caller.
+    local dirs="$1"
+    read -r b_recall b_prec _ _ < <(measure "$BASE_RULES:$LEARNED")
+    read -r c_recall c_prec _ _ < <(measure "$dirs")
+    read -r h_recall h_prec _ _ < <(measure "$dirs" holdout)
+    read -r h_tp h_fp < <(python3 -c "import json;d=json.load(open('$HERE/corpus/measure.json'));print(d.get('tp',0),d.get('fp',0))")
+    SEED_B_RECALL="$b_recall"; SEED_B_PREC="$b_prec"
+    SEED_C_RECALL="$c_recall"; SEED_C_PREC="$c_prec"
+    SEED_H_RECALL="$h_recall"; SEED_H_PREC="$h_prec"
+    python3 -c "
+b_r,b_p,c_r,c_p=float('$b_recall'),float('$b_prec'),float('$c_recall'),float('$c_prec')
+h_p=float('$h_prec'); h_tp,h_fp=int('$h_tp'),int('$h_fp'); FLOOR=$MIN_PRECISION
+train_ok = (c_r > b_r) and (c_p >= FLOOR) and (c_p >= b_p - 1e-9)
+holdout_ok = (h_p >= FLOOR) if (h_tp+h_fp)>0 else True
+if train_ok and holdout_ok:
+    print('')
+else:
+    msgs=[]
+    if not (c_r > b_r): msgs.append('recall did not rise (was %.3f, seed %.3f) — broaden to catch this case and its siblings'%(b_r,c_r))
+    if c_p < FLOOR or c_p < b_p-1e-9: msgs.append('precision too low (%.3f, floor %s) — tighten or add an exclude:'%(c_p,FLOOR))
+    if (h_tp+h_fp)>0 and h_p < FLOOR: msgs.append('holdout precision %.3f (fp=%d) — generalises as noise; be more specific'%(h_p,h_fp))
+    print('; '.join(msgs) or 'benchmark did not improve')
+"
+}
+
+# build_prompt_from_seed <seed-rule-text> <category> <feedback> <fn-snippet> —
+# ask the model to ADAPT an existing rule rather than invent one. On a retry it
+# also shows (A) a proven good-rule shape for the category [good_example_for] and
+# (B) a REAL missed snippet from the corpus, so the model has a concrete target
+# instead of abstract "broaden it" — the same steering the cold-start loop uses.
+build_prompt_from_seed() {
+    local seed="$1" cat="${2:-}" feedback="${3:-}" snippet="${4:-}"
+    local retry_block=""
+    if [[ -n "$feedback" ]]; then
+        local good; good="$(good_example_for "$cat")"
+        retry_block="
+YOUR PREVIOUS ATTEMPT WAS REJECTED. Reason: $feedback
+
+How to fix it:
+  - too broad / noisy: anchor it (keyword, word boundary, a specific sink name)
+    or add an exclude: regex for the safe case.
+  - matched nothing new: widen it just enough to catch this case AND its siblings.
+  - never paste a literal value from one repo; match the FAMILY with character
+    classes + quantifiers.
+
+A GOOD $cat rule shape to model yours on (adapt, do not copy):
+  regex: $good
+"
+        if [[ -n "$snippet" ]]; then
+            retry_block="$retry_block
+Here is an ACTUAL missed case of this class the rule should catch (generalise to
+it and its siblings — do NOT hard-code these literal values):
+--- BEGIN MISSED CASE ---
+$snippet
+--- END MISSED CASE ---
+"
+        fi
+    fi
+    cat <<EOF
+Here is an EXISTING detection rule. It is proven logic but does not yet pass our
+benchmark on our corpus (either it fires on nothing here, or it is too noisy).
+
+--- BEGIN RULE ---
+$seed
+--- END RULE ---
+
+Adapt this rule so it (a) still catches the same class of issue and (b) passes:
+recall must rise and precision must stay >= $MIN_PRECISION on train AND holdout.
+Keep the rule's intent and its id/source lines. Change only the regex/target/
+exclude as needed to generalise correctly.
+${retry_block}
+Output ONLY the rule file, starting with "id:". No markdown fences, no prose.
+EOF
+}
+
+# seed_snippet_for <category> — resolve one missed case in this category to a
+# real file and return its first ~20 meaningful lines (reuses build_prompt's
+# resolution + KEUR-EXPECT stripping). Empty if none found.
+seed_snippet_for() {
+    local cat="$1"
+    local fn; fn="$(sample_fn "$BASE_RULES:$LEARNED" "$RANDOM")"
+    # only use it if the FN category matches the seed's category
+    [[ "$(echo "$fn" | awk '{print $2}')" == "$cat" ]] || return 0
+    local ref; ref="$(echo "$fn" | awk '{print $3}')"
+    local example_file=""
+    for base in "$KEUR_HOME/eval/corpus/repos" "${KEUR_EVAL:-$HOME/git/hub/keur-eval}"; do
+        for cand in "$base/$ref" "$base/${ref#*/}"; do
+            [[ -f "$cand" ]] && { example_file="$cand"; break; }
+        done
+        [[ -n "$example_file" ]] && break
+    done
+    [[ -z "$example_file" ]] && return 0
+    grep -vE 'KEUR-(EXPECT|CATEGORY|NOTE)' "$example_file" 2>/dev/null \
+        | grep -v '^[[:space:]]*$' | head -20
+}
+
+# seed_iterate_once <iter> <seed-json-line>
+#   0 accepted, 2 rejected. Mirrors iterate_once's gate exactly (same measure,
+#   same regex_generalises, same floor) but starts from the seed.
+seed_iterate_once() {
+    local iter="$1" seed_json="$2"
+    local seed_rule seed_id seed_src seed_cat
+    seed_rule="$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['rule'])" "$seed_json")"
+    seed_id="$(python3 -c "import json,sys;print(json.loads(sys.argv[1]).get('id',''))" "$seed_json")"
+    seed_src="$(python3 -c "import json,sys;print(json.loads(sys.argv[1]).get('source',''))" "$seed_json")"
+    seed_cat="$(python3 -c "import json,sys;print(json.loads(sys.argv[1]).get('category',''))" "$seed_json")"
+    echo "[seed $iter] $seed_src $seed_id"
+
+    # Step 1: measure the seed AS-IS. Proven CPM rules often pass unchanged.
+    local tmpd; tmpd="$(mktemp -d)"; cp -r "$LEARNED/." "$tmpd/" 2>/dev/null || true
+    printf '%s\n' "$seed_rule" > "$tmpd/candidate.rule"
+    local why; why="$(gate_verdict "$BASE_RULES:$tmpd")"
+    if [[ -z "$why" ]]; then
+        cp "$tmpd/candidate.rule" "$LEARNED/${seed_id:-seed-$iter}.rule"
+        echo "[seed $iter] ACCEPT as-is -> rules/learned/${seed_id:-seed-$iter}.rule (recall=$SEED_C_RECALL prec=$SEED_C_PREC)"
+        log_attempt "$iter" 0 "seed-$seed_src" accept accepted-as-is "$seed_id"
+        record "$iter" accept "$SEED_C_RECALL" "$SEED_C_PREC" "${seed_id} source=$seed_src seed=as-is"
+        rm -rf "$tmpd"; return 0
+    fi
+    echo "[seed $iter] seed needs refinement: $why"
+
+    # ADR-033: a rejected-near-miss is a bare regex with NO target context (we do
+    # not know which FN it originally chased). Feeding it the LLM-refine loop with
+    # a RANDOM same-category snippet produced 4 identical no-progress rejects
+    # (the model cannot reconcile an unrelated snippet with the regex). Such seeds
+    # are ALREADY "generalising"; they only add value if they pass the gate as-is.
+    # So: measure-only for near-misses. Refinement (Step 2) is CPM-seeds only,
+    # where the seed is a complete, coherent rule the model can meaningfully adapt.
+    if [[ "$seed_src" == "rejected-near-miss" ]]; then
+        echo "[seed $iter] REJECT (near-miss did not pass as-is; measure-only, no refine — ADR-033)"
+        log_attempt "$iter" 0 "seed-$seed_src" reject as-is-only "$seed_id"
+        record "$iter" reject "${SEED_C_RECALL:-0}" "${SEED_C_PREC:-0}" "${seed_id} source=$seed_src seed=as-is-only"
+        rm -rf "$tmpd"; return 2
+    fi
+
+    # Step 2: refine via the LLM, using the seed as attempt-0, same retry+gate.
+    # Fetch one real missed case in this category once, to show on retries (B).
+    local snippet; snippet="$(seed_snippet_for "$seed_cat")"
+    local max_attempts="${KEUR_MAX_ATTEMPTS:-4}" feedback="$why" attempt=1
+    while [[ "$attempt" -le "$max_attempts" ]]; do
+      echo "[seed $iter] refine attempt $attempt/$max_attempts${feedback:+ (retry: ${feedback})}"
+      local candidate; candidate="$(ollama "$(build_prompt_from_seed "$seed_rule" "$seed_cat" "$feedback" "$snippet")")"
+      candidate="$(printf '%s\n' "$candidate" \
+          | sed -E '/^[[:space:]]*```/d; s/[[:space:]]+$//' \
+          | sed -E 's/\\\\/\\/g' \
+          | sed -E "s/^([[:space:]]*- regex: )'(.*)'\$/\1\2/; s/^([[:space:]]*- regex: )\"(.*)\"\$/\1\2/")"
+      if ! printf '%s' "$candidate" | grep -q '^id:'; then
+          log_attempt "$iter" "$attempt" "seed-$seed_src" retry no-rule ""
+          feedback="you did not return a valid .rule starting with 'id:'"; attempt=$((attempt+1)); continue
+      fi
+      candidate="$(printf '%s\n' "$candidate" | sed -E "s/^id:.*/id: ${seed_id:-LEARNED-SEED-$(date +%s)-$iter}/")"
+      local cand_rx; cand_rx="$(printf '%s\n' "$candidate" | awk -F'- regex: ' '/- regex:/{print $2;exit}')"
+      if ! regex_safe "$candidate"; then
+          log_attempt "$iter" "$attempt" "seed-$seed_src" retry redos-unsafe "$cand_rx"
+          feedback="the regex is a ReDoS / catastrophic-backtracking risk (nested or stacked quantifiers). Rewrite it with linear constructs: no (x+)+, no .*.*, no alternation under a quantifier"; attempt=$((attempt+1)); continue
+      fi
+      if ! regex_generalises "$candidate"; then
+          log_attempt "$iter" "$attempt" "seed-$seed_src" retry overfit-regex "$cand_rx"
+          feedback="the regex was too literal/specific (memorised the example). Use character classes + quantifiers to match the FAMILY, not the exact value"; attempt=$((attempt+1)); continue
+      fi
+      printf '%s\n' "$candidate" > "$tmpd/candidate.rule"
+      why="$(gate_verdict "$BASE_RULES:$tmpd")"
+      if [[ -z "$why" ]]; then
+          cp "$tmpd/candidate.rule" "$LEARNED/${seed_id:-seed-$iter}.rule"
+          echo "[seed $iter] ACCEPT refined -> rules/learned/${seed_id:-seed-$iter}.rule (recall=$SEED_C_RECALL prec=$SEED_C_PREC)"
+          log_attempt "$iter" "$attempt" "seed-$seed_src" accept accepted-refined "$cand_rx"
+          record "$iter" accept "$SEED_C_RECALL" "$SEED_C_PREC" "${seed_id} source=$seed_src seed=refined"
+          rm -rf "$tmpd"; return 0
+      fi
+      feedback="$why"; attempt=$((attempt+1))
+    done
+    echo "[seed $iter] REJECT (seed could not be made to pass the gate)"
+    log_attempt "$iter" "$max_attempts" "seed-$seed_src" reject gate "$seed_id"
+    record "$iter" reject "${SEED_C_RECALL:-0}" "${SEED_C_PREC:-0}" "${seed_id} source=$seed_src seed=reject"
+    rm -rf "$tmpd"; return 2
+}
+
 case "${1:-iterate}" in
   baseline)
     read -r r p f fn < <(measure "$BASE_RULES:$LEARNED")
@@ -476,5 +734,39 @@ case "${1:-iterate}" in
       fi
     done
     ;;
-  *) echo "usage: eval/optimise.sh {iterate [N]|baseline}"; exit 1 ;;
+  seed-iterate)
+    # ADR-029: consume up to N seeds from eval/.run/seeds.jsonl as attempt-0.
+    # Default N = KEUR_SEED_BATCH (5) so CPM is adopted in controlled batches.
+    N="${2:-${KEUR_SEED_BATCH:-5}}"
+    # All-night resilience: if the queue is missing OR empty, (re)build it from
+    # CPM rules + recovered rejected near-misses instead of exiting. This lets
+    # `keur learn` (default seed-iterate) run unattended: the supervisor never
+    # hits a hard exit just because the queue was consumed.
+    if [[ ! -s "$SEED_QUEUE" ]]; then
+      echo "seed queue missing/empty — (re)building via seed-harvest.sh"
+      "$HERE/extend/seed-harvest.sh" >/dev/null 2>&1 || true
+    fi
+    # If it is STILL empty after a rebuild (nothing left to seed), fall back to
+    # cold-start iterate for this budget so the loop keeps doing useful work
+    # instead of busy-spinning on an empty queue.
+    if [[ ! -s "$SEED_QUEUE" ]]; then
+      echo "seed queue empty after rebuild — falling back to cold-start iterate $N"
+      exec "$0" iterate "$N"
+    fi
+    STOP_SUP="$HERE/.run/STOP"; STOP_LOOP="/tmp/stop-keur-eval-loop"
+    # Take the first N seeds; on success remove consumed seeds from the queue so
+    # the next batch continues where this one stopped (idempotent, resumable).
+    consumed=0; accepted=0
+    while [[ "$consumed" -lt "$N" ]]; do
+      [[ -f "$STOP_SUP" || -f "$STOP_LOOP" ]] && { echo "stop requested; ending seed-iterate"; break; }
+      seed_line="$(sed -n '1p' "$SEED_QUEUE")"
+      [[ -z "$seed_line" ]] && { echo "seed queue exhausted after $consumed; switching to cold-start iterate for the rest"; exec "$0" iterate "$((N - consumed))"; }
+      consumed=$((consumed+1))
+      seed_iterate_once "$consumed" "$seed_line" && accepted=$((accepted+1)) || true
+      # pop the consumed seed (line 1) regardless of accept/reject
+      sed -i.bak '1d' "$SEED_QUEUE" && rm -f "$SEED_QUEUE.bak"
+    done
+    echo "seed-iterate done: consumed=$consumed accepted=$accepted remaining=$(wc -l < "$SEED_QUEUE" | tr -d ' ')"
+    ;;
+  *) echo "usage: eval/optimise.sh {iterate [N]|baseline|seed-iterate [N]}"; exit 1 ;;
 esac

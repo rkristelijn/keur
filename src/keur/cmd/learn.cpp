@@ -73,13 +73,35 @@ int learn(const LearnOptions& opts) {
     // an empty --model falls back to optimise.sh's own default selection.
     if (!opts.model.empty()) env.emplace_back("MODEL", opts.model);  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
     env.emplace_back("KEUR_PHASES", "loop");  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
+    // Default training signal: the AUTHORED ground truth (repo/author-labelled,
+    // reviewed:true), not the scanner-mimicry corpus. This is what makes `keur
+    // learn` (no args) train toward CORRECTNESS rather than reproducing other
+    // tools' output (ADR-032). Overridable: set KEUR_GT_FILE in the environment.
+    if (!std::getenv("KEUR_GT_FILE")) {
+      env.emplace_back("KEUR_GT_FILE", home + "/eval/corpus/authored-groundtruth.jsonl");  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
+      // The authored GT is labelled at CATEGORY granularity (a repo/file may carry
+      // an author label like "command-injection" without an exact line). Matching
+      // it at the default file/line granularity mis-scores (a dry run gave
+      // recall=0.000 on 'file' vs 0.414 on 'category'). Pin category granularity
+      // for the authored GT so `keur learn` (no args) measures on the same key the
+      // labels use. Only defaulted when the caller set neither var.
+      if (!std::getenv("KEUR_MATCH_GRANULARITY")) {
+        env.emplace_back("KEUR_MATCH_GRANULARITY", "category");  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
+      }
+    }
     // Loop command: normally optimise.sh on one source; with --source alternate
     // use alternate.sh, which flips corpus<->keureval each phase.
     if (opts.source == "alternate" || opts.source == "both") {
       env.emplace_back("KEUR_LOOP_CMD", home + "/eval/alternate.sh");  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
     } else {
       env.emplace_back("KEUR_EVAL_SOURCE", opts.source);  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
-      env.emplace_back("KEUR_LOOP_CMD", home + "/eval/optimise.sh iterate 500");  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
+      // DEFAULT = seed-iterate: start each proposal from an existing seed (a CPM
+      // rule or a recovered rejected near-miss) instead of a cold-start blank
+      // (ADR-029/033). Cold start scored 0 accepts / ~1900 attempts overnight;
+      // seeds give a proven attempt-0. The queue is (re)built by seed-harvest.sh
+      // before the loop if missing. Falls back to plain iterate only when the
+      // seed queue is unavailable. Overridable via KEUR_LOOP_CMD.
+      env.emplace_back("KEUR_LOOP_CMD", home + "/eval/optimise.sh seed-iterate 500");  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
     }
     std::vector<std::string> argv = {home + "/eval/supervise.sh", "start"};
     std::cerr << "keur learn: spinning background loop (source=" << opts.source;
