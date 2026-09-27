@@ -16,8 +16,9 @@ rates whether the pattern is **statically detectable** in source (`yes` /
 | Next.js | 53 | [nextjs.md](./nextjs.md) |
 | SQLite / better-sqlite3 | 52 | [sqlite.md](./sqlite.md) |
 | TanStack Query + Table | 45 | [tanstack.md](./tanstack.md) |
+| JavaScript / TypeScript (language-level) | 50 | [javascript-typescript.md](./javascript-typescript.md) |
 
-Total: ~319 sourced items.
+Total: ~369 sourced items.
 
 ## How this maps to keur
 
