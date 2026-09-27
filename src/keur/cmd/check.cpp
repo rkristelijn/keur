@@ -10,6 +10,7 @@
 #include "cmd/check.h"
 
 #include <iostream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -19,6 +20,7 @@
 #include "adapters/fs.h"
 #include "adapters/proc.h"
 #include "config/ruleset.h"
+#include "config/keurignore.h"
 #include "config/scanners.h"
 #include "scan/dispatch.h"
 #include "util/keur_utils.h"
@@ -60,7 +62,8 @@ bool finding_blocks(const std::string& action, const std::string& confidence,
 
 std::string format_finding_line(const std::string& rule, const std::string& action,
                                 const std::string& confidence, const std::string& file,
-                                int line, const std::string& message, bool blocks) {
+                                int line, const std::string& message, bool blocks,
+                                const std::string& fix) {
     // Marker first so a scanning eye finds the blockers immediately.
     std::string out = blocks ? "BLOCK " : "warn  ";
     out += rule.empty() ? "(no-rule)" : rule;
@@ -69,6 +72,13 @@ std::string format_finding_line(const std::string& rule, const std::string& acti
     out += " | " + (file.empty() ? std::string("(no-file)") : file);
     if (line > 0) out += ":" + std::to_string(line);
     if (!message.empty()) out += " | " + message;
+    // Self-service remediation: tell the committer (human OR AI) how to FIX it,
+    // and — if it is a genuine false positive — exactly how to suppress it, so
+    // nobody reaches for --no-verify. This is keur's core promise (vision).
+    if (!fix.empty()) out += "\n        fix: " + fix;
+    if (!rule.empty()) {
+        out += "\n        false positive? add on that line a comment: keur:ignore " + rule;
+    }
     return out;
 }
 
@@ -110,7 +120,11 @@ int check(const CheckOptions& opts, FileSource file_src) {
               << files.size() << " staged file(s)...\n";
 
     // 2. Load the active rule set (resolved dirs minus the disable-list).
-    std::vector<Rule> rules = keur::config::load_active_rules();
+    //    Capture the resolved disabled-id set so we can also suppress matching
+    //    findings from EXTERNAL tools (semgrep/… ) — a repo `[rules] disabled`
+    //    entry then silences that id whatever source produced it.
+    std::set<std::string> disabled_ids;
+    std::vector<Rule> rules = keur::config::load_active_rules(&disabled_ids);
 
     // Resolve the policy thresholds (repo-local keur.toml wins over global).
     // block-at decides whether a blocking finding actually blocks; a repo can
@@ -168,6 +182,7 @@ int check(const CheckOptions& opts, FileSource file_src) {
             f.file = rf.file;
             f.line = rf.line;
             f.message = rf.message;
+            f.fix = rf.fix;
             out.push_back(std::move(f));
         }
         return out;
@@ -179,6 +194,28 @@ int check(const CheckOptions& opts, FileSource file_src) {
     };
 
     auto findings = scan::dispatch_scanners(ctx);
+
+    // Repo-level suppression on top of inline `keur:ignore` (ADR-035): the
+    // `.keurignore` file (repo root or .config/). Secrets suppress by VALUE
+    // (a moved secret stays hidden, a changed one is caught again); code issues
+    // suppress by location/rule — a line-suppress can never silence a secret.
+    // keur.toml `[rules] disabled` (rule id, any source) still applies too.
+    auto ignore_entries = config::resolve_keurignore(
+        repo_root, [&fs](const std::string& p) {
+            auto r = fs.read_file(p);
+            return r.ok ? r.content : std::string();
+        });
+    if (!disabled_ids.empty() || !ignore_entries.empty()) {
+        std::vector<scan::Finding> kept;
+        kept.reserve(findings.size());
+        for (auto& f : findings) {
+            if (disabled_ids.count(f.rule)) continue;
+            if (config::keurignore_suppresses(ignore_entries, f.category, f.file,
+                                              f.line, f.rule, f.message)) continue;
+            kept.push_back(std::move(f));
+        }
+        findings = std::move(kept);
+    }
 
     // 4. Derive the pure policy input from the aggregated findings, then decide.
     //    ONE policy path (ADR-014): the verdict is a function of exactly the
@@ -200,7 +237,7 @@ int check(const CheckOptions& opts, FileSource file_src) {
         for (const auto& f : findings) {
             bool blocks = finding_blocks(f.action, f.confidence, policy.block_at);
             std::cerr << "  " << format_finding_line(f.rule, f.action, f.confidence,
-                                                     f.file, f.line, f.message, blocks)
+                                                     f.file, f.line, f.message, blocks, f.fix)
                       << "\n";
         }
     }

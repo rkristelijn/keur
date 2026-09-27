@@ -123,6 +123,7 @@ struct RuleFinding {
   std::string file;
   int line = 0;
   std::string message;
+  std::string fix;  // remediation hint from the rule's fix: field, carried to output
 };
 
 /** Parse a single .rule file. */

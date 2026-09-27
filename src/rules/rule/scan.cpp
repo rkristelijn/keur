@@ -293,7 +293,7 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
         findings.emplace_back(r.id, r.title, r.category, r.severity,
                             default_action(r), default_conf(r),
                             r.target.filenames.empty() ? std::string(".") : r.target.filenames[0],
-                            0, finding_msg(r, ""));
+                            0, finding_msg(r, ""), r.fix);
       }
     }
   }
