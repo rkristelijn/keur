@@ -51,12 +51,12 @@ BIN    = $(BINDIR)/keur
 REPO_ROOT := $(shell cd ../.. && pwd -P)
 
 # Rule engine (shared, lower layer)
-RULES_OBJ = $(BINDIR)/rule_parse.o $(BINDIR)/rule_match.o $(BINDIR)/rule_scan.o $(BINDIR)/rule_block.o $(BINDIR)/rule_engines.o $(BINDIR)/rule_facts.o $(BINDIR)/rule_semver.o $(BINDIR)/rule_composite.o
+RULES_OBJ = $(BINDIR)/rule_parse.o $(BINDIR)/rule_match.o $(BINDIR)/rule_scan.o $(BINDIR)/rule_block.o $(BINDIR)/rule_engines.o $(BINDIR)/rule_facts.o $(BINDIR)/rule_semver.o $(BINDIR)/rule_composite.o $(BINDIR)/rule_resolve.o
 TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
-IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp cmd/level.cpp \
+IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/train.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp cmd/level.cpp \
              config/scopes.cpp config/hookmgr.cpp config/scanners.cpp config/disabled.cpp config/keurignore.cpp config/ruleset.cpp \
              scan/dispatch.cpp scan/mappers.cpp scan/json_util.cpp \
              learn/history.cpp learn/sysinfo.cpp learn/monitor.cpp \
@@ -114,12 +114,15 @@ $(BINDIR)/rule_semver.o: ../rules/rule/semver.cpp ../rules/rule/semver.h | $(BIN
 $(BINDIR)/rule_composite.o: ../rules/rule/composite.cpp ../rules/rule/internal.h ../rules/rule_engine.h ../rules/rule/semver.h ../rules/rule/facts.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
+$(BINDIR)/rule_resolve.o: ../rules/rule/resolve.cpp ../rules/rule/internal.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
 $(TOKENIZER_OBJ): ../rules/tokenizer.cpp ../rules/tokenizer.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
 # Generic pattern: compile any keur source to a flattened object name.
 # $* is the stem with slashes turned to underscores by the explicit rules below.
-$(MAIN_OBJ): main.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/learn.h | $(BINDIR)
+$(MAIN_OBJ): main.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/train.h cmd/learn.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_cmd_check.o: cmd/check.cpp cmd/check.h cmd/policy.h adapters/git.h adapters/fs.h adapters/proc.h config/ruleset.h config/scanners.h scan/dispatch.h util/keur_utils.h | $(BINDIR)
@@ -134,8 +137,11 @@ $(BINDIR)/keur_cmd_scan.o: cmd/scan.cpp cmd/scan.h report/report.h config/rulese
 $(BINDIR)/keur_cmd_policy.o: cmd/policy.cpp cmd/policy.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_learn.o: cmd/learn.cpp cmd/learn.h learn/monitor.h adapters/proc.h | $(BINDIR)
+$(BINDIR)/keur_cmd_train.o: cmd/train.cpp cmd/train.h learn/monitor.h adapters/proc.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_cmd_learn.o: cmd/learn.cpp cmd/learn.h cmd/train.h config/ruleset.h adapters/fs.h adapters/proc.h common/platform.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_learn_history.o: learn/history.cpp learn/history.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
@@ -296,7 +302,7 @@ e2e: build ## Run end-to-end tests (binary + git repos)
 
 # Coverage sources (flat list for the single-command coverage build).
 COV_SRCS = keur_test.cpp cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp \
-           adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp $(PLATFORM_SRC) ../rules/rule/parse.cpp ../rules/rule/match.cpp ../rules/rule/scan.cpp ../rules/rule/block.cpp ../rules/rule/engines.cpp ../rules/tokenizer.cpp
+           adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp $(PLATFORM_SRC) ../rules/rule/parse.cpp ../rules/rule/match.cpp ../rules/rule/scan.cpp ../rules/rule/block.cpp ../rules/rule/engines.cpp ../rules/rule/resolve.cpp ../rules/tokenizer.cpp
 
 coverage: ## Build test binary with coverage and report (gcov)
 	@mkdir -p ../../.tmp/cov

@@ -128,6 +128,14 @@ Rule rule_parse(const std::string& path) {
     else if (key == "block_trigger") rule.block_trigger = val;
     else if (key == "min_count") rule.min_count = std::atoi(val.c_str());
     else if (key == "maturity") rule.maturity = std::atoi(val.c_str());  // @id KEUR-MATURITY.parse — maturity band (ADR-026)
+    else if (key == "ilities" || key == "ility") {
+      // ADR-039: inline array `[a, b]` or a bare scalar `security`. Strip the
+      // brackets if present, split on commas and/or whitespace, trim each.
+      std::string v = val;
+      if (v.size() >= 2 && v.front() == '[' && v.back() == ']') v = v.substr(1, v.size() - 2);
+      for (char& ch : v) if (ch == ',') ch = ' ';
+      rule.ilities = split_ws(v);
+    }
     else if (key == "within") rule.within = val;
     else if (key == "window") rule.window = std::atoi(val.c_str());
     else if (key == "path_capture") rule.path_capture = val;
