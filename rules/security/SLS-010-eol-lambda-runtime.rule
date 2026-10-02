@@ -1,0 +1,18 @@
+id: SLS-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: EOL Lambda runtime
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml .json
+  filenames: serverless.yml serverless.yaml template.yaml template.yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: runtime
+patterns:
+  - regex: runtime:\s*["']?(nodejs14|nodejs12|nodejs10|python3\.7|python3\.6|python2|dotnetcore3\.1|ruby2\.5|java8$|java8[^.])
+    message: "EOL Lambda runtime — security patches no longer applied"
+fix: Upgrade to a supported runtime. nodejs20.x, python3.12, java21, dotnet8, ruby3.3 are current LTS.

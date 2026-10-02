@@ -7,6 +7,8 @@
 # via sh even on Windows) may remain — those live in cmd/hook.cpp as string
 # literals, not inside system()/popen(), so they do not match these patterns.
 id: KEUR-PORT-005
+ilities: [adaptability]
+maturity: 3
 title: Hardcoded POSIX shell command in system()/popen()
 category: architecture
 severity: error

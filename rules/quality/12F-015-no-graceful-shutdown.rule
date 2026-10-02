@@ -1,0 +1,17 @@
+id: 12F-015
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: No graceful shutdown handler (12-Factor IX: Disposability)
+category: quality
+severity: info
+engine: absence
+target:
+  extensions: .ts .js
+  exclude_paths: test/ spec/ __tests__/ vendor/ node_modules/ mock
+  content_contains: .listen(
+patterns:
+  - regex: process\.on\(['"](SIGTERM|SIGINT)
+    message: Server without SIGTERM/SIGINT handler — may lose in-flight requests on shutdown
+fix: Add process.on('SIGTERM', () => server.close()) for graceful shutdown (12-Factor IX)

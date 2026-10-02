@@ -1,0 +1,18 @@
+id: WEB-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: HTML base tag injection risk
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .tsx .jsx .vue .erb .cshtml .php .ejs .hbs
+  exclude_paths: test/ tests/
+patterns:
+  - regex: <base\s+href\s*=
+    message: "<base> tag sets document base URL — if user-controlled, all relative URLs/forms can be hijacked"
+  - regex: document\.head\.innerHTML.*<base
+    message: "Dynamic <base> tag injection via innerHTML — base jumping attack vector"
+fix: "Avoid <base> tag or hardcode it. Set CSP base-uri 'self' to prevent injection. CWE-79"

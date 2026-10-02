@@ -1,4 +1,5 @@
 id: SCA-043
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Gemfile with eval or system call

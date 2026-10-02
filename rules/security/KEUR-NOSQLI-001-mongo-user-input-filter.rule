@@ -12,6 +12,7 @@
 # aggregate/count) whose FIRST argument object embeds req.body/query/params
 # without a String()/sanitiser wrapper. A String(req.body.id) cast does not match.
 id: KEUR-NOSQLI-001
+ilities: [integrity]
 maturity: 2
 title: NoSQL injection — user input in a MongoDB query filter
 category: sqli

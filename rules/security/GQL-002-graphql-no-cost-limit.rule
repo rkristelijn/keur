@@ -1,0 +1,17 @@
+id: GQL-002
+ilities: [authenticity]
+source: cpm
+maturity: 3
+action: warn
+title: GraphQL server without query cost/complexity analysis
+category: graphql
+severity: warning
+engine: presence
+target:
+  extensions: .ts .js .py .rb .go .java
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: graphql
+patterns:
+  - regex: (ApolloServer|GraphQLServer)\(
+    message: "GraphQL server without query cost/complexity analysis"
+fix: Add graphql-query-complexity or graphql-validation-complexity middleware to prevent expensive queries from consuming excessive resources.

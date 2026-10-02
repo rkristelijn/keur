@@ -1,0 +1,18 @@
+id: A11Y-029
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Click handler on non-interactive element without ARIA role
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: <div[^>]*on[Cc]lick[^>]*>
+    message: "<div> with click handler — use <button> or add role=\"button\" and tabindex=\"0\""
+  - regex: <span[^>]*on[Cc]lick[^>]*>
+    message: "<span> with click handler — use <button> or add role=\"button\" and tabindex=\"0\""
+fix: "Use a <button> element instead, or add role=\"button\" and tabindex=\"0\""

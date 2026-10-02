@@ -1,0 +1,17 @@
+id: ANS-024
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Targeting all hosts targets every host
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: hosts
+patterns:
+  - regex: hosts:\s*all
+    message: "hosts: all targets every host in inventory — use specific groups for safety"
+fix: Replace hosts: all with specific inventory groups like hosts: webservers or hosts: staging. Use --limit in ad-hoc commands for testing.

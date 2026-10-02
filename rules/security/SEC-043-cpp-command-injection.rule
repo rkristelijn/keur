@@ -1,4 +1,5 @@
 id: SEC-043
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Potential command injection in C/C++ shell execution

@@ -1,0 +1,18 @@
+id: STYLE-042
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: ASCII banner/separator comments
+category: style
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go .rb .c .cpp .h
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: //\s*[=\-\*#]{10,}
+    message: "Banner/separator comment — indicates the file is doing too many things. Consider splitting into modules."
+  - regex: #\s*[=\-\*]{10,}
+    message: "Banner comment — suggests the file handles multiple concerns. Split into focused modules."
+fix: If you need visual separators, the file is probably too long. Extract sections into separate modules.

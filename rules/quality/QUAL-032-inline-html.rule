@@ -1,0 +1,18 @@
+id: QUAL-032
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Inline HTML in server-side code
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .py .java .kt .cs .go .rb .php .rs
+  exclude_paths: test/ tests/ spec/ dist/ target/ templates/
+patterns:
+  - regex: ["'`]\s*<(?:html|head|body|div|table|form|section|article|header|footer|nav|main)\b[^>]*>.*<\/(?:html|head|body|div|table|form|section|article|header|footer|nav|main)>
+    message: "Inline HTML block in code — extract to template file or component"
+  - regex: \+\s*["'`]<(?:tr|td|th|li|option|div|span)\b
+    message: "HTML string concatenation — use template engine or JSX instead of building HTML in strings"
+fix: "Extract HTML to template files (.html, .ejs, .erb, .jinja2) or use a component framework"

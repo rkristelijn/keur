@@ -1,0 +1,17 @@
+# @see R-030 synthesis: MIDDEN-6
+id: CPM-INT-012
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Duplicated strcasestr portability workaround
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .cpp .h .hpp
+  exclude_paths: test/ tests/ vendor/ .git/ build/ dist/
+patterns:
+  - regex: static const char\* strcasestr\(
+    message: "strcasestr portability workaround — should be in compat.h, not duplicated per file"
+fix: Move the strcasestr shim to src/common/compat.h and include compat.h where needed.

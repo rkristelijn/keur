@@ -1,0 +1,26 @@
+id: CSS-AP-010
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Specificity antipatterns
+category: antipattern
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: !important
+    message: "!important overrides all specificity — leads to specificity wars and unmaintainable CSS"
+  - regex: z-index\s*:\s*[0-9]{4,}
+    message: z-index 9999+ is a magic number arms race — use a z-index scale system
+  - regex: z-index\s*:\s*[1-9][0-9]{2,3}\b
+    message: z-index over 100 suggests missing z-index scale — define layers in variables
+  - regex: #[a-zA-Z_-]+\s[^{]*#[a-zA-Z_-]+
+    message: Multiple ID selectors compound specificity — IDs are already maximally specific
+  - regex: #[a-zA-Z_-]+\.[a-zA-Z_-]+\s+[a-zA-Z]+
+    message: Overly specific selector (ID + class + element) — simplify to reduce coupling
+  - regex: (div|span|p|ul|ol|li|h[1-6]|a|section|article|nav|header|footer|main)\.[a-zA-Z_-]+
+    message: Qualifying class with element type increases specificity unnecessarily — use class alone
+fix: Use a flat class-based methodology (BEM, CUBE) and a z-index scale — avoid !important and deep specificity chains

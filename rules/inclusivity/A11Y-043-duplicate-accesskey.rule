@@ -1,0 +1,17 @@
+id: A11Y-043
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Duplicate accesskey
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: accesskey
+patterns:
+  - regex: accesskey=["']
+    message: accesskey attribute found — verify no duplicate values on page
+fix: Ensure unique accesskey values and document them for users.

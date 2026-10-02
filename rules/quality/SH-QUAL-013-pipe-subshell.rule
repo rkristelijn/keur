@@ -1,0 +1,18 @@
+id: SH-QUAL-013
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Variable loss in pipe subshell
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \|\s*while\s+.*\b(count|total|sum|found|result|status)\b.*=
+    message: "Variable assignment inside piped while loop — variables are lost when subshell exits"
+  - regex: \|\s*while\s+read\b
+    message: "Piped while-read runs in subshell — variables set inside are lost. Use 'while read ... done < <(command)' instead"
+fix: "Replace 'cmd | while read' with 'while read ... done < <(cmd)' or use process substitution"

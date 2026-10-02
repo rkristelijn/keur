@@ -1,0 +1,17 @@
+id: BNDL-019
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: ES5 target generates larger output
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: webpack.config.js webpack.config.ts vite.config.ts vite.config.js
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: target
+patterns:
+  - regex: target:\s*["']es5["']
+    message: "ES5 target — modern browsers support ES2020+, es5 generates larger output"
+fix: Set target to es2020 or higher unless you must support IE11. Check browserslist for actual browser targets.

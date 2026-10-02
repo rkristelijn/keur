@@ -1,0 +1,17 @@
+id: IAC-SEC-022
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Terraform remote state without encryption/locking
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .tf .hcl
+  exclude_paths: test/
+  content_contains: backend
+patterns:
+  - regex: backend\s*"s3"[^}]*encrypt\s*=\s*false
+    message: "Terraform state stored unencrypted — state files contain every secret Terraform manages in plaintext"
+fix: Set encrypt = true in S3 backend. Add dynamodb_table for state locking. Add *.tfstate to .gitignore.

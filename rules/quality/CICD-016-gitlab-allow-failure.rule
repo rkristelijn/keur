@@ -1,0 +1,18 @@
+id: CICD-016
+ilities: [reliability-maturity]
+source: cpm
+maturity: 3
+action: advisory
+title: GitLab CI allow_failure hides failures
+category: reliability
+severity: warning
+engine: pattern
+target:
+  extensions: .yaml .yml
+  filenames: .gitlab-ci.yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: allow_failure
+patterns:
+  - regex: allow_failure:\s*(true|yes)
+    message: "allow_failure hides failures — remove for critical jobs like security scans"
+fix: Remove allow_failure for security, test, and deploy jobs. Use allow_failure only for non-critical jobs like optional linting or experimental builds.

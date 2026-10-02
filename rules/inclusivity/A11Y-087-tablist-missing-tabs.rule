@@ -1,0 +1,17 @@
+id: A11Y-087
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Tablist missing tab children
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role="tablist
+patterns:
+  - regex: role=["']tablist["']
+    message: "Tablist found — ensure it contains elements with role=tab"
+fix: Add role=tab to tab elements inside the tablist.

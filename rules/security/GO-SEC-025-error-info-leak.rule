@@ -1,0 +1,18 @@
+id: GO-SEC-025
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Error message information leak
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: (http\.Error|json\..*Encode).*err\.(Error\(\)|String\(\))
+    message: "Internal error details sent to client — may leak stack traces or system info"
+  - regex: fmt\.Fprintf\(w,.*err
+    message: "Error written directly to HTTP response — sanitize before sending to client"
+fix: Return generic error messages to clients. Log detailed errors server-side only.

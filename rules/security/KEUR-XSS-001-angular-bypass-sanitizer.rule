@@ -11,6 +11,7 @@
 # Match any bypassSecurityTrust{Html,Script,Style,Url,ResourceUrl} call. Exclude
 # test/spec files (they mock the sanitiser) so the rule fires on real components.
 id: KEUR-XSS-001
+ilities: [integrity]
 maturity: 2
 title: Angular XSS — DomSanitizer.bypassSecurityTrust* disables output sanitisation
 category: xss

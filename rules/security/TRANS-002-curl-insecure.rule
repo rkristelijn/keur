@@ -1,0 +1,17 @@
+id: TRANS-002
+ilities: [authenticity]
+source: cpm
+maturity: 2
+action: block
+title: Using curl with --insecure flag skips TLS verification
+category: transport
+severity: error
+engine: pattern
+target:
+  extensions: .sh .bash .yml .yaml
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: curl
+patterns:
+  - regex: curl.*(-k|--insecure)
+    message: "curl with --insecure flag — skips TLS verification"
+fix: Fix the certificate or use --cacert with a trusted CA bundle. Never disable TLS verification in production scripts.

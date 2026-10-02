@@ -1,0 +1,30 @@
+id: PHP-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Command injection via shell execution
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \bexec\(\s*".*\$
+    message: "Variable interpolation in exec() — command injection risk. Use escapeshellarg() on all arguments"
+  - regex: \bexec\(\s*".*"\s*\.
+    message: "String concat in exec() — command injection risk. Use escapeshellarg()"
+  - regex: \bshell_exec\(\s*".*\$
+    message: "Variable interpolation in shell_exec() — command injection risk"
+  - regex: \bsystem\(\s*".*\$
+    message: "Variable interpolation in system() — command injection risk. Use escapeshellarg()"
+  - regex: \bpassthru\(\s*".*\$
+    message: "Variable interpolation in passthru() — command injection risk"
+  - regex: \bpopen\(\s*".*\$
+    message: "Variable interpolation in popen() — command injection risk"
+  - regex: \bproc_open\(\s*".*\$
+    message: "Variable interpolation in proc_open() — command injection risk"
+  - regex: `\$
+    message: "Backtick operator with variable — command injection risk. Use escapeshellarg()"
+fix: "Use escapeshellarg() on all user input: exec('cmd ' . escapeshellarg($input))"

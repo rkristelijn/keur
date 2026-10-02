@@ -1,0 +1,17 @@
+id: FA-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: FastAPI missing HTTPS redirect middleware
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: FastAPI
+patterns:
+  - regex: HTTPSRedirectMiddleware
+    message: "FastAPI app without HTTPSRedirectMiddleware — API traffic may be sent over plain HTTP"
+fix: "Add HTTPS redirect: from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware; app.add_middleware(HTTPSRedirectMiddleware)"

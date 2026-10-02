@@ -1,0 +1,18 @@
+id: ELC-COR-001
+ilities: [reliability-maturity]
+source: cpm
+maturity: 2
+action: advisory
+title: Comparison against an invalid process.platform value
+category: correctness
+severity: error
+engine: pattern
+skip_comments: true
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ tests/ __tests__/ .spec. .test. lib/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: process.platform
+patterns:
+  - regex: process\.platform\s*===?\s*['"](macos|mac|osx|windows|win|win64|linux64)['"]
+    message: "process.platform compared to an invalid value — Node only ever returns 'darwin', 'win32', 'linux', 'freebsd', etc. Comparing to 'macos'/'windows'/'mac' is ALWAYS false, so the branch is dead code."
+fix: "Use the real values: 'darwin' (macOS), 'win32' (Windows), 'linux'. See https://nodejs.org/api/process.html#processplatform"

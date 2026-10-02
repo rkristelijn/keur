@@ -1,0 +1,17 @@
+id: BUILD-027
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: TypeScript moduleResolution 'node' or 'classic' in ESM project
+category: build
+severity: warning
+engine: pattern
+target:
+  filenames: tsconfig.json
+  exclude_paths: node_modules/ .git/ build/ dist/
+  content_contains: moduleResolution
+patterns:
+  - regex: moduleResolution"\s*:\s*"(node|classic|Node|Classic)
+    message: "moduleResolution 'node' or 'classic' — doesn't resolve package.json exports field, breaks ESM-only packages"
+fix: Set moduleResolution to 'node16', 'nodenext', or 'bundler' depending on your target environment.

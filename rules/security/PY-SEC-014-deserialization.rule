@@ -1,0 +1,22 @@
+id: PY-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Insecure deserialization
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/
+patterns:
+  - regex: pickle\.loads?\(
+    message: "pickle.load() executes arbitrary code during deserialization — never use with untrusted data"
+  - regex: yaml\.load\(\s*[^)]*\)
+    message: "yaml.load() without SafeLoader is unsafe — use yaml.safe_load() instead"
+  - regex: yaml\.load\(.*Loader\s*=\s*yaml\.Loader
+    message: "yaml.Loader allows arbitrary code execution — use yaml.SafeLoader"
+  - regex: marshal\.loads?\(
+    message: "marshal.load() can execute arbitrary code — not safe for untrusted data"
+fix: "Use yaml.safe_load(), json instead of pickle, or sign serialized data with hmac"

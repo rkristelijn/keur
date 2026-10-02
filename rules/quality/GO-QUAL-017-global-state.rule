@@ -1,0 +1,16 @@
+id: GO-QUAL-017
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Global mutable state
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: ^var\s+\w+\s*(=|\s+\w+)
+    message: Package-level mutable variable — creates hidden coupling and race conditions
+fix: Pass state explicitly via function parameters or struct fields. Use sync.Mutex if shared.

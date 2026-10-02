@@ -1,0 +1,16 @@
+id: BUILD-034
+ilities: [modularity]
+source: cpm
+maturity: 4
+action: advisory
+title: .env.local override file detected
+category: build
+severity: info
+engine: presence
+target:
+  filenames: .env.local .env.development.local .env.production.local
+  exclude_paths: node_modules/ .git/ build/ dist/
+patterns:
+  - regex: =
+    message: ".env.local override file detected — these take precedence over .env and may accidentally override production values"
+fix: Document .env file precedence. Review overrides. Ensure .env*.local is in .gitignore.

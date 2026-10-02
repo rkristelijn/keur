@@ -1,0 +1,22 @@
+id: IAC-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Missing deletion protection
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .tf .hcl
+  exclude_paths: test/
+patterns:
+  - regex: deletion_protection\s*=\s*false
+    message: "Deletion protection disabled — accidental terraform destroy can delete the resource"
+  - regex: prevent_destroy\s*=\s*false
+    message: "prevent_destroy disabled — resource can be destroyed by Terraform"
+  - regex: skip_final_snapshot\s*=\s*true
+    message: "skip_final_snapshot = true — no recovery point if resource is deleted"
+  - regex: force_destroy\s*=\s*true
+    message: "force_destroy = true — resource and all contents will be destroyed without confirmation"
+fix: "Enable deletion_protection and prevent_destroy for production resources"

@@ -1,0 +1,17 @@
+id: BUILD-028
+ilities: [modularity]
+source: cpm
+maturity: 4
+action: advisory
+title: @types/react version mismatch check
+category: build
+severity: info
+engine: presence
+target:
+  filenames: package.json
+  exclude_paths: node_modules/ .git/ build/ dist/
+  content_contains: @types/react
+patterns:
+  - regex: @types/react"\s*:\s*
+    message: "@types/react found — ensure major version matches installed react version (e.g., @types/react@19 for react@19)"
+fix: Align @types/react version with installed react version. Run npx npm-check-updates -f @types/react.

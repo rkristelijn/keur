@@ -9,6 +9,7 @@
 # markers (a `headers` function, or a CSP/HSTS/security-header string). Targeted
 # at next.config by filename so it does not fire on unrelated code.
 id: KEUR-NEXT-002
+ilities: [integrity]
 maturity: 1
 title: Next.js config without security response headers
 category: security

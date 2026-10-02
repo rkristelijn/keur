@@ -1,0 +1,19 @@
+id: MIG-012
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: ADD COLUMN NOT NULL without DEFAULT (full table rewrite)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sql
+  exclude_paths: test/ tests/ vendor/ .git/ build/ seed/
+  content_contains: NOT NULL
+patterns:
+  - regex: ADD\s+COLUMN\s+\w+\s+\w+[^;]*NOT\s+NULL\s*[;,)]
+    message: "ADD COLUMN NOT NULL without DEFAULT — requires full table rewrite and exclusive lock on existing rows"
+  - regex: ADD\s+COLUMN\s+\w+\s+\w+\s+NOT\s+NULL\s*$
+    message: "ADD COLUMN NOT NULL without DEFAULT — requires full table rewrite and exclusive lock on existing rows"
+fix: Add column nullable first, backfill data, then add NOT NULL constraint. Or add with DEFAULT.

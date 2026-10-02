@@ -1,0 +1,21 @@
+id: QUAL-033
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Inline shell commands in CI/Docker
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: test/ tests/
+  content_contains: script
+patterns:
+  - regex: script:\s*\|
+    message: "Multi-line inline script in CI — extract to scripts/ directory for testability and reuse"
+  - regex: ^\s+-\s+(?:bash|sh)\s+-c\s+["'].*&&.*&&
+    message: "Chained shell commands inline in CI — extract to a script file for maintainability"
+  - regex: ^\s+run:\s*\|
+    message: "Multi-line inline run block in GitHub Actions — extract to scripts/ for testability"
+fix: "Extract inline scripts to scripts/ directory. Benefits: shellcheck, version control, reuse across jobs"

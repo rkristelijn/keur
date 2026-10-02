@@ -1,0 +1,17 @@
+id: A11Y-097
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Hover-no-focus
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .css .scss .less
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: :hover
+patterns:
+  - regex: :hover\b
+    message: :hover styles found — ensure matching :focus/:focus-within styles exist
+fix: Add :focus or :focus-within equivalent for every :hover rule

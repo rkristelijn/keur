@@ -3,6 +3,8 @@
 # plus raw platform timing/exit APIs. All belong behind keur::platform.
 # @see docs/adr/ADR-005.
 id: KEUR-PORT-003
+ilities: [adaptability]
+maturity: 3
 title: POSIX-only or raw-platform API call outside common/
 category: architecture
 severity: error

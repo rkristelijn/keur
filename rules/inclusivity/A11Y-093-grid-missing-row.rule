@@ -1,0 +1,17 @@
+id: A11Y-093
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Grid-missing-row
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role="grid"
+patterns:
+  - regex: role=["']grid["']
+    message: role=grid found — ensure it contains row elements
+fix: Add role=row to grid children

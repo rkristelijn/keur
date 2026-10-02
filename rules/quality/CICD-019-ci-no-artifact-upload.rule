@@ -1,0 +1,17 @@
+id: CICD-019
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: CI without artifact upload
+category: quality
+severity: info
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: test
+patterns:
+  - regex: (artifacts|upload-artifact|store_test_results|junit)
+    message: "CI without test artifact upload — test results not visible in CI UI"
+fix: Upload test artifacts. GitHub: uses: actions/upload-artifact@v4. GitLab: artifacts: reports: junit: report.xml. CircleCI: store_test_results.

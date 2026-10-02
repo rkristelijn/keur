@@ -1,0 +1,26 @@
+id: CS-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: SQL injection via string concatenation
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .cs
+  exclude_paths: test/ tests/ Test/ Tests/
+patterns:
+  - regex: SqlCommand\(\s*".*"\s*\+
+    message: "String concat in SqlCommand — use parameterized queries: new SqlCommand(\"SELECT ... WHERE id = @id\")"
+  - regex: SqlCommand\(\s*\$"
+    message: "Interpolated string in SqlCommand — use parameters: cmd.Parameters.AddWithValue(\"@id\", id)"
+  - regex: \.ExecuteSqlRaw\(\s*\$"
+    message: "Interpolated string in ExecuteSqlRaw() — use ExecuteSqlInterpolated() or FromSqlRaw() with parameters"
+  - regex: \.FromSqlRaw\(\s*\$"
+    message: "Interpolated string in FromSqlRaw() — use FromSqlInterpolated() which auto-parameterizes"
+  - regex: string\.Format\(.*".*(?:SELECT|INSERT|UPDATE|DELETE)
+    message: "string.Format() in SQL — use parameterized queries instead"
+  - regex: ".*(?:SELECT|INSERT|UPDATE|DELETE).*"\s*\+\s*(?:request|Request|input|user|param)
+    message: "User input concatenated into SQL — use parameterized queries"
+fix: "Use SqlCommand with parameters: cmd.Parameters.AddWithValue(\"@id\", id)"

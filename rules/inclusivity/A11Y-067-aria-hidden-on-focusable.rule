@@ -1,0 +1,21 @@
+id: A11Y-067
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Aria-hidden on focusable element
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: aria-hidden
+patterns:
+  - regex: <button[^>]*aria-hidden=["']true["']
+    message: "aria-hidden on <button> — hidden from AT but still focusable"
+  - regex: <a\s[^>]*aria-hidden=["']true["']
+    message: "aria-hidden on <a> — hidden from AT but still focusable"
+  - regex: <input[^>]*aria-hidden=["']true["']
+    message: "aria-hidden on <input> — hidden from AT but still focusable"
+fix: Remove aria-hidden or remove focusability (tabindex="-1").

@@ -1,0 +1,17 @@
+id: TEST-023
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Mocha without --forbid-pending
+category: quality
+severity: info
+engine: absence
+target:
+  filenames: .mocharc.yml .mocharc.json .mocharc.js
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: console.log
+patterns:
+  - regex: --forbid-pending|forbidPending
+    message: "Mocha without --forbid-pending — skipped tests go unnoticed"
+fix: Add --forbid-pending to mocha config to fail CI when tests are skipped. Forces team to fix or remove skipped tests.

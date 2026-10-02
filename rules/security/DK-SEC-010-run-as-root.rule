@@ -1,0 +1,16 @@
+id: DK-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Dockerfile missing USER directive (CVE-2022-0847 Dirty Pipe)
+category: security
+severity: warning
+engine: absence
+target:
+  filenames: Dockerfile Dockerfile.dev Dockerfile.prod
+  exclude_paths: test/ vendor/
+patterns:
+  - regex: ^USER\s
+    message: "Dockerfile has no USER directive — container runs as root. Container escape (Dirty Pipe CVE-2022-0847) → host root."
+fix: Add a non-root user. RUN adduser -D appuser && USER appuser before CMD/ENTRYPOINT.

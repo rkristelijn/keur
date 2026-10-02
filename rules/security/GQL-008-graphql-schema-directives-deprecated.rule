@@ -1,0 +1,17 @@
+id: GQL-008
+ilities: [authenticity]
+source: cpm
+maturity: 4
+action: warn
+title: Deprecated schemaDirectives usage (Apollo Server 4)
+category: graphql
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .py .rb .go .java
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: schemaDirectives
+patterns:
+  - regex: schemaDirectives\s*:
+    message: "schemaDirectives is deprecated in Apollo Server 4 — use @graphql-tools/schema"
+fix: Migrate to @graphql-tools/schema mapSchema() pattern. See https://www.graphql-tools.com/docs/schema-directives for migration guide.

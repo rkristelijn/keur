@@ -16,6 +16,8 @@
 #
 # @see docs/rules-authoring.md (`max-dir-files`), AGENTS.md.
 id: KEUR-QUAL-006
+ilities: [analysability]
+maturity: 3
 title: Directory holds more than ~10 logical units (regroup into subdirs)
 category: quality
 severity: warning

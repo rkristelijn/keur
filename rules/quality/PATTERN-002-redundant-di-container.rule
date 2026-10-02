@@ -1,0 +1,25 @@
+# @see R-030 (Design Patterns vs Native Platform Features)
+id: PATTERN-002
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: DI container library in framework with native DI
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: from\s+['"]inversify['"]
+    message: "InversifyJS import — if using Angular or NestJS, their native DI is sufficient. Adding a second DI container creates confusion"
+  - regex: from\s+['"]tsyringe['"]
+    message: "tsyringe import — if using Angular or NestJS, their native DI replaces this. Use @Injectable() instead"
+  - regex: from\s+['"]typedi['"]
+    message: "TypeDI import — if using NestJS, its built-in DI handles this. Avoid dual DI containers"
+  - regex: from\s+['"]awilix['"]
+    message: "Awilix import — if using NestJS or Angular, use their native DI. Awilix adds unnecessary complexity alongside framework DI"
+  - regex: @inject\(|@injectable\(\)
+    message: "Third-party DI decorator — check if your framework (Angular, NestJS) already provides @Injectable()"
+fix: Remove the third-party DI library. Use your framework's native DI — Angular (@Injectable, providers), NestJS (@Injectable, @Module), or manual constructor injection for plain TypeScript.

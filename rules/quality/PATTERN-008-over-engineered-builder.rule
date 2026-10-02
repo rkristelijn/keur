@@ -1,0 +1,21 @@
+# @see R-030 (Design Patterns vs Native Platform Features)
+id: PATTERN-008
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Builder pattern for simple class (likely over-engineering)
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .js .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: class\s+\w+Builder\s*\{
+    message: "Builder class — justified for complex objects (>4-5 fields, validation, optional params). For simple objects, use a constructor, factory function, or plain object literal"
+  - regex: \.setName\(.*\.setAge\(|\.withName\(.*\.withAge\(
+    message: "Builder chain for simple properties — in TypeScript/Kotlin, use named parameters or object destructuring. Builder adds boilerplate without value for simple objects"
+  - regex: return\s+this;\s*\}\s*(set|with)[A-Z]
+    message: "Fluent builder methods — consider if a simple constructor or object literal would be clearer. Kotlin has data class + named params, TypeScript has object spread"
+fix: For simple objects (<5 fields), use constructor with named parameters (Kotlin), object literals (TypeScript), or factory functions. Reserve Builder for complex objects with validation, optional fields, or step-by-step construction.

@@ -1,0 +1,18 @@
+id: CSS-BP-013
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: ID selectors and @import usage
+category: best-practice
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: ^#[a-zA-Z_-]+[^(]*\{
+    message: ID selector for styling creates high specificity — use classes for reusable, maintainable styles
+  - regex: ^@import\s
+    message: "@import in CSS blocks parallel loading — use link tags, bundler imports, or SCSS @use instead"
+fix: Use class selectors instead of IDs for styling — replace CSS @import with link tags or bundler

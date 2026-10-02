@@ -1,4 +1,5 @@
 id: SCA-017
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Suspicious composer.json suspicious lifecycle scripts

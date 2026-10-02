@@ -1,0 +1,17 @@
+id: ANS-018
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Template module without validate
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: template
+patterns:
+  - regex: template:
+    message: "template module — add validate: parameter for config files (e.g. validate: /usr/sbin/nginx -t -c %s)"
+fix: Add validate parameter to template tasks for config files. Examples: validate: /usr/sbin/nginx -t -c %s, validate: /usr/sbin/sshd -t -f %s, validate: /usr/sbin/visudo -cf %s.

@@ -1,0 +1,17 @@
+id: BUILD-002
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Array .map() rendering without key prop reminder
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: .map(
+patterns:
+  - regex: \.map\(\s*\(?[^)]*\)?\s*=>\s*\(?\s*<
+    message: ".map() rendering detected — ensure each element has a unique key prop to avoid reconciliation bugs"
+fix: Add key={item.id} to the root element returned from .map(). Avoid using array index as key.

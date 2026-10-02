@@ -1,0 +1,19 @@
+id: SPR-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Spring Boot EOL version detection
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .xml .gradle .kts
+  exclude_paths: test/ .git/ target/ build/
+  content_contains: spring-boot
+patterns:
+  - regex: spring-boot-starter-parent.*<version>1\.
+    message: "Spring Boot 1.x is EOL — no security patches for Spring4Shell and other critical CVEs"
+  - regex: spring-boot-starter-parent.*<version>2\.[0-6]\.
+    message: "Spring Boot 2.0-2.6 is EOL — upgrade to 2.7+ or 3.x for security patches"
+fix: Upgrade to Spring Boot 3.x (requires Java 17+) or at minimum 2.7.x for continued security support.

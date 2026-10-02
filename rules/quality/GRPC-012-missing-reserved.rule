@@ -1,0 +1,17 @@
+id: GRPC-012
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Missing reserved after field removal
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .proto
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: removed
+patterns:
+  - regex: //.*removed|//.*deprecated|//.*deleted
+    message: "Field seems removed — add reserved field number to prevent accidental reuse"
+fix: Add reserved field numbers for removed fields. Example — reserved 3, 5; reserved "old_field_name";

@@ -1,4 +1,5 @@
 id: SCA-075
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Suspicious npm lifecycle script with inline Node.js execution

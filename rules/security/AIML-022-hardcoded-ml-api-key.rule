@@ -1,0 +1,17 @@
+id: AIML-022
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Hardcoded ML service API key
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: API_KEY|HF_TOKEN
+patterns:
+  - regex: (OPENAI_API_KEY|HF_TOKEN|ANTHROPIC_API_KEY|COHERE_API_KEY|REPLICATE_API_TOKEN)\s*=\s*['"][a-zA-Z0-9_-]{20,}['"]
+    message: Hardcoded ML service API key
+fix: Use environment variables or secrets manager

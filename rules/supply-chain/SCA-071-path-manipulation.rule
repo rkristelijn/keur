@@ -1,4 +1,5 @@
 id: SCA-071
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: PATH manipulation to shadow system binaries

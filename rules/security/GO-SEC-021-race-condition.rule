@@ -1,0 +1,18 @@
+id: GO-SEC-021
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Potential race condition
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: ^var\s+\w+\s.*map\[
+    message: "Package-level map without mutex — maps are not concurrency-safe in Go"
+  - regex: ^var\s+\w+\s.*\[\]
+    message: "Package-level slice without mutex — slices are not concurrency-safe"
+fix: Protect shared state with sync.Mutex, sync.RWMutex, or use sync.Map for concurrent map access

@@ -1,0 +1,17 @@
+id: A11Y-008
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Empty heading element
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <h
+patterns:
+  - regex: <h[1-6][^>]*>\s*</h[1-6]>
+    message: "Empty heading element — headings must have text content"
+fix: "Add text content to heading or remove empty heading"

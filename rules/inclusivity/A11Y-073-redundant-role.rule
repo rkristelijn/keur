@@ -1,0 +1,27 @@
+id: A11Y-073
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Redundant ARIA role
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role=
+patterns:
+  - regex: <nav[^>]*role=["']navigation["']
+    message: "Redundant role=navigation on <nav>"
+  - regex: <main[^>]*role=["']main["']
+    message: "Redundant role=main on <main>"
+  - regex: <header[^>]*role=["']banner["']
+    message: "Redundant role=banner on <header>"
+  - regex: <footer[^>]*role=["']contentinfo["']
+    message: "Redundant role=contentinfo on <footer>"
+  - regex: <button[^>]*role=["']button["']
+    message: "Redundant role=button on <button>"
+  - regex: <a[^>]*role=["']link["']
+    message: "Redundant role=link on <a>"
+fix: Remove redundant role — native element already has this role.

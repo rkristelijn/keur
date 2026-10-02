@@ -1,0 +1,17 @@
+id: BUILD-003
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Async function passed directly to useEffect
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: useEffect
+patterns:
+  - regex: useEffect\(\s*async
+    message: "async function passed directly to useEffect — returns a Promise instead of a cleanup function, causing memory leaks"
+fix: Define async function inside useEffect and call it immediately — useEffect(() => { async function fetchData() { ... } fetchData(); }, []).

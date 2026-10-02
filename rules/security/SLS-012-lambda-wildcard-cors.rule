@@ -1,0 +1,18 @@
+id: SLS-012
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Lambda wildcard CORS
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .yaml .yml
+  filenames: serverless.yml serverless.yaml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: cors
+patterns:
+  - regex: cors:\s*true
+    message: "cors: true enables wildcard CORS — specify allowed origins explicitly"
+fix: Replace cors: true with cors: { origin: 'https://yourdomain.com', headers: [...], allowCredentials: false }.

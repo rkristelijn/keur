@@ -1,0 +1,17 @@
+id: HO-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Hono missing CSP/security headers
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .ts .js .tsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: Hono
+patterns:
+  - regex: secureHeaders|Content-Security-Policy|helmet
+    message: "Hono app without security headers middleware — missing CSP, X-Frame-Options, etc."
+fix: "Add: import { secureHeaders } from 'hono/secure-headers'; app.use(secureHeaders())"

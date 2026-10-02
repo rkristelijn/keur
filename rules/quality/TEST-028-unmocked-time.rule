@@ -1,0 +1,19 @@
+id: TEST-028
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Unmocked Date/time in test files
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: describe
+patterns:
+  - regex: new\s+Date\s*\(\s*\)
+    message: "new Date() in test — non-deterministic, causes flaky tests. Use fake timers or inject a clock."
+  - regex: Date\.now\s*\(\s*\)
+    message: "Date.now() in test — non-deterministic. Use jest.useFakeTimers() or sinon.useFakeTimers()."
+fix: Use jest.useFakeTimers(), sinon.useFakeTimers(), or inject a clock interface for deterministic tests.

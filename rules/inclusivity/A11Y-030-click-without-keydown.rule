@@ -1,0 +1,19 @@
+id: A11Y-030
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Non-interactive element with onClick handler
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .jsx .tsx
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: onClick
+patterns:
+  - regex: <div[^>]*onClick[^>]*>
+    message: "div with onClick — ensure keyboard handler (onKeyDown) is also present"
+  - regex: <span[^>]*onClick[^>]*>
+    message: "span with onClick — ensure keyboard handler (onKeyDown) is also present"
+fix: "Add onKeyDown handler or use a <button> element"

@@ -1,0 +1,17 @@
+id: K8S-039
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Pod with hostPID enabled
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: hostPID
+patterns:
+  - regex: hostPID:\s*true
+    message: "hostPID gives container visibility into all host processes — severe container escape risk"
+fix: Remove hostPID or set to false. If process visibility is needed, use sidecar containers or dedicated monitoring tools.

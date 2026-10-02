@@ -1,0 +1,17 @@
+id: KT-QUAL-026
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Hardcoded dimensions in XML
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .xml
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: lateinit
+patterns:
+  - regex: (layout_width|layout_height|textSize|padding|margin)="\d+(dp|sp|px)"
+    message: Hardcoded dimension — use @dimen/ resources for consistency
+fix: Extract dimension values to res/values/dimens.xml and reference with @dimen/name

@@ -1,0 +1,22 @@
+id: DB-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Database connection created per request (connection pool missing)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .java .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: new\s+Client\s*\(
+    message: "new Client() in request handler — creates a DB connection per request. Use a connection pool."
+  - regex: DriverManager\.getConnection\s*\(
+    message: "DriverManager.getConnection() — creates raw JDBC connection. Use a connection pool (HikariCP, c3p0)."
+  - regex: psycopg2\.connect\s*\(
+    message: "psycopg2.connect() in request context — creates a new connection per call. Use a pool (psycopg2.pool or SQLAlchemy)."
+  - regex: createConnection\s*\(
+    message: "createConnection() — creates a single connection. Use createPool() or connection pooling."
+fix: Use a connection pool. Node: createPool(). Python: SQLAlchemy/psycopg2.pool. Java: HikariCP. Go: database/sql (built-in pooling).

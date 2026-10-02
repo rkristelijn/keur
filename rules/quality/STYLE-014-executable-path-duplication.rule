@@ -1,0 +1,23 @@
+# @see ADR-170 (multi-OS platform abstraction)
+id: STYLE-014
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Duplicated executable-path resolution block
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: src/common/ vendor/ test/ tests/ build/ dist/
+patterns:
+  - regex: _NSGetExecutablePath
+    message: "Direct call to _NSGetExecutablePath outside src/common/ — use platform::executable_path() or platform::executable_dir() instead (ADR-170)"
+  - regex: GetModuleFileNameA\s*\(
+    message: "Direct call to GetModuleFileNameA outside src/common/ — use platform::executable_path() or platform::executable_dir() instead (ADR-170)"
+  - regex: GetModuleFileNameW\s*\(
+    message: "Direct call to GetModuleFileNameW outside src/common/ — use platform::executable_path() instead (ADR-170)"
+  - regex: readlink\s*\(\s*"/proc/self/exe"
+    message: "Inline /proc/self/exe readlink outside src/common/ — use platform::executable_path() instead (ADR-170)"
+fix: "Use platform::executable_path() or platform::executable_dir() from src/common/platform.h. The implementations live in platform_posix.cpp (macOS+Linux) and platform_win32.cpp (Windows) — the Makefile selects the right one. See ADR-170."

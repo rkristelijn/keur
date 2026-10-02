@@ -1,0 +1,19 @@
+id: SPR-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Spring Boot actuator endpoints exposed (credential harvesting risk)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .properties .yml .yaml
+  exclude_paths: test/ .git/ target/ build/
+  content_contains: actuator
+patterns:
+  - regex: management\.endpoints\.web\.exposure\.include\s*[=:]\s*\*
+    message: "All actuator endpoints exposed — /actuator/env and /actuator/heapdump leak credentials"
+  - regex: management\.security\.enabled\s*[=:]\s*false
+    message: "Actuator security disabled — endpoints accessible without authentication"
+fix: Expose only health and info endpoints. Protect sensitive actuators with Spring Security.

@@ -3,6 +3,8 @@
 # (src/keur/common/). Anywhere else they signal OS-divergent logic leaking into
 # business code, which is exactly the drift this rule blocks. @see docs/adr/ADR-005.
 id: KEUR-PORT-001
+ilities: [adaptability]
+maturity: 3
 title: Platform #ifdef outside common/ (ifdef-spreading)
 category: architecture
 severity: error

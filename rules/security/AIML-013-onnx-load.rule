@@ -1,0 +1,17 @@
+id: AIML-013
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 3
+action: warn
+title: ONNX model custom operator risk
+category: ai-ml
+severity: warning
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: onnx.load
+patterns:
+  - regex: onnx\.load\(
+    message: ONNX models can contain custom operators with code execution risk
+fix: Validate model with onnx.checker.check_model() before loading

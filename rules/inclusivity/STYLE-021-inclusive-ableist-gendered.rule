@@ -1,0 +1,38 @@
+id: STYLE-021
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Non-inclusive terminology (ableist/gendered)
+category: inclusivity
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .cpp .h .rb .cs .sh .md .yml .yaml
+  exclude_paths: node_modules/ vendor/ dist/ build/ .git/
+patterns:
+  - regex: \bsanity check\b
+    message: sanity check → use confidence check
+  - regex: \bcrazy\b
+    message: crazy → use unexpected
+  - regex: \binsane\b
+    message: insane → use extreme
+  - regex: \bcrippled\b
+    message: crippled → use degraded
+  - regex: \bcripple\b
+    message: cripple → use severely limit
+  - regex: \blame\b
+    message: lame → use weak
+  - regex: \bdumb\b
+    message: dumb → use simple
+  - regex: \bblind spot\b
+    message: blind spot → use visibility gap
+  - regex: \bman-hours\b
+    message: man-hours → use person-hours
+  - regex: \bmanpower\b
+    message: manpower → use workforce
+  - regex: \bmiddleman\b
+    message: middleman → use intermediary
+  - regex: \bguys\b
+    message: guys → use everyone
+fix: Replace ableist and gendered terms with inclusive alternatives

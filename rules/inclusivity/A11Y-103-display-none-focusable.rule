@@ -1,0 +1,17 @@
+id: A11Y-103
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Display-none-focusable
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: display:none
+patterns:
+  - regex: style=["'][^"']*display:\s*none[^"']*["']
+    message: Inline display:none — verify it's not hiding focusable/meaningful content
+fix: Use CSS classes instead of inline styles; ensure hidden content isn't needed by AT

@@ -1,0 +1,17 @@
+id: BNDL-015
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Webpack watchOptions poll
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: webpack.config.js webpack.config.ts
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: poll
+patterns:
+  - regex: poll:\s*(true|\d{4,})
+    message: "Filesystem polling is CPU-intensive — use native fs events (default) unless in Docker/VM"
+fix: Remove poll option. Only use polling inside Docker/VM where native fs events are unreliable.

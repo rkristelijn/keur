@@ -1,4 +1,5 @@
 id: SCA-011
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Suspicious npm lifecycle script running hidden file

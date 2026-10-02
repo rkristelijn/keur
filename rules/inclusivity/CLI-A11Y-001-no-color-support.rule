@@ -1,0 +1,17 @@
+id: CLI-A11Y-001
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: ANSI escape codes without NO_COLOR support
+category: a11y
+severity: warning
+engine: absence
+target:
+  extensions: .cpp .c .h .go .rs .py .ts .js .rb .sh .bash
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/
+  content_contains: \033[
+patterns:
+  - regex: NO_COLOR
+    message: "File emits ANSI escape codes but never checks NO_COLOR — users who need accessible output cannot disable colors (no-color.org)"
+fix: "Check the NO_COLOR environment variable before emitting ANSI codes. When set and non-empty, suppress all color output. See https://no-color.org/"

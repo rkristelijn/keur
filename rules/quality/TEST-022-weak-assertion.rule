@@ -1,0 +1,17 @@
+id: TEST-022
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Weak test assertion
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: process.env
+patterns:
+  - regex: \.toBeTruthy\(\)|toEqual\(true\)
+    message: "Weak assertion (toBeTruthy/toEqual(true)) — use specific matchers like toHaveBeenCalledWith"
+fix: Use precise assertions — toHaveBeenCalledWith(), toEqual(expected), toHaveProperty(). Weak assertions mask incorrect behavior.

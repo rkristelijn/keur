@@ -1,0 +1,17 @@
+id: RS-SEC-040
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Unsafe block without safety comment
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: unsafe
+patterns:
+  - regex: ^\s*unsafe\s*\{
+    message: unsafe block — document safety invariants with // SAFETY: comment
+fix: Add a // SAFETY: comment above the unsafe block explaining why the invariants are upheld

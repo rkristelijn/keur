@@ -1,0 +1,24 @@
+id: BE-SEC-024
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Open redirect
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: (?:redirect|sendRedirect|Redirect)\(.*(?:req\.|request\.|params|body|query|input)
+    message: "User input in redirect — open redirect risk. Validate URL against allowlist of internal paths"
+  - regex: Location.*(?:req\.|request\.|params|body|query)
+    message: "User input in Location header — open redirect / phishing risk"
+  - regex: redirect_to\s+(?:params|request)
+    message: "Rails redirect_to with user input — open redirect. Validate against allowlist"
+  - regex: HttpResponseRedirect\(.*request\.(?:GET|POST)
+    message: "Django redirect with user input — open redirect. Use url_has_allowed_host_and_scheme()"
+  - regex: window\.location\s*=\s*.*(?:params|query|search|hash|input)
+    message: "Client-side redirect with user input — open redirect / XSS risk"
+fix: "Validate redirect URLs: allow only relative paths or an explicit allowlist of domains. CWE-601"

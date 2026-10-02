@@ -1,0 +1,20 @@
+id: GO-QUAL-021
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Deprecated standard library usage
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: "io/ioutil"
+    message: "io/ioutil is deprecated since Go 1.16 — use os and io packages directly"
+  - regex: ioutil\.(ReadFile|WriteFile|ReadAll|TempDir|TempFile|ReadDir)
+    message: "ioutil functions deprecated — use os.ReadFile, io.ReadAll, os.MkdirTemp etc."
+  - regex: "golang.org/x/net/context"
+    message: "x/net/context deprecated — use standard library context package"
+fix: "Replace: ioutil.ReadFile→os.ReadFile, ioutil.ReadAll→io.ReadAll, ioutil.TempDir→os.MkdirTemp"

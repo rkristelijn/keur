@@ -20,6 +20,7 @@
 #
 # @see docs/research/javascript-typescript.md #37, ESLint no-throw-literal.
 id: KEUR-ERR-002
+ilities: [analysability]
 maturity: 1
 title: Throw of a string/number literal instead of an Error object
 category: quality

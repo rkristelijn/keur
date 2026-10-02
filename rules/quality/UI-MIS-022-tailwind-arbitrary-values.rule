@@ -1,0 +1,19 @@
+id: UI-MIS-022
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Tailwind arbitrary value overuse
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .tsx .jsx .html .vue .svelte
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: tailwind
+patterns:
+  - regex: className=["'][^"']*\[#[0-9a-fA-F]+\]
+    message: "Arbitrary hex color in Tailwind class — define colors in tailwind.config.js for reuse and consistency"
+  - regex: className=["'][^"']*\[\d+px\]
+    message: "Arbitrary pixel value in Tailwind class — extend theme spacing in tailwind.config.js if this is a repeated value"
+fix: "Add custom values to tailwind.config.js: theme: { extend: { colors: { brand: '#1234AB' }, spacing: { 18: '72px' } } }"

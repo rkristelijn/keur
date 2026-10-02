@@ -1,0 +1,18 @@
+id: CLI-A11Y-021
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: CLI project without man page
+category: a11y
+severity: info
+engine: file-absence
+target:
+  filenames: man
+  # A real man page is a roff file with a section-number extension (.1 for
+  # user commands). file-absence treats filenames and extensions as OR, so a
+  # committed man/cpm.1 satisfies the rule even though its basename is not
+  # literally "man". The .1.md pandoc source alone is not enough — ship the
+  # generated roff so `man cpm` works.
+  extensions: .1
+fix: "Add a man page (man/tool.1). Generate it from a markdown source with pandoc if you like (man/tool.1.md -> pandoc --to man). Screen reader users have specialized scripts for reading man pages — the standardized format is more accessible than --help output."

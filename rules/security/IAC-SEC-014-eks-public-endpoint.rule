@@ -1,0 +1,19 @@
+id: IAC-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: EKS public endpoint exposure
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .tf .hcl
+  exclude_paths: test/
+  content_contains: eks
+patterns:
+  - regex: endpoint_public_access\s*=\s*true
+    message: "EKS public endpoint enabled — API server accessible from internet. Use private endpoint + VPN"
+  - regex: public_access_cidrs\s*=\s*\[\s*"0\.0\.0\.0/0"\s*\]
+    message: "EKS public access open to 0.0.0.0/0 — restrict to specific CIDR ranges"
+fix: "Set endpoint_public_access = false and use endpoint_private_access = true with VPN"

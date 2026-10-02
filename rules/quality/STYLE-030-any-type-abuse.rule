@@ -1,0 +1,18 @@
+id: STYLE-030
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: TypeScript 'any' type abuse
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: :\s*any\b
+    message: "Type 'any' disables TypeScript's type checking — use 'unknown', generics, or a proper type"
+  - regex: as\s+any\b
+    message: "'as any' defeats type safety — fix the underlying type issue instead"
+fix: Use 'unknown' for truly unknown types (requires type narrowing), or define proper interfaces.

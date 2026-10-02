@@ -1,0 +1,17 @@
+id: API-020
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: CRUD verbs in REST URL paths
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .java .go .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: api
+patterns:
+  - regex: \.(get|post|put|delete|patch)\(['"`]\/[^'"]*\/(create|delete|update|remove|add|edit|modify|fetch|get)[A-Z]
+    message: "CRUD verb in URL path — use nouns and HTTP methods instead (/users, not /createUser)"
+fix: Use resource nouns with HTTP methods. POST /users (create), GET /users/:id (read), PUT /users/:id (update), DELETE /users/:id (delete).

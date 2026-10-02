@@ -1,4 +1,5 @@
 id: SEC-036
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Missing rate limiting on auth endpoints (OWASP API4)

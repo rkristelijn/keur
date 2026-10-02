@@ -29,6 +29,7 @@
 # @see docs/research/javascript-typescript.md #36 (and #34 as FN);
 #      typescript-eslint no-floating-promises; MDN Using_promises.
 id: KEUR-PROM-001
+ilities: [analysability]
 maturity: 1
 title: Promise-constructor antipattern — new Promise wrapping a thenable
 category: quality

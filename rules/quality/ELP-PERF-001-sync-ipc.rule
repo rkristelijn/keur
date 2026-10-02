@@ -1,0 +1,19 @@
+id: ELP-PERF-001
+ilities: [time-behaviour]
+source: cpm
+maturity: 3
+action: advisory
+title: Electron synchronous IPC blocks the renderer UI thread
+category: performance
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx .vue
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: ipcRenderer
+patterns:
+  - regex: ipcRenderer\.sendSync\s*\(
+    message: "ipcRenderer.sendSync() blocks the renderer UI thread until the main process replies — on a hot path this causes visible jank. Use ipcRenderer.invoke() (async) with ipcMain.handle()."
+  - regex: \.sendSync\s*\(
+    message: "Synchronous IPC blocks the UI thread. Prefer the async invoke/handle pattern so input and rendering stay responsive."
+fix: "Replace sendSync/send+on with the async ipcRenderer.invoke() / ipcMain.handle() pair. See https://www.electronjs.org/docs/latest/tutorial/performance#3-blocking-the-main-process"

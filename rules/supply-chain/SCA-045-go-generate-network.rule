@@ -1,4 +1,5 @@
 id: SCA-045
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Risky go generate directive with network calls

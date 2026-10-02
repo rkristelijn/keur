@@ -3,6 +3,7 @@
 # @see docs/adr/ADR-009-composite-rules-and-facts.md
 # @implements ADR-009.composite
 id: KEUR-IAC-003
+ilities: [integrity]
 maturity: 2
 title: Dockerfile has no HEALTHCHECK
 category: iac

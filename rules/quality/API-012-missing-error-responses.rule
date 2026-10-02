@@ -1,0 +1,17 @@
+id: API-012
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: API spec missing error response codes
+category: quality
+severity: warning
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: openapi
+patterns:
+  - regex: 4[0-9][0-9]":|'4[0-9][0-9]':|400:|401:|403:|404:|500:
+    message: "API spec without error response codes — consumers won't know what errors to handle"
+fix: Document at minimum 400, 401, 403, 404, and 500 responses with schemas and examples for each endpoint.

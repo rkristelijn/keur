@@ -1,0 +1,17 @@
+id: DJ-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Django ALLOWED_HOSTS wildcard (CVE-2016-9014)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: ALLOWED_HOSTS
+patterns:
+  - regex: ALLOWED_HOSTS\s*=\s*\[\s*['"]\*['"]\s*\]
+    message: "ALLOWED_HOSTS wildcard — enables Host header attacks, password reset poisoning, and DNS rebinding (CVE-2016-9014)"
+fix: Set ALLOWED_HOSTS to specific domain names. Never use ['*'] in production.

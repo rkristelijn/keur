@@ -1,4 +1,5 @@
 id: SEC-044
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Hardcoded /tmp path (predictable temp file — race/symlink risk)

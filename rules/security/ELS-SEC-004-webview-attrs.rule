@@ -1,0 +1,21 @@
+id: ELS-SEC-004
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Insecure Electron <webview> attributes
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .html .vue .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: webview
+patterns:
+  - regex: <webview[^>]*\bdisablewebsecurity\b
+    message: "<webview disablewebsecurity> turns off the same-origin policy for embedded content — a direct path from XSS to RCE. Remove it."
+  - regex: <webview[^>]*\bnodeintegration\b
+    message: "<webview nodeintegration> grants Node.js to embedded (often remote) content. Remove it and use a preload + contextBridge instead."
+  - regex: <webview[^>]*\ballowpopups\b
+    message: "<webview allowpopups> lets embedded content spawn new BrowserWindows via window.open. Drop it unless you truly need popups."
+fix: "Remove disablewebsecurity/nodeintegration/allowpopups from <webview> and control webview creation from the main process (will-attach-webview). See https://www.electronjs.org/docs/latest/tutorial/security#12-verify-webview-options-before-creation"

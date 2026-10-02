@@ -1,0 +1,17 @@
+id: BUILD-013
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: 'this' used in Vue Composition API setup
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .vue
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: setup
+patterns:
+  - regex: \bthis\.(\$|[a-zA-Z])
+    message: "'this' used in setup() or <script setup> — Composition API has no 'this' context, will be undefined"
+fix: Use imported composables, inject(), or useRoute()/useRouter() instead of this.$route/this.$router.

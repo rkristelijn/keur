@@ -1,0 +1,16 @@
+id: TRANS-005
+ilities: [authenticity]
+source: cpm
+maturity: 3
+action: warn
+title: Plain HTTP URL in configuration file
+category: transport
+severity: warning
+engine: pattern
+target:
+  extensions: .yml .yaml .toml .json .env .properties .cfg .ini .conf
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (api_url|base_url|endpoint|server|url)\s*[:=]\s*['"]?http://[a-z0-9]
+    message: "Plain HTTP URL in config — data transmitted without encryption"
+fix: Use HTTPS for all non-localhost URLs. Plain HTTP exposes data in transit to eavesdropping and tampering.

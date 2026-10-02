@@ -1,0 +1,17 @@
+id: A11Y-101
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Color-only-link
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .css .scss .less
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: text-decoration
+patterns:
+  - regex: text-decoration:\s*none
+    message: text-decoration:none on links — ensure links aren't distinguished only by color
+fix: Keep underline on links, or add another visual indicator beyond color

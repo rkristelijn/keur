@@ -1,0 +1,26 @@
+id: CSS-MQ-010
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Deprecated media query features
+category: deprecated
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: @media[^{]*\bdevice-width\b
+    message: device-width is deprecated — use width instead
+  - regex: @media[^{]*(max|min)-device-width
+    message: max-device-width/min-device-width are deprecated — use max-width/min-width
+  - regex: @media[^{]*device-aspect-ratio
+    message: device-aspect-ratio is deprecated — use aspect-ratio instead
+  - regex: -webkit-min-device-pixel-ratio
+    message: -webkit-min-device-pixel-ratio is non-standard — use resolution with dppx units
+  - regex: -ms-high-contrast
+    message: -ms-high-contrast is deprecated — use forced-colors and prefers-contrast
+  - regex: @media\s+only\s+screen\s*\{
+    message: "@media only screen without conditions matches all screens — the only keyword is unnecessary"
+fix: Replace deprecated media features with modern equivalents (width, resolution, forced-colors)

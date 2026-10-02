@@ -1,0 +1,17 @@
+id: AIML-005
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Unsafe pandas pickle deserialization
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: read_pickle
+patterns:
+  - regex: (pd|pandas)\.read_pickle\(
+    message: pandas.read_pickle() deserializes pickle — arbitrary code execution
+fix: Use pd.read_csv(), pd.read_parquet(), or pd.read_json()

@@ -1,0 +1,17 @@
+id: A11Y-109
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Title-on-div
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: title=
+patterns:
+  - regex: <(div|span|p|section)\s[^>]*title=["']
+    message: title attribute on non-interactive element — may not be accessible
+fix: Use visible text or aria-label instead of title for non-interactive elements

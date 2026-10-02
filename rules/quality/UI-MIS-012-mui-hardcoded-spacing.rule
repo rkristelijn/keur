@@ -1,0 +1,19 @@
+id: UI-MIS-012
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: MUI hardcoded spacing instead of theme.spacing
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui"
+patterns:
+  - regex: sx=\{\{[^}]*(margin|padding|gap)\s*:\s*["']?\d+px
+    message: "Hardcoded pixel value for spacing — use theme spacing (e.g., 2 = 16px) for consistent scale"
+  - regex: sx=\{\{[^}]*(mt|mb|ml|mr|mx|my|pt|pb|pl|pr|px|py)\s*:\s*["']\d+px["']
+    message: "Pixel value in MUI shorthand spacing — use numeric theme units (1=8px, 2=16px, 3=24px)"
+fix: "Use theme spacing units: sx={{ p: 2, mt: 1 }} (2 = 16px with default 8px base). For custom values, use theme.spacing()."

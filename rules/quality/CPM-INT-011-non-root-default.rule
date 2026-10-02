@@ -1,0 +1,21 @@
+# @see R-030 synthesis: MIDDEN-9
+id: CPM-INT-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Check script defaults to non-root directory
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh
+  exclude_paths: node_modules/ vendor/ .git/ build/ dist/ lib/
+patterns:
+  - regex: DIR="\$\{1:-src\}"
+    message: "Script defaults DIR to 'src' instead of repo root — breaks the REPO=${1:-.} contract"
+  - regex: DIR="\$\{1:-app\}"
+    message: "Script defaults DIR to 'app' instead of repo root — breaks the REPO=${1:-.} contract"
+  - regex: DIR="\$\{1:-lib\}"
+    message: "Script defaults DIR to 'lib' instead of repo root — breaks the REPO=${1:-.} contract"
+fix: "Use REPO=\"${1:-.}\" and derive subdirectories: SRC=\"$REPO/src\""

@@ -1,0 +1,18 @@
+# @see ADR-166
+id: SH-STRICT-002
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Shell script missing strict mode (set -e / errexit)
+category: quality
+severity: warning
+engine: absence
+scope: 1-10
+target:
+  extensions: .sh
+  exclude_paths: test/ node_modules/ vendor/
+patterns:
+  - regex: set -[eoux]*e|set -o errexit|set -o nounset -o pipefail|source.*check\.sh
+    message: "No strict mode flags in the first 10 lines — scripts should fail fast on errors"
+fix: "Add to the top of the script: set -o errexit -o nounset -o pipefail"

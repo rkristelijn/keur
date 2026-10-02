@@ -1,0 +1,17 @@
+id: RS-QUAL-028
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Using std Mutex over parking_lot
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: Mutex
+patterns:
+  - regex: use std::sync::Mutex
+    message: std::sync::Mutex is poisoning-based — consider parking_lot::Mutex for better performance and no poisoning
+fix: Replace use std::sync::Mutex with parking_lot::Mutex, or document why poisoning semantics are needed

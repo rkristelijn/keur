@@ -1,0 +1,17 @@
+id: FA-SEC-016
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: FastAPI missing TrustedHostMiddleware
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: FastAPI
+patterns:
+  - regex: TrustedHostMiddleware
+    message: "FastAPI app without TrustedHostMiddleware — vulnerable to host header injection attacks"
+fix: "Add: from starlette.middleware.trustedhost import TrustedHostMiddleware; app.add_middleware(TrustedHostMiddleware, allowed_hosts=['example.com'])"

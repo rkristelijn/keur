@@ -1,0 +1,17 @@
+id: KT-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: WebView JavaScript enabled
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .kt .java .xml
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: WebView
+patterns:
+  - regex: setJavaScriptEnabled\(true\)|javascript.*=.*true
+    message: JavaScript enabled in WebView — XSS risk if loading untrusted content
+fix: Only enable JavaScript when loading trusted content, and use addJavascriptInterface carefully

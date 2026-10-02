@@ -1,0 +1,19 @@
+# @see R-030 synthesis: MIDDEN-1
+id: CPM-INT-004
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Using wc -l without whitespace trim (macOS portability)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh
+  exclude_paths: node_modules/ vendor/ .git/ build/ dist/
+patterns:
+  - regex: wc -l\)$
+    message: "wc -l without tr -d ' ' — output contains leading spaces on macOS which breaks arithmetic"
+  - regex: wc -l\s*\|?\s*$
+    message: "wc -l at end of pipeline without whitespace trim — add | tr -d ' '"
+fix: "Use $(... | wc -l | tr -d ' ') or redirect: $(wc -l < file)"

@@ -1,0 +1,21 @@
+id: BUILD-001
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: React hook called inside conditional or loop
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: use
+patterns:
+  - regex: (if|for|while|switch)\s*\(.*\).*use(State|Effect|Memo|Callback|Ref|Context|Reducer)\(
+    message: "React hook inside conditional/loop — hooks must be called at the top level of the component on every render"
+  - regex: \?\s*use(State|Effect|Memo|Callback|Ref|Context|Reducer)\(
+    message: "React hook in ternary expression — hooks must be called unconditionally"
+  - regex: &&\s*use(State|Effect|Memo|Callback|Ref|Context|Reducer)\(
+    message: "React hook after && short-circuit — hooks must be called on every render path"
+fix: Move hooks to the top of the component function. Put conditionals inside the hook callback instead.

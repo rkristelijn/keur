@@ -1,0 +1,17 @@
+id: KT-QUAL-029
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: System.out in Android code
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .kt .java
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: System.out
+patterns:
+  - regex: System\.out\.print
+    message: System.out in Android — use Log or Timber which can be stripped in release
+fix: Replace System.out.println with Timber.d() or Log.d() wrapped in BuildConfig.DEBUG check

@@ -1,0 +1,28 @@
+id: PHP-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: SQL injection via string interpolation
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: mysql_query\(\s*"
+    message: "mysql_query() is deprecated and unsafe — use PDO with prepared statements"
+  - regex: mysqli_query\(\s*\$\w+\s*,\s*".*\$
+    message: "Variable interpolation in mysqli_query() — use mysqli prepared statements"
+  - regex: ->query\(\s*".*\$
+    message: "Variable interpolation in ->query() — use prepared statements with ->prepare()"
+  - regex: ->query\(\s*".*"\s*\.
+    message: "String concat in ->query() — use prepared statements with ->prepare()"
+  - regex: DB::raw\(\s*".*\$
+    message: "Variable interpolation in DB::raw() — use parameter binding: DB::raw('... WHERE id = ?', [$id])"
+  - regex: ->whereRaw\(\s*".*\$
+    message: "Variable interpolation in whereRaw() — use parameter binding as second argument"
+  - regex: ->selectRaw\(\s*".*\$
+    message: "Variable interpolation in selectRaw() — use parameter binding"
+fix: "Use PDO prepared statements: $stmt = $pdo->prepare('SELECT ... WHERE id = ?'); $stmt->execute([$id]);"

@@ -1,0 +1,19 @@
+id: TEST-030
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Conditional logic in test (if/switch in test body)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: describe
+patterns:
+  - regex: \s+if\s*\(
+    message: "Conditional logic in test file — tests should be deterministic with no branching"
+  - regex: \s+switch\s*\(
+    message: "Switch statement in test file — each branch should be a separate test case"
+fix: Remove conditionals from tests. Use parameterized tests (test.each) for multiple scenarios.

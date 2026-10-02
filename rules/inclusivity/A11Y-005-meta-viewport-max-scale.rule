@@ -1,0 +1,17 @@
+id: A11Y-005
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Viewport restricts maximum scale
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: maximum-scale
+patterns:
+  - regex: maximum-scale\s*=\s*1[^0-9]
+    message: "maximum-scale=1 prevents zooming — violates WCAG 1.4.4"
+fix: "Remove maximum-scale or set to at least 5"

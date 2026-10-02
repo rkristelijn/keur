@@ -1,0 +1,25 @@
+id: WEB-SEC-016
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: CORS misconfiguration
+category: security
+severity: error
+engine: pattern
+skip_comments: true
+target:
+  extensions: .ts .js .tsx .jsx .py .java .rb .php .go .cs .yml .yaml .json
+  exclude_paths: test/ tests/
+patterns:
+  - regex: Access-Control-Allow-Origin.*\*
+    message: "CORS Access-Control-Allow-Origin set to * — allows any site to make requests. Restrict to specific origins"
+  - regex: origin:\s*["']\*["']
+    message: "CORS origin set to wildcard — allows any domain. Specify allowed origins explicitly"
+  - regex: CORS_ALLOW_ALL\s*=\s*True
+    message: "Django CORS_ALLOW_ALL_ORIGINS = True — allows all cross-origin requests. Specify CORS_ALLOWED_ORIGINS"
+  - regex: cors\(\)
+    message: "cors() middleware with no config — allows all origins by default. Pass explicit origin option"
+  - regex: AllowedOrigins.*\*|allowOrigins.*\*
+    message: "CORS AllowedOrigins set to wildcard — restrict to specific trusted domains"
+fix: "Specify exact allowed origins. Never combine wildcard with Access-Control-Allow-Credentials. CWE-942"

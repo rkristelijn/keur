@@ -1,0 +1,20 @@
+id: IAC-SEC-021
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Terraform unencrypted database/storage
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .tf .hcl
+  exclude_paths: test/
+patterns:
+  - regex: storage_encrypted\s*=\s*false
+    message: "RDS storage encryption disabled — violates GDPR, SOC2, PCI-DSS, HIPAA"
+  - regex: encrypted\s*=\s*false
+    message: "EBS/storage encryption disabled — data at rest unprotected"
+  - regex: kms_key_id\s*=\s*""
+    message: "Empty KMS key — resource may fall back to no encryption"
+fix: Set storage_encrypted = true (RDS), encrypted = true (EBS), and specify a KMS key.

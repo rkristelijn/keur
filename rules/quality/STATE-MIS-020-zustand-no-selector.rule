@@ -1,0 +1,17 @@
+id: STATE-MIS-020
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Zustand subscribing to entire store without selector
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: zustand
+patterns:
+  - regex: =\s*use\w+Store\s*\(\s*\)
+    message: "Subscribing to entire Zustand store without selector — causes re-render on any state change"
+fix: "Use a selector: const count = useStore((state) => state.count) — only re-renders when count changes."

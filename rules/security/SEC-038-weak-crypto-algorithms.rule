@@ -1,4 +1,5 @@
 id: SEC-038
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Weak cryptographic algorithms (MD5, SHA-1, DES, RC4)

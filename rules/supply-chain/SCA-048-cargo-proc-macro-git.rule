@@ -1,4 +1,5 @@
 id: SCA-048
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Cargo.toml proc-macro from git source

@@ -1,0 +1,21 @@
+# @see ADR-169 (smart init)
+id: DOC-013
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Public C/C++ declaration without doc comment
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .h .hpp
+  exclude_paths: test/ tests/ vendor/ node_modules/ build/
+patterns:
+  - regex: ^[a-z]\w+[\s*&]+\w+\s*\(
+    message: "Public function in header without doc comment — add /** @brief */ above"
+  - regex: ^struct\s+\w+\s*\{
+    message: "Public struct without doc comment — add /** @brief */ above"
+  - regex: ^class\s+\w+
+    message: "Public class without doc comment — add /** @brief */ above"
+fix: "Add doxygen-style doc: /** @brief What it does. @param name Description. @return What. */"

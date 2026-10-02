@@ -1,0 +1,17 @@
+id: GRPC-015
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Missing java_package option
+category: quality
+severity: info
+engine: absence
+target:
+  extensions: .proto
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: syntax
+patterns:
+  - regex: option\s+java_package
+    message: "Proto file without java_package — Java code gen uses proto package name which may conflict"
+fix: Add option java_package = "com.example.myservice"; to set the Java package explicitly.

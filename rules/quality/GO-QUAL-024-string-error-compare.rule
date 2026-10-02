@@ -1,0 +1,18 @@
+id: GO-QUAL-024
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: String-based error comparison
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: err\.Error\(\)\s*==\s*"
+    message: "Comparing error by string — use errors.Is() or errors.As() for reliable matching"
+  - regex: strings\.Contains\(err\.Error\(\)
+    message: "String matching on error message — fragile, use typed errors and errors.Is()"
+fix: Define sentinel errors (var ErrNotFound = errors.New(...)) and use errors.Is()/errors.As()

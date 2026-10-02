@@ -1,0 +1,17 @@
+id: DATA-MIS-012
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: TanStack Query v4 array query key syntax
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@tanstack"
+patterns:
+  - regex: useQuery\s*\(\s*\[
+    message: "Array-first argument to useQuery is v4 syntax — v5 uses object: useQuery({ queryKey: [...], queryFn: ... })"
+fix: "useQuery({ queryKey: ['users', id], queryFn: fetchUser })"

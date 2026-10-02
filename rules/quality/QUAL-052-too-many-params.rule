@@ -1,0 +1,20 @@
+id: QUAL-052
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Too many function parameters (>4)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: function\s+\w+\s*\([^)]*,[^)]*,[^)]*,[^)]*,[^)]*,
+    message: "Function has 6+ parameters — too many to remember. Use an options/config object."
+  - regex: def\s+\w+\s*\([^)]*,[^)]*,[^)]*,[^)]*,[^)]*,
+    message: "Function has 6+ parameters — use a dataclass or dict for grouped parameters."
+  - regex: \)\s*=>\s*\{|=>\s*\{|\w+\s*\([^)]*,[^)]*,[^)]*,[^)]*,[^)]*,
+    message: "Arrow function with 6+ params — destructure an options object instead."
+fix: Group related params into an object/struct. func(opts: {name, email, age}) instead of func(name, email, age, ...).

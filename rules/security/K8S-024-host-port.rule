@@ -1,0 +1,17 @@
+id: K8S-024
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Exposed hostPort binds container to host NIC
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: hostPort
+patterns:
+  - regex: hostPort:\s*\d+
+    message: "hostPort binds to host NIC — limits scheduling and exposes ports directly on the node"
+fix: Use NodePort or LoadBalancer Services instead. hostPort prevents multiple pods on the same node and bypasses network policies.

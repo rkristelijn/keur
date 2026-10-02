@@ -1,0 +1,17 @@
+id: A11Y-070
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Empty role attribute
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role=
+patterns:
+  - regex: role=["']["']
+    message: "Empty role attribute"
+fix: Remove empty role or add a valid ARIA role.

@@ -1,0 +1,21 @@
+id: GIN-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Gin error details exposed to client
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ .git/ build/
+  content_contains: gin
+patterns:
+  - regex: c\.JSON\(.*err\.Error\(\)
+    message: "Internal error message returned to client — may expose stack traces, file paths, or database details"
+  - regex: c\.String\(.*err\.Error\(\)
+    message: "Error.Error() sent to client — use generic error messages and log the full error server-side"
+  - regex: fmt\.Fprintf\(c\.Writer.*err
+    message: "Error written directly to response — use structured error responses without internal details"
+fix: "Return generic error: c.JSON(500, gin.H{\"error\": \"internal server error\"}) and log err server-side."

@@ -1,4 +1,5 @@
 id: SCA-033
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Gradle/Maven non-standard repository source

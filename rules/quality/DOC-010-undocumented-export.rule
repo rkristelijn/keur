@@ -1,0 +1,21 @@
+# @see ADR-169 (smart init)
+id: DOC-010
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Exported function without JSDoc
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ spec/ __tests__/ vendor/ node_modules/ dist/ build/
+patterns:
+  - regex: ^export\s+(async\s+)?function\s+\w+
+    message: "Exported function without JSDoc — add /** @param / @returns */ before public API"
+  - regex: ^export\s+class\s+\w+
+    message: "Exported class without JSDoc — add /** @description */ before public classes"
+  - regex: ^export\s+interface\s+\w+
+    message: "Exported interface without doc comment — add /** */ for API contracts"
+fix: "Add JSDoc before exports: /** @description What it does. @param name - description. @returns what. */"

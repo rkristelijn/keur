@@ -1,0 +1,24 @@
+id: BE-SEC-033
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Insecure random number generation
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php .c .cpp
+  exclude_paths: test/ tests/
+patterns:
+  - regex: Math\.random\(\).*(?:token|secret|key|password|session|nonce|salt|csrf|otp)
+    message: "Math.random() for security-sensitive value — predictable. Use crypto.randomUUID() or crypto.getRandomValues()"
+  - regex: random\.random\(\).*(?:token|secret|key|password|session|nonce|salt)
+    message: "Python random.random() is not cryptographically secure. Use secrets.token_hex() or secrets.token_urlsafe()"
+  - regex: java\.util\.Random\b
+    message: "java.util.Random is not cryptographically secure. Use java.security.SecureRandom"
+  - regex: \brand\(\s*\).*(?:token|secret|key|password|session|nonce|salt)
+    message: "rand()/random() for security value — predictable. Use cryptographic random source"
+  - regex: srand\(\s*time\(
+    message: "srand(time()) — predictable seed. Use /dev/urandom or OS random source"
+fix: "Use cryptographic random: crypto.getRandomValues (JS), secrets module (Python), SecureRandom (Java). CWE-330"

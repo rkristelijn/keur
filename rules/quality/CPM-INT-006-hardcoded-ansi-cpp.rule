@@ -1,0 +1,19 @@
+# @see R-030 synthesis: MIDDEN-3
+id: CPM-INT-006
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Hardcoded ANSI escape in C++ bypasses ui.h theme
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .cpp .h .hpp
+  exclude_paths: test/ tests/ vendor/ .git/ build/ dist/
+patterns:
+  - regex: #define\s+\w+\s+"\\033\[
+    message: "Hardcoded ANSI escape macro — use ui_theme() from ui.h for NO_COLOR support"
+  - regex: #define\s+\w+\s+"\\x1[bB]\[
+    message: "Hardcoded ANSI escape macro — use ui_theme() from ui.h for NO_COLOR support"
+fix: Replace hardcoded ANSI macros with ui_theme()->error, ui_theme()->success, etc. from ui.h.

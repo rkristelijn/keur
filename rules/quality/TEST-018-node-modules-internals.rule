@@ -1,0 +1,17 @@
+id: TEST-018
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Test imports from node_modules internals
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: Math.random
+patterns:
+  - regex: from ['"]\.\..*node_modules|require\(['"]\.\..*node_modules
+    message: "Test imports from node_modules internals — fragile, use public API"
+fix: Import from the package name directly (e.g., import { x } from 'package') instead of reaching into node_modules internals.

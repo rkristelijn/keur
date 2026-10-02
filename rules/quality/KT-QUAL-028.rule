@@ -1,0 +1,17 @@
+id: KT-QUAL-028
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Deprecated AsyncTask
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .kt .java
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: AsyncTask
+patterns:
+  - regex: extends\s+AsyncTask|:\s*AsyncTask|AsyncTask<
+    message: AsyncTask deprecated in API 30 — use Kotlin coroutines or java.util.concurrent
+fix: Replace AsyncTask with Kotlin coroutines (viewModelScope.launch) or java.util.concurrent.Executors

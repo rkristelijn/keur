@@ -1,0 +1,17 @@
+id: QUAL-012
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Magic buffer size literal
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .h .hpp
+  exclude_paths: test/ tests/ .tmp/
+  content_contains: char
+patterns:
+  - regex: char\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\[\s*(6[4-9]|[7-9][0-9]|[1-9][0-9]{2,})\s*\]
+    message: Magic buffer size — replace with a named constant (e.g. CPM_PATH_MAX, CPM_CMD_MAX)
+fix: Introduce a constants.h with named #define or constexpr values grouped by category (path, command, message, name)

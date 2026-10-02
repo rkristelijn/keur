@@ -1,0 +1,19 @@
+id: FA-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: FastAPI debug/reload mode in production
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: uvicorn
+patterns:
+  - regex: uvicorn\.run\(.*reload\s*=\s*True
+    message: "Uvicorn reload mode enabled — auto-reload watches filesystem and should never run in production"
+  - regex: uvicorn\.run\(.*debug\s*=\s*True
+    message: "Uvicorn debug mode enabled — exposes detailed error pages with stack traces"
+fix: "Use uvicorn with --workers and no --reload in production. Set reload=False or remove the parameter."

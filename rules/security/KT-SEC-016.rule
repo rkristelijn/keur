@@ -1,0 +1,17 @@
+id: KT-SEC-016
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Exported component without permission
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .xml
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: exported
+patterns:
+  - regex: android:exported="true"
+    message: Exported component — ensure intent-filter or permission protects it
+fix: Add android:permission attribute or verify intent-filter restricts access appropriately

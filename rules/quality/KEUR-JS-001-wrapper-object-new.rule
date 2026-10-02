@@ -28,6 +28,7 @@
 # @see docs/research/javascript-typescript.md (new-keyword misuse);
 #      ESLint no-new-wrappers / no-array-constructor / no-new-object.
 id: KEUR-JS-001
+ilities: [analysability]
 maturity: 1
 title: Wrapper-object `new` (Array/Object/String/Number/Boolean) instead of a literal
 category: quality

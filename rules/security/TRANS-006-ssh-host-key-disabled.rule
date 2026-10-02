@@ -1,0 +1,17 @@
+id: TRANS-006
+ilities: [authenticity]
+source: cpm
+maturity: 2
+action: block
+title: SSH host key checking disabled (MITM risk)
+category: transport
+severity: error
+engine: pattern
+target:
+  extensions: .py .sh .yml .yaml .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: StrictHostKeyChecking
+patterns:
+  - regex: StrictHostKeyChecking.*no|StrictHostKeyChecking=no
+    message: "SSH host key checking disabled — enables MITM attacks"
+fix: Use StrictHostKeyChecking=yes or StrictHostKeyChecking=accept-new. Disabling host key checking allows attackers to impersonate servers.

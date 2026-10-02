@@ -1,0 +1,16 @@
+id: STYLE-036
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: Closing brace comments (code smell for too-long blocks)
+category: style
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs .go .c .cpp .h
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \}\s*//\s*(end|endif|endfor|endwhile|end if|end for|end while|end class|end function|end method)
+    message: "Closing brace comment — indicates the block is too long to see its opening. Extract to a function."
+fix: If you need a comment to find the matching brace, the block is too long. Extract to a named function.

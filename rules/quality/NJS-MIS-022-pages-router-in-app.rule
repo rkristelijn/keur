@@ -1,0 +1,19 @@
+id: NJS-MIS-022
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Next.js Pages Router pattern in App Router
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: next
+patterns:
+  - regex: export\s+(?:async\s+)?function\s+getServerSideProps
+    message: "getServerSideProps is Pages Router — in App Router, fetch data directly in async Server Components"
+  - regex: export\s+(?:async\s+)?function\s+getStaticProps
+    message: "getStaticProps is Pages Router — in App Router, use fetch() with next.revalidate option"
+fix: "Make the component async and fetch directly: export default async function Page() { const data = await fetch(...); }"

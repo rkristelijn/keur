@@ -15,6 +15,7 @@
 #
 # @see SonarCloud cpp:S6069.
 id: KEUR-QUAL-010
+ilities: [analysability]
 maturity: 5
 title: Use contains() for membership instead of find()/count() comparisons
 category: quality

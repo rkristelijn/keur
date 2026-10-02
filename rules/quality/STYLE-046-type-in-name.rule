@@ -1,0 +1,16 @@
+id: STYLE-046
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: Type-in-name redundancy (userArray, nameString, countInt)
+category: style
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (const|let|var)\s+\w+(Array|List|String|Int|Integer|Bool|Boolean|Map|Set|Object|Dict|Number|Float|Double)\s*[=:]
+    message: "Type encoded in variable name — modern languages have type systems. Use 'users' not 'userArray'."
+fix: Name by content, not container. 'users' not 'userArray', 'name' not 'nameString'.

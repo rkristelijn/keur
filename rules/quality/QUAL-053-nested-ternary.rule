@@ -1,0 +1,16 @@
+id: QUAL-053
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Nested ternary operator (unreadable)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \?[^:]*\?[^:]*:
+    message: "Nested ternary operator — unreadable. Use if/else or extract to a named function."
+fix: Replace nested ternaries with if/else blocks or extract to a descriptively-named function.

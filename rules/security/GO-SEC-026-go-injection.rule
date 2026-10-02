@@ -1,0 +1,24 @@
+id: GO-SEC-026
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Go-specific injection patterns
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: fmt\.Sprintf\(.*SELECT.*%s
+    message: "SQL query built with fmt.Sprintf — use parameterized queries"
+  - regex: fmt\.Sprintf\(.*INSERT.*%s
+    message: "SQL insert built with fmt.Sprintf — use parameterized queries"
+  - regex: fmt\.Sprintf\(.*DELETE.*%s
+    message: "SQL delete built with fmt.Sprintf — use parameterized queries"
+  - regex: fmt\.Sprintf\(.*UPDATE.*%s
+    message: "SQL update built with fmt.Sprintf — use parameterized queries"
+  - regex: (db|tx)\.(Query|Exec)\(.*\+
+    message: "String concatenation in database query — use $1 placeholders"
+fix: "Use db.Query(\"SELECT * FROM users WHERE id = $1\", id) instead of string building"

@@ -1,0 +1,24 @@
+id: CS-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Cross-site scripting (XSS) risks
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .cs .cshtml .razor
+  exclude_paths: test/ tests/ Test/ Tests/
+patterns:
+  - regex: Html\.Raw\(
+    message: "Html.Raw() outputs unencoded HTML — XSS risk. Use @variable (auto-encoded) or sanitize first"
+  - regex: \[AllowHtml\]
+    message: "[AllowHtml] disables input validation — XSS risk. Use [AllowHtml] only with output encoding"
+  - regex: ValidateInput\s*\(\s*false\s*\)
+    message: "ValidateInput(false) disables ASP.NET request validation — XSS risk"
+  - regex: Response\.Write\(.*(?:Request|Input|user|param)
+    message: "User input in Response.Write() — XSS risk. HTML-encode output"
+  - regex: \.WriteLiteralTo\(.*\+
+    message: "String concat in WriteLiteralTo — potential XSS. Use @Html.Encode() or Razor auto-encoding"
+fix: "Use Razor's auto-encoding (@variable) instead of Html.Raw(). Sanitize with HtmlEncoder.Default.Encode()"

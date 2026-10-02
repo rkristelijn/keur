@@ -1,0 +1,17 @@
+id: GRPC-014
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Untyped string-string map
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .proto
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: map
+patterns:
+  - regex: \bmap<string,\s*string>
+    message: "map<string, string> — consider a typed message instead of untyped maps for schema evolution"
+fix: Define a typed message for the map value. Typed fields provide better validation, documentation, and code generation.

@@ -1,0 +1,17 @@
+id: AIML-025
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 3
+action: warn
+title: Gradio/Streamlit app without authentication
+category: ai-ml
+severity: warning
+engine: presence
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: launch|set_page_config
+patterns:
+  - regex: (gr\.launch|st\.set_page_config)\(
+    message: ML demo app without authentication — may expose model/data
+fix: Add authentication: gr.launch(auth=...) or use auth middleware

@@ -1,0 +1,22 @@
+id: ANIM-MIS-021
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: GSAP 2 deprecated TweenMax/TimelineMax
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: TweenMax\.
+    message: "TweenMax is GSAP 2 — use gsap.to/from/fromTo in GSAP 3"
+  - regex: TweenLite\.
+    message: "TweenLite is GSAP 2 — use gsap.to/from/fromTo in GSAP 3"
+  - regex: TimelineMax\.
+    message: "TimelineMax is GSAP 2 — use gsap.timeline() in GSAP 3"
+  - regex: TimelineLite\.
+    message: "TimelineLite is GSAP 2 — use gsap.timeline() in GSAP 3"
+fix: "import { gsap } from 'gsap'; gsap.to('.element', { x: 100, duration: 1 });"

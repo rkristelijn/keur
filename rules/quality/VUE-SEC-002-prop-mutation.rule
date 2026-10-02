@@ -1,0 +1,18 @@
+id: VUE-SEC-002
+ilities: [reliability-maturity]
+source: cpm
+maturity: 3
+action: advisory
+title: Direct mutation of a Vue prop
+category: correctness
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .vue
+  exclude_paths: test/ tests/ __tests__/ .spec. .test. lib/ __tests__/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: props.
+patterns:
+  - regex: \bprops\.[A-Za-z_$][\w$]*\s*=[^=]
+    message: "Assigning to props.<x> mutates a prop — Vue props are one-way (parent → child); the change is overwritten on the next parent render and Vue warns at runtime. Emit an event or use a local copy."
+fix: "Emit to the parent (emit('update:x', value)) for v-model, or copy into local ref/reactive state and mutate that. See https://vuejs.org/guide/components/props.html#one-way-data-flow"

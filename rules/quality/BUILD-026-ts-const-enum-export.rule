@@ -1,0 +1,17 @@
+id: BUILD-026
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Exported const enum breaks isolatedModules
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: const enum
+patterns:
+  - regex: export\s+const\s+enum\s+\w+
+    message: "Exported const enum — incompatible with isolatedModules (required by Vite, esbuild, SWC, and ts-jest)"
+fix: Use a regular enum or an 'as const' object — export const Status = { Active: 'active', Inactive: 'inactive' } as const.

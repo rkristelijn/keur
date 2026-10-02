@@ -1,4 +1,6 @@
 id: KEUR-ARCH-001
+ilities: [analysability]
+maturity: 3
 title: Direct I/O must go through an adapter, not raw syscalls
 category: architecture
 severity: error

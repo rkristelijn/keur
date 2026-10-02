@@ -1,0 +1,17 @@
+id: A11Y-003
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: HTML document has no title element
+category: a11y
+severity: error
+engine: absence
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <head
+patterns:
+  - regex: <title[^>]*>
+    message: "HTML document has no <title> element — required for accessibility"
+fix: "Add a descriptive <title> element in <head>"

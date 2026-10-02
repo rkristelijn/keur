@@ -1,0 +1,16 @@
+id: QUAL-061
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Rethrowing exception without added context
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: catch\s*\([^)]*\)\s*\{\s*throw\s+\w+;\s*\}
+    message: "Catch-and-rethrow without context — adds a stack frame but no information. Add context or remove the try/catch."
+fix: Add context when rethrowing. throw new Error('Failed to process order', {cause: e}) or just remove the try/catch.

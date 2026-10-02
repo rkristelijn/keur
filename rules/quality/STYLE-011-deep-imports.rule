@@ -1,0 +1,18 @@
+id: STYLE-011
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Deep relative imports (3+ levels)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: import\s+.*from\s+['"]\.\.\/\.\.\/\.\.\/
+    message: "Deep relative import (3+ levels) — use path alias @/ for readability"
+  - regex: require\s*\(\s*['"]\.\.\/\.\.\/\.\.\/
+    message: "Deep relative require (3+ levels) — use path alias @/"
+fix: Configure path aliases in tsconfig.json (e.g. "@/": ["src/"])

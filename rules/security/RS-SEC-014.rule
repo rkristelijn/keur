@@ -1,0 +1,17 @@
+id: RS-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Raw pointer dereference
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: unsafe
+patterns:
+  - regex: \*\s*(mut|const)\s+\w|\bptr::(read|write|copy)
+    message: Raw pointer operations — ensure memory safety invariants are upheld
+fix: Use safe abstractions (slices, references) where possible, or document safety invariants with // SAFETY:

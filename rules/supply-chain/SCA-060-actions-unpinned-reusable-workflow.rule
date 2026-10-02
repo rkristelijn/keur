@@ -1,4 +1,5 @@
 id: SCA-060
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Unpinned reusable workflow reference

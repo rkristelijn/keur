@@ -1,0 +1,17 @@
+id: RS-QUAL-035
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Collection without capacity hint
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: ::new()
+patterns:
+  - regex: Vec::new\(\)|HashMap::new\(\)
+    message: Collection without capacity hint — use with_capacity() when size is known for fewer allocations
+fix: Use Vec::with_capacity(n) or HashMap::with_capacity(n) when the approximate size is known

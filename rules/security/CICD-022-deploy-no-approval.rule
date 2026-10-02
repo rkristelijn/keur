@@ -1,0 +1,17 @@
+id: CICD-022
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: CI deploy without approval gate
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: on:
+patterns:
+  - regex: (deploy|release|publish).*prod
+    message: "Production deploy in CI — ensure approval gate or environment protection is in place"
+fix: Add environment protection rules. GitHub: environment: production with required reviewers. GitLab: when: manual with protected environments.

@@ -1,0 +1,19 @@
+id: BUILD-038
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Top-level await requires ESM
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: await
+patterns:
+  - regex: ^await\s+
+    message: "Top-level await — requires 'type': 'module' in package.json or .mts/.mjs extension, fails silently in CJS"
+  - regex: ^const\s+\w+\s*=\s*await\s
+    message: "Top-level await assignment — only works in ES modules, causes SyntaxError in CommonJS"
+fix: Add "type": "module" to package.json, use .mts/.mjs extension, or wrap in an async IIFE.

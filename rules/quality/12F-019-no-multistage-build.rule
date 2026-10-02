@@ -1,0 +1,17 @@
+id: 12F-019
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: No multi-stage Docker build (12-Factor V: Build, release, run)
+category: quality
+severity: info
+engine: absence
+target:
+  filenames: Dockerfile Dockerfile.dev Dockerfile.prod
+  exclude_paths: test/ vendor/
+  content_contains: FROM
+patterns:
+  - regex: FROM .+ AS 
+    message: Single-stage Dockerfile — multi-stage reduces image size and separates build from run
+fix: Use multi-stage builds: FROM node:20 AS builder / FROM node:20-slim (12-Factor V)

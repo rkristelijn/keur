@@ -1,4 +1,5 @@
 id: SEC-013
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: PII detection (email, phone, IP address)

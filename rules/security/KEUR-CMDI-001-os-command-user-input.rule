@@ -4,6 +4,7 @@
 # argument is a bare string literal — match broad, subtract the safe case.
 # Target narrowed to code extensions on promotion.
 id: KEUR-CMDI-001
+ilities: [integrity]
 maturity: 2
 title: OS command injection — shell sink with a non-literal argument
 category: cmdi

@@ -1,0 +1,22 @@
+id: WEB-SEC-022
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: JavaScript URI scheme
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .html .htm .vue .erb .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: href\s*=\s*["']javascript:
+    message: "javascript: URI in href — XSS vector. Use onclick handler or button element instead"
+  - regex: src\s*=\s*["']javascript:
+    message: "javascript: URI in src — code execution risk"
+  - regex: location\s*=\s*["']javascript:
+    message: "javascript: URI in location assignment — XSS risk"
+  - regex: \.href\s*=\s*.*javascript:
+    message: "Dynamic javascript: URI assignment — XSS risk. Validate URL scheme against allowlist"
+fix: "Never use javascript: URIs. Use event handlers or button elements for actions. CSP can block these. CWE-79"

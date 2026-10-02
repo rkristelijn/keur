@@ -1,0 +1,20 @@
+# @see ADR-167
+id: TEST-034
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Inconsistent test structure in same file
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: describe
+patterns:
+  - regex: ^describe\(.*\n[\s\S]*\n\s*test\(
+    message: "Mixed describe/it and standalone test() in same file — pick one pattern"
+  - regex: \bit\(.*\n[\s\S]*\btest\(
+    message: "File mixes it() and test() — use one consistently for readability"
+fix: Choose one test structure per file. Use describe/it for BDD-style grouping, or standalone test() for flat structure. Mixing both makes the file harder to navigate and maintain. Configure your linter (eslint-plugin-jest consistent-test-it rule) to enforce one style.

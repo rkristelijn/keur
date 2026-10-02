@@ -1,0 +1,17 @@
+id: TEST-019
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Snapshot file detected
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .snap
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: sleep
+patterns:
+  - regex: exports\[`
+    message: "Snapshot file detected — large snapshots are rubber-stamped, prefer inline snapshots"
+fix: Use toMatchInlineSnapshot() for small outputs. For large structures, use targeted assertions on specific fields.

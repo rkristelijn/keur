@@ -1,0 +1,17 @@
+id: K8S-038
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Tiller (Helm 2) reference detected
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: seccomp
+patterns:
+  - regex: \btiller\b|tillerVersion
+    message: "Tiller/Helm 2 reference detected — Helm 2 is EOL, upgrade to Helm 3"
+fix: Migrate to Helm 3 which removed Tiller. Run helm 2to3 convert for migration.

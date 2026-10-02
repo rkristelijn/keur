@@ -1,0 +1,17 @@
+id: BUILD-021
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: TypeScript declarationMap without declaration enabled
+category: build
+severity: error
+engine: presence
+target:
+  filenames: tsconfig.json
+  exclude_paths: node_modules/ .git/ build/ dist/
+  content_contains: declarationMap
+patterns:
+  - regex: "declarationMap"\s*:\s*true
+    message: "declarationMap:true requires declaration:true — TypeScript build will fail without it"
+fix: Set "declaration": true alongside "declarationMap": true in tsconfig.json compilerOptions.

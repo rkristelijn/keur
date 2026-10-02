@@ -1,0 +1,18 @@
+id: JS-PERF-002
+ilities: [time-behaviour]
+source: cpm
+maturity: 3
+action: advisory
+title: innerHTML += reparses the whole subtree
+category: performance
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .ts .js .tsx .jsx .vue
+  exclude_paths: test/ tests/ __tests__/ .spec. .test. lib/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: innerHTML
+patterns:
+  - regex: \.innerHTML\s*\+=
+    message: "`innerHTML +=` serializes the existing DOM, concatenates, then reparses the ENTIRE subtree — O(n^2) over repeated calls and it destroys existing node state and event listeners. Build a string and assign once, or use insertAdjacentHTML/appendChild."
+fix: "Accumulate into a variable and assign innerHTML once, or use el.insertAdjacentHTML('beforeend', html). "

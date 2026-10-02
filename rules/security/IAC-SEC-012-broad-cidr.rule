@@ -1,0 +1,20 @@
+id: IAC-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Overly broad CIDR range
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .tf .hcl .tfvars
+  exclude_paths: test/
+patterns:
+  - regex: 0\.0\.0\.0/0
+    message: "CIDR 0.0.0.0/0 allows traffic from anywhere — restrict to specific IP ranges"
+  - regex: ::/0
+    message: "IPv6 CIDR ::/0 allows traffic from anywhere — restrict to specific ranges"
+  - regex: cidr_blocks\s*=\s*\[\s*"0\.0\.0\.0/0"\s*\]
+    message: "Security group open to the world (0.0.0.0/0) — use specific CIDR ranges"
+fix: "Replace 0.0.0.0/0 with specific CIDR ranges (e.g. office IP, VPN range)"

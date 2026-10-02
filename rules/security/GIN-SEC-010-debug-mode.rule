@@ -1,0 +1,19 @@
+id: GIN-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Gin running in debug mode
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ .git/ build/
+  content_contains: gin
+patterns:
+  - regex: gin\.SetMode\(gin\.DebugMode\)
+    message: "Gin explicitly set to debug mode — debug mode logs all requests and exposes detailed errors"
+  - regex: GIN_MODE.*debug
+    message: "GIN_MODE set to debug — use 'release' in production"
+fix: "Set gin.SetMode(gin.ReleaseMode) or GIN_MODE=release in production."

@@ -1,0 +1,17 @@
+id: CICD-013
+ilities: [reliability-maturity]
+source: cpm
+maturity: 3
+action: advisory
+title: Jenkinsfile no timeout
+category: reliability
+severity: warning
+engine: absence
+target:
+  filenames: Jenkinsfile
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: stage
+patterns:
+  - regex: timeout\(
+    message: "No timeout in Jenkinsfile — stuck builds consume executor slots forever"
+fix: Add timeout to pipeline options. Example: options { timeout(time: 30, unit: 'MINUTES') }. Apply per-stage for granular control.

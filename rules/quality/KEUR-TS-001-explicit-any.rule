@@ -26,6 +26,7 @@
 # @see work-epub typescript-training.md (type table: any = disables safety);
 #      typescript-eslint no-explicit-any.
 id: KEUR-TS-001
+ilities: [analysability]
 maturity: 1
 title: Explicit `any` type annotation — opts out of type checking
 category: quality

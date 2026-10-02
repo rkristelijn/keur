@@ -1,0 +1,16 @@
+id: GO-QUAL-014
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Avoid time.Sleep in production code
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: time\.Sleep\(
+    message: "time.Sleep blocks the goroutine — use timers, tickers, or context with deadline"
+fix: Use context.WithTimeout, time.After, or time.NewTicker for non-blocking waits

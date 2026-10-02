@@ -12,6 +12,7 @@
 # one if absent". That is the fixation smell (no unconditional rotate on login).
 # The sliding window bounds the span so [\s\S]*? cannot run away.
 id: KEUR-SESS-001
+ilities: [integrity]
 maturity: 2
 title: Session id reused from request on login (session fixation)
 category: security

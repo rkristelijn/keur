@@ -1,0 +1,17 @@
+id: A11Y-059
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Duplicate main element
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <main
+patterns:
+  - regex: <main[\s>]
+    message: <main> element found — ensure only one per page
+fix: Use only one <main> element per document.

@@ -1,0 +1,17 @@
+id: A11Y-020
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: Empty SVG may be decorative
+category: a11y
+severity: info
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <svg
+patterns:
+  - regex: <svg[^>]*>\s*</svg>
+    message: "Empty SVG may be decorative — add aria-hidden=\"true\" if so"
+fix: "Add aria-hidden=\"true\" to decorative SVGs"

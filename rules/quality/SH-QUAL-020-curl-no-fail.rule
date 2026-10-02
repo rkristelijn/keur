@@ -1,0 +1,18 @@
+# @see ADR-166
+id: SH-QUAL-020
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Using curl without --fail flag
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh
+  exclude_paths: test/ node_modules/ vendor/
+  content_contains: curl
+patterns:
+  - regex: ^\s*curl\s+[^|;&\n]*https?://
+    message: "curl invocation found — verify it includes --fail or -f to fail on HTTP errors (404, 500)"
+fix: "Add --fail (or -fsSL) to curl invocations to fail on HTTP errors."

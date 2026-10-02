@@ -1,0 +1,17 @@
+id: KT-QUAL-025
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Empty catch block
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .kt .java
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: catch
+patterns:
+  - regex: catch\s*\([^)]+\)\s*\{\s*\}
+    message: Empty catch swallows errors silently — at minimum log the exception
+fix: Log the exception with Timber.e(e) or rethrow it, never silently swallow errors

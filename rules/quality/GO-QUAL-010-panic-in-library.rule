@@ -1,0 +1,16 @@
+id: GO-QUAL-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Panic in non-main package
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go main.go cmd/
+patterns:
+  - regex: \bpanic\(
+    message: "panic() in library code — return an error instead"
+fix: Replace panic with error return. Only panic in main() or init() for unrecoverable conditions.

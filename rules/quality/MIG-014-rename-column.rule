@@ -1,0 +1,19 @@
+id: MIG-014
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: RENAME COLUMN in migration (breaks running code)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sql
+  exclude_paths: test/ tests/ vendor/ .git/ build/ seed/
+  content_contains: RENAME
+patterns:
+  - regex: RENAME\s+COLUMN\s
+    message: "RENAME COLUMN — breaks running application instances that reference the old name"
+  - regex: RENAME\s+TABLE\s
+    message: "RENAME TABLE — breaks running application code. Use add-new → migrate → drop-old pattern."
+fix: Use expand-contract. Add new column → backfill → update app → drop old column in next release.

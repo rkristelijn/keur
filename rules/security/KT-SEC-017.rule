@@ -1,0 +1,17 @@
+id: KT-SEC-017
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Debug logging in production
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .kt .java
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: Log.
+patterns:
+  - regex: \bLog\.(d|v|wtf)\(
+    message: Debug/verbose logging in production — use Timber with a release tree that strips debug logs
+fix: Replace Log.d/v/wtf with Timber.d/v and configure a release tree that suppresses debug output

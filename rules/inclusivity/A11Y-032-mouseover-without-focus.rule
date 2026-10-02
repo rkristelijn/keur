@@ -1,0 +1,17 @@
+id: A11Y-032
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Mouseover without focus
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: onmouseover
+patterns:
+  - regex: onmouseover=|onMouseOver=
+    message: onMouseOver/onmouseover without onFocus equivalent
+fix: Add onFocus/onfocus handler alongside mouse event.

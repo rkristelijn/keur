@@ -1,0 +1,28 @@
+id: CSS-BP-011
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Modern layout best practices
+category: best-practice
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: width\s*:\s*100vw
+    message: width: 100vw includes scrollbar width causing horizontal overflow — use 100% or dvw
+  - regex: height\s*:\s*100vh
+    message: height: 100vh does not account for mobile browser chrome — use 100dvh or 100svh
+  - regex: margin\s*:\s*0?\s+auto
+    message: margin: 0 auto for centering is legacy — consider flexbox or grid centering
+  - regex: overflow(-x|-y)?\s*:\s*scroll
+    message: overflow: scroll always shows scrollbar — use auto to show only when content overflows
+  - regex: cursor\s*:\s*pointer
+    message: cursor: pointer on non-link elements misleads users about interactivity — use default for buttons
+  - regex: word-break\s*:\s*break-all
+    message: word-break: break-all breaks words mid-character — use overflow-wrap: break-word instead
+  - regex: all\s*:\s*unset
+    message: all: unset removes all inherited and initial styles — may break accessibility and layout unexpectedly
+fix: Use modern viewport units (dvh, svh), flexbox/grid centering, and overflow: auto

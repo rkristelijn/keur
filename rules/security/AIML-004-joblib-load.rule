@@ -1,0 +1,17 @@
+id: AIML-004
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Unsafe joblib deserialization
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: joblib
+patterns:
+  - regex: joblib\.load\(
+    message: joblib.load() uses pickle — arbitrary code execution risk
+fix: Use safetensors or ONNX format for model serialization

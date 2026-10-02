@@ -1,0 +1,16 @@
+id: STYLE-049
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: Inconsistent acronym casing (userID vs userId)
+category: style
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (const|let|var|function)\s+\w*[A-Z]{3,}\w*\s*[=:(]
+    message: "ALL-CAPS acronym in camelCase (userID, parseXML) — use userId, parseXml for consistency"
+fix: Treat acronyms as words in camelCase. userId not userID, parseXml not parseXML, httpClient not HTTPClient.

@@ -1,0 +1,17 @@
+id: A11Y-007
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: Deep heading level found — check hierarchy
+category: a11y
+severity: info
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <h
+patterns:
+  - regex: <h[4-6][\s>]
+    message: "Deep heading level found (h4-h6) — ensure heading hierarchy is not skipped"
+fix: "Verify heading levels don't skip (h1->h2->h3, not h1->h4)"

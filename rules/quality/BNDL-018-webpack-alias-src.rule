@@ -1,0 +1,17 @@
+id: BNDL-018
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Webpack resolve alias to src
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: webpack.config.js webpack.config.ts
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: alias
+patterns:
+  - regex: alias:.*['"]@['"].*src|'@':\s*.*src
+    message: "@ alias to src/ — use tsconfig paths instead for IDE support"
+fix: Define path aliases in tsconfig.json with paths and baseUrl. Webpack resolves them via tsconfig-paths-webpack-plugin.

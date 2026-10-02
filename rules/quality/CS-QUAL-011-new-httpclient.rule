@@ -1,0 +1,16 @@
+id: CS-QUAL-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Avoid new HttpClient() per request (socket exhaustion)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .cs
+  exclude_paths: test/ tests/ Test/ Tests/ vendor/ .git/ build/ bin/ obj/
+patterns:
+  - regex: new\s+HttpClient\s*\(
+    message: "new HttpClient() per call leaks sockets and causes port exhaustion under load. Use IHttpClientFactory."
+fix: Use IHttpClientFactory (DI) or a static HttpClient instance. Never create HttpClient per request.

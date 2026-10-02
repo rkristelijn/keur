@@ -4,6 +4,7 @@
 # command), not a single memorised literal. @see KEUR-SEC-005/006 (the C/C++ and
 # adapter siblings); this covers scripting-language sinks.
 id: KEUR-SEC-008
+ilities: [integrity]
 maturity: 2
 title: OS command execution with a constructed (non-literal) argument
 category: cmdi

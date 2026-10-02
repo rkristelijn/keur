@@ -1,0 +1,17 @@
+id: ELP-PERF-003
+ilities: [time-behaviour]
+source: cpm
+maturity: 3
+action: advisory
+title: "@electron/remote is slow and easily blocks the UI thread"
+category: performance
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx .vue
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: remote
+patterns:
+  - regex: (?:require\(['"]@electron/remote['"]\)|from\s+['"]@electron/remote['"])
+    message: "@electron/remote proxies every property access as synchronous IPC — trivially blocks the UI thread and is a known performance and security trap. Move the logic to the main process and expose it via async invoke/handle."
+fix: "Avoid @electron/remote. Put the code in the main process and call it via ipcRenderer.invoke()/ipcMain.handle(). See https://www.electronjs.org/docs/latest/tutorial/performance#3-blocking-the-main-process"

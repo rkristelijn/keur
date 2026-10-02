@@ -1,0 +1,16 @@
+id: QUAL-066
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: High cyclomatic complexity indicator (many branches in function)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: case\s+['"]?\w+['"]?\s*:
+    message: "Switch case branch — 10+ cases in one switch suggests the function needs refactoring (strategy pattern or polymorphism)"
+fix: Replace long switch/case with a strategy map, polymorphism, or lookup table.

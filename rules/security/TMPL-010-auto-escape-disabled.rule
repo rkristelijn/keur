@@ -1,0 +1,20 @@
+id: TMPL-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Template auto-escaping disabled (XSS risk)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .html .jinja .jinja2 .blade.php .ejs .erb .twig .hbs .njk .pug
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \|\s*safe\b
+    message: "Jinja2 |safe filter disables auto-escaping — XSS risk unless content is pre-sanitized"
+  - regex: autoescape\s*[=:(]\s*(?:off|false|False)
+    message: "Auto-escaping disabled — all template variables are rendered as raw HTML (XSS)"
+  - regex: <%-
+    message: "EJS unescaped output <%- — renders raw HTML. Use <%= for auto-escaped output."
+fix: Keep auto-escaping enabled. Sanitize content before marking as safe. Use DOMPurify for HTML content.

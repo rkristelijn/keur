@@ -1,0 +1,17 @@
+id: CICD-017
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: GitLab CI manual deploy without protection
+category: security
+severity: info
+engine: pattern
+target:
+  filenames: .gitlab-ci.yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: image:
+patterns:
+  - regex: when:\s*manual
+    message: "Manual deploy — ensure protected environment/branch rules prevent unauthorized deploys"
+fix: Use protected environments in GitLab CI/CD settings. Require approvals for production deploys. Add environment: production with protection rules.

@@ -1,0 +1,17 @@
+id: RCT-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: React XSS via dangerouslySetInnerHTML with dynamic content
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .jsx .tsx .js .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: dangerouslySetInnerHTML
+patterns:
+  - regex: dangerouslySetInnerHTML.*__html:\s*(?:props|data|state|response|user|content|body|message|html|text|input|value)\b
+    message: "dangerouslySetInnerHTML with dynamic content — XSS bypassing React's built-in protection. Sanitize with DOMPurify."
+fix: Use DOMPurify.sanitize() on any dynamic content passed to dangerouslySetInnerHTML, or use textContent instead.

@@ -1,0 +1,17 @@
+id: A11Y-041
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Autofocus misuse
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: autofocus
+patterns:
+  - regex: \bautofocus\b
+    message: autofocus can disorient screen reader users — use only in dialogs
+fix: Remove autofocus or restrict to dialog/modal context.

@@ -1,0 +1,22 @@
+id: BE-SEC-032
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Race condition (TOCTOU)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .py .java .cs .go .rb .php .ts .js .c .cpp
+  exclude_paths: test/ tests/
+patterns:
+  - regex: os\.path\.exists\(.*\).*\n.*open\(
+    message: "TOCTOU: checking file existence then opening — file could change between check and use"
+  - regex: if.*\.exists\(.*\).*\n.*(?:read|write|delete|remove|unlink)
+    message: "TOCTOU: check-then-act on file — race condition. Use atomic operations or file locks"
+  - regex: fs\.existsSync\(.*\).*\n.*fs\.(?:readFile|writeFile|unlink)
+    message: "TOCTOU: fs.existsSync then fs.operation — race condition. Use fs.open with flags"
+  - regex: (?:balance|stock|inventory|quantity|count)\s*[><=].*\n.*(?:balance|stock|inventory|quantity|count)\s*[-+]=
+    message: "Check-then-update on balance/stock — race condition. Use database transactions or atomic ops"
+fix: "Use atomic operations, file locks (flock), or database transactions. Avoid check-then-act patterns. CWE-367"

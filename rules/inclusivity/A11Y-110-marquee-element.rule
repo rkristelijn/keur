@@ -1,0 +1,17 @@
+id: A11Y-110
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Marquee-element
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <marquee
+patterns:
+  - regex: <marquee[\s>]
+    message: <marquee> is deprecated and not accessible — violates WCAG 2.2.2
+fix: Use CSS animations with prefers-reduced-motion and pause controls

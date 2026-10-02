@@ -1,0 +1,17 @@
+id: A11Y-047
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: Form field multiple labels
+category: a11y
+severity: info
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <label
+patterns:
+  - regex: for=["']([^"']+)["']
+    message: Verify each form field has exactly one associated label
+fix: Ensure one label per form control — remove duplicates.

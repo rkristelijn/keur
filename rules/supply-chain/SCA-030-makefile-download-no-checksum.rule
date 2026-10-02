@@ -1,4 +1,5 @@
 id: SCA-030
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Makefile download without checksum verification

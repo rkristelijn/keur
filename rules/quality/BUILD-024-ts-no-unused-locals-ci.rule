@@ -1,0 +1,17 @@
+id: BUILD-024
+ilities: [modularity]
+source: cpm
+maturity: 4
+action: advisory
+title: TypeScript noUnusedLocals blocks CI builds
+category: build
+severity: info
+engine: presence
+target:
+  filenames: tsconfig.json
+  exclude_paths: node_modules/ .git/ build/ dist/
+  content_contains: noUnusedLocals
+patterns:
+  - regex: "noUnusedLocals"\s*:\s*true
+    message: "noUnusedLocals:true — causes hard build failures for unused variables during development and CI"
+fix: Use ESLint no-unused-vars rule instead (supports warning vs error levels and autofix). Remove noUnusedLocals from tsconfig.

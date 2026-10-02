@@ -1,0 +1,21 @@
+id: BUILD-005
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Server-only env var in client code
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .tsx .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: process.env
+patterns:
+  - regex: process\.env\.(DATABASE|DB_HOST|DB_PASS|DB_USER|DB_NAME|DB_PORT|DB_URL)
+    message: "Database env var in client component — server-only variables are undefined in the browser"
+  - regex: process\.env\.(SECRET|PRIVATE_KEY|API_SECRET|JWT_SECRET|STRIPE_SECRET|AUTH_SECRET)
+    message: "Secret env var in client component — only NEXT_PUBLIC_* vars are available in the browser"
+  - regex: process\.env\.(AWS_|REDIS_|MONGO_|SMTP_|SENDGRID_|TWILIO_)
+    message: "Infrastructure env var in client component — server-only variables leak in client bundle"
+fix: Use NEXT_PUBLIC_ prefix for client-visible vars, or move logic to a server component or API route.

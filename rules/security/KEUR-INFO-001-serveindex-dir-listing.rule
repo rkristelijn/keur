@@ -10,6 +10,7 @@
 #
 # Match a serveIndex(...) call (the middleware that renders the listing).
 id: KEUR-INFO-001
+ilities: [confidentiality]
 maturity: 2
 title: Directory listing exposed over HTTP via serveIndex()
 category: data-exposure

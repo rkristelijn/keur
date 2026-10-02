@@ -1,0 +1,42 @@
+# @see ADR-170 (multi-OS platform abstraction)
+#
+# Companion to STYLE-015 (headers). STYLE-015 catches POSIX-only *headers*;
+# this catches POSIX-only libc *calls* that compile fine on macOS/Linux but
+# break the Windows/MinGW build even when the including header is portable
+# (e.g. lstat/S_ISLNK come from the portable <sys/stat.h>, yet MinGW omits
+# them). Confine these to src/common/ platform files or guard with #ifdef.
+#
+# Scope note: only truly Windows-absent calls are listed. opendir/readdir are
+# deliberately excluded — MinGW provides <dirent.h>, so they are not portable
+# breakers and appear widely in portable business logic (low signal). The
+# patterns require a following '(' with no space and are kept specific to
+# reduce matches inside prose/comments; the engine excludes src/common/,
+# tests, vendor, and build.
+id: STYLE-016
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: POSIX-only libc call outside src/common/
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc
+  exclude_paths: src/common/ vendor/ test/ tests/ build/ dist/
+patterns:
+  # Symlink inspection — absent on MinGW even though <sys/stat.h> is portable.
+  - regex: \blstat\s*\(
+    message: "POSIX-only lstat() outside src/common/ — not available on MinGW/Windows. Guard with #ifdef S_ISLNK or confine to a platform file (ADR-170)."
+  - regex: \bS_ISLNK\s*\(
+    message: "POSIX-only S_ISLNK() outside src/common/ — undefined on MinGW/Windows. Guard with #ifdef S_ISLNK or confine to a platform file (ADR-170)."
+  - regex: \breadlink\s*\(
+    message: "POSIX-only readlink() outside src/common/ — not available on Windows. Route through platform.h (ADR-170)."
+  # Process control — the parallel runner lives in runner_posix.cpp only.
+  - regex: \bfork\s*\(\s*\)
+    message: "POSIX-only fork() outside src/common/ — no fork() on Windows. The exec engine belongs in runner_posix.cpp (ADR-170)."
+  - regex: \bwaitpid\s*\(
+    message: "POSIX-only waitpid() outside src/common/ — not available on Windows. Confine to runner_posix.cpp (ADR-170)."
+  - regex: \bWIFEXITED\s*\(
+    message: "POSIX-only WIFEXITED() outside src/common/ — undefined on Windows. Use platform::wait_exit() (ADR-170)."
+fix: "POSIX-only libc calls (lstat, S_ISLNK, readlink, fork, waitpid, WIFEXITED) belong in src/common/platform_posix.cpp or runner_posix.cpp, or must be guarded with a feature #ifdef (e.g. #ifdef S_ISLNK ... #else /* stat fallback */ #endif). Business logic uses the platform:: abstraction instead. See ADR-170."

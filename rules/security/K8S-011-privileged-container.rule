@@ -1,0 +1,21 @@
+id: K8S-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Kubernetes privileged container (trivial escape)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: .git/ node_modules/
+  content_contains: container
+patterns:
+  - regex: privileged:\s*true
+    message: "Privileged container — has full host access, container escape is trivial"
+  - regex: hostNetwork:\s*true
+    message: "hostNetwork — container shares host network namespace, can sniff all traffic"
+  - regex: hostPID:\s*true
+    message: "hostPID — container can see and signal all host processes"
+fix: Remove privileged: true. Use securityContext with specific capabilities instead of full privilege.

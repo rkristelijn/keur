@@ -1,0 +1,28 @@
+id: JV-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: SQL injection via string concatenation
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .java .kt
+  exclude_paths: test/ tests/ target/
+patterns:
+  - regex: Statement.*\.execute(?:Query|Update)?\(\s*".*"\s*\+
+    message: "String concat in Statement.execute() — use PreparedStatement with parameterized queries"
+  - regex: createStatement\(\).*\.execute(?:Query|Update)?\(\s*".*"\s*\+
+    message: "createStatement() with concat — use connection.prepareStatement() instead"
+  - regex: \.createQuery\(\s*".*"\s*\+
+    message: "String concat in JPA createQuery() — use named parameters (:param) or CriteriaBuilder"
+  - regex: \.createNativeQuery\(\s*".*"\s*\+
+    message: "String concat in createNativeQuery() — use parameterized native queries"
+  - regex: String\.format\(.*".*(?:SELECT|INSERT|UPDATE|DELETE)
+    message: "String.format() in SQL — use PreparedStatement with ? placeholders"
+  - regex: jdbcTemplate\.query(?:ForObject|ForList|ForMap)?\(\s*".*"\s*\+
+    message: "String concat in JdbcTemplate query — use ? placeholders with args parameter"
+  - regex: ".*(?:SELECT|INSERT|UPDATE|DELETE).*"\s*\+\s*(?:request|param|input|user)
+    message: "User input concatenated into SQL string — use parameterized queries"
+fix: "Use PreparedStatement: ps = conn.prepareStatement(\"SELECT ... WHERE id = ?\"); ps.setString(1, id);"

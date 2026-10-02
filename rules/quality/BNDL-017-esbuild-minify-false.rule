@@ -1,0 +1,17 @@
+id: BNDL-017
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Disabled esbuild minify false in production
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: esbuild.config.js esbuild.config.ts esbuild.mjs
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: external
+patterns:
+  - regex: minify:\s*false
+    message: "Minification disabled — larger bundles and slower load times"
+fix: Set minify to true for production builds. Use separate dev/prod configs if needed.

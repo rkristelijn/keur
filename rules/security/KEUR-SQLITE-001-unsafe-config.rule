@@ -7,6 +7,7 @@
 #     its bound parameters to the console/logs — leaks data (CWE-532).
 # Both were a false negative: keur had no SQLite-configuration rule.
 id: KEUR-SQLITE-001
+ilities: [integrity]
 maturity: 1
 title: Unsafe SQLite configuration (durability disabled or SQL logging)
 category: security

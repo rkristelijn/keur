@@ -1,0 +1,19 @@
+id: NX-MIS-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Nuxt 3 $fetch in setup causes double fetching
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .vue .ts .js
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: nuxt
+patterns:
+  - regex: <script\s+setup[\s\S]{0,100}\$fetch\(
+    message: "$fetch in <script setup> runs on both server and client (double fetch) — use useFetch() or useAsyncData()"
+  - regex: \$fetch\(.*\.then\(
+    message: "$fetch with .then() in Nuxt 3 — use useFetch() composable for SSR-safe data fetching with automatic deduplication"
+fix: "const { data } = await useFetch('/api/endpoint') — transfers server-fetched data to client without re-fetching."

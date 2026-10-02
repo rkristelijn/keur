@@ -28,6 +28,7 @@
 # see; so this is a high-signal nudge, not a hard gate, to keep false positives
 # from a legitimate global throttler in check.
 id: KEUR-NEST-004
+ilities: [integrity]
 maturity: 2
 title: NestJS auth controller without rate limiting (brute-force risk)
 category: security

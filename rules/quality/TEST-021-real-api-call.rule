@@ -1,0 +1,17 @@
+id: TEST-021
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Test makes real HTTP call
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js _test.go _test.py
+  exclude_paths: .git/ vendor/ node_modules/ e2e/ integration/
+  content_contains: fetch
+patterns:
+  - regex: (fetch|axios|http\.get|requests\.get|http\.Get)\(['"]https?://
+    message: "Test makes real HTTP call — use msw, nock, or httptest for deterministic tests"
+fix: Mock HTTP calls with msw (browser/node), nock (node), httptest (Go), or responses (Python). Real calls make tests flaky and slow.

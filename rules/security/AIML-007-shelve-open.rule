@@ -1,0 +1,17 @@
+id: AIML-007
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Unsafe shelve deserialization
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: shelve
+patterns:
+  - regex: shelve\.open\(
+    message: shelve uses pickle internally — do not open untrusted shelve files
+fix: Use sqlite3 or json for persistent storage

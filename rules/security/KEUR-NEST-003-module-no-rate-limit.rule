@@ -13,6 +13,7 @@
 # judges the composition root, not every file. absence engine => satisfying
 # pattern absent means "fire".
 id: KEUR-NEST-003
+ilities: [integrity]
 maturity: 1
 title: NestJS root module registers no rate limiting
 category: security

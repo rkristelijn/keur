@@ -1,0 +1,17 @@
+id: BUILD-039
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Async Express route handler without error catching
+category: build
+severity: error
+engine: presence
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: async
+patterns:
+  - regex: (app|router)\.(get|post|put|delete|patch)\([^,]*,\s*async
+    message: "Async Express route handler — Express 4 doesn't catch async rejections, unhandled promise kills the server"
+fix: Wrap handler body in try/catch with next(error), use express-async-errors package, or upgrade to Express 5.

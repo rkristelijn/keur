@@ -1,0 +1,27 @@
+# @see ADR-170 (multi-OS platform abstraction)
+id: QUAL-078
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Raw platform API call outside platform abstraction layer
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: src/common/ vendor/ test/ tests/ build/ dist/
+patterns:
+  - regex: QueryPerformanceCounter\s*\(
+    message: "Raw Windows timing API outside src/common/ — use platform::now_sec() instead (ADR-170)"
+  - regex: QueryPerformanceFrequency\s*\(
+    message: "Raw Windows timing API outside src/common/ — use platform::now_sec() instead (ADR-170)"
+  - regex: \bWIFEXITED\s*\(
+    message: "POSIX-only WIFEXITED outside src/common/ — use platform::wait_exit(ret) to handle Win32/POSIX difference (ADR-170)"
+  - regex: \bWEXITSTATUS\s*\(
+    message: "POSIX-only WEXITSTATUS outside src/common/ — use platform::wait_exit(ret) instead (ADR-170)"
+  - regex: clock_gettime\s*\(\s*CLOCK_MONOTONIC
+    message: "Direct clock_gettime(CLOCK_MONOTONIC) outside src/common/ — use platform::now_sec() for portability (ADR-170)"
+  - regex: GetTickCount64\s*\(
+    message: "Raw Windows GetTickCount64 outside src/common/ — use platform::now_sec() instead (ADR-170)"
+fix: "Use platform:: functions declared in src/common/platform.h: platform::now_sec() for timing, platform::wait_exit(raw_status) for process exit codes. Implementations are in platform_posix.cpp and platform_win32.cpp. To add a new abstraction: declare in platform.h, implement in both .cpp files, then replace the raw API call. See ADR-170."

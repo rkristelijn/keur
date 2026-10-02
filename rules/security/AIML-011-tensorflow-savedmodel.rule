@@ -1,0 +1,17 @@
+id: AIML-011
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: TensorFlow SavedModel arbitrary code risk
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: saved_model
+patterns:
+  - regex: tf\.saved_model\.load\(|tensorflow\.saved_model\.load\(
+    message: TensorFlow SavedModel can contain arbitrary Python code in custom ops
+fix: Validate model provenance; use TFLite for inference-only loading

@@ -1,0 +1,22 @@
+id: CS-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Path traversal and file access
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .cs
+  exclude_paths: test/ tests/ Test/ Tests/
+patterns:
+  - regex: File\.(?:Read|Write|Open|Delete|Copy|Move)\w*\(\s*\$"
+    message: "Interpolated string in File operation — path traversal risk. Validate path against base directory"
+  - regex: Path\.Combine\(.*(?:request|Request|input|user|param)
+    message: "User input in Path.Combine() — path traversal risk. Validate resolved path starts with allowed base"
+  - regex: new\s+StreamReader\(\s*\$"
+    message: "Interpolated string in StreamReader path — path traversal risk. Validate and canonicalize"
+  - regex: PhysicalFile\(\s*\$"
+    message: "Interpolated string in PhysicalFile() — path traversal risk. Use Path.GetFullPath() and verify base"
+fix: "Use Path.GetFullPath() and verify the result starts with the intended base directory"

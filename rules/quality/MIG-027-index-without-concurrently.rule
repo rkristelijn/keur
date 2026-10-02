@@ -1,0 +1,17 @@
+id: MIG-027
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Creating index without CONCURRENTLY
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .sql
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/ seed/
+  content_contains: CREATE INDEX
+patterns:
+  - regex: CREATE\s+INDEX\s+[a-zA-Z_"]
+    message: "CREATE INDEX locks table for writes — use CONCURRENTLY for zero-downtime on large tables (PostgreSQL)"
+fix: Use CREATE INDEX CONCURRENTLY index_name ON table_name (...). Requires running outside a transaction block.

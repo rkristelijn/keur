@@ -1,0 +1,28 @@
+id: BE-SEC-022
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Mass assignment vulnerability
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \.create\(\s*req\.body\s*\)
+    message: "Direct req.body in ORM create() — mass assignment. Attacker can set role, isAdmin, etc."
+  - regex: \.update\(\s*req\.body\s*\)
+    message: "Direct req.body in ORM update() — mass assignment risk. Whitelist allowed fields"
+  - regex: \.create\(\s*request\.(?:data|POST|all\(\))
+    message: "Direct request data in create() — mass assignment. Use serializer/form with explicit fields"
+  - regex: Object\.assign\(\s*\w+\s*,\s*req\.body
+    message: "Object.assign with req.body — mass assignment. Destructure only allowed fields"
+  - regex: params\.permit!
+    message: "Rails params.permit! allows ALL parameters — mass assignment. Use params.permit(:field1, :field2)"
+  - regex: \$guarded\s*=\s*\[\s*\]
+    message: "Laravel $guarded = [] — all fields are mass assignable. Use $fillable with explicit fields"
+  - regex: \.fill\(\s*request\.(?:all|input)\(
+    message: "Laravel fill() with request.all() — mass assignment. Use only() to limit fields"
+fix: "Whitelist fields: use DTOs, serializers, params.permit(), $fillable. Never pass raw request body to ORM. CWE-915"

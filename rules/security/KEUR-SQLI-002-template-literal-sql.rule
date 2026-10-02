@@ -9,6 +9,7 @@
 # A parameterised query has no ${...} inside the SQL string, so it does not
 # match — the ${...} is the discriminator between safe and unsafe.
 id: KEUR-SQLI-002
+ilities: [integrity]
 maturity: 1
 title: Potential SQL injection via template-literal interpolation
 category: sqli

@@ -1,0 +1,17 @@
+id: A11Y-117
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Table-layout-role
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <table
+patterns:
+  - regex: <table[^>]*style=["'][^"']*border:\s*0|<table[^>]*cellpadding=["']0["']
+    message: Table may be used for layout — add role=presentation if so
+fix: Add role=presentation to layout tables, or use CSS grid/flexbox

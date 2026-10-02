@@ -1,0 +1,20 @@
+id: A11Y-078
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Interactive element with non-interactive role
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: <button[^>]*role=["']heading["']
+    message: "<button> given non-interactive role=heading"
+  - regex: <a[^>]*role=["']heading["']
+    message: "<a> given non-interactive role=heading"
+  - regex: <button[^>]*role=["']presentation["']
+    message: "<button> given role=presentation — still focusable"
+fix: Don't override interactive elements with non-interactive roles.

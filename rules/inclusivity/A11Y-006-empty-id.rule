@@ -1,0 +1,16 @@
+id: A11Y-006
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Empty id attribute found
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \bid=["']["']
+    message: "Empty id attribute found — IDs must be unique and non-empty"
+fix: "Remove empty id or add a meaningful value"
