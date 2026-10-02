@@ -1,0 +1,18 @@
+id: GO-SEC-018
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Potential SSRF
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: http\.(Get|Post|Head)\(.*(fmt\.Sprintf|\+\s*\w+)
+    message: HTTP request with variable URL — risk of SSRF
+  - regex: http\.NewRequest\(.*,(.*fmt\.Sprintf|\+\s*\w+)
+    message: HTTP request with constructed URL — validate against allowlist
+fix: Validate URLs against an allowlist. Block internal/private IP ranges.

@@ -1,0 +1,23 @@
+id: A11Y-069
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Invalid ARIA state value
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: aria-
+patterns:
+  - regex: aria-checked=["'](yes|no|1|0)["']
+    message: "Invalid aria-checked value — use true, false, or mixed"
+  - regex: aria-expanded=["'](yes|no|1|0)["']
+    message: "Invalid aria-expanded value — use true or false"
+  - regex: aria-hidden=["'](yes|no|1|0)["']
+    message: "Invalid aria-hidden value — use true or false"
+  - regex: aria-selected=["'](yes|no|1|0)["']
+    message: "Invalid aria-selected value — use true or false"
+fix: Use valid ARIA state values: true, false, mixed (for aria-checked).

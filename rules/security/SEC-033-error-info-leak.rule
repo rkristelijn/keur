@@ -1,4 +1,5 @@
 id: SEC-033
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Stack trace / internal error exposure to users (CWE-209)

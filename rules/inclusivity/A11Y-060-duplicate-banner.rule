@@ -1,0 +1,17 @@
+id: A11Y-060
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Duplicate banner
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <header
+patterns:
+  - regex: <header[\s>]
+    message: <header> element found — ensure only one top-level banner per page
+fix: Use one top-level <header> for site banner; use section-specific headers inside sections.

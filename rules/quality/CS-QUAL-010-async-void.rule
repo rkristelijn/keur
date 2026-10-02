@@ -1,0 +1,16 @@
+id: CS-QUAL-010
+ilities: [analysability]
+source: cpm
+maturity: 2
+action: advisory
+title: Avoid async void method (unobserved exception crash risk)
+category: quality
+severity: error
+engine: pattern
+target:
+  extensions: .cs
+  exclude_paths: test/ tests/ Test/ Tests/ vendor/ .git/ build/ bin/ obj/
+patterns:
+  - regex: async\s+void\s+[A-Z]
+    message: async void method — exceptions are unobserved and crash the process. Use async Task instead.
+fix: Change to async Task. Only use async void for event handlers (OnClick, HandleEvent).

@@ -21,6 +21,8 @@
 # WARN, not block: a missing timeout is a robustness smell. Scope: shell + CI
 # scripts; tests/vendored/build excluded.
 id: KEUR-QUAL-012
+ilities: [analysability]
+maturity: 3
 title: curl without a timeout (--max-time / --connect-timeout)
 category: quality
 severity: warning

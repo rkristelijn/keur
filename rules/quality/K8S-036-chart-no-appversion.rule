@@ -1,0 +1,17 @@
+id: K8S-036
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Chart.yaml without appVersion
+category: quality
+severity: warning
+engine: absence
+target:
+  filenames: Chart.yaml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: image
+patterns:
+  - regex: appVersion:
+    message: "Chart.yaml without appVersion — consumers can't tell which app version is deployed"
+fix: Add appVersion field to Chart.yaml to indicate which application version the chart deploys.

@@ -1,0 +1,20 @@
+id: STYLE-012
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Portability issues (hardcoded paths, platform headers)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/
+patterns:
+  - regex: \+\s*"/"
+    message: Hardcoded path separator — use PATH_SEP constant for cross-platform support
+  - regex: \+\s*"\\\\"
+    message: Hardcoded Windows path separator — use PATH_SEP constant
+  - regex: #include\s*<(conio|direct)\.h>
+    message: Platform-specific header detected — verify it is wrapped in an #ifdef platform guard
+fix: Use cross-platform path handling (PATH_SEP constant or std::filesystem)

@@ -1,0 +1,17 @@
+id: BUILD-040
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Avoid process.exit() in library/application code
+category: build
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ bin/ cli/ scripts/
+  content_contains: process.exit
+patterns:
+  - regex: process\.exit\(\s*[0-9]*\s*\)
+    message: "process.exit() in application code — forcefully terminates the process, bypasses cleanup, breaks testing and composability"
+fix: Throw an Error instead and let the caller decide how to handle it. Reserve process.exit() for CLI entry points only.

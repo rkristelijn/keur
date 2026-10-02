@@ -1,4 +1,5 @@
 id: SCA-013
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Suspicious setup.py with dynamic import

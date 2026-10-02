@@ -1,0 +1,21 @@
+# @see docs/audits/ai-slop-audit.md F-009
+id: SLOP-119
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: AI-style promotional file header comment
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .cpp .c .h .hpp .ts .js .py .java .go .rs
+  exclude_paths: vendor/ node_modules/ .git/ build/
+patterns:
+  - regex: "\\*\\s*(Key (performance|design) features|Performance characteristics|Design highlights):"
+    message: "Promotional header comment — describe purpose briefly, not features"
+  - regex: "//\\s*This (module|file|component) (provides|implements|offers) a (complete|comprehensive|full|robust)"
+    message: "AI-style promotional header — be concise about what the code does"
+  - regex: "\\*\\s*(Zero|No) (external )?(dependencies|allocations|overhead)"
+    message: "Promotional claim in comment — if true, it's obvious from the code"
+fix: "Keep file headers to 1-2 lines: what it does and why it exists. Remove feature lists and performance claims."

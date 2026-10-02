@@ -1,0 +1,16 @@
+id: QUAL-056
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Boolean flag parameter (unclear caller intent)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \w+\(.*,\s*(true|false)\s*,\s*(true|false)\s*[,)]
+    message: "Multiple boolean arguments — callers see render(true, false) with no idea what each means"
+fix: Use an options object. render({showHeader: true, animate: false}) instead of render(true, false).

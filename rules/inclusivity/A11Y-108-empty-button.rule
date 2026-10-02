@@ -1,0 +1,17 @@
+id: A11Y-108
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Empty-button
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <button
+patterns:
+  - regex: <button[^>]*>\s*</button>
+    message: Empty button — must have text content or aria-label
+fix: Add button text, aria-label, or title to the <button>

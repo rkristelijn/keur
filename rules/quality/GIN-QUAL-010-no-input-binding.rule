@@ -1,0 +1,19 @@
+id: GIN-QUAL-010
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Gin handler without input binding/validation
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ .git/ build/
+  content_contains: gin
+patterns:
+  - regex: c\.Query\(["'][^"']+["']\)
+    message: "Raw query parameter without validation — use ShouldBindQuery with a struct for type-safe input"
+  - regex: c\.Param\(["'][^"']+["']\)
+    message: "Raw path parameter without validation — use ShouldBindUri with a struct for type-safe input"
+fix: "Use struct binding: var req MyRequest; if err := c.ShouldBindJSON(&req); err != nil { c.JSON(400, gin.H{\"error\": err.Error()}); return }"

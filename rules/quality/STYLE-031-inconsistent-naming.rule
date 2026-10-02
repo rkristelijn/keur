@@ -1,0 +1,16 @@
+id: STYLE-031
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Inconsistent naming convention (mixed camelCase/snake_case)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (const|let|var)\s+[a-z]+_[a-z]+\w*\s*=
+    message: "snake_case variable in JavaScript/TypeScript — convention is camelCase"
+fix: Use camelCase for JS/TS variables and functions. snake_case is for Python/Ruby.

@@ -1,0 +1,18 @@
+id: GO-SEC-024
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Sensitive data in log output
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: (log\.|fmt\.Print|fmt\.Fprint).*(?i)(password|token|secret|api.?key|credential|bearer)
+    message: "Potentially logging sensitive data — mask or redact before logging"
+  - regex: (log\.|fmt\.Print).*\.Header
+    message: "Logging HTTP headers — may contain Authorization or session tokens"
+fix: Redact sensitive fields before logging. Use structured logging with field masking.

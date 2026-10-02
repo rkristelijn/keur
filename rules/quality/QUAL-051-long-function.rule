@@ -1,0 +1,16 @@
+id: QUAL-051
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Long function body (>50 lines — hard to understand)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ^(export\s+)?(async\s+)?function\s+\w+
+    message: "Function detected — verify it's under 50 lines. Long functions are hard to understand and test."
+fix: Extract helper functions. A function should do one thing and fit on one screen (~25 lines ideal, 50 max).

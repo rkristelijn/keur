@@ -1,0 +1,16 @@
+id: QUAL-074
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Long lambda/arrow function body (extract to named function)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: =>\s*\{\s*$
+    message: "Multi-line arrow function — if >15 lines, extract to a named function for readability and stack traces"
+fix: Extract long arrow functions to named functions. Named functions show up in stack traces and are easier to test.

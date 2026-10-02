@@ -1,0 +1,19 @@
+# @see ADR-169 (smart init)
+id: DOC-011
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Public Python function without docstring
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ node_modules/ .venv/ __pycache__/
+patterns:
+  - regex: ^def\s+[a-z]\w+\s*\(
+    message: "Top-level function without docstring — add triple-quoted docstring"
+  - regex: ^class\s+[A-Z]\w+
+    message: "Class without docstring — add triple-quoted docstring after class declaration"
+fix: "Add docstring: def foo(x):\\n    \"\"\"Brief description.\\n\\n    Args:\\n        x: description\\n    \"\"\""

@@ -1,0 +1,17 @@
+id: BNDL-011
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Vite server host 0.0.0.0
+category: security
+severity: warning
+engine: pattern
+target:
+  filenames: vite.config.ts vite.config.js vite.config.mjs
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: host
+patterns:
+  - regex: host:\s*["']0\.0\.0\.0["']|host:\s*true
+    message: "Vite dev server bound to all interfaces — accessible from network"
+fix: Remove host or set to 'localhost'. Use --host flag only when network access is intentionally needed.

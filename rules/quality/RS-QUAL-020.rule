@@ -1,0 +1,17 @@
+id: RS-QUAL-020
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Empty expect message
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: expect
+patterns:
+  - regex: \.expect\(""\)
+    message: Empty expect message — provide context for debugging
+fix: Add a descriptive message to expect() that explains what went wrong, e.g. .expect("config file must exist")

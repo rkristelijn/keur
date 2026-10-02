@@ -1,0 +1,17 @@
+id: GQL-012
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Mutation without input type
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .graphql .gql
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: type Mutation
+patterns:
+  - regex: ^\s+\w+\(\w+:.*,\s*\w+:
+    message: "Mutation with multiple arguments — wrap in an input type for forward-compatible changes"
+fix: Create an input type. Example — input CreateUserInput { name: String! email: String! } then use createUser(input: CreateUserInput!).

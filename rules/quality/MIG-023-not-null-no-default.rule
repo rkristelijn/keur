@@ -1,0 +1,17 @@
+id: MIG-023
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: NOT NULL column without DEFAULT
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sql
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/ seed/
+  content_contains: NOT NULL
+patterns:
+  - regex: ADD\s+COLUMN.*NOT\s+NULL
+    message: "NOT NULL column without DEFAULT — requires full table rewrite and locks table"
+fix: Add a DEFAULT value, or add the column as nullable first, backfill data, then add NOT NULL constraint.

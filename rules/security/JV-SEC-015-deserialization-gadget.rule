@@ -1,0 +1,17 @@
+id: JV-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Java deserialization gadget libraries (CVE-2015-7501)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .xml .gradle .kts
+  exclude_paths: test/ .git/ target/ build/
+  content_contains: commons-collections
+patterns:
+  - regex: commons-collections[34]?.*([0-3])\.
+    message: "Apache Commons Collections 3.x contains known deserialization gadgets — RCE on WebLogic, JBoss, Jenkins (CVE-2015-7501)"
+fix: Upgrade to commons-collections4 4.1+ which removed known gadget classes.

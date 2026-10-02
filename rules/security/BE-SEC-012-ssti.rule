@@ -1,0 +1,26 @@
+id: BE-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Server-side template injection (SSTI)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py .rb .java .js .ts .go .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: render_template_string\(.*(?:req|param|input|user|query|request)
+    message: "Flask render_template_string with user input — SSTI leads to RCE. Use render_template with file"
+  - regex: Template\(\s*.*(?:req|param|input|user|query|request)
+    message: "User input in template constructor — SSTI risk. Use pre-compiled template files"
+  - regex: Jinja2.*Environment.*from_string
+    message: "Jinja2 from_string() — SSTI risk if template content includes user input"
+  - regex: engine\.eval\(.*(?:req|param|input|user|query|request)
+    message: "Template engine eval with user input — SSTI risk"
+  - regex: render\s+inline:\s*.*(?:params|request)
+    message: "Rails render inline with user input — SSTI risk. Use template files"
+  - regex: new\s+FreeMarker.*Template\(.*(?:req|param|input)
+    message: "FreeMarker template from user input — SSTI leads to RCE in Java"
+fix: "Never pass user input to template engines. Use pre-compiled template files. Sandbox template engines. CWE-1336"

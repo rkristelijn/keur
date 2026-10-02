@@ -1,0 +1,22 @@
+id: WEB-SEC-021
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Source map exposure in production
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .json .yml .yaml
+  exclude_paths: test/ tests/
+patterns:
+  - regex: sourceMappingURL\s*=
+    message: "Source map reference found — exposes original source code in production. Remove for prod builds"
+  - regex: devtool:\s*["'](?:source-map|eval-source-map|cheap-module-source-map)
+    message: "Webpack devtool set to generate source maps — disable for production builds"
+  - regex: sourceMap["']?\s*:\s*true
+    message: "Source maps enabled — original source code visible in browser DevTools in production"
+  - regex: productionSourceMap["']?\s*:\s*true
+    message: "Production source maps explicitly enabled — exposes source code to attackers"
+fix: "Set sourceMap: false or devtool: false in production builds. Remove .map files from deployment. CWE-615"

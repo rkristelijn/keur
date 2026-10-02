@@ -1,0 +1,17 @@
+id: CICD-026
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Missing CI status badge
+category: quality
+severity: info
+engine: absence
+target:
+  filenames: README.md
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: README
+patterns:
+  - regex: (badge|shield|status).*\.(svg|png)|github\.com.*actions.*badge|gitlab.*pipeline.*badge
+    message: "README without CI badge — build status not visible to contributors"
+fix: Add a CI status badge to README. GitHub: ![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg). GitLab: [![pipeline](https://gitlab.com/OWNER/REPO/badges/main/pipeline.svg)].

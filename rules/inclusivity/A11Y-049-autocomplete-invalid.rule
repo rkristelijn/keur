@@ -1,0 +1,17 @@
+id: A11Y-049
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Invalid autocomplete value
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: autocomplete
+patterns:
+  - regex: autocomplete=["'](on|off|true|false|yes|no)["']
+    message: Invalid autocomplete value — use standard autocomplete tokens
+fix: Use valid autocomplete values: name, email, tel, street-address, etc.

@@ -1,0 +1,17 @@
+id: VUE-PERF-004
+ilities: [time-behaviour]
+source: cpm
+maturity: 4
+action: advisory
+title: Vue deep watcher can be expensive on large structures
+category: performance
+severity: info
+engine: pattern
+target:
+  extensions: .vue .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: deep
+patterns:
+  - regex: \{\s*deep\s*:\s*true\s*\}
+    message: "deep: true traverses the entire object graph on every change to detect nested mutations — costly on large/nested reactive state. Watch a specific getter (() => obj.field) or a computed instead when possible."
+fix: "Prefer watching a narrow getter or computed over deep-watching a whole object. If a deep watch is genuinely required, suppress with `// cpm:ignore VUE-PERF-004 — <reason>`. See https://vuejs.org/guide/essentials/watchers.html#deep-watchers"

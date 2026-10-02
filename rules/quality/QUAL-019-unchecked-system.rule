@@ -1,0 +1,16 @@
+id: QUAL-019
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Unchecked system() call in C/C++
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: test/ tests/
+patterns:
+  - regex: ^\s+system\s*\(
+    message: "system() return value not checked — command failure will be silently ignored"
+fix: Check return value or use CPM_DISCARD() only for genuine fire-and-forget calls

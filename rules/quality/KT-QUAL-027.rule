@@ -1,0 +1,17 @@
+id: KT-QUAL-027
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Thread.sleep in coroutine context
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .kt
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: Thread.sleep
+patterns:
+  - regex: Thread\.sleep\(
+    message: Thread.sleep blocks the thread — use delay() in coroutine context
+fix: Replace Thread.sleep(ms) with delay(ms) which suspends without blocking the thread

@@ -1,4 +1,5 @@
 id: SCA-037
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Python .pth file with import (auto-execution on startup)

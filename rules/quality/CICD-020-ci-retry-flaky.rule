@@ -1,0 +1,17 @@
+id: CICD-020
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: CI retry masks flaky tests
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: retry
+patterns:
+  - regex: retry:\s*[2-9]|retries:\s*[2-9]|flaky-test-retryer|re-run
+    message: "Test retries mask flaky tests — fix the root cause instead of retrying"
+fix: Investigate flaky tests. Common causes: shared state, timing dependencies, network calls, random ordering. Fix the flake, then remove the retry.

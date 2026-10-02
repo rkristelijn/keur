@@ -37,6 +37,7 @@
 #
 # @see docs/research/javascript-typescript.md #31, ESLint no-empty, CWE-390.
 id: KEUR-ERR-001
+ilities: [analysability]
 maturity: 1
 title: Empty catch block swallows the error (no handling, log, or rethrow)
 category: quality

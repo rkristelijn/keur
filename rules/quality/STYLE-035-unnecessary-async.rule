@@ -1,0 +1,18 @@
+id: STYLE-035
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Unnecessary async function (no await inside)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: async\s+function\s+\w+\s*\([^)]*\)\s*\{\s*return\s
+    message: "async function that immediately returns — unnecessary async wrapper adds overhead"
+  - regex: async\s*\([^)]*\)\s*=>\s*[^{]
+    message: "async arrow function with expression body (no await) — async is unnecessary"
+fix: Remove async if the function doesn't use await. Just return the value directly.

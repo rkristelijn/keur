@@ -1,0 +1,23 @@
+id: JV-SEC-016
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Vulnerable Log4j version (CVE-2021-44228 — Log4Shell)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .xml .gradle .kts
+  exclude_paths: test/ .git/ target/ build/
+  content_contains: log4j
+patterns:
+  - regex: log4j-core.*<version>2\.[0-9]\.
+    message: "Log4j 2.0-2.9 vulnerable to Log4Shell (CVE-2021-44228 CVSS 10.0) — upgrade to 2.17.1+"
+  - regex: log4j-core.*<version>2\.1[0-5]\.
+    message: "Log4j 2.10-2.15 vulnerable to Log4Shell — upgrade to 2.17.1+"
+  - regex: log4j-core:2\.[0-9]\.
+    message: "Log4j 2.0-2.9 (Gradle) vulnerable to Log4Shell — upgrade to 2.17.1+"
+  - regex: log4j-core:2\.1[0-5]\.
+    message: "Log4j 2.10-2.15 (Gradle) vulnerable to Log4Shell — upgrade to 2.17.1+"
+fix: Upgrade log4j-core to 2.17.1+ immediately. This is the most impactful vulnerability of the decade.

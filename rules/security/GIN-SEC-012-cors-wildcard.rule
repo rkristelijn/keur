@@ -1,0 +1,21 @@
+id: GIN-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Gin CORS allows all origins
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ .git/ build/
+  content_contains: cors
+patterns:
+  - regex: AllowAllOrigins\s*:\s*true
+    message: "CORS allows all origins — any website can make authenticated requests to your API"
+  - regex: AllowOrigins.*\["\*"\]
+    message: "CORS origin set to wildcard — restrict to specific domains"
+  - regex: cors\.Default\(\)
+    message: "cors.Default() allows all origins — use cors.New(cors.Config{...}) with specific origins"
+fix: "Configure specific origins: cors.New(cors.Config{AllowOrigins: []string{\"https://yourapp.com\"}})"

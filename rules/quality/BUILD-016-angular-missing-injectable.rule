@@ -1,0 +1,17 @@
+id: BUILD-016
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Angular service class without @Injectable check
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: Service
+patterns:
+  - regex: class\s+\w+Service\s*(extends|implements|\{)
+    message: "Service class detected — ensure @Injectable() decorator is present or Angular DI will fail at runtime"
+fix: Add @Injectable({ providedIn: 'root' }) above the class declaration.

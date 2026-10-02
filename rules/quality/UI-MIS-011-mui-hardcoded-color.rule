@@ -1,0 +1,21 @@
+id: UI-MIS-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: MUI hardcoded colors instead of theme palette
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui"
+patterns:
+  - regex: sx=\{\{[^}]*(color|background|backgroundColor)\s*:\s*["']#[0-9a-fA-F]+["']
+    message: "Hardcoded hex color in sx prop — use theme palette (e.g., 'primary.main', 'text.secondary') for dark mode and theming support"
+  - regex: sx=\{\{[^}]*(color|background)\s*:\s*["'](?:red|blue|green|white|black|grey|gray)["']
+    message: "Named color in sx prop — use theme palette tokens for consistency across light/dark mode"
+  - regex: color=["']#[0-9a-fA-F]+["']
+    message: "Hardcoded hex color on MUI component — use theme palette ('primary', 'secondary', 'error') or sx prop with theme tokens"
+fix: "Use theme palette: sx={{ color: 'primary.main' }} or sx={{ bgcolor: 'background.paper' }}. For custom colors, define them in createTheme()."

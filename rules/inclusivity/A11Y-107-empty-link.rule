@@ -1,0 +1,17 @@
+id: A11Y-107
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Empty-link
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <a
+patterns:
+  - regex: <a[^>]*>\s*</a>
+    message: Empty link — <a> must have text content or aria-label
+fix: Add link text, aria-label, or title to the <a> element

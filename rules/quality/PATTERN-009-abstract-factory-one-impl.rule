@@ -1,0 +1,21 @@
+# @see R-030 (Design Patterns vs Native Platform Features)
+id: PATTERN-009
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Abstract Factory with only one concrete factory
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .js .java .kt .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: abstract\s+class\s+\w*Factory
+    message: "Abstract Factory — verify there are multiple concrete factories. A single implementation makes the abstraction premature (YAGNI)"
+  - regex: interface\s+\w*Factory\s*\{
+    message: "Factory interface — if only one class implements this, the interface adds indirection without polymorphism benefit"
+  - regex: class\s+\w*FactoryImpl\s+(extends|implements)
+    message: "FactoryImpl — the 'Impl' suffix with a single factory suggests over-engineering. Use a simple factory function or direct construction"
+fix: If only one factory implementation exists, remove the abstract layer. Use a simple factory function or static create() method. Add abstraction when a second factory variant is actually needed.

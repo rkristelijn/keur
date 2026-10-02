@@ -1,0 +1,17 @@
+id: GQL-005
+ilities: [authenticity]
+source: cpm
+maturity: 3
+action: warn
+title: GraphQL server without rate limiting
+category: graphql
+severity: warning
+engine: presence
+target:
+  extensions: .ts .js .py .rb .go .java
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: graphql
+patterns:
+  - regex: (ApolloServer|GraphQLServer)\(
+    message: "GraphQL server — ensure rate limiting is configured"
+fix: Add rate limiting per IP/user/query complexity. Use graphql-rate-limit, express-rate-limit, or a custom plugin to prevent abuse.

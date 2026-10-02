@@ -1,0 +1,18 @@
+id: A11Y-079
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Non-interactive element with interactive role
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: <(p|h[1-6]|li)\s[^>]*role=["']button["']
+    message: "Non-interactive element given role=button — use <button>"
+  - regex: <(p|h[1-6]|li)\s[^>]*role=["']link["']
+    message: "Non-interactive element given role=link — use <a>"
+fix: Use native interactive elements instead of adding roles to non-interactive elements.

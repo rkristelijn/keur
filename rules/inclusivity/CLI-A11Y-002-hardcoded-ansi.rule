@@ -1,0 +1,18 @@
+id: CLI-A11Y-002
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Hardcoded ANSI escape codes instead of color abstraction
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .cpp .c .h .go .rs .py .ts .js .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/
+patterns:
+  - regex: (?:printf|print|fmt\.|println!|puts|console\.log|echo)\s*\(?\s*["'`].*\\(?:033|x1[bB])\[
+    message: "Hardcoded ANSI escape in output statement — use a color function or theme variable that respects NO_COLOR"
+  - regex: \\x1[bB]\[\d+m
+    message: "Raw ANSI escape sequence — centralize color handling and respect NO_COLOR"
+fix: "Extract colors into a theme/function that checks NO_COLOR before emitting ANSI codes. See https://no-color.org/"

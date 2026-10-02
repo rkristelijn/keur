@@ -1,0 +1,17 @@
+id: A11Y-056
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Form error without role
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: error
+patterns:
+  - regex: class=["'][^"']*(error|invalid|alert)[^"']*["']
+    message: Error-styled element found — ensure it has role="alert" or aria-live
+fix: Add role="alert" or aria-live="assertive" to error messages.

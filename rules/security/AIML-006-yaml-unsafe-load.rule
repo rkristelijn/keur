@@ -1,0 +1,17 @@
+id: AIML-006
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Unsafe yaml.load without SafeLoader
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: yaml.load
+patterns:
+  - regex: yaml\.load\([^)]*\)
+    message: yaml.load() without SafeLoader executes arbitrary Python code
+fix: Use yaml.safe_load() or yaml.load(data, Loader=yaml.SafeLoader)

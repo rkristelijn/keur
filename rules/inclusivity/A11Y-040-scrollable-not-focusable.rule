@@ -1,0 +1,17 @@
+id: A11Y-040
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Scrollable container not focusable
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: overflow
+patterns:
+  - regex: overflow\s*:\s*(auto|scroll)
+    message: Scrollable container — ensure keyboard accessibility with tabindex or focusable children
+fix: Add tabindex="0" and role to scrollable containers, or ensure focusable children.

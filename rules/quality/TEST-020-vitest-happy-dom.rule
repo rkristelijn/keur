@@ -1,0 +1,17 @@
+id: TEST-020
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Vitest happy-dom without jsdom fallback
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: vitest.config.ts vitest.config.js
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: snapshot
+patterns:
+  - regex: environment.*happy-dom
+    message: "Using happy-dom — ensure jsdom fallback for features happy-dom doesn't support"
+fix: happy-dom is faster but less complete than jsdom. Add @vitest-environment jsdom comments on tests needing full DOM support.

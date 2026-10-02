@@ -1,0 +1,19 @@
+id: BUILD-033
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Conditional plugin with && inserts falsy value into array
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .js .ts .mjs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: plugins
+patterns:
+  - regex: &&\s*new\s+\w+Plugin
+    message: "Conditional plugin with && — inserts false/undefined into plugins array when condition is falsy, causing build errors"
+  - regex: &&\s*require\(
+    message: "Conditional require with && — inserts false into array when condition is falsy"
+fix: Use .filter(Boolean) on the plugins array, or use a ternary with null — condition ? new Plugin() : null.

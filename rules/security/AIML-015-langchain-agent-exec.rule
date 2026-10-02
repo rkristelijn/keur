@@ -1,0 +1,17 @@
+id: AIML-015
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 3
+action: warn
+title: LangChain agent arbitrary code execution
+category: ai-ml
+severity: warning
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: Agent
+patterns:
+  - regex: (AgentExecutor|create_react_agent|initialize_agent)\(
+    message: LangChain agent can execute arbitrary code via tool calls
+fix: Use restricted tool sets, sandbox execution, add output validation

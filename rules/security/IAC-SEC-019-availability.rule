@@ -1,0 +1,18 @@
+id: IAC-SEC-019
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Missing multi-AZ or backup retention
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .tf .hcl
+  exclude_paths: test/
+patterns:
+  - regex: multi_az\s*=\s*false
+    message: "multi_az disabled — single AZ failure takes down the database"
+  - regex: backup_retention_period\s*=\s*0
+    message: "backup_retention_period = 0 — no automated backups, no point-in-time recovery"
+fix: "Set multi_az = true and backup_retention_period >= 7 for production"

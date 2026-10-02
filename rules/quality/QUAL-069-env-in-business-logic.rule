@@ -1,0 +1,16 @@
+id: QUAL-069
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Environment-specific code in business logic
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ config/ env/
+patterns:
+  - regex: process\.env\.NODE_ENV\s*===?\s*['"](?:production|development|staging|test)['"]
+    message: "NODE_ENV check in business logic — extract environment behavior to configuration"
+fix: Move env-specific behavior to config/DI. Business logic should not know about environments.

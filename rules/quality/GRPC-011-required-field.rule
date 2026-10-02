@@ -1,0 +1,17 @@
+id: GRPC-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Using required (proto2 anti-pattern)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .proto
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: required
+patterns:
+  - regex: ^\s*required\s+
+    message: "required fields are a proto2 anti-pattern — never add required, use proto3 or optional"
+fix: Migrate to proto3 (which has no required keyword). If stuck on proto2, use optional instead.

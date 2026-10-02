@@ -1,0 +1,16 @@
+id: GO-SEC-027
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: HTTP handler missing security headers
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: func.*http\.HandlerFunc|func.*ServeHTTP
+    message: "HTTP handler detected — ensure security headers are set (HSTS, X-Content-Type-Options, X-Frame-Options)"
+fix: Use middleware to set security headers. Consider chi.middleware or custom middleware.

@@ -1,0 +1,17 @@
+id: QUAL-021
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Markdown fenced block without language
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .md
+  exclude_paths: vendor/ node_modules/ .git/ build/ .rumdl_cache/
+  content_contains: ```
+patterns:
+  - regex: ^```\s*$
+    message: "Fenced code block without language specifier — add language for syntax highlighting (MD040)"
+fix: "Add language after opening fence: ```cpp, ```bash, ```yaml, ```text"

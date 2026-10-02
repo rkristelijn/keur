@@ -1,0 +1,17 @@
+id: GQL-001
+ilities: [authenticity]
+source: cpm
+maturity: 3
+action: warn
+title: GraphQL server without depth limiting
+category: graphql
+severity: warning
+engine: presence
+target:
+  extensions: .ts .js .py .rb .go .java
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: graphql
+patterns:
+  - regex: (ApolloServer|GraphQLServer|makeExecutableSchema)\(
+    message: "GraphQL server without depth limiting — vulnerable to nested query attacks"
+fix: Add depthLimit plugin/middleware (e.g. graphql-depth-limit). npm install graphql-depth-limit, then validationRules: [depthLimit(10)].

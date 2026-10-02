@@ -1,0 +1,19 @@
+id: SPR-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Spring Expression Language (SpEL) injection (CVE-2022-22947)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .java .kt
+  exclude_paths: test/ tests/ vendor/ .git/ target/ build/
+  content_contains: parseExpression
+patterns:
+  - regex: SpelExpressionParser.*parseExpression
+    message: "SpEL expression parsing — if input comes from user data, this enables RCE (CVE-2022-22947 CVSS 10.0)"
+  - regex: ExpressionParser.*parseExpression.*request
+    message: "SpEL parsing with request data — RCE via Spring Expression Language injection"
+fix: Never pass user input to SpEL. Use a safe expression evaluator or allowlist.

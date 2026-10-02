@@ -1,0 +1,17 @@
+id: FA-QUAL-010
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: FastAPI endpoint without response_model
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: FastAPI
+patterns:
+  - regex: @app\.(get|post|put|delete|patch)\([^)]*\)\s*\n\s*(async )?def \w+\(
+    message: "Route handler without response_model — response schema is undocumented and unvalidated"
+fix: "Add response_model to the decorator: @app.get('/users', response_model=list[UserResponse])"

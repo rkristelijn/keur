@@ -1,0 +1,24 @@
+id: CS-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Insecure deserialization in .NET
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .cs
+  exclude_paths: test/ tests/ Test/ Tests/
+patterns:
+  - regex: BinaryFormatter\(\)
+    message: "BinaryFormatter is insecure and deprecated — allows arbitrary code execution during deserialization"
+  - regex: TypeNameHandling\s*=\s*TypeNameHandling\.(?:All|Auto|Objects|Arrays)
+    message: "JSON.NET TypeNameHandling allows polymorphic deserialization attacks — use TypeNameHandling.None"
+  - regex: SoapFormatter\(\)
+    message: "SoapFormatter is insecure — same risks as BinaryFormatter. Use System.Text.Json or JSON.NET"
+  - regex: NetDataContractSerializer\(\)
+    message: "NetDataContractSerializer is insecure — type info in payload enables RCE. Use DataContractSerializer"
+  - regex: JavaScriptSerializer\(\)
+    message: "JavaScriptSerializer has limited security — use System.Text.Json or Newtonsoft.Json"
+fix: "Use System.Text.Json or Newtonsoft.Json with TypeNameHandling.None. Never deserialize with BinaryFormatter"

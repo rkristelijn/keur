@@ -1,0 +1,17 @@
+id: A11Y-019
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: SVG possibly missing role attribute
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <svg
+patterns:
+  - regex: <svg[\s>]
+    message: "SVG found — add role=\"img\" for meaningful SVGs or aria-hidden=\"true\" for decorative"
+fix: "Add role=\"img\" to meaningful SVGs, or aria-hidden=\"true\" for decorative"

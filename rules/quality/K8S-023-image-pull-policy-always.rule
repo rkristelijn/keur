@@ -1,0 +1,17 @@
+id: K8S-023
+ilities: [time-behaviour]
+source: cpm
+maturity: 4
+action: advisory
+title: Inefficient imagePullPolicy Always slows deployments
+category: performance
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: imagePullPolicy
+patterns:
+  - regex: imagePullPolicy:\s*Always
+    message: "Always pull slows deployments and creates registry dependency — use IfNotPresent with versioned tags"
+fix: Use imagePullPolicy IfNotPresent with pinned image tags. Always is only needed for :latest or mutable tags.

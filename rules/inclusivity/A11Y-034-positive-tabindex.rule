@@ -1,0 +1,17 @@
+id: A11Y-034
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Positive tabindex
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: tabindex
+patterns:
+  - regex: tabindex=["'][1-9]
+    message: Positive tabindex disrupts natural tab order — use 0 or -1
+fix: Use tabindex="0" (in tab order) or tabindex="-1" (focusable, not in tab order).

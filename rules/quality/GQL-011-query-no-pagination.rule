@@ -1,0 +1,17 @@
+id: GQL-011
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Query without pagination
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .graphql .gql
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: type Query
+patterns:
+  - regex: \]\s*$|\]!\s*$
+    message: "Query returning array — add pagination (first/after or limit/offset) to prevent unbounded responses"
+fix: Add pagination arguments. Example — users(first: Int, after: String): UserConnection! using Relay-style cursor pagination.

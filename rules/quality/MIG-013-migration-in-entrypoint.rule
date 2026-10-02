@@ -1,0 +1,17 @@
+id: MIG-013
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Database migration in container entrypoint
+category: quality
+severity: warning
+engine: pattern
+target:
+  filenames: Dockerfile Dockerfile.dev Dockerfile.prod Dockerfile.bad entrypoint.sh start.sh
+  exclude_paths: test/ vendor/ .git/
+  content_contains: migrate
+patterns:
+  - regex: (migrate|db:migrate|alembic\s+upgrade|prisma\s+migrate\s+deploy|flyway\s+migrate|rake\s+db:migrate|typeorm\s+migration:run)
+    message: "Database migration in entrypoint — risks partial deploys and race conditions in multi-instance environments"
+fix: Run migrations as a separate init container or CI/CD step, not in the application entrypoint.

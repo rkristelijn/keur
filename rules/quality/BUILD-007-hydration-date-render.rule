@@ -1,0 +1,17 @@
+id: BUILD-007
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Avoid new Date() in JSX causes hydration mismatch
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .tsx .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: new Date
+patterns:
+  - regex: \{.*new Date\(\)
+    message: "new Date() in JSX render — server and client timestamps differ, causing hydration mismatch"
+fix: Move date formatting to useEffect or use a stable server timestamp passed as prop.

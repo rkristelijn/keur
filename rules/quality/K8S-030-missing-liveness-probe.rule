@@ -1,0 +1,17 @@
+id: K8S-030
+ilities: [reliability-maturity]
+source: cpm
+maturity: 3
+action: advisory
+title: Deployment missing liveness probe
+category: reliability
+severity: warning
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: kind: Deployment
+patterns:
+  - regex: livenessProbe:
+    message: "No livenessProbe — K8s cannot detect deadlocked containers"
+fix: Add livenessProbe with httpGet, tcpSocket, or exec to detect and restart unresponsive containers.

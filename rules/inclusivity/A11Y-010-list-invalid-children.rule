@@ -1,0 +1,16 @@
+id: A11Y-010
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: List contains non-li child element
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: <(ul|ol)[^>]*>\s*<div
+    message: "List contains non-li child — <ul>/<ol> should only contain <li>"
+fix: "Wrap list content in <li> elements"

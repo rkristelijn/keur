@@ -1,0 +1,17 @@
+id: MIG-025
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Missing rollback/down method
+category: quality
+severity: warning
+engine: absence
+target:
+  extensions: .rb
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: def change
+patterns:
+  - regex: def (down|revert)
+    message: "Migration without down/revert method — rollback will fail"
+fix: Add a def down method that reverses the migration. Rails can auto-reverse some methods, but explicit down is safer.

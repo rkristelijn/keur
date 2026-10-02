@@ -1,0 +1,25 @@
+id: GIN-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Gin SQL injection via string concatenation
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ .git/ build/
+  content_contains: gin
+patterns:
+  - regex: fmt\.Sprintf\(["']SELECT\b
+    message: "SQL query built with fmt.Sprintf — use parameterized queries (db.Query with $1 placeholders)"
+  - regex: fmt\.Sprintf\(["']INSERT\b
+    message: "SQL INSERT built with fmt.Sprintf — use parameterized queries to prevent injection"
+  - regex: fmt\.Sprintf\(["']UPDATE\b
+    message: "SQL UPDATE built with fmt.Sprintf — use parameterized queries to prevent injection"
+  - regex: fmt\.Sprintf\(["']DELETE\b
+    message: "SQL DELETE built with fmt.Sprintf — use parameterized queries to prevent injection"
+  - regex: \.Raw\(["'] *SELECT.*\+
+    message: "GORM Raw() with string concatenation — use ? placeholders: db.Raw('SELECT * FROM users WHERE id = ?', id)"
+fix: "Use parameterized queries: db.Query('SELECT * FROM users WHERE id = $1', id) or GORM db.Where('id = ?', id)."

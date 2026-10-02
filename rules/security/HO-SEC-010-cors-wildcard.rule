@@ -1,0 +1,21 @@
+id: HO-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Hono CORS allows all origins
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .tsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: hono
+patterns:
+  - regex: cors\(\s*\)
+    message: "Hono cors() with no config allows all origins — configure specific origins"
+  - regex: origin\s*:\s*["']\*["']
+    message: "Hono CORS origin set to wildcard — any website can make requests to your API"
+  - regex: origin\s*:\s*\(\s*\)\s*=>.*true
+    message: "Hono CORS origin function always returns true — effectively allows all origins"
+fix: "Configure specific origins: app.use(cors({ origin: 'https://yourapp.com' }))"

@@ -1,0 +1,17 @@
+id: NGX-SEC-023
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: PHP-FPM on TCP port
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: fastcgi_pass
+patterns:
+  - regex: fastcgi_pass.*:9000
+    message: PHP-FPM on TCP port — use Unix socket for better security and performance
+fix: Replace fastcgi_pass 127.0.0.1:9000 with fastcgi_pass unix:/run/php/php-fpm.sock

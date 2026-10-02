@@ -1,0 +1,22 @@
+id: VUE-PERF-003
+ilities: [time-behaviour]
+source: cpm
+maturity: 4
+action: advisory
+title: Vue calls a method in a template interpolation
+category: performance
+severity: info
+engine: pattern
+target:
+  extensions: .vue
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ out/
+# Suppress the idiomatic, cheap i18n helpers so the rule flags real derived
+# computations, not translations (which re-run on locale change by design).
+# These are the canonical vue-i18n helper names — generic across Vue projects,
+# not specific to any one app. If your project uses a different i18n library
+# (e.g. vue-gettext's $gettext) add its helper name(s) here.
+exclude_names: t $t tc te n d $tc $te
+patterns:
+  - regex: \{\{\s*[a-zA-Z_$][\w$]*\s*\([^)]*\)\s*\}\}
+    message: "Method call inside {{ }} — runs on every re-render with no caching. For derived values prefer a computed (cached until deps change). One-off formatting is usually fine; i18n helpers are excluded."
+fix: "Move derived values to a computed property so they are cached. If the call is intentionally cheap/one-off, suppress with `<!-- cpm:ignore VUE-PERF-003 -->` on that line. See https://vuejs.org/guide/essentials/computed.html"

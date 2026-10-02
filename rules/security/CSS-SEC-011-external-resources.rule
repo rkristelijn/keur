@@ -1,0 +1,34 @@
+id: CSS-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: External resource loading
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: url\s*\(\s*['"]?\s*data\s*:
+    message: data: URI in url() can embed executable content — validate or avoid
+  - regex: @import\s+url\s*\(\s*['"]?\s*https?://
+    message: @import from external URL loads third-party CSS — supply chain risk
+  - regex: @font-face[^}]*src\s*:[^}]*url\s*\(\s*['"]?\s*https?://
+    message: External @font-face loads fonts from third-party server — privacy and availability risk
+  - regex: cursor\s*:\s*url\s*\(\s*['"]?\s*https?://
+    message: External cursor URL loads remote resources — potential tracking vector
+  - regex: url\s*\(\s*var\s*\(
+    message: url(var()) makes resource origin dynamic and unverifiable at build time
+  - regex: content\s*:\s*attr\s*\(
+    message: content: attr() injects attribute values into rendering — ensure attributes are sanitized
+  - regex: background[^:]*:\s*[^;]*url\s*\(\s*['"]?\s*https?://
+    message: External background URL loads remote resources — potential tracking or content injection
+  - regex: @charset\s+['"][^uU][^tT][^fF]
+    message: Non-UTF-8 @charset may cause encoding-based injection attacks
+  - regex: --[a-zA-Z_-]+\s*:\s*url\s*\(
+    message: URL in custom property makes resource origin hard to audit — prefer direct url() calls
+  - regex: @import\s+[^;]*var\s*\(
+    message: @import with var() makes imported stylesheet dynamic and unverifiable
+fix: Prefer self-hosted resources and avoid dynamic URL construction in CSS

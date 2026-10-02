@@ -1,0 +1,22 @@
+id: STYLE-020
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Non-inclusive terminology (racial/slavery)
+category: inclusivity
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .cpp .h .rb .cs .sh .md .yml .yaml
+  exclude_paths: node_modules/ vendor/ dist/ build/ .git/
+patterns:
+  - regex: \bwhitelist\b
+    message: whitelist → use allowlist
+  - regex: \bblacklist\b
+    message: blacklist → use denylist
+  - regex: \bmaster/slave\b
+    message: master/slave → use primary/secondary
+  - regex: \bslave\b
+    message: slave → use replica
+fix: Replace racial/slavery terminology with inclusive alternatives (allowlist, denylist, primary/secondary, replica)

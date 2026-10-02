@@ -1,0 +1,17 @@
+id: KT-SEC-021
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Insecure random number generator
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .kt .java
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: Random
+patterns:
+  - regex: java\.util\.Random\b|Math\.random\(\)
+    message: java.util.Random is predictable — use SecureRandom for security-sensitive values
+fix: Replace java.util.Random with java.security.SecureRandom for tokens, keys, and nonces

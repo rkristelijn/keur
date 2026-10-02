@@ -1,4 +1,6 @@
 id: KEUR-QUAL-002
+ilities: [analysability]
+maturity: 3
 title: Repository has no SECURITY.md
 category: quality
 severity: warning

@@ -1,4 +1,5 @@
 id: SCA-065
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Encoded payload execution (decode + eval/exec)

@@ -1,0 +1,17 @@
+id: DATA-MIS-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: useEffect+fetch instead of TanStack Query useQuery
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@tanstack/react-query"
+patterns:
+  - regex: useEffect\s*\(\s*\(\)\s*=>\s*\{[\s\S]{0,300}fetch\(
+    message: "Manual fetch in useEffect in a TanStack Query project — use useQuery() for caching, deduplication, and background refetch"
+fix: "const { data } = useQuery({ queryKey: ['items'], queryFn: () => fetch('/api/items').then(r => r.json()) })"

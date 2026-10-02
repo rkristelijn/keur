@@ -1,0 +1,17 @@
+id: TRANS-004
+ilities: [authenticity]
+source: cpm
+maturity: 2
+action: block
+title: Python requests with verify=False disables TLS verification
+category: transport
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: verify
+patterns:
+  - regex: verify\s*=\s*False
+    message: "Python requests with verify=False — disables TLS certificate verification"
+fix: Fix the certificate chain or use verify='/path/to/ca-bundle'. Never disable certificate verification in production.

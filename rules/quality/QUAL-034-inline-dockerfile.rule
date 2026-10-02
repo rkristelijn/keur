@@ -1,0 +1,18 @@
+id: QUAL-034
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Inline shell in Dockerfile
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: Dockerfile
+  exclude_paths: test/ tests/
+patterns:
+  - regex: RUN\s+.*&&\s+.*&&\s+.*&&\s+.*&&
+    message: "Long chained RUN command (4+ chains) — extract to a shell script for readability"
+  - regex: RUN\s+(?:curl|wget)\s+.*\|\s*(?:ba)?sh
+    message: "curl | sh in Dockerfile — download, verify checksum, then execute for supply chain safety"
+fix: "Extract complex RUN commands to scripts/install.sh. COPY and RUN separately for caching"

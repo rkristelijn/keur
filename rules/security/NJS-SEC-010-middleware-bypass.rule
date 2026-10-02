@@ -1,0 +1,18 @@
+id: NJS-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Next.js middleware-only auth bypass risk (CVE-2025-29927)
+category: security
+severity: error
+engine: pattern
+target:
+  filenames: middleware.ts middleware.js
+  exclude_paths: test/ node_modules/ .git/
+patterns:
+  - regex: x-middleware-subrequest
+    message: "Reference to x-middleware-subrequest header — CVE-2025-29927 allows bypassing middleware auth. Verify Next.js >= 15.2.3"
+  - regex: NextResponse\.redirect.*(?:session|token|auth|cookie|jwt)
+    message: "Middleware-only auth redirect — if sole auth layer, attackers can bypass via x-middleware-subrequest (CVE-2025-29927)"
+fix: Upgrade Next.js >= 15.2.3 and add server-side auth checks in API routes/Server Components, not just middleware

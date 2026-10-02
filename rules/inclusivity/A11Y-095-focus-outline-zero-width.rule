@@ -1,0 +1,17 @@
+id: A11Y-095
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Focus-outline-zero-width
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: outline-width
+patterns:
+  - regex: outline-width:\s*0
+    message: outline-width:0 removes focus indicator
+fix: Use visible outline-width or alternative focus indicator

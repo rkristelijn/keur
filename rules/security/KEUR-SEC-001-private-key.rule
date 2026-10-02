@@ -1,4 +1,5 @@
 id: KEUR-SEC-001
+ilities: [confidentiality]
 maturity: 1
 title: Private key committed to source
 category: secret

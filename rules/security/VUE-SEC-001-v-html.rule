@@ -1,0 +1,18 @@
+id: VUE-SEC-001
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Vue v-html can inject untrusted HTML (XSS)
+category: security
+severity: error
+engine: pattern
+skip_comments: true
+target:
+  extensions: .vue
+  exclude_paths: test/ tests/ __tests__/ .spec. .test. lib/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: v-html
+patterns:
+  - regex: v-html\s*=
+    message: "v-html renders raw HTML and bypasses Vue's automatic escaping — if the bound value contains any user/remote content it is a direct XSS. Sanitize with DOMPurify, or render as text."
+fix: "Prefer text interpolation {{ }}. If HTML is required, sanitize first: v-html=\"DOMPurify.sanitize(value)\". See https://vuejs.org/guide/best-practices/security.html"

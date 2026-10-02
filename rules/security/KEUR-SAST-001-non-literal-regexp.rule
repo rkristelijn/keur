@@ -3,6 +3,7 @@
 # safe case where the argument is a string/regex literal. Maps to semgrep
 # detect-non-literal-regexp.
 id: KEUR-SAST-001
+ilities: [integrity]
 maturity: 2
 title: RegExp constructed from a non-literal value (ReDoS / regex injection)
 category: sast

@@ -1,0 +1,17 @@
+id: RS-QUAL-025
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Missing must_use on Result function
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: Result
+patterns:
+  - regex: pub fn [a-z_]+\([^)]*\)\s*->\s*Result<
+    message: Public function returning Result — consider #[must_use] to prevent ignored errors
+fix: Add #[must_use] attribute above the function to force callers to handle the Result

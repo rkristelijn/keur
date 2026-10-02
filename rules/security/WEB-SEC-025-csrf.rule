@@ -1,0 +1,22 @@
+id: WEB-SEC-025
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Missing CSRF protection
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py .java .cs .rb .php .ts .js .go
+  exclude_paths: test/ tests/
+patterns:
+  - regex: @csrf_exempt
+    message: "Django @csrf_exempt — endpoint unprotected against CSRF attacks"
+  - regex: VerifyCsrfToken.*\$except
+    message: "Laravel CSRF exceptions — listed routes have no CSRF protection"
+  - regex: :skip_before_action.*verify_authenticity_token
+    message: "Rails CSRF verification skipped — controller actions vulnerable to CSRF"
+  - regex: ignoredMethods.*(?:POST|PUT|DELETE)
+    message: "CSRF protection ignoring POST/PUT/DELETE methods — these need CSRF tokens"
+fix: "Enable CSRF protection on all state-changing endpoints. Use SameSite=Strict cookies. CWE-352"

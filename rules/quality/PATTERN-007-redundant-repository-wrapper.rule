@@ -1,0 +1,21 @@
+# @see R-030 (Design Patterns vs Native Platform Features)
+id: PATTERN-007
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Repository wrapper around ORM that already provides repositories
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .js .java .kt .cs .py .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: class\s+\w+Repository\s.*extends\s+(Repository|BaseRepository|TypeOrmRepository)
+    message: "Custom repository extending ORM Repository — TypeORM/MikroORM already provide repository methods. Only add a wrapper if you have custom query logic"
+  - regex: extends\s+JpaRepository|extends\s+CrudRepository
+    message: "Spring Data JPA repository — Spring Data already generates implementations. Custom methods use @Query, no wrapper class needed"
+  - regex: class\s+\w+Repository.*\.(find|save|delete|create|update)\s*\(
+    message: "Repository with pass-through CRUD methods — if just delegating to ORM, the wrapper adds no value. Use the ORM directly or add only custom queries"
+fix: Remove the repository wrapper if it only delegates to ORM methods. Spring Data, TypeORM, Prisma, Eloquent, and ActiveRecord already implement the Repository pattern. Add a custom repository only for complex query logic.

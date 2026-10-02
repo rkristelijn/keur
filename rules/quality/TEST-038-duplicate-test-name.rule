@@ -1,5 +1,7 @@
 # @external cpm:adr-166 (phase 5: extract-duplicates engine)
 id: TEST-038
+ilities: [analysability]
+maturity: 3
 source: cpm
 title: Duplicate test name in same file
 category: quality

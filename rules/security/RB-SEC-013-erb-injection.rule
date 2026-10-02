@@ -1,0 +1,24 @@
+id: RB-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: ERB/template injection
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .rb .erb
+  exclude_paths: test/ tests/ spec/
+patterns:
+  - regex: ERB\.new\(.*params
+    message: "User input in ERB.new() — Server-Side Template Injection (SSTI). Never pass user input to templates"
+  - regex: \.html_safe
+    message: ".html_safe marks string as safe HTML — XSS risk if applied to user input. Use sanitize() instead"
+  - regex: raw\s*\(.*params
+    message: "raw() with user input — outputs unescaped HTML. Use sanitize() or h()"
+  - regex: <%==\s*.*params
+    message: "<%== outputs unescaped HTML — XSS risk. Use <%= (auto-escapes) instead"
+  - regex: render\s+inline:\s*.*params
+    message: "render inline with user input — template injection risk. Use render with template files"
+fix: "Use <%= (auto-escaped) instead of <%==. Use sanitize() for HTML content. Never pass user input to ERB.new()"

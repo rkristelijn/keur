@@ -1,0 +1,17 @@
+id: KT-SEC-018
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: SQL raw query
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .kt .java
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: rawQuery
+patterns:
+  - regex: rawQuery\(.*\+|rawQuery\(.*\$\{|execSQL\(.*\+
+    message: SQL query built with string concatenation — SQL injection risk
+fix: Use parameterized queries with ? placeholders and selectionArgs array

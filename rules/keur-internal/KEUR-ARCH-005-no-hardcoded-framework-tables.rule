@@ -1,4 +1,6 @@
 id: KEUR-ARCH-005
+ilities: [analysability]
+maturity: 3
 title: No hardcoded framework/CVE/version tables in the engine (ADR-009 invariant)
 category: architecture
 severity: error

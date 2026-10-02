@@ -1,0 +1,21 @@
+id: BUILD-029
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Misconfigured tsconfig include may pull test files into production build
+category: build
+severity: warning
+engine: pattern
+target:
+  filenames: tsconfig.json
+  exclude_paths: node_modules/ .git/ build/ dist/
+  content_contains: include
+patterns:
+  - regex: "include".*test
+    message: "tsconfig include references test directory — test files may be compiled into production build output"
+  - regex: "include".*spec
+    message: "tsconfig include references spec files — test specs may be compiled into production build output"
+  - regex: "include".*__tests__
+    message: "tsconfig include references __tests__ — test files may be compiled into production build output"
+fix: Create a separate tsconfig.build.json that excludes test directories. Use it for production builds.

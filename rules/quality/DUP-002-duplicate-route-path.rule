@@ -1,4 +1,6 @@
 id: DUP-002
+ilities: [analysability]
+maturity: 3
 source: cpm
 title: Duplicate route path registered in the same file
 category: quality

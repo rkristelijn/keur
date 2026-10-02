@@ -1,0 +1,17 @@
+id: K8S-037
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Service account token auto-mounted
+category: security
+severity: info
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: kind: Deployment
+patterns:
+  - regex: automountServiceAccountToken:\s*false
+    message: "Service account token auto-mounted — disable if pod doesn't need K8s API access"
+fix: Set automountServiceAccountToken to false in the pod spec unless the pod explicitly needs to call the Kubernetes API.

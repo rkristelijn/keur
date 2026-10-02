@@ -1,0 +1,17 @@
+id: API-015
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Empty description in API spec
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: paths:
+patterns:
+  - regex: description:\s*["']?["']?\s*$
+    message: "Empty description — API documentation needs meaningful descriptions"
+fix: Add descriptive text explaining the purpose, behavior, and side effects of the endpoint or field.

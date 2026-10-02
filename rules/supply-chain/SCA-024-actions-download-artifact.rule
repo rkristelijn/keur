@@ -1,4 +1,5 @@
 id: SCA-024
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: GitHub Actions download-artifact poisoning risk

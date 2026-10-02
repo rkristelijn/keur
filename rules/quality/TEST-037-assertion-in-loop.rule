@@ -1,0 +1,30 @@
+# @see ADR-167
+id: TEST-037
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Assertion inside loop (Assertion Roulette)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx _test.go _test.py .java .cpp .h
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: for
+patterns:
+  - regex: for\s*\(.*\)\s*\{[^}]*expect\(
+    message: "Assertion inside for-loop — failure won't indicate which iteration failed (Assertion Roulette)"
+  - regex: for\s*\(.*\)\s*\{[^}]*assert
+    message: "Assertion inside for-loop — use parameterized tests or add iteration context to messages"
+  - regex: while\s*\(.*\)\s*\{[^}]*expect\(
+    message: "Assertion inside while-loop — failure message won't identify the failing case"
+  - regex: for\s+\w+\s*,\s*\w+\s*:=\s*range.*\{[^}]*t\.(Error|Fatal|Log)
+    message: "Go assertion in range loop — use t.Run with subtests for clear failure messages"
+  - regex: for\s+\w+\s+in\s+.*:\s*\n\s+assert
+    message: "Python assertion in for-loop — use pytest.parametrize for clear failure identification"
+  - regex: for\s*\(.*\)\s*\{[^}]*CHECK\(
+    message: "CHECK inside loop (C++) — use SECTION or parameterized TEST_CASE for clarity"
+  - regex: for\s*\(.*\)\s*\{[^}]*REQUIRE\(
+    message: "REQUIRE inside loop (C++) — use SECTION or parameterized TEST_CASE"
+fix: "Use parameterized tests instead of loops: test.each (Jest/Vitest), @ParameterizedTest (JUnit), pytest.parametrize, t.Run subtests (Go), SECTION (Catch2). Each case gets its own name and failure message."

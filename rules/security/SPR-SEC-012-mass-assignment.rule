@@ -1,0 +1,16 @@
+id: SPR-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Spring data binding mass assignment (CVE-2022-22965)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .java .kt
+  exclude_paths: test/ tests/ vendor/ .git/ target/ build/
+patterns:
+  - regex: @ModelAttribute\s+
+    message: "@ModelAttribute without @InitBinder field restriction — mass assignment risk (Spring4Shell CVE-2022-22965)"
+fix: Add @InitBinder with setAllowedFields() to restrict bindable properties. Use DTOs instead of entities.

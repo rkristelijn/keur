@@ -1,4 +1,5 @@
 id: SEC-028
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Server-Side Request Forgery via user URL (Capital One 2019)

@@ -1,0 +1,17 @@
+id: KT-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Hardcoded API key in Kotlin
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .kt
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: apiKey
+patterns:
+  - regex: (api_?key|apiKey|API_KEY|secret|SECRET)\s*=\s*"[A-Za-z0-9+/=_-]{16,}"
+    message: Hardcoded API key or secret in source — will be exposed in APK
+fix: Move secrets to local.properties (gitignored), BuildConfig fields, or a secrets manager

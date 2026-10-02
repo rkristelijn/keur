@@ -1,0 +1,25 @@
+id: UI-MIS-014
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: MUI HTML element instead of MUI component
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .tsx .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui"
+patterns:
+  - regex: <button\s
+    message: "Raw <button> in MUI project — use <Button> from @mui/material for consistent styling and ripple effect"
+  - regex: <input\s
+    message: "Raw <input> in MUI project — use <TextField> or <Input> from @mui/material for theme integration"
+  - regex: <select\s
+    message: "Raw <select> in MUI project — use <Select> from @mui/material for consistent form styling"
+  - regex: <table\s
+    message: "Raw <table> in MUI project — use <Table>/<TableRow>/<TableCell> from @mui/material or DataGrid"
+  - regex: <div\s[^>]*style=\{\{[^}]*display\s*:\s*["']?flex
+    message: "Div with display:flex in MUI project — use <Stack> or <Grid> for layout with built-in spacing"
+fix: "Use MUI components (<Button>, <TextField>, <Stack>, <Grid>) instead of raw HTML elements. They integrate with your theme automatically."

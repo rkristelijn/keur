@@ -15,6 +15,8 @@
 # left quiet. Review each hit: if the target is an aggregate, switch to
 # push_back({...}). @see docs/adr/ADR-005 (platform), ADR-006 (portability).
 id: KEUR-PORT-007
+ilities: [adaptability]
+maturity: 3
 title: emplace_back on a (possibly) constructor-less aggregate — breaks on macOS libc++
 category: architecture
 severity: warning

@@ -1,4 +1,5 @@
 id: SCA-026
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Git submodule from suspicious host

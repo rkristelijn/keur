@@ -1,0 +1,21 @@
+id: CS-SEC-016
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: XXE in .NET XML parsers
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .cs
+  exclude_paths: test/ tests/ Test/ Tests/ vendor/ .git/ build/ bin/ obj/
+  content_contains: Xml
+patterns:
+  - regex: new\s+XmlDocument\(
+    message: ".NET XmlDocument may allow XXE — set DtdProcessing = DtdProcessing.Prohibit"
+  - regex: new\s+XmlTextReader\(
+    message: "XmlTextReader allows DTD by default — XXE vulnerability. Use XmlReader.Create with DtdProcessing.Prohibit"
+  - regex: DtdProcessing\.Parse
+    message: "DtdProcessing.Parse enables DTD processing — XXE risk. Use DtdProcessing.Prohibit"
+fix: Use XmlReader.Create() with XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit }.

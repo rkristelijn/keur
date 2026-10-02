@@ -1,0 +1,18 @@
+id: A11Y-074
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: ARIA on unsupported element
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: <(meta|link|script|style)[^>]*aria-
+    message: "ARIA attribute on element that doesn't support it"
+  - regex: <(meta|link|script|style)[^>]*role=
+    message: "role attribute on element that doesn't support it"
+fix: Remove ARIA attributes from <meta>, <link>, <script>, <style>.

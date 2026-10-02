@@ -1,0 +1,22 @@
+id: 12F-013
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Local filesystem state (12-Factor VI: Stateless processes)
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .rs .rb
+  exclude_paths: test/ spec/ __tests__/ vendor/ node_modules/ _test.go mock
+patterns:
+  - regex: new FileStore
+    message: File-based session store — use external backing service (Redis, DB)
+  - regex: session-file-store
+    message: File-based session store — use external backing service
+  - regex: multer\(.*dest:
+    message: Local file uploads via multer — use S3/GCS/blob storage
+  - regex: express\.static\(['"]uploads
+    message: Serving local uploads directory — use object storage
+fix: Use external backing services for state (12-Factor VI)

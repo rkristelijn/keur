@@ -1,4 +1,5 @@
 id: SCA-029
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Makefile downloading and executing binaries

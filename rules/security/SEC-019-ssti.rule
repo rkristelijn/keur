@@ -1,4 +1,5 @@
 id: SEC-019
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Server-Side Template Injection (CVE-2025-23211)

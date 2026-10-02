@@ -1,4 +1,5 @@
 id: SEC-031
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: CORS origin reflection with credentials (CWE-942)

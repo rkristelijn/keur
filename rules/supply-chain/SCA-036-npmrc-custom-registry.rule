@@ -1,4 +1,5 @@
 id: SCA-036
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Custom .npmrc registry configuration

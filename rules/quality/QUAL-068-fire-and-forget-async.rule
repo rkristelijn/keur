@@ -1,0 +1,16 @@
+id: QUAL-068
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Fire-and-forget async call (not awaited)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ^\s+\w+\.\w+Async\s*\(
+    message: "Async method called without await — errors will be silently lost"
+fix: Add await or handle the returned promise. Unhandled async errors are invisible.

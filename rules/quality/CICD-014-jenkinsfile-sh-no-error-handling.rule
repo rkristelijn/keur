@@ -1,0 +1,17 @@
+id: CICD-014
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Jenkinsfile sh without error handling
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: Jenkinsfile
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: sh 
+patterns:
+  - regex: sh\s+['"].*['"]\s*$
+    message: "sh step — consider returnStatus or error handling for robustness"
+fix: Use sh(script: 'cmd', returnStatus: true) to capture exit codes. Or wrap in try/catch for error handling. Avoid silent failures in CI.

@@ -1,0 +1,26 @@
+id: RB-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Command injection via shell execution
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .rb
+  exclude_paths: test/ tests/ spec/
+patterns:
+  - regex: \bsystem\(\s*".*#\{
+    message: "String interpolation in system() — command injection risk. Use system('cmd', arg1, arg2)"
+  - regex: \bexec\(\s*".*#\{
+    message: "String interpolation in exec() — command injection risk"
+  - regex: \b`.*#\{
+    message: "Backtick command with interpolation — command injection risk. Use Open3.capture3()"
+  - regex: %x\{.*#\{
+    message: "%x{} with interpolation — command injection risk. Use Open3 with separate args"
+  - regex: IO\.popen\(\s*".*#\{
+    message: "String interpolation in IO.popen() — command injection risk. Use array form"
+  - regex: Open3\.(?:capture3|popen3|pipeline)\(\s*".*#\{
+    message: "String interpolation in Open3 — use array form: Open3.capture3('cmd', arg1)"
+fix: "Use array form: system('cmd', arg1, arg2) or Open3.capture3('cmd', arg1)"

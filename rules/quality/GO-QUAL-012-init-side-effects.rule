@@ -1,0 +1,16 @@
+id: GO-QUAL-012
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Init function with side effects
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: ^func init\(\)
+    message: "init() functions make code harder to test and reason about"
+fix: Prefer explicit initialization in main() or constructors. Use init() only for package-level registration.

@@ -1,0 +1,17 @@
+id: A11Y-089
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Tabpanel missing label
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role="tabpanel
+patterns:
+  - regex: role=["']tabpanel["']
+    message: "Tabpanel found — ensure it has aria-label or aria-labelledby"
+fix: Add aria-labelledby pointing to the associated tab element.

@@ -1,0 +1,22 @@
+id: JV-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Command injection via Runtime/ProcessBuilder
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .java .kt
+  exclude_paths: test/ tests/ target/
+patterns:
+  - regex: Runtime\.getRuntime\(\)\.exec\(\s*".*"\s*\+
+    message: "String concat in Runtime.exec() — command injection risk. Use ProcessBuilder with argument list"
+  - regex: Runtime\.getRuntime\(\)\.exec\(\s*".*"\s*\.format
+    message: "String.format in Runtime.exec() — command injection risk. Use ProcessBuilder with argument list"
+  - regex: ProcessBuilder\(\s*".*"\s*\+
+    message: "String concat in ProcessBuilder — use separate arguments: new ProcessBuilder(\"cmd\", \"arg1\")"
+  - regex: ProcessBuilder\(.*Arrays\.asList\(.*\+
+    message: "String concat in ProcessBuilder args — pass arguments separately, not concatenated"
+fix: "Use ProcessBuilder with separate arguments: new ProcessBuilder(\"cmd\", \"arg1\", \"arg2\").start()"

@@ -1,0 +1,33 @@
+# @see ADR-170 (multi-OS platform abstraction)
+id: STYLE-015
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Platform-specific system header included outside src/common/
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: src/common/ vendor/ test/ tests/ build/ dist/
+patterns:
+  - regex: \#include\s*<mach-o/dyld\.h>
+    message: "macOS-only header <mach-o/dyld.h> included outside src/common/ — belongs in platform_posix.cpp only (ADR-170)"
+  - regex: \#include\s*<windows\.h>
+    message: "Windows-only header <windows.h> included outside src/common/ — belongs in platform_win32.cpp only (ADR-170)"
+  - regex: \#include\s*<direct\.h>
+    message: "Windows-only header <direct.h> included outside src/common/ — use compat.h shims instead (ADR-170)"
+  - regex: \#include\s*<process\.h>
+    message: "Windows-only header <process.h> included outside src/common/ — wrap in compat.h (ADR-170)"
+  - regex: \#include\s*<io\.h>
+    message: "Windows-only header <io.h> included outside src/common/ — use compat.h shims (F_OK, access) instead (ADR-170)"
+  - regex: \#include\s*<unistd\.h>
+    message: "POSIX-only header <unistd.h> included outside src/common/ — breaks the Windows build. Route through compat.h/platform.h (ADR-170)"
+  - regex: \#include\s*<sys/wait\.h>
+    message: "POSIX-only header <sys/wait.h> included outside src/common/ — breaks the Windows build. The exec engine lives in runner_posix.cpp (ADR-170)"
+  - regex: \#include\s*<sys/time\.h>
+    message: "POSIX-only header <sys/time.h> included outside src/common/ — breaks the Windows build. Use platform::now_sec() (ADR-170)"
+  - regex: \#include\s*<dirent\.h>
+    message: "POSIX-only header <dirent.h> included outside src/common/ — breaks the Windows build (no dirent on MSVC). Confine to platform files (ADR-170)"
+fix: "OS-specific headers belong in src/common/platform_posix.cpp (<mach-o/dyld.h>, POSIX headers) or src/common/platform_win32.cpp (<windows.h>, <direct.h>, <io.h>). Name shims (getcwd, popen) stay in src/common/compat.h. Business logic includes only platform.h and compat.h — never OS headers directly. See ADR-170."

@@ -7,6 +7,7 @@
 # These are NestJS-specific: the generic CORS rule (SEC-040) matches cors({...})
 # but not app.enableCors({...}), so the NestJS form was a false negative.
 id: KEUR-NEST-001
+ilities: [integrity]
 maturity: 1
 title: NestJS insecure server configuration
 category: security

@@ -1,0 +1,18 @@
+id: QUAL-031
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Overly complex inline regex
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .kt .cs .go .rb .php .rs .cpp .c .h
+  exclude_paths: test/ tests/ spec/ dist/ target/
+patterns:
+  - regex: (?:new RegExp|re\.compile|Pattern\.compile|Regex\.new|regex!|Regex\()\s*\(\s*["'`].{80,}["'`]
+    message: "Regex > 80 chars inline — extract to named constant with documentation explaining the pattern"
+  - regex: /(?:[^/]){80,}/[gimsuy]*
+    message: "Long regex literal > 80 chars — extract to named constant with a descriptive name"
+fix: "Extract long regex to a named constant: const EMAIL_PATTERN = /.../ with a comment explaining the pattern"

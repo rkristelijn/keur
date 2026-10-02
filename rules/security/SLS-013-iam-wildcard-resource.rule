@@ -1,0 +1,17 @@
+id: SLS-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: IAM wildcard resource
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml .json
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: Effect
+patterns:
+  - regex: Resource:\s*["']?\*["']?
+    message: "IAM Resource * grants access to all resources — follow least-privilege"
+fix: Specify exact ARNs. Use !Sub arn:aws:s3:::${BucketName}/* or similar scoped resources.

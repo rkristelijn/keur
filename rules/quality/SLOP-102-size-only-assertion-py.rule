@@ -1,0 +1,20 @@
+# @see ADR-167
+id: SLOP-102
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Size-only test assertion (Python)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: vendor/ node_modules/ .venv/
+  content_contains: assert
+patterns:
+  - regex: assert len\(.*\)\s*==\s*\d+\s*$
+    message: "Size-only assertion — verify content, not just length"
+  - regex: self\.assertEqual\(len\(.*\),\s*\d+\)
+    message: "Size-only assertion — also check what's in the collection"
+fix: "After checking length, verify content: assert results[0]['id'] == 'expected'"

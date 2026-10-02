@@ -1,0 +1,16 @@
+id: GO-QUAL-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Avoid os.Exit in non-main package
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go cmd/
+patterns:
+  - regex: os\.Exit\(
+    message: "os.Exit() in library code — prevents defer cleanup and testing"
+fix: Return an error to the caller. Only use os.Exit in main().

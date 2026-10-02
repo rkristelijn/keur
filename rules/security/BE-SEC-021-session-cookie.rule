@@ -1,0 +1,24 @@
+id: BE-SEC-021
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Insecure session/cookie configuration
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php .yml .yaml .json
+  exclude_paths: test/ tests/
+patterns:
+  - regex: (?:httpOnly|http_only|HttpOnly)\s*[:=]\s*(?:false|False|FALSE)
+    message: "Cookie HttpOnly disabled — JavaScript can access cookie (XSS token theft). Set httpOnly: true"
+  - regex: (?:secure|Secure)\s*[:=]\s*(?:false|False|FALSE).*(?:cookie|session|Cookie|Session)
+    message: "Cookie Secure flag disabled — cookie sent over HTTP (interceptable). Set secure: true"
+  - regex: (?:sameSite|same_site|SameSite)\s*[:=]\s*["'](?:none|None)["']
+    message: "Cookie SameSite=None — cookie sent on cross-site requests (CSRF risk). Use Strict or Lax"
+  - regex: SESSION_COOKIE_SECURE\s*=\s*False
+    message: "Django session cookie without Secure flag — sent over plain HTTP"
+  - regex: session\.cookie_secure\s*=\s*(?:off|false|0)
+    message: "PHP session cookie without Secure flag"
+fix: "Set httpOnly: true, secure: true, sameSite: 'Strict'. Use short session timeouts. CWE-614"

@@ -1,0 +1,16 @@
+id: QUAL-073
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Function with many return statements (>5 — hard to follow flow)
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ^\s+return\s
+    message: "Return statement — 5+ returns in one function makes the control flow hard to follow"
+fix: Reduce return points. Use early returns for guards, then a single return for the happy path.

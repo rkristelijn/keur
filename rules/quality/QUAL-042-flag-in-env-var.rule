@@ -1,0 +1,18 @@
+id: QUAL-042
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Environment variable used as feature flag
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .java .go
+  exclude_paths: test/ tests/
+patterns:
+  - regex: process\.env\.(ENABLE_|DISABLE_|FEATURE_|FF_|TOGGLE_)
+    message: "Env var used as feature flag — lacks audit trail, gradual rollout, and kill switches"
+  - regex: os\.environ.*\b(ENABLE_|DISABLE_|FEATURE_|FF_|TOGGLE_)
+    message: "Env var used as feature flag — use a feature flag service for production control"
+fix: Use a feature flag service (LaunchDarkly, Unleash, Flagsmith, or OpenFeature) for production-grade feature control.

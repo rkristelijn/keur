@@ -1,4 +1,5 @@
 id: SCA-034
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Suspicious npm unscoped package with private naming pattern

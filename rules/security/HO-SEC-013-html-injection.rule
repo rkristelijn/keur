@@ -1,0 +1,19 @@
+id: HO-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Hono raw HTML response without escaping
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .tsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: hono
+patterns:
+  - regex: c\.html\(.*\$\{
+    message: "Template literal in c.html() — user input may be injected as HTML (XSS)"
+  - regex: c\.html\(.*\+\s*\w
+    message: "String concatenation in c.html() — user input may be injected as HTML (XSS)"
+fix: "Use Hono's JSX/html helper with proper escaping, or sanitize user input before inserting into HTML."

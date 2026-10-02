@@ -1,0 +1,24 @@
+id: PY-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Path traversal via unsanitized input
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/
+patterns:
+  - regex: open\(\s*f"
+    message: "f-string in open() — path traversal risk if user input included. Validate and sanitize paths"
+  - regex: open\(\s*".*"\s*\+
+    message: "String concat in open() — path traversal risk. Use pathlib and validate against base directory"
+  - regex: open\(\s*os\.path\.join\(.*request
+    message: "User input in os.path.join() + open() — path traversal risk. Resolve and check against allowed base"
+  - regex: send_file\(\s*f"
+    message: "f-string in send_file() — path traversal risk. Use safe_join() from werkzeug"
+  - regex: \.read_text\(\).*\+.*request
+    message: "User input in file path — path traversal risk. Validate against allowed directories"
+fix: "Use pathlib.Path.resolve() and verify the resolved path starts with the intended base directory"

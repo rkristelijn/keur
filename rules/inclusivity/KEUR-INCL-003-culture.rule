@@ -1,5 +1,6 @@
 # Adopted from cpm rules/style/STYLE-022 (github.com/rkristelijn/cpm).
 id: KEUR-INCL-003
+ilities: [accessibility]
 maturity: 5
 title: Non-inclusive terminology (violent/exclusionary/culture)
 category: inclusivity

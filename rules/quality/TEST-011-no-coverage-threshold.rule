@@ -1,0 +1,17 @@
+id: TEST-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: No coverage threshold configured
+category: quality
+severity: warning
+engine: absence
+target:
+  filenames: jest.config.js jest.config.ts jest.config.json vitest.config.ts vitest.config.js
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: coverage
+patterns:
+  - regex: coverageThreshold|coverage\.threshold|thresholds
+    message: "No coverage threshold — coverage can silently drop without failing CI"
+fix: Add coverage thresholds (e.g., coverageThreshold.global.lines = 80) to prevent regression below acceptable levels.

@@ -1,0 +1,17 @@
+id: A11Y-096
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Focus-visibility-hidden
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: focus
+patterns:
+  - regex: \bvisibility:\s*hidden
+    message: visibility:hidden in file with focus rules — verify focus indicators aren't hidden
+fix: Ensure focus indicators remain visible — don't hide focus states

@@ -5,6 +5,8 @@
 # on a 64-bit host). warn (not block): some casts are provably safe, so this
 # flags for review rather than failing the gate.
 id: KEUR-PORT-006
+ilities: [adaptability]
+maturity: 3
 title: Word-size portability smell (32/64-bit)
 category: architecture
 severity: warning

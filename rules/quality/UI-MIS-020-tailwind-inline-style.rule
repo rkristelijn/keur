@@ -1,0 +1,19 @@
+id: UI-MIS-020
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Tailwind hardcoded style instead of utility class
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .tsx .jsx .html .vue .svelte
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: tailwind
+patterns:
+  - regex: style=\{\{[^}]*(margin|padding|color|background|fontSize|display|flex)\s*:
+    message: "Inline style in Tailwind project — use utility classes (p-4, text-red-500, flex) instead of style={{}}"
+  - regex: style=["'][^"']*(margin|padding|color|background|font-size|display)\s*:
+    message: "Inline CSS in Tailwind project — Tailwind provides utility classes for these properties"
+fix: "Use Tailwind classes: className='p-4 text-red-500 flex' instead of style={{padding: '16px', color: 'red'}}."

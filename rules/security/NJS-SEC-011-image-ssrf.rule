@@ -1,0 +1,18 @@
+id: NJS-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Next.js image optimization SSRF (CVE-2024-34351)
+category: security
+severity: error
+engine: pattern
+target:
+  filenames: next.config.js next.config.mjs next.config.ts
+  exclude_paths: test/ node_modules/ .git/
+patterns:
+  - regex: hostname:\s*['"]\*['"]
+    message: "Wildcard hostname in image config — turns /_next/image into open SSRF proxy to internal networks and cloud metadata"
+  - regex: domains:\s*\[\s*['"]\*['"]
+    message: "Wildcard domain in images.domains — allows SSRF to arbitrary hosts including cloud metadata (169.254.169.254)"
+fix: Restrict image remotePatterns to specific trusted hostnames. Never use wildcards.

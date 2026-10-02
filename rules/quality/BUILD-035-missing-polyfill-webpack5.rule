@@ -1,0 +1,21 @@
+id: BUILD-035
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Node.js core module polyfill in webpack 5
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .js .ts .mjs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: fallback
+patterns:
+  - regex: fallback.*['"]stream['"]|fallback.*stream-browserify
+    message: "Node.js 'stream' polyfill in webpack 5 config — these are no longer auto-polyfilled since webpack 5"
+  - regex: fallback.*['"]buffer['"]|fallback.*buffer/
+    message: "Node.js 'buffer' polyfill in webpack 5 config — verify polyfill is installed and correctly configured"
+  - regex: fallback.*['"]crypto['"]|fallback.*crypto-browserify
+    message: "Node.js 'crypto' polyfill in webpack 5 config — consider using Web Crypto API instead"
+fix: Install polyfills explicitly (npm install stream-browserify buffer crypto-browserify) or refactor to use browser-native APIs.

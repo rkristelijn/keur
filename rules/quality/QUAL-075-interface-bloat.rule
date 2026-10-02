@@ -1,0 +1,16 @@
+id: QUAL-075
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Interface/type with too many members (>10 — God interface)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .java .kt .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ^(export\s+)?(interface|type)\s+\w+
+    message: "Interface/type definition — if >10 members, consider splitting by responsibility (Interface Segregation Principle)"
+fix: Split large interfaces into focused ones. UserAuth + UserProfile instead of one giant User interface.

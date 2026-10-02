@@ -12,6 +12,7 @@
 # safe literal case" (the same generalising shape as KEUR-CMDI-001), so a fixed
 # os.popen("ls -la") does not fire but os.popen(cmd) / os.popen("x"+y) does.
 id: KEUR-CMDI-003
+ilities: [integrity]
 maturity: 2
 title: OS command injection — os.popen family sink with a non-literal argument
 category: cmdi

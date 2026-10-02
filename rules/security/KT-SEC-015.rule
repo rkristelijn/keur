@@ -1,0 +1,17 @@
+id: KT-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Android debug enabled in manifest
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .xml
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: debuggable
+patterns:
+  - regex: android:debuggable="true"
+    message: Debug mode enabled in release — allows debugging and data extraction
+fix: Remove android:debuggable="true" from AndroidManifest.xml — debug is controlled by build type

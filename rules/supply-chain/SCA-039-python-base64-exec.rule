@@ -1,4 +1,5 @@
 id: SCA-039
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Python base64 decode combined with exec

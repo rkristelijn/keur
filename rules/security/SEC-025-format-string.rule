@@ -1,4 +1,5 @@
 id: SEC-025
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Format string with user-controlled input (CWE-134)

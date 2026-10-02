@@ -1,0 +1,24 @@
+id: BE-SEC-025
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Directory listing / information disclosure
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php .yml .yaml .conf .xml
+  exclude_paths: test/ tests/
+patterns:
+  - regex: (?:directory_listing|autoindex|dir_listing|browse)\s*[:=]\s*(?:on|true|True|enabled)
+    message: "Directory listing enabled — exposes file structure to attackers. Disable in production"
+  - regex: express\.static\(.*\{.*index\s*:\s*false
+    message: "express.static with index: false — may expose directory listing if no default file exists"
+  - regex: SHOW_INDEXES\s*=\s*True
+    message: "Django SHOW_INDEXES enabled — directory listing exposed"
+  - regex: Options\s+Indexes
+    message: "Apache Options +Indexes — directory listing enabled. Use Options -Indexes"
+  - regex: sendFile.*\.\.
+    message: "sendFile with path traversal pattern — information disclosure risk"
+fix: "Disable directory listing. Add index files. Configure web server to return 403 for directory requests. CWE-548"

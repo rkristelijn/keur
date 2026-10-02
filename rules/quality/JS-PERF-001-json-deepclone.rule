@@ -1,0 +1,18 @@
+id: JS-PERF-001
+ilities: [time-behaviour]
+source: cpm
+maturity: 3
+action: advisory
+title: Deep clone via JSON.parse(JSON.stringify())
+category: performance
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .ts .js .tsx .jsx .vue
+  exclude_paths: test/ tests/ __tests__/ .spec. .test. vendor/ node_modules/ .git/ build/ dist/ out/ lib/ vitest.
+  content_contains: JSON.parse
+patterns:
+  - regex: JSON\.parse\(\s*JSON\.stringify\(
+    message: "Deep clone via JSON.parse(JSON.stringify(x)) is CPU/GC-heavy and silently drops functions, Dates, undefined, Map/Set. Use structuredClone(x) or a typed copy — especially on hot paths."
+fix: "Use structuredClone(x) (built-in), or copy only the fields you need. See https://developer.mozilla.org/en-US/docs/Web/API/structuredClone"

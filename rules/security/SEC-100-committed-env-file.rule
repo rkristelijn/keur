@@ -1,5 +1,6 @@
 # @external cpm:adr-166
 id: SEC-100
+ilities: [integrity]
 maturity: 1
 source: cpm
 title: Committed .env file

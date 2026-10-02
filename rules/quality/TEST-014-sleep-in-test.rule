@@ -1,0 +1,17 @@
+id: TEST-014
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Test uses sleep instead of proper waiting
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js _test.go _test.py
+  exclude_paths: test/fixtures/ .git/ vendor/ node_modules/
+  content_contains: toBe
+patterns:
+  - regex: \b(sleep|setTimeout|time\.sleep|Thread\.sleep)\(
+    message: "sleep in test — use fake timers, polling, or waitFor instead"
+fix: Use jest.useFakeTimers(), testing-library waitFor(), or polling assertions. Sleep makes tests slow and flaky.

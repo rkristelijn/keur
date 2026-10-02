@@ -1,0 +1,17 @@
+id: TEST-015
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Skipped test detected
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .spec.tsx _test.py _test.go .test.go
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: catch
+patterns:
+  - regex: (it|test|describe)\.skip\(|\bxit\(|xdescribe\(|@pytest\.mark\.skip|t\.Skip\(
+    message: "Skipped test — either fix it or remove it"
+fix: Fix the failing test or delete it. Skipped tests erode confidence and accumulate as hidden debt.

@@ -1,0 +1,17 @@
+id: A11Y-118
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Scope-invalid
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: scope=
+patterns:
+  - regex: <td[^>]*scope=
+    message: scope attribute on <td> instead of <th>
+fix: Move scope attribute to <th> elements only

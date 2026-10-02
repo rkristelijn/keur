@@ -1,0 +1,17 @@
+id: KT-SEC-020
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Certificate pinning bypass
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .kt .java
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: TrustManager
+patterns:
+  - regex: TrustManager|X509TrustManager|hostnameVerifier.*=.*null|ALLOW_ALL_HOSTNAME_VERIFIER
+    message: Custom TrustManager or hostname verifier bypass — allows man-in-the-middle attacks
+fix: Use the default TrustManager, or implement certificate pinning with OkHttp CertificatePinner

@@ -1,0 +1,34 @@
+# @see ADR-167
+id: TEST-039
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Weak assertion in Java test
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .java
+  exclude_paths: vendor/ .git/ build/ target/
+  content_contains: assert
+patterns:
+  - regex: assertTrue\(\s*\w+\s*!=\s*null\s*\)
+    message: "Weak assertion — assertTrue(x != null) should be assertNotNull(x) with value check"
+  - regex: assertFalse\(\s*\w+\s*==\s*null\s*\)
+    message: "Weak assertion — assertFalse(x == null) should be assertNotNull(x) with value check"
+  - regex: assertTrue\(\s*\w+\s*>\s*0\s*\)
+    message: "Weak assertion — assertTrue(x > 0) hides the actual value on failure, use assertEquals or assertThat"
+  - regex: assertTrue\(\s*\w+\.equals\(
+    message: "Weak assertion — assertTrue(x.equals(y)) should be assertEquals(expected, actual)"
+  - regex: assertTrue\(\s*\w+\.contains\(
+    message: "Weak assertion — assertTrue(x.contains(y)) should be assertThat(x).contains(y) for better messages"
+  - regex: assertTrue\(\s*\w+\.isEmpty\(\)\s*\)
+    message: "Weak assertion — assertTrue(x.isEmpty()) should be assertThat(x).isEmpty() or assertEquals(0, x.size())"
+  - regex: assertEquals\(\s*true\s*,
+    message: "Weak assertion — assertEquals(true, x) should be assertTrue(x) or assertThat(x).isTrue()"
+  - regex: assertEquals\(\s*false\s*,
+    message: "Weak assertion — assertEquals(false, x) should be assertFalse(x) or assertThat(x).isFalse()"
+  - regex: assertNotNull\(\s*\w+\s*\)\s*;\s*$
+    message: "Incomplete assertion — assertNotNull alone doesn't verify the value, add assertEquals or assertThat"
+fix: "Use AssertJ for expressive assertions: assertThat(result).isEqualTo(expected), assertThat(list).contains(item). JUnit's assertTrue hides actual values in failure messages."

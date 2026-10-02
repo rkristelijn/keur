@@ -1,0 +1,26 @@
+id: PHP-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: File inclusion vulnerability
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \binclude\s*\(\s*\$_(GET|POST|REQUEST|COOKIE)
+    message: "User input in include() — Local/Remote File Inclusion (LFI/RFI). Use allowlist of valid paths"
+  - regex: \brequire\s*\(\s*\$_(GET|POST|REQUEST|COOKIE)
+    message: "User input in require() — file inclusion vulnerability. Use allowlist"
+  - regex: \binclude_once\s*\(\s*\$_(GET|POST|REQUEST|COOKIE)
+    message: "User input in include_once() — file inclusion vulnerability"
+  - regex: \binclude\s*\(\s*".*"\s*\.\s*\$
+    message: "Variable concat in include() — potential path traversal / file inclusion"
+  - regex: \brequire\s*\(\s*".*"\s*\.\s*\$
+    message: "Variable concat in require() — potential path traversal / file inclusion"
+  - regex: \bfile_get_contents\(\s*\$_(GET|POST|REQUEST)
+    message: "User input in file_get_contents() — SSRF/LFI risk. Validate URL against allowlist"
+fix: "Use an allowlist: $allowed = ['home', 'about']; if (in_array($page, $allowed)) include($page . '.php');"

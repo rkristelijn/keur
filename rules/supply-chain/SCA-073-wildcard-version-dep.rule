@@ -1,4 +1,5 @@
 id: SCA-073
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Wildcard or any-version dependency

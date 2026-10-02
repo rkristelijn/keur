@@ -1,0 +1,17 @@
+id: KT-SEC-019
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Cleartext traffic allowed
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .xml
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: usesCleartextTraffic
+patterns:
+  - regex: cleartextTrafficPermitted="true"|usesCleartextTraffic="true"
+    message: Cleartext HTTP traffic allowed — data transmitted in plain text can be intercepted
+fix: Set cleartextTrafficPermitted="false" and use HTTPS for all network communication

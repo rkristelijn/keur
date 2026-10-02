@@ -1,0 +1,17 @@
+id: ANS-014
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Missing no_log on secret tasks
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: password
+patterns:
+  - regex: no_log:\s*(true|yes)
+    message: "Task handles secrets without no_log — credentials will appear in Ansible output"
+fix: Add no_log: true to any task that handles passwords, tokens, or secrets. This prevents credentials from appearing in console output and logs.

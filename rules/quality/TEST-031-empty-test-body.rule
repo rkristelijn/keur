@@ -1,0 +1,30 @@
+# @see ADR-167
+id: TEST-031
+ilities: [analysability]
+source: cpm
+maturity: 2
+action: advisory
+title: Empty test body (no assertions)
+category: quality
+severity: error
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx _test.go _test.py .test.rb .java
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: test
+patterns:
+  - regex: (it|test)\(\s*['"].*['"]\s*,\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)
+    message: "Empty test body — test has no assertions and will always pass (Unknown Test smell)"
+  - regex: (it|test)\(\s*['"].*['"]\s*,\s*function\s*\(\s*\)\s*\{\s*\}\s*\)
+    message: "Empty test body — test has no assertions and will always pass"
+  - regex: (it|test)\(\s*['"].*['"]\s*,\s*\(\s*\)\s*=>\s*\{\s*\n\s*\}\s*\)
+    message: "Empty test body — test has no assertions and will always pass"
+  - regex: def\s+test_\w+\(self\)\s*:\s*\n\s+pass\s*$
+    message: "Empty Python test — 'pass' is not a test, add assertions"
+  - regex: func\s+Test\w+\(t\s*\*testing\.T\)\s*\{\s*\}
+    message: "Empty Go test — add t.Error/t.Fatal assertions"
+  - regex: "@Test\s*\n\s*public\s+void\s+\w+\(\)\s*\{\s*\}"
+    message: "Empty Java test — @Test with no assertions always passes"
+  - regex: "def\s+test_\\w+\n\\s+end"
+    message: "Empty Ruby test — add assert/expect inside the test body"
+fix: Every test must assert something. Add expect(), assert(), CHECK(), or framework-specific assertions. An empty test is worse than no test — it gives false confidence.

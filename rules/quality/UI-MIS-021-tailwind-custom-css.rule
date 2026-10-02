@@ -1,0 +1,19 @@
+id: UI-MIS-021
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Tailwind custom CSS overriding utility classes
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .css .scss
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@tailwind"
+patterns:
+  - regex: \.(mt|mb|ml|mr|mx|my|pt|pb|pl|pr|px|py|flex|grid|block|hidden|text-|bg-|border-)\S*\s*\{
+    message: "CSS class name collides with Tailwind utility — this will cause specificity conflicts"
+  - regex: ^\s*\.(container|wrapper|header|footer|sidebar|main)\s*\{[^}]*(display|padding|margin|flex)
+    message: "Custom layout CSS in a Tailwind project — use Tailwind utility classes or @apply for consistency"
+fix: "Use @apply directive: .container { @apply flex p-4 mx-auto max-w-7xl; } or use Tailwind classes directly in HTML."

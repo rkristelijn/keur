@@ -1,0 +1,17 @@
+id: K8S-015
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Kubernetes pod missing health probes
+category: quality
+severity: warning
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: .git/ node_modules/
+  content_contains: containers:
+patterns:
+  - regex: (readinessProbe|livenessProbe):
+    message: "Pod spec has no health probes — Kubernetes cannot detect or restart unhealthy pods"
+fix: Add readinessProbe and livenessProbe to every container. Use httpGet, tcpSocket, or exec probes.

@@ -1,0 +1,16 @@
+id: A11Y-009
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Paragraph styled as heading
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: <p[^>]*>\s*<(strong|b)>.*</(strong|b)>\s*</p>
+    message: "<p> with bold text may be acting as heading — use proper heading element"
+fix: "Replace styled <p> with appropriate heading element (h2-h6)"

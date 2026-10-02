@@ -1,0 +1,17 @@
+id: KT-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: SharedPreferences for secrets
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .kt .java
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: SharedPreferences
+patterns:
+  - regex: SharedPreferences.*\b(password|token|secret|key|credential)
+    message: SharedPreferences stores data in plaintext XML — use EncryptedSharedPreferences for secrets
+fix: Replace SharedPreferences with EncryptedSharedPreferences from androidx.security.crypto

@@ -1,0 +1,17 @@
+id: KT-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: WebView file access
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .kt .java .xml
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: MODE_WORLD
+patterns:
+  - regex: setAllowFileAccess\(true\)|setAllowContentAccess\(true\)
+    message: WebView file access enabled — allows reading local files, data exfiltration risk
+fix: Disable file access with setAllowFileAccess(false) unless absolutely required

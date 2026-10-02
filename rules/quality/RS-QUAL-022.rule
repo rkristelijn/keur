@@ -1,0 +1,17 @@
+id: RS-QUAL-022
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Box dyn Any type erasure
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: Box
+patterns:
+  - regex: Box<dyn Any>
+    message: Box<dyn Any> erases type info — use enums or generics for type safety
+fix: Replace Box<dyn Any> with an enum, generic parameter, or a specific trait object

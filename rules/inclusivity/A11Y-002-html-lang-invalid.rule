@@ -1,0 +1,21 @@
+id: A11Y-002
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Invalid or empty lang attribute value
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: lang=
+patterns:
+  - regex: lang="[0-9]
+    message: "Invalid lang attribute — value starts with a number"
+  - regex: lang="\s"
+    message: "Invalid lang attribute — value is whitespace"
+  - regex: lang=""
+    message: "Empty lang attribute — must contain a valid language tag"
+fix: "Use a valid BCP 47 language tag (e.g. lang=\"en\", lang=\"nl\")"

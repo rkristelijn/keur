@@ -1,0 +1,16 @@
+id: STYLE-033
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Single-letter variable name outside of loops
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (const|let|var)\s+[a-df-hj-np-su-z]\s*=
+    message: "Single-letter variable name — unreadable. Use a descriptive name that reveals intent."
+fix: Name variables by what they represent. 'user' not 'u', 'response' not 'r', 'element' not 'e'.

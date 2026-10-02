@@ -1,0 +1,22 @@
+id: BE-SEC-031
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: XML bomb / billion laughs
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php .xml
+  exclude_paths: test/ tests/
+patterns:
+  - regex: <!ENTITY
+    message: "XML entity definition — potential billion laughs DoS or XXE. Disable DTD processing entirely"
+  - regex: <!DOCTYPE.*\[
+    message: "Inline DTD detected — billion laughs / XML bomb risk. Disable DTD parsing"
+  - regex: SYSTEM\s+["'](?:http|ftp|file)
+    message: "External entity reference (SYSTEM) — XXE risk. Disable external entity loading"
+  - regex: resolve_entities\s*=\s*True
+    message: "XML entity resolution enabled — billion laughs / XXE risk. Set resolve_entities=False"
+fix: "Disable DTD processing entirely. Set parser limits on entity expansion. Use JSON instead of XML where possible. CWE-776"

@@ -21,6 +21,7 @@
 #
 # @see docs/research/javascript-typescript.md #33, MDN Using_promises#error_handling.
 id: KEUR-SLOP-001
+ilities: [analysability]
 maturity: 1
 title: Swallowed promise rejection — empty .catch(() => {}) handler
 category: quality

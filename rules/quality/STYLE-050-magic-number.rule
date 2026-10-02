@@ -1,0 +1,18 @@
+id: STYLE-050
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Magic number in source code (unnamed numeric literal)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (if|while|for|return|===?|!==?|[<>]=?)\s*\b([3-9]\d{2,}|\d{5,})\b
+    message: "Magic number — unnamed numeric constant obscures meaning. Extract to a named constant."
+  - regex: \*\s*\b(60|24|3600|86400|1000|1024|65535)\b
+    message: "Magic number (time/size constant) — use named constants. SECONDS_PER_HOUR = 3600"
+fix: Extract to named constants. const MAX_RETRIES = 3, const TIMEOUT_MS = 30000.

@@ -1,0 +1,17 @@
+id: RS-SEC-017
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Placeholder macro in production
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: todo!
+patterns:
+  - regex: \b(todo|unimplemented|unreachable)!\(
+    message: Placeholder macro left in code — will panic at runtime
+fix: Implement the missing functionality or return an appropriate error

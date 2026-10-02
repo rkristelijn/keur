@@ -1,0 +1,17 @@
+id: AIML-018
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 4
+action: warn
+title: Remote artifact loading from wandb/mlflow
+category: ai-ml
+severity: info
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: wandb|mlflow
+patterns:
+  - regex: (wandb|mlflow)\.(load_model|download_artifact|restore)\(
+    message: Remote artifact loading from wandb/mlflow — verify artifact integrity
+fix: Pin artifact versions, verify checksums

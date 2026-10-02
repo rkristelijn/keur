@@ -1,0 +1,19 @@
+id: FA-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: FastAPI CORS allow all origins with credentials
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: CORSMiddleware
+patterns:
+  - regex: allow_origins\s*=\s*\["\*"\]
+    message: "CORS allows all origins — combined with allow_credentials=True this enables cross-site credential theft"
+  - regex: allow_origins\s*=\s*\["[*]"\].*allow_credentials\s*=\s*True
+    message: "CORS wildcard origin with credentials — browsers block this but misconfigured proxies may not"
+fix: "Restrict allow_origins to specific domains. Never use '*' with allow_credentials=True."

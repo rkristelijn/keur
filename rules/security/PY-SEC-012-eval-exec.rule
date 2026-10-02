@@ -1,0 +1,22 @@
+id: PY-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Dangerous eval/exec usage
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \beval\s*\(
+    message: "eval() executes arbitrary code — never use with user input. Use ast.literal_eval() for data parsing"
+  - regex: \bexec\s*\(
+    message: "exec() executes arbitrary code — restructure without exec(). Use importlib for dynamic imports"
+  - regex: \b__import__\s*\(.*\+
+    message: "__import__() with string concat — use importlib.import_module() with validated input"
+  - regex: \bcompile\s*\(.*\bexec\b
+    message: "compile() with exec mode — code execution risk. Avoid dynamic code compilation"
+fix: "Use ast.literal_eval() for data parsing. Avoid eval/exec entirely with user input"

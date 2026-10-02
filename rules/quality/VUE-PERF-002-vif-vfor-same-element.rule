@@ -1,0 +1,19 @@
+id: VUE-PERF-002
+ilities: [time-behaviour]
+source: cpm
+maturity: 3
+action: advisory
+title: Vue v-if and v-for on the same element
+category: performance
+severity: warning
+engine: pattern
+target:
+  extensions: .vue
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: v-for
+patterns:
+  - regex: <[a-zA-Z][^>]*\bv-for=["'][^>]*\bv-if=["']
+    message: "v-if and v-for on the same element — in Vue 3 v-if has higher precedence and cannot read the v-for alias, and it re-evaluates the condition for every item each render. Move v-if to a wrapper <template v-for> or pre-filter with a computed."
+  - regex: <[a-zA-Z][^>]*\bv-if=["'][^>]*\bv-for=["']
+    message: "v-if and v-for on the same element — avoid combining them. Filter the list in a computed property, or put v-for on a <template> and v-if inside it."
+fix: "Filter with a computed (recommended) so only visible items are iterated, or split: <template v-for=...><child v-if=... /></template>. See https://vuejs.org/style-guide/rules-essential.html#avoid-v-if-with-v-for"

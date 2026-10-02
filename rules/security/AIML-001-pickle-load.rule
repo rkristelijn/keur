@@ -1,0 +1,17 @@
+id: AIML-001
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Unsafe pickle deserialization
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: pickle
+patterns:
+  - regex: pickle\.(load|loads)\(
+    message: pickle.load() executes arbitrary code during deserialization — never unpickle untrusted data
+fix: Use json, safetensors, or protobuf for data serialization

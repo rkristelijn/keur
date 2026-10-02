@@ -1,4 +1,5 @@
 id: SCA-044
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Suspicious go.mod replace directive pointing to remote

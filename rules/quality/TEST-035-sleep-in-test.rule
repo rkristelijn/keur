@@ -1,0 +1,34 @@
+# @see ADR-167
+id: TEST-035
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Sleep/delay in test (multi-language)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx _test.go _test.py .test.rb .java .rs .cpp .h
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/ e2e/
+  content_contains: sleep
+patterns:
+  - regex: Thread\.sleep\(\s*\d+
+    message: "Thread.sleep in test (Java) — use Awaitility or mock the clock"
+  - regex: time\.sleep\(\s*\d+
+    message: "time.sleep in test (Python) — use freezegun or unittest.mock for time"
+  - regex: setTimeout\(.*,\s*\d{3,}
+    message: "setTimeout with long delay in test (JS) — use fake timers or waitFor"
+  - regex: time\.Sleep\(\s*\d+
+    message: "time.Sleep in test (Go) — use eventually-consistent assertions or test clocks"
+  - regex: \bsleep\s+\d+
+    message: "sleep in test (Ruby/shell) — use retry logic or fake timers"
+  - regex: std::this_thread::sleep_for
+    message: "sleep_for in test (C++) — use mock clocks or condition variables"
+  - regex: thread::sleep\(
+    message: "thread::sleep in test (Rust) — use tokio::time::pause or mock time"
+  - regex: usleep\(\s*\d+
+    message: "usleep in test — use proper synchronization instead of arbitrary delays"
+  - regex: nanosleep\(
+    message: "nanosleep in test — use proper synchronization instead of arbitrary delays"
+fix: "Replace sleep with deterministic waiting: fake timers (Jest/Vitest), Awaitility (Java), freezegun (Python), testing clock (Go), or condition-based polling. Sleep makes tests slow and flaky."

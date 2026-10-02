@@ -1,0 +1,17 @@
+id: RS-QUAL-024
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Deprecated Rust edition
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .toml
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: String::new
+patterns:
+  - regex: edition\s*=\s*"(2015|2018)"
+    message: Rust edition 2015/2018 is outdated — upgrade to 2021 or 2024
+fix: Update edition in Cargo.toml to "2021" or "2024" and run cargo fix --edition

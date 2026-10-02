@@ -1,0 +1,18 @@
+id: K8S-035
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Latest or no tag in Helm values
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml
+  filenames: values.yaml values.yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: latest
+patterns:
+  - regex: (image|tag):\s*(latest|"latest"|'latest')\s*$
+    message: "Image tag set to latest — deployments are non-reproducible and may pull breaking changes"
+fix: Pin to a specific version tag (e.g., tag: 1.25.3) for reproducible deployments.

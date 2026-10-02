@@ -1,0 +1,17 @@
+id: KT-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Runtime.exec command injection
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .kt .java
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: exec
+patterns:
+  - regex: Runtime\.getRuntime\(\)\.exec\(
+    message: Runtime.exec is vulnerable to command injection — use ProcessBuilder with argument list
+fix: Replace Runtime.exec(string) with ProcessBuilder(listOf("cmd", "arg1")) to avoid shell interpretation

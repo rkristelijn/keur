@@ -1,0 +1,18 @@
+id: SLS-017
+ilities: [time-behaviour]
+source: cpm
+maturity: 4
+action: advisory
+title: Lambda max memory
+category: performance
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  filenames: serverless.yml serverless.yaml template.yaml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: memorySize
+patterns:
+  - regex: memorySize:\s*(3008|3009|10240)|MemorySize:\s*(3008|3009|10240)
+    message: "Lambda at max memory — investigate if function needs optimization"
+fix: Profile the function with AWS Lambda Power Tuning to find optimal memory. Consider splitting into multiple functions or moving to ECS/Fargate.

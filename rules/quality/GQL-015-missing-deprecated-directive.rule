@@ -1,0 +1,17 @@
+id: GQL-015
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Missing @deprecated directive
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .graphql .gql
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: deprecated
+patterns:
+  - regex: #.*deprecated|#.*remove|#.*legacy
+    message: "Comment mentions deprecated — use @deprecated(reason: \"...\") directive for tooling support"
+fix: Replace comment with @deprecated directive. Example — oldField: String @deprecated(reason: "Use newField instead")

@@ -1,0 +1,19 @@
+id: FL-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Flask/Werkzeug debug mode RCE (CVE-2023-27524)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: flask
+patterns:
+  - regex: app\.run\(.*debug\s*=\s*True
+    message: "Flask debug mode enabled — Werkzeug debugger allows arbitrary Python execution from browser"
+  - regex: FLASK_DEBUG\s*=\s*(?:1|True|true)
+    message: "FLASK_DEBUG enabled — debug mode allows RCE via Werkzeug debugger (CVE-2023-27524)"
+fix: Never enable debug mode in production. Use FLASK_ENV=production and a proper WSGI server (gunicorn, uwsgi).

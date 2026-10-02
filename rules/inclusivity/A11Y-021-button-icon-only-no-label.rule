@@ -1,0 +1,17 @@
+id: A11Y-021
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Icon-only button without accessible text
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <button
+patterns:
+  - regex: <button[^>]*>\s*<(i|svg|img|span)[^>]*>[^<]*</(i|svg|img|span)>\s*</button>
+    message: "Icon-only button without accessible text — add aria-label"
+fix: "Add aria-label or visually-hidden text to icon button"

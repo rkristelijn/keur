@@ -1,0 +1,17 @@
+id: NGX-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Proxy pass to HTTP
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: proxy_pass
+patterns:
+  - regex: proxy_pass\s+http://
+    message: Proxy pass over HTTP — traffic between nginx and upstream is unencrypted
+fix: Use proxy_pass https:// for upstream communication, or ensure the network is trusted (e.g., localhost)

@@ -1,4 +1,5 @@
 id: SEC-018
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Timing-unsafe secret comparison (CWE-208)

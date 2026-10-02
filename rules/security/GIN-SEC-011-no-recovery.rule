@@ -1,0 +1,17 @@
+id: GIN-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Gin missing Recovery middleware
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ .git/ build/
+  content_contains: gin.New()
+patterns:
+  - regex: \.Use\(gin\.Recovery
+    message: "Gin created with gin.New() but no Recovery middleware — panics will crash the server instead of returning 500"
+fix: "Add r.Use(gin.Recovery()) or use gin.Default() which includes Logger and Recovery."

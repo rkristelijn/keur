@@ -1,0 +1,20 @@
+id: BE-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: CRLF injection / HTTP response splitting
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: (?:setHeader|set|header|addHeader|writeHead)\(.*(?:req\.|request\.|params|body|query|input)
+    message: "User input in HTTP header — CRLF injection risk. Validate and strip \\r\\n from header values"
+  - regex: (?:Location|Set-Cookie|Content-Type)\s*[:=].*(?:req\.|request\.|params|body|query)
+    message: "User input in response header value — CRLF injection can add arbitrary headers"
+  - regex: redirect\(.*\+.*(?:req|param|input|user|query)
+    message: "User input in redirect — open redirect + potential CRLF injection"
+fix: "Strip \\r\\n from all header values. Validate redirect URLs against allowlist. CWE-113"

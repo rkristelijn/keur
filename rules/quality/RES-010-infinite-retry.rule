@@ -1,0 +1,16 @@
+id: RES-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Infinite retry loop without backoff
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .java .py .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: while\s*\(\s*true\s*\)
+    message: "Infinite loop (while(true)) — if used for retries, add max retries and exponential backoff to avoid cascading failures"
+fix: Use exponential backoff with jitter and a maximum retry count. Libraries: retry (npm), tenacity (Python), resilience4j (Java).

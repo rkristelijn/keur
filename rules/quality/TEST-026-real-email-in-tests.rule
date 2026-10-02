@@ -1,0 +1,17 @@
+id: TEST-026
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Real email addresses in test files
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .rb
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: coverage
+patterns:
+  - regex: ['"`][^'"`]*@(gmail|yahoo|hotmail|outlook|aol|icloud|protonmail)\.(com|net|org)[^'"`]*['"`]
+    message: "Real email domain in test — risks accidental sending and violates data minimization. Use @example.com."
+fix: Use @example.com (RFC 2606 reserved domain). Or use a faker library for test data.

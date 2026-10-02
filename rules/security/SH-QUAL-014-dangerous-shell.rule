@@ -1,0 +1,24 @@
+id: SH-QUAL-014
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Dangerous shell patterns
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/
+patterns:
+  - regex: rm\s+-rf\s+/[^*]
+    message: "rm -rf with absolute path — high risk of accidental data loss"
+  - regex: chmod\s+777\b
+    message: "chmod 777 gives world-writable permissions — use least-privilege (755 or 750)"
+  - regex: \beval\s+
+    message: "eval executes arbitrary strings — injection risk, restructure without eval"
+  - regex: curl\s+[^|]*\|\s*(ba)?sh
+    message: "curl | sh executes remote code without inspection — download, review, then execute"
+  - regex: wget\s+[^|]*\|\s*(ba)?sh
+    message: "wget | sh executes remote code without inspection — download, review, then execute"
+fix: "Remove dangerous patterns — use safe alternatives"

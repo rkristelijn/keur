@@ -1,0 +1,17 @@
+id: A11Y-091
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Tree-missing-treeitem
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role="tree"
+patterns:
+  - regex: role=["']tree["']
+    message: role=tree found — ensure it contains treeitem children
+fix: Add role=treeitem to tree children

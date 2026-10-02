@@ -1,0 +1,13 @@
+# @see ADR-166
+id: PROJ-002
+ilities: [traceability]
+source: cpm
+maturity: 3
+action: advisory
+title: Missing CONTRIBUTING.md
+category: docs
+severity: warning
+engine: file-absence
+target:
+  filenames: CONTRIBUTING.md
+fix: Create a CONTRIBUTING.md explaining how to contribute to the project.

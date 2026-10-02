@@ -11,6 +11,7 @@
 # where flag-less cookies are dangerous. skip_strings is OFF so the cookie name
 # literal is visible to the pattern.
 id: KEUR-SESS-002
+ilities: [integrity]
 maturity: 2
 title: Session cookie set without httpOnly/secure/sameSite flags
 category: security

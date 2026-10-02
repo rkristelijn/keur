@@ -1,0 +1,21 @@
+id: IAC-SEC-016
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Wildcard IAM permissions
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .tf .hcl .json
+  exclude_paths: test/
+  content_contains: Action
+patterns:
+  - regex: Action"\s*:\s*"\*
+    message: "Wildcard IAM Action '*' grants full access — use least-privilege permissions"
+  - regex: "Action"\s*:\s*\[\s*"\*"\s*\]
+    message: "Wildcard IAM Action ['*'] grants full access — specify only required actions"
+  - regex: Resource"\s*:\s*"\*
+    message: "Wildcard IAM Resource '*' applies to all resources — scope to specific ARNs"
+fix: "Follow least-privilege: specify only the actions and resources needed"

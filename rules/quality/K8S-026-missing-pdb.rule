@@ -1,0 +1,17 @@
+id: K8S-026
+ilities: [reliability-maturity]
+source: cpm
+maturity: 4
+action: advisory
+title: Missing PodDisruptionBudget
+category: reliability
+severity: info
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: kind: Deployment
+patterns:
+  - regex: PodDisruptionBudget
+    message: "No PodDisruptionBudget — node drains may take all replicas offline"
+fix: Create a PodDisruptionBudget with minAvailable or maxUnavailable to guarantee availability during node maintenance.

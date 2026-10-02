@@ -1,0 +1,17 @@
+id: A11Y-026
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Autoplay video possibly without muted
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: autoplay
+patterns:
+  - regex: <video[^>]*autoplay[^>]*>
+    message: "Autoplay video found — ensure muted attribute is present to prevent auto-playing audio"
+fix: "Add muted attribute or remove autoplay"

@@ -14,6 +14,7 @@
 # main.ts by filename so it only judges the bootstrap entrypoint, not arbitrary
 # code. absence engine => the satisfying pattern absent means "fire".
 id: KEUR-NEST-002
+ilities: [integrity]
 maturity: 1
 title: NestJS main.ts registers no response security headers
 category: security

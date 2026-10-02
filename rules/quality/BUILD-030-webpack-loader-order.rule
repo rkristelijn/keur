@@ -1,0 +1,21 @@
+id: BUILD-030
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Webpack loader order may be incorrect
+category: build
+severity: warning
+engine: pattern
+target:
+  extensions: .js .ts .mjs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: loader
+patterns:
+  - regex: ['"]sass-loader['"].*['"]css-loader['"]
+    message: "Webpack loader order may be wrong — loaders execute right-to-left, sass-loader must come after css-loader"
+  - regex: ['"]less-loader['"].*['"]css-loader['"]
+    message: "Webpack loader order may be wrong — loaders execute right-to-left, less-loader must come after css-loader"
+  - regex: ['"]postcss-loader['"].*['"]css-loader['"]
+    message: "Webpack loader order may be wrong — postcss-loader should execute after css-loader (right-to-left)"
+fix: Order loaders right-to-left — ['style-loader', 'css-loader', 'postcss-loader', 'sass-loader'].

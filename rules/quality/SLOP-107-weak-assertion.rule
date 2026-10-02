@@ -1,0 +1,28 @@
+# @see ADR-167
+id: SLOP-107
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Weak test assertion (toBeTruthy, toBeDefined, != null)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx
+  exclude_paths: vendor/ node_modules/
+  content_contains: expect
+patterns:
+  - regex: expect\(.*\)\.toBeTruthy\(\)
+    message: "Weak assertion — toBeTruthy passes for any non-falsy value, use specific matcher"
+  - regex: expect\(.*\)\.toBeDefined\(\)
+    message: "Weak assertion — toBeDefined only checks !== undefined, verify the actual value"
+  - regex: expect\(.*\)\.not\.toBeNull\(\)
+    message: "Weak assertion — not.toBeNull only checks !== null, verify the actual value"
+  - regex: expect\(.*\)\.not\.toBeUndefined\(\)
+    message: "Weak assertion — verify the actual value instead of just checking it exists"
+  - regex: expect\(.*\)\.toBe\(true\)\s*;?\s*$
+    message: "Boolean assertion — if testing a function, assert on the return value semantics"
+  - regex: assert\.ok\(.*\)\s*;?\s*$
+    message: "Weak assertion — assert.ok passes for any truthy value, use assert.equal or assert.deepEqual"
+fix: "Use precise assertions: toEqual(expected), toHaveProperty('key', value), toMatchObject({...})"

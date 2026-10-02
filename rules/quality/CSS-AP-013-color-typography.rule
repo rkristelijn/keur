@@ -1,0 +1,26 @@
+id: CSS-AP-013
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: Color and typography antipatterns
+category: antipattern
+severity: info
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: (color|background|background-color|border-color)\s*:\s*(red|blue|green|yellow|orange|purple|pink|white|black|gray|grey|aqua|teal|navy|maroon|olive|lime|fuchsia|silver)\s*[;}\s]
+    message: Named color keyword lacks design-system consistency — use CSS custom properties or variables
+  - regex: (color|background|background-color|border-color)\s*:\s*#[0-9a-fA-F]{3,8}\s*[;}\s]
+    message: Hardcoded hex color — use CSS custom properties for theme consistency and maintainability
+  - regex: text-transform\s*:\s*uppercase
+    message: text-transform: uppercase may break screen readers and some languages — consider alternatives
+  - regex: content\s*:\s*['"][a-zA-Z]
+    message: content with string text is not translatable and invisible to some screen readers
+  - regex: -webkit-font-smoothing\s*:
+    message: -webkit-font-smoothing is non-standard and overrides user font rendering preferences
+  - regex: text-rendering\s*:\s*optimizeLegibility
+    message: text-rendering: optimizeLegibility causes performance issues with large text blocks
+fix: Use CSS custom properties for colors, avoid non-standard font rendering overrides

@@ -1,4 +1,5 @@
 id: SCA-064
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Base64 decode operation in code

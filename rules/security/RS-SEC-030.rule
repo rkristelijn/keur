@@ -1,0 +1,17 @@
+id: RS-SEC-030
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: SQL string formatting
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: format!
+patterns:
+  - regex: format!\("(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\s
+    message: SQL query built with format! — use parameterized queries to prevent SQL injection
+fix: Use parameterized queries with your database driver (sqlx::query!, diesel, etc.) instead of string formatting

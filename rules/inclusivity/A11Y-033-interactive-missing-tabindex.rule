@@ -1,0 +1,16 @@
+id: A11Y-033
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Interactive role missing tabindex
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: role=["'](button|link|checkbox|radio|switch|slider|tab|menuitem)["']
+    message: Element with interactive role — ensure tabindex="0" is present
+fix: Add tabindex="0" to elements with interactive ARIA roles.

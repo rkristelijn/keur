@@ -1,4 +1,5 @@
 id: SCA-047
+ilities: [integrity]
 maturity: 2
 source: cpm
 title: Cargo.toml git dependency without rev pin

@@ -1,0 +1,17 @@
+id: GQL-010
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: GraphQL server without query depth limit (DoS risk)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: ApolloServer
+patterns:
+  - regex: new\s+ApolloServer\s*\(
+    message: "ApolloServer without query depth limit — deeply nested queries cause exponential DB load (DoS)"
+fix: Add depthLimit plugin. npm install graphql-depth-limit, then validationRules: [depthLimit(10)].

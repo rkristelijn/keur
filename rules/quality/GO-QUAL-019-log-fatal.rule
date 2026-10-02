@@ -1,0 +1,16 @@
+id: GO-QUAL-019
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Avoid log.Fatal in library code
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go cmd/ main.go
+patterns:
+  - regex: log\.Fatal(f|ln)?\(
+    message: "log.Fatal calls os.Exit(1) — prevents defer cleanup and makes code untestable"
+fix: Return an error instead. Only use log.Fatal in main() for startup failures.

@@ -1,0 +1,24 @@
+id: WEB-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Prototype pollution
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ tests/
+patterns:
+  - regex: __proto__
+    message: "__proto__ access — prototype pollution vector. Use Object.create(null) for dictionaries"
+  - regex: \[["']constructor["']\]\s*\[["']prototype["']\]
+    message: "constructor.prototype access — prototype pollution. Validate and sanitize object keys"
+  - regex: Object\.assign\(\s*\{\}\s*,.*(?:req\.|params|body|query|input)
+    message: "Object.assign with user input — prototype pollution risk. Use allowlist of permitted keys"
+  - regex: \.merge\(.*(?:req\.|params|body|query|input)
+    message: "Deep merge with user input — prototype pollution risk. Use allowlisted key merge"
+  - regex: JSON\.parse\(.*(?:req\.|params|body|query|input).*\)
+    message: "JSON.parse of user input can contain __proto__ — sanitize or use Object.create(null)"
+fix: "Freeze prototypes with Object.freeze(Object.prototype). Validate keys against allowlist. Use Map instead of plain objects. CWE-1321"

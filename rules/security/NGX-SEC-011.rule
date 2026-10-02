@@ -1,0 +1,17 @@
+id: NGX-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Missing X-Frame-Options
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: server
+patterns:
+  - regex: X-Frame-Options|frame-ancestors
+    message: Missing X-Frame-Options — clickjacking risk
+fix: Add 'add_header X-Frame-Options "DENY"' or use Content-Security-Policy frame-ancestors

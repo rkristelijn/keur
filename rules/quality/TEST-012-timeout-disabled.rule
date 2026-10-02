@@ -1,0 +1,18 @@
+id: TEST-012
+ilities: [reliability-maturity]
+source: cpm
+maturity: 2
+action: advisory
+title: Test timeout disabled
+category: reliability
+severity: error
+engine: pattern
+target:
+  extensions: .js .ts .mjs
+  filenames: jest.config.js jest.config.ts vitest.config.ts vitest.config.js .mocharc.yml .mocharc.json
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: Timeout
+patterns:
+  - regex: timeout:\s*0|testTimeout:\s*0|jest\.setTimeout\(0\)
+    message: "Test timeout disabled — hanging tests block CI forever"
+fix: Set a reasonable timeout (e.g., 5000ms for unit tests, 30000ms for integration tests). Never disable timeouts.

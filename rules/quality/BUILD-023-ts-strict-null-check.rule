@@ -1,0 +1,16 @@
+id: BUILD-023
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: TypeScript strictNullChecks not enabled
+category: build
+severity: warning
+engine: absence
+target:
+  filenames: tsconfig.json
+  exclude_paths: node_modules/ .git/ build/ dist/
+patterns:
+  - regex: "strictNullChecks"\s*:\s*true|"strict"\s*:\s*true
+    message: "strictNullChecks not enabled — undefined/null errors slip through to runtime, causing 'cannot read property of undefined'"
+fix: Set "strictNullChecks": true or "strict": true in tsconfig.json compilerOptions.

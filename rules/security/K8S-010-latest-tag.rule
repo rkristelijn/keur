@@ -1,0 +1,19 @@
+id: K8S-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Container image uses :latest tag
+category: k8s
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ .git/
+  content_contains: image:
+patterns:
+  - regex: image:\s*\S+:latest
+    message: Image uses :latest tag — pin to specific version for reproducibility
+  - regex: image:\s*[a-z][a-z0-9./-]+\s*$
+    message: Image has no tag — defaults to :latest
+fix: Pin to explicit version tag (e.g., nginx:1.25.3)
