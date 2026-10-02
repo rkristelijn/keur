@@ -16,7 +16,8 @@
  *   [feature:rule-engine]  rules_load, rules_scan_files, rules_scan_dir
  *   [feature:suppress]     keur:ignore inline suppression
  *   [feature:version]      version string resolution (keur.toml → compile-time)
- *   [feature:learn]        learn_parse option parsing
+ *   [feature:train]        train_parse option parsing (the optimise loop)
+ *   [feature:learn]        learn = deprecated alias forwarding to train (ADR-036)
  *   [feature:help]         usage/help dispatch (behaviour proven e2e in smoke.sh)
  *
  * @see docs/adr/ADR-002-single-cpp-binary.md
@@ -47,6 +48,7 @@
 #include "cmd/manager.h"
 #include "cmd/policy.h"
 #include "cmd/scan.h"
+#include "cmd/train.h"
 #include "config/hookmgr.h"
 #include "config/scanners.h"
 #include "config/disabled.h"
@@ -1245,6 +1247,92 @@ SCENARIO("[feature:rules] rule parses maturity: N into rule.maturity") {  // @pr
     for (const auto& r : rules2) if (r.id == "NOMAT-EVAL") { saw_nomat = true; CHECK(r.maturity == 0); }
     CHECK(saw_nomat);
     cleanup_dir(dir);
+}
+
+// --- ADR-039: ility-alignment + OR/max difficulty resolution ----------------
+
+SCENARIO("[feature:rules] rule parses ilities: array and scalar") {  // @proves ADR-039.parse
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/MULTI.rule",
+        "id: MULTI\n"
+        "ilities: [security, hardening]\n"
+        "maturity: 1\n"
+        "category: iac\n"
+        "severity: error\n"
+        "engine: pattern\n"
+        "patterns:\n"
+        "  - regex: x\n    message: m\n");
+    write_file(dir + "/SCALAR.rule",
+        "id: SCALAR\n"
+        "ilities: security\n"
+        "maturity: 2\n"
+        "category: security\n"
+        "severity: error\n"
+        "engine: pattern\n"
+        "patterns:\n"
+        "  - regex: x\n    message: m\n");
+    auto rules = keur::rules_load(dir);
+    const keur::Rule* multi = nullptr; const keur::Rule* scalar = nullptr;
+    for (const auto& r : rules) { if (r.id == "MULTI") multi = &r; if (r.id == "SCALAR") scalar = &r; }
+    REQUIRE(multi); REQUIRE(scalar);
+    REQUIRE(multi->ilities.size() == 2);
+    CHECK(multi->ilities[0] == "security");    // primary first
+    CHECK(multi->ilities[1] == "hardening");
+    REQUIRE(scalar->ilities.size() == 1);
+    CHECK(scalar->ilities[0] == "security");
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rules] rule_ilities falls back to category when ilities empty") {  // @proves ADR-039.fallback
+    keur::Rule r; r.category = "sqli";          // no explicit ilities
+    auto ils = keur::rule_ilities(r);
+    REQUIRE(ils.size() == 1);
+    CHECK(ils[0] == "security");                 // sqli -> security
+    keur::Rule a; a.category = "a11y";
+    CHECK(keur::rule_ilities(a)[0] == "inclusivity");
+    keur::Rule u; u.category = "totally-unknown";
+    CHECK(keur::rule_ilities(u)[0] == "quality"); // unknown -> quality bucket
+}
+
+SCENARIO("[feature:rules] rule_active resolves OR/max over ilities") {  // @proves ADR-039.resolve
+    keur::Rule r; r.id = "R"; r.maturity = 4; r.ilities = {"security", "hardening"};
+
+    // The collaborator's case: security=4, hardening=2 -> max(4,2)=4 >= 4 -> active.
+    keur::DifficultyVector v1; v1.default_level = 1;
+    v1.levels = {{"security", 4}, {"hardening", 2}};
+    CHECK(keur::rule_active(r, v1));
+
+    // security=3, hardening=2 -> max(3,2)=3 < 4 -> inactive.
+    keur::DifficultyVector v2; v2.default_level = 1;
+    v2.levels = {{"security", 3}, {"hardening", 2}};
+    CHECK_FALSE(keur::rule_active(r, v2));
+
+    // A secondary ility alone cannot activate below the bar, and lowering it
+    // never disables while the primary is high (guard safety).
+    keur::DifficultyVector v3; v3.default_level = 1;
+    v3.levels = {{"security", 5}, {"hardening", 0}};  // hardening OFF
+    CHECK(keur::rule_active(r, v3));                   // security carries it
+}
+
+SCENARIO("[feature:rules] rule_active: all ilities OFF -> inactive") {  // @proves ADR-039.off
+    keur::Rule r; r.maturity = 1; r.ilities = {"quality"};
+    keur::DifficultyVector v; v.default_level = 1;
+    v.levels = {{"quality", 0}};                       // OFF
+    CHECK_FALSE(keur::rule_active(r, v));
+}
+
+SCENARIO("[feature:rules] rule_active: default_level steers unset ilities (CMMI-1)") {  // @proves ADR-039.default
+    // Fresh keur: default vector = 1. Only maturity-1 rules are active.
+    keur::DifficultyVector fresh; fresh.default_level = 1;  // no explicit levels
+
+    keur::Rule deadly;  deadly.maturity = 1; deadly.ilities = {"security"};
+    keur::Rule mid;     mid.maturity = 3;    mid.ilities = {"quality"};
+    keur::Rule unset;   unset.maturity = 0;  unset.ilities = {"security"}; // 0 -> 3
+
+    CHECK(keur::rule_active(deadly, fresh));        // maturity 1 <= level 1
+    CHECK_FALSE(keur::rule_active(mid, fresh));     // maturity 3 > level 1 -> sleeps
+    CHECK_FALSE(keur::rule_active(unset, fresh));   // default maturity 3 > 1 -> sleeps
 }
 
 SCENARIO("[feature:rules] policy_level reads [policy] level from keur.toml") {  // @proves KEUR-MATURITY.level
@@ -3279,18 +3367,43 @@ SCENARIO("[feature:version] version resolves from keur.toml, empty when absent")
     CHECK(keur::cmd::policy_load(tmp + "/keur_missing.toml").version.empty());
 }
 
-SCENARIO("[feature:learn] learn_parse reads flags and source with sane defaults") {
-    using keur::cmd::learn_parse;
+SCENARIO("[feature:train] train_parse reads flags and source with sane defaults") {
+    using keur::cmd::train_parse;
     // Defaults: no flags set, source defaults to "corpus".
-    auto def = learn_parse({});
+    auto def = train_parse({});
     CHECK(def.stop == false);
     CHECK(def.status == false);
     CHECK(def.source == "corpus");
     // Flags and options are parsed.
-    auto opt = learn_parse({"--status", "--source", "keureval", "--model", "qwen"});
+    auto opt = train_parse({"--status", "--source", "keureval", "--model", "qwen"});
     CHECK(opt.status == true);
     CHECK(opt.source == "keureval");
     CHECK(opt.model == "qwen");
+}
+
+SCENARIO("[feature:learn] is_valid_rule_id accepts rule ids, rejects path-escapes") {
+    using keur::cmd::is_valid_rule_id;
+    // Accepts canonical rule ids.
+    CHECK(is_valid_rule_id("KEUR-CMDI-003"));
+    CHECK(is_valid_rule_id("SEC-038"));
+    CHECK(is_valid_rule_id("KEUR-NEXT-001"));
+    // Rejects anything that could escape docs/rules/ or is not a rule id:
+    // path separators, dots, traversal, lowercase, spaces, empty, edge hyphens.
+    CHECK_FALSE(is_valid_rule_id(""));
+    CHECK_FALSE(is_valid_rule_id("../etc/passwd"));
+    CHECK_FALSE(is_valid_rule_id("KEUR/CMDI"));
+    CHECK_FALSE(is_valid_rule_id("KEUR-CMDI-003.md"));
+    CHECK_FALSE(is_valid_rule_id("keur-cmdi-003"));
+    CHECK_FALSE(is_valid_rule_id("KEUR CMDI"));
+    CHECK_FALSE(is_valid_rule_id("-LEAD"));
+    CHECK_FALSE(is_valid_rule_id("TRAIL-"));
+    CHECK_FALSE(is_valid_rule_id("DOUBLE--HYPHEN"));
+}
+
+SCENARIO("[feature:learn] explainer_path joins base dir and id as <base>/<ID>.md") {
+    using keur::cmd::explainer_path;
+    CHECK(explainer_path("/k/docs/rules", "KEUR-CMDI-003") == "/k/docs/rules/KEUR-CMDI-003.md");
+    CHECK(explainer_path("cache/keur/rules", "SEC-038") == "cache/keur/rules/SEC-038.md");
 }
 
 SCENARIO("[feature:help] help/version are dispatch aliases (behaviour proven e2e)") {

@@ -89,6 +89,14 @@ struct Rule {
   // ([policy] level in keur.toml, set by `keur level`). 0 = unset -> defaults to
   // 3 (defined) at filter time. Metadata only; the engine ignores it.
   int maturity = 0;
+  // Ilities (ADR-039): the quality dimension(s) this rule belongs to, used by the
+  // difficulty vector to decide whether the rule is active. First = primary (UI
+  // home + average); rest = secondary. Resolution is OR/max over the vector (a
+  // rule is active when the STRONGEST of its ilities' levels >= its maturity), so
+  // lowering a secondary ility can never silently disable a dangerous rule.
+  // Empty -> the resolver falls back to mapping `category` to an ility. Metadata
+  // only; the scan engine ignores it (ADR-009). @implements ADR-039
+  std::vector<std::string> ilities;
   std::string within;         // count engine: scope — "file" (default). Reserved for "block".
   int window = 0;             // multiline engine: sliding window size in lines (default 2)
   // path-derived engine (ADR-020): the expected string is computed from the
@@ -124,6 +132,26 @@ struct RuleFinding {
   int line = 0;
   std::string message;
   std::string fix;  // remediation hint from the rule's fix: field, carried to output
+
+  RuleFinding() = default;
+
+  // Explicit constructor so vector::emplace_back works on every toolchain.
+  // libc++ (older Xcode on the macOS CI runner) cannot emplace an aggregate;
+  // libstdc++ tolerates it. Providing a constructor keeps both green.
+  // @see KEUR-PORT-007-emplace-aggregate
+  RuleFinding(std::string rule_id_, std::string title_, std::string category_,
+              std::string severity_, std::string action_, std::string confidence_,
+              std::string file_, int line_, std::string message_, std::string fix_ = {})
+      : rule_id(std::move(rule_id_)),
+        title(std::move(title_)),
+        category(std::move(category_)),
+        severity(std::move(severity_)),
+        action(std::move(action_)),
+        confidence(std::move(confidence_)),
+        file(std::move(file_)),
+        line(line_),
+        message(std::move(message_)),
+        fix(std::move(fix_)) {}
 };
 
 /** Parse a single .rule file. */
@@ -142,6 +170,38 @@ std::vector<RuleFinding> rules_scan_files(const std::vector<Rule>& rules,
 /** Scan a whole project directory (used by `keur scan`). */
 std::vector<RuleFinding> rules_scan_dir(const std::vector<Rule>& rules,
                                         const std::string& root);
+
+// --- ADR-039: difficulty resolution (which rules are active) ----------------
+
+/**
+ * A difficulty vector: a maturity level (1..5) per ility, or OFF.
+ * This is the canonical state the three views (level/settings/manager) all
+ * write and the gate reads (docs/design/difficulty-chooser-ui.md).
+ * @implements ADR-039
+ */
+struct DifficultyVector {
+  // ility name -> level. Level 0 means OFF (dimension not gated). A level is
+  // 1..5 (ADR-026). An ility absent from the map falls back to `default_level`.
+  std::vector<std::pair<std::string, int>> levels;
+  int default_level = 1;  // ADR-026/ADR-011: fresh keur starts at CMMI-1.
+
+  // Level for an ility: explicit if set, else default_level. 0 = OFF.
+  int level_of(const std::string& ility) const;
+};
+
+/**
+ * The ilities that steer a rule: its explicit `ilities`, or — when empty — a
+ * single ility derived from its `category` (ADR-039 §5 backward-compat).
+ */
+std::vector<std::string> rule_ilities(const Rule& rule);
+
+/**
+ * ADR-039 §3 resolution: a rule is ACTIVE when the strongest (max) of its
+ * ilities' levels in the vector meets the rule's maturity bar. An OFF ility
+ * (level 0) does not contribute; if all its ilities are OFF the rule is
+ * inactive. Maturity 0 is treated as the ADR-026 default of 3.
+ */
+bool rule_active(const Rule& rule, const DifficultyVector& vec);
 
 }  // namespace keur
 
