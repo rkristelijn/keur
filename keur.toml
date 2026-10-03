@@ -1,0 +1,21 @@
+# keur gates its OWN code — dogfooding at the strictest level (H4x0r c0d3fl3x).
+#
+# keur is both the tool and its own first user: this file makes keur's gate run
+# over keur's source at a high difficulty, so a finding (e.g. an all-capture
+# lambda, KEUR-CPP-001) is caught locally BEFORE commit — not discovered later
+# by an external analyzer. @see docs/design/difficulty-chooser-ui.md DESIGN-DIFFRES
+#
+# The difficulty vector raises the ilities that keur's own quality controls live
+# under. Security stays strict (it always should); the maintainability /
+# portability ilities are raised to 5 so KEUR-CPP (lambda), KEUR-ARCH (I/O via
+# adapter) and KEUR-PORT (portability) all gate here.
+[difficulty]
+confidentiality = 5
+integrity       = 5
+authenticity    = 5
+analysability   = 5     # KEUR-CPP-001 lambda all-capture lives here
+modifiability   = 5
+testability     = 5
+modularity      = 5
+adaptability    = 5     # KEUR-PORT-* portability rules
+reliability-maturity = 5
