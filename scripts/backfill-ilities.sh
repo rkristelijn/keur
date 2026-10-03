@@ -34,7 +34,7 @@ for arg in "$@"; do
     *) ROOTS+=("$arg") ;;
   esac
 done
-[ ${#ROOTS[@]} -eq 0 ] && ROOTS=("rules")
+[[ ${#ROOTS[@]} -eq 0 ]] && ROOTS=("rules")
 : "${FORCE:=0}"
 
 # category -> space-separated ilities (primary first), ISO/IEC 25010
@@ -82,7 +82,7 @@ ility_override_for_id() {
 as_array() {
   local out="" i
   for i in $1; do
-    [ -n "$out" ] && out="$out, "
+    [[ -n "$out" ]] && out="$out, "
     out="$out$i"
   done
   printf '[%s]' "$out"
@@ -94,7 +94,7 @@ while IFS= read -r f; do
 
   has_ilities=0
   grep -qE '^ilities:' "$f" && has_ilities=1
-  if [ "$has_ilities" -eq 1 ] && [ "$FORCE" -eq 0 ]; then
+  if [[ "$has_ilities" -eq 1 ]] && [[ "$FORCE" -eq 0 ]]; then
     skipped=$((skipped + 1))
     continue
   fi
@@ -103,8 +103,8 @@ while IFS= read -r f; do
   cat_val="$(grep -E '^category:' "$f" | head -1 | sed -E 's/^category:[[:space:]]*//' | tr -d '\r' | awk '{print $1}')"
   # id-prefix override wins over category (e.g. KEUR-PORT-* -> adaptability).
   ils="$(ility_override_for_id "${rid:-}")"
-  [ -z "$ils" ] && ils="$(ilities_for "${cat_val:-}")"
-  if [ -z "$ils" ]; then
+  [[ -z "$ils" ]] && ils="$(ilities_for "${cat_val:-}")"
+  if [[ -z "$ils" ]]; then
     unknown=$((unknown + 1))
     echo "UNKNOWN category '${cat_val:-<none>}' -> defaulting to analysability: $f" >&2
     ils="analysability"
@@ -115,7 +115,7 @@ while IFS= read -r f; do
   grep -qE '^maturity:' "$f" || need_mat=1
 
   changed=$((changed + 1))
-  if [ "$APPLY" -eq 1 ]; then
+  if [[ "$APPLY" -eq 1 ]]; then
     tmp="$(mktemp)"
     # On --force, drop any existing ilities: line first, then re-insert after id:.
     awk -v arr="$arr" -v addmat="$need_mat" -v force="$FORCE" '
@@ -128,10 +128,10 @@ while IFS= read -r f; do
       }
     ' "$f" > "$tmp"
     mv "$tmp" "$f"
-    [ "$need_mat" -eq 1 ] && mat_added=$((mat_added + 1))
+    [[ "$need_mat" -eq 1 ]] && mat_added=$((mat_added + 1))
   else
     printf 'WOULD SET ilities: %-28s' "$arr"
-    [ "$need_mat" -eq 1 ] && printf ' + maturity: 3'
+    [[ "$need_mat" -eq 1 ]] && printf ' + maturity: 3'
     printf '  <- %s\n' "$f"
   fi
 done < <(find "${ROOTS[@]}" -name '*.rule' | sort)
@@ -141,7 +141,7 @@ echo "scanned:        $total"
 echo "already-had:    $skipped (unchanged — use --force to rewrite)"
 echo "to-change:      $changed"
 echo "unknown-cat:    $unknown (defaulted to analysability — review these)"
-if [ "$APPLY" -eq 1 ]; then
+if [[ "$APPLY" -eq 1 ]]; then
   echo "maturity-added: $mat_added"
   echo "APPLIED."
 else
