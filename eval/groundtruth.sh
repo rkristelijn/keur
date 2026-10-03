@@ -15,7 +15,7 @@
 set -uo pipefail
 
 TOOL="all"
-if [ "${1:-}" = "--tool" ]; then TOOL="${2:-all}"; shift 2; fi
+if [[ "${1:-}" = "--tool" ]]; then TOOL="${2:-all}"; shift 2; fi
 TARGET="${1:?path required}"
 
 have() { command -v "$1" >/dev/null 2>&1; }

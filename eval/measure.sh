@@ -26,10 +26,10 @@ GT="$HERE/corpus/groundtruth.jsonl"
 OUT="$HERE/corpus/measure.json"
 NATIVE="$KEUR_HOME/bin/keur-rules"
 
-[ -f "$GT" ]     || { echo "no ground truth; run: eval/buildgt.sh" >&2; exit 1; }
-[ -x "$NATIVE" ] || { echo "keur-rules not built; run: (cd src/rules && make)" >&2; exit 1; }
+[[ -f "$GT" ]]     || { echo "no ground truth; run: eval/buildgt.sh" >&2; exit 1; }
+[[ -x "$NATIVE" ]] || { echo "keur-rules not built; run: (cd src/rules && make)" >&2; exit 1; }
 
-MODE="metrics"; [ "${1:-}" = "--fn" ] && MODE="fn"
+MODE="metrics"; [[ "${1:-}" = "--fn" ]] && MODE="fn"
 
 # Split filter (Option: repo-level held-out set). KEUR_SPLIT = train|holdout|all
 # (default all). The assignment lives in eval/corpus/split.txt as "repo<TAB>split";
@@ -53,16 +53,16 @@ GT_TOOLS="${KEUR_GT_TOOLS:-}"
 GT_CATS="${KEUR_GT_CATEGORIES:-}"
 in_split() {
     # in_split <repo-name> -> 0 if it belongs to the active split
-    [ "$SPLIT" = "all" ] && return 0
+    [[ "$SPLIT" = "all" ]] && return 0
     local want; want="$(awk -v r="$1" '$1==r{print $2}' "$SPLIT_FILE" 2>/dev/null)"
     want="${want:-train}"   # unlisted repos default to train
-    [ "$want" = "$SPLIT" ]
+    [[ "$want" = "$SPLIT" ]]
 }
 
 # 1. Run keur over every repo (in the active split), tag findings with repo.
 KEUR_FINDINGS="$(mktemp)"; trap 'rm -f "$KEUR_FINDINGS"' EXIT
 for repo in "$CACHE"/*/; do
-    [ -d "$repo" ] || continue
+    [[ -d "$repo" ]] || continue
     name="$(basename "$repo")"
     in_split "$name" || continue
     "$NATIVE" --dir "$repo" 2>/dev/null | \

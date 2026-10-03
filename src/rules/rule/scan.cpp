@@ -11,8 +11,8 @@
 #include "rule/internal.h"
 #include "tokenizer.h"
 
-#include <dirent.h>
-#include <sys/stat.h>
+#include <dirent.h>     // keur:ignore KEUR-PORT-002 — engine I/O seam; rules/ is exempt (see rule exclude_paths + TODO I/O-via-platform)
+#include <sys/stat.h>   // keur:ignore KEUR-PORT-002 — same tracked seam
 
 #include <algorithm>
 #include <fstream>
@@ -49,15 +49,53 @@ void eval_file_level_rules(
       std::string expected = rule->target.filenames.empty()
           ? (rule->target.extensions.empty() ? "matching file" : rule->target.extensions[0])
           : rule->target.filenames[0];
-      findings.push_back({rule->id, rule->title, rule->category, rule->severity,
-                          default_action(*rule), default_conf(*rule), expected, 0, finding_msg(*rule, "")});
+      findings.emplace_back(rule->id, rule->title, rule->category, rule->severity,
+                          default_action(*rule), default_conf(*rule), expected, 0, finding_msg(*rule, ""));
     }
   }
   for (const auto* rule : presence_rules)
     for (const auto& [rel, abs] : files)
       if (rule_matches_file(*rule, rel))
-        findings.push_back({rule->id, rule->title, rule->category, rule->severity,
-                            default_action(*rule), default_conf(*rule), rel, 0, finding_msg(*rule, "")});
+        findings.emplace_back(rule->id, rule->title, rule->category, rule->severity,
+                            default_action(*rule), default_conf(*rule), rel, 0, finding_msg(*rule, ""));
+}
+
+// max-dir-files: FILE-LEVEL engine — flag a directory holding more logical units
+// than min_count. A logical unit is a source stem: `a.h` + `a.cpp` count as ONE
+// (a header/impl pair is one module). Runs once over the whole fileset, grouping
+// by each file's parent directory. This is the cross-file aggregation that a
+// per-line engine cannot do, but the file-level layer (which already sees the
+// whole fileset, like file-absence) can. Only files matching the rule's target
+// (extensions/filenames) are counted, so a rule can scope it to source dirs.
+// @id engine-max-dir-files
+void eval_max_dir_files(const std::vector<const Rule*>& rules,
+                        const std::vector<std::pair<std::string, std::string>>& files,
+                        std::vector<RuleFinding>& findings) {
+  for (const auto* rule : rules) {
+    const int limit = rule->min_count > 0 ? rule->min_count : 10;
+    // dir -> set of logical unit stems (path with any source extension removed).
+    std::unordered_map<std::string, std::unordered_set<std::string>> units;
+    for (const auto& [rel, abs] : files) {
+      if (!rule_matches_file(*rule, rel)) continue;
+      // Split into directory + filename.
+      std::string dir, name = rel;
+      if (auto slash = rel.find_last_of("/\\"); slash != std::string::npos) {
+        dir = rel.substr(0, slash);
+        name = rel.substr(slash + 1);
+      }
+      // Strip a trailing source extension so a.h and a.cpp share one stem.
+      std::string stem = name;
+      for (const char* ext : {".hpp", ".cpp", ".cc", ".h", ".c"})
+        if (ends_with(stem, ext)) { stem.resize(stem.size() - std::string(ext).size()); break; }
+      units[dir].insert(stem);
+    }
+    for (const auto& [dir, stems] : units)
+      if (static_cast<int>(stems.size()) > limit)
+        findings.emplace_back(rule->id, rule->title, rule->category, rule->severity,
+                            default_action(*rule), default_conf(*rule), dir, 0,
+                            finding_msg(*rule, rule->patterns.empty() ? std::string()
+                                                                      : rule->patterns[0].message));
+  }
 }
 
 std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
@@ -174,19 +212,31 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
 
     // Comment/string-aware matching (ADR-004 stage 1): strip once per file when
     // an applicable rule opts in; match those rules against the stripped lines.
+    //
+    // Two independent strip variants, chosen PER RULE by its own flags. A single
+    // shared "widest strip" is wrong: if one rule wants skip_strings and another
+    // only skip_comments, a shared comments+strings strip would blank out the
+    // string literals that the skip_comments-only rule needs to match (its
+    // pattern often targets text inside a string, e.g. a \uXXXX escape). So we
+    // keep comments-only and comments+strings separate.
     bool need_comments = false, need_strings = false;
     for (auto* r : filtered) {
-      if (r->skip_comments) need_comments = true;
+      if (r->skip_comments && !r->skip_strings) need_comments = true;
       if (r->skip_strings) need_strings = true;
     }
-    std::string stripped_content;
-    std::vector<re2::StringPiece> stripped_lines;
+    std::string comments_only_content, comments_strings_content;
+    std::vector<re2::StringPiece> comments_only_lines, comments_strings_lines;
     if (need_comments || need_strings) {
       const LangSyntax* syntax = lang_syntax(get_ext(rel));
       if (syntax) {
-        stripped_content = need_strings ? strip_comments_and_strings(content, syntax)
-                                        : strip_comments(content, syntax);
-        split_lines(stripped_content, stripped_lines);
+        if (need_comments) {
+          comments_only_content = strip_comments(content, syntax);
+          split_lines(comments_only_content, comments_only_lines);
+        }
+        if (need_strings) {
+          comments_strings_content = strip_comments_and_strings(content, syntax);
+          split_lines(comments_strings_content, comments_strings_lines);
+        }
       }
     }
 
@@ -194,8 +244,12 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
     for (auto* r : filtered) {
       auto& c = compiled[to_compiled[r]];
       const std::string engine = r->engine.empty() ? "pattern" : r->engine;
+      // Pick the strip variant that matches THIS rule's flags: strings-stripping
+      // implies comments too; comments-only keeps string literals intact.
       const std::vector<re2::StringPiece>& lines =
-          ((r->skip_comments || r->skip_strings) && !stripped_lines.empty()) ? stripped_lines : raw_lines;
+          (r->skip_strings && !comments_strings_lines.empty())      ? comments_strings_lines
+          : (r->skip_comments && !comments_only_lines.empty())      ? comments_only_lines
+                                                                    : raw_lines;
 
       // Engine dispatch via the strategy registry (ADR-014): look up the engine
       // by name and run it. File-level engines run separately over the fileset,
@@ -203,7 +257,8 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
       if (EngineFn fn = engine_lookup(engine)) {
         ScanContext cx{c, lines, rel};
         fn(cx, findings);
-      } else if (engine != "file-absence" && engine != "file-presence") {
+      } else if (engine != "file-absence" && engine != "file-presence" &&
+                 engine != "max-dir-files") {
         static std::unordered_set<std::string> warned;
         if (warned.insert(engine).second)
           std::cerr << "keur: unsupported engine '" << engine << "' (rule " << r->id << ")\n";
@@ -228,14 +283,17 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
   }
 
   // file-level engines run once over the whole fileset (respect requires: too).
-  std::vector<const Rule*> file_absence, file_presence;
+  std::vector<const Rule*> file_absence, file_presence, max_dir_files;
   for (const auto& r : rules) {
     if (!requires_satisfied(r, facts)) continue;
     if (r.engine == "file-absence") file_absence.push_back(&r);
     else if (r.engine == "file-presence") file_presence.push_back(&r);
+    else if (r.engine == "max-dir-files") max_dir_files.push_back(&r);
   }
   if (!file_absence.empty() || !file_presence.empty())
     eval_file_level_rules(file_absence, file_presence, files, findings);
+  if (!max_dir_files.empty())
+    eval_max_dir_files(max_dir_files, files, findings);
 
   // ADR-009: composite pass. After the single-rule pass, collect the ids that
   // fired, then evaluate each composite's boolean tree over that set. A composite
@@ -248,10 +306,10 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
       if (!requires_satisfied(r, facts)) continue;
       if (!r.has_composite) continue;
       if (composite_eval(r.composite, fired)) {
-        findings.push_back({r.id, r.title, r.category, r.severity,
+        findings.emplace_back(r.id, r.title, r.category, r.severity,
                             default_action(r), default_conf(r),
                             r.target.filenames.empty() ? std::string(".") : r.target.filenames[0],
-                            0, finding_msg(r, "")});
+                            0, finding_msg(r, ""));
       }
     }
   }
@@ -280,6 +338,11 @@ void walk(const std::string& dir, const std::string& prefix,
         (name == "node_modules" || name == "vendor" || name == "build" || name == "dist" ||
          name == "out" || name == "target" || name == "coverage" || name == "__pycache__" ||
          name == "venv" || name == "env" || name == "bin" || name == "obj" || name == "tmp"))
+      continue;
+    // keur's OWN gitignored generated data (eval/corpus/ clones + eval/history/
+    // logs) — huge and not code. This is a keur-specific interim skip; the proper
+    // fix (respect .gitignore / move under a dot-dir) is tracked in TODO.md.
+    if (S_ISDIR(st.st_mode) && (rel == "eval/corpus" || rel == "eval/history"))
       continue;
     if (S_ISDIR(st.st_mode)) walk(full, rel, out);
     else if (S_ISREG(st.st_mode) && st.st_size < 1024 * 1024) out.emplace_back(rel, full);

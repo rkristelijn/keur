@@ -42,9 +42,17 @@ struct PolicySettings {
 PolicySettings policy_load(const std::string& config_path);
 
 /**
+ * Search for a repo-local `keur.toml` by walking up from `start_dir` to the
+ * filesystem root. Returns the first existing path, or "" if none is found.
+ * Pure (takes the start directory explicitly) so it is unit-testable without
+ * depending on the process working directory.
+ */
+std::string find_config_upward(const std::string& start_dir);
+
+/**
  * Resolve the config path following keur's precedence order:
- *   builtin defaults → global ($XDG_CONFIG_HOME/keur/keur.toml) → repo
- *   (keur.toml in git root) → dir-local.
+ *   explicit --config → repo-local (keur.toml walking up from cwd) →
+ *   global ($XDG_CONFIG_HOME/keur/keur.toml) → $KEUR_HOME/config/keur.toml.
  *
  * @param hint  Optional explicit path (from --config flag); takes priority.
  * @returns the path of the first existing file, or the global path as

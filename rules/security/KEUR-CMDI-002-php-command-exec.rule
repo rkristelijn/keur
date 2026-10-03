@@ -1,0 +1,15 @@
+id: KEUR-CMDI-002
+title: PHP OS command execution sink
+category: cmdi
+severity: error
+engine: pattern
+# Promoted from the learn loop (was LEARNED-1789888522-2, accepted 2026-09-20).
+# Flags PHP command-execution sinks; the exclude allows a bare string literal
+# argument (no interpolation) so a constant command does not fire.
+target:
+  extensions: .php
+patterns:
+  - regex: \b(?:system|exec|shell_exec|passthru)\s*\(
+    exclude: \b(?:system|exec|shell_exec|passthru)\s*\(\s*"[^"$]*"\s*\)
+message: Potential OS command injection detected. Ensure user inputs are properly sanitized before being passed to system commands.
+confidence: 0.9

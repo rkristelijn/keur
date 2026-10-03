@@ -4,8 +4,8 @@
  */
 #include "rule/internal.h"
 
-#include <dirent.h>
-#include <sys/stat.h>
+#include <dirent.h>     // keur:ignore KEUR-PORT-002 — engine I/O seam; rules/ is exempt (rule exclude_paths + TODO I/O-via-platform)
+#include <sys/stat.h>   // keur:ignore KEUR-PORT-002 — same tracked seam
 
 #include <algorithm>
 #include <cstdlib>
@@ -105,7 +105,14 @@ Rule rule_parse(const std::string& path) {
     if (colon == std::string::npos) continue;
     std::string key = trim(t.substr(0, colon));
     std::string val = trim(t.substr(colon + 1));
-    if (val.size() >= 2 && val.front() == '"' && val.back() == '"') val = val.substr(1, val.size() - 2);
+    // Strip an enclosing pair of identical quotes (single or double). TOML/YAML
+    // authors quote values like path_capture: '([a-z]+)/' to protect regex
+    // metacharacters; without this the quotes leak into the value. Only a
+    // matching outer pair is stripped, so an unquoted value with an inner quote
+    // is untouched.
+    if (val.size() >= 2 && (val.front() == '"' || val.front() == '\'') &&
+        val.back() == val.front())
+      val = val.substr(1, val.size() - 2);
 
     if (key == "id") rule.id = val;
     else if (key == "title") rule.title = val;
@@ -115,12 +122,17 @@ Rule rule_parse(const std::string& path) {
     else if (key == "action") rule.action = val;
     else if (key == "confidence") rule.confidence = val;
     else if (key == "fix") rule.fix = val;
+    else if (key == "source") rule.source = val;
     else if (key == "message") rule.message = val;
     else if (key == "block_inner") rule.block_inner = val;
     else if (key == "block_trigger") rule.block_trigger = val;
     else if (key == "min_count") rule.min_count = std::atoi(val.c_str());
     else if (key == "within") rule.within = val;
     else if (key == "window") rule.window = std::atoi(val.c_str());
+    else if (key == "path_capture") rule.path_capture = val;
+    else if (key == "derived_template") rule.derived_template = val;
+    else if (key == "extract") rule.extract = val;
+    else if (key == "capture") rule.capture = std::atoi(val.c_str());
     else if (key == "skip_comments") rule.skip_comments = (val == "true" || val == "yes");
     else if (key == "skip_strings") rule.skip_strings = (val == "true" || val == "yes");
     else if (key == "extensions") rule.target.extensions = split_ws(val);
@@ -162,9 +174,14 @@ std::vector<Rule> rules_load(const std::string& dir) {
     Rule r = rule_parse(f);
     // pattern-based engines need >=1 pattern; file-level engines (file-absence/
     // file-presence) and composites (they compose other rules) are valid with none.
+    // path-derived (ADR-020) computes its expectation from the path, so it needs
+    // no regex pattern either — a message is optional (falls back to the title).
     const bool file_level = (r.engine == "file-absence" || r.engine == "file-presence");
     const bool composite = (r.engine == "composite" || r.has_composite);
-    if (!r.id.empty() && (!r.patterns.empty() || file_level || composite)) rules.push_back(std::move(r));
+    const bool path_derived = (r.engine == "path-derived" &&
+                               !r.path_capture.empty() && !r.derived_template.empty());
+    if (!r.id.empty() && (!r.patterns.empty() || file_level || composite || path_derived))
+      rules.push_back(std::move(r));
   }
   return rules;
 }

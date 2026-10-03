@@ -131,8 +131,16 @@ jobs:
             '
 
   # ────────────────────────────────────────────────────────────────────────
-  # Dogfood: keur scans its own source with its internal architecture +
-  # portability rules and must find nothing (drift gate). Runs on Linux only.
+  # Dogfood: keur gates its OWN repo the way it gates a user's.
+  #
+  #   1. Internal architecture + portability rules over src/keur (drift gate).
+  #   2. The real user gate: `keur check` over the actual diff of this PR/push,
+  #      exactly like the pre-commit / pre-push hook does locally. keur reads
+  #      `git diff --cached`, so we stage the diff by resetting the index to the
+  #      base (PR merge-base, or HEAD^ on a push) — the changes then appear as
+  #      staged files and keur applies the full policy. Exit 1 (BLOCK) fails CI.
+  #
+  # Runs on Linux only.
   # ────────────────────────────────────────────────────────────────────────
   dogfood:
     needs: build
@@ -140,6 +148,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need history to compute the base for the diff gate
       - name: Install RE2
         run: |
           sudo apt-get update
@@ -151,3 +161,30 @@ jobs:
         run: bash tests/e2e/test_selfcheck.sh bin/keur
       - name: Self-check (portability — OS code only in common/)
         run: bash tests/e2e/test_portability.sh bin/keur
+
+      # ── The real gate: keur check over this change's own diff ────────────
+      # Stage the diff against its base, then run the hook's command verbatim.
+      - name: Gate own diff (keur check, pre-commit + pre-push)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          # Resolve the base to diff against:
+          #   - PR:   the merge-base with the target branch (base.sha)
+          #   - push: the commit before this push (HEAD^, if it exists)
+          if [ -n "${BASE_SHA:-}" ]; then
+            base="$(git merge-base "$BASE_SHA" HEAD)"
+          elif git rev-parse --verify -q HEAD^ >/dev/null; then
+            base="$(git rev-parse HEAD^)"
+          else
+            echo "No base commit to diff against (root commit) — nothing to gate."
+            exit 0
+          fi
+          echo "Gating diff: ${base}..HEAD"
+          # Move the index to the base so this change's files show up as staged;
+          # the worktree stays at HEAD. keur check reads git diff --cached.
+          git reset --soft "$base"
+          echo "Staged files keur will gate:"
+          git diff --cached --name-only --diff-filter=ACM | sed 's/^/  /'
+          bin/keur check --tier pre-commit
+          bin/keur check --tier pre-push

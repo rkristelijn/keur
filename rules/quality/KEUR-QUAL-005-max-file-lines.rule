@@ -1,0 +1,35 @@
+# keur quality control — source file over ~300 net lines.
+#
+# Why this exists: keur's own norm (AGENTS.md) is "files well under ~300 net
+# lines; split by responsibility." That used to be enforced by an external shell
+# lint (scripts/check-basics.sh); this rule replaced it, so the norm now lives in
+# the binary and runs on every scan/commit. The directory-count sibling norm is
+# KEUR-QUAL-006 (engine: max-dir-files) — a cross-file aggregation the file-level
+# engine layer handles.
+#
+# HOW: the `max-lines` engine counts a file's NET lines. With skip_comments the
+# scanner strips comment lines to blanks first, so blank + comment lines do not
+# count — matching check-basics.sh's `grep -vcE '^\s*(//|/*|*|$)'`. Fires once
+# per over-long file, at line 1.
+#
+# WARN, not block: file length is a maintainability smell, not a bug. It nudges
+# toward splitting by responsibility. Tests are excluded (a big test file is
+# often legitimately one cohesive suite); generated/vendor/build dirs too.
+#
+# @see docs/rules-authoring.md (`max-lines`), AGENTS.md ("Files small").
+id: KEUR-QUAL-005
+title: Source file over ~300 net lines (split by responsibility)
+category: quality
+severity: warning
+engine: max-lines
+action: warn
+skip_comments: true
+min_count: 300
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: test/ tests/ _test.cpp vendor/ build/ dist/
+patterns:
+  - regex: file too long
+    message: "Source file exceeds ~300 net lines — hard to hold in one head. Split it by responsibility (one clear job per file). See AGENTS.md 'Files small' and docs/rules-authoring.md (max-lines). @see KEUR-QUAL-005"
+confidence: 0.6
+fix: "Split the file along its responsibilities into smaller siblings (e.g. one .h/.cpp per logical unit), the way learn.cpp was split into learn/history + learn/sysinfo + learn/monitor. Keep a cohesive test suite as one file if splitting would fragment it."

@@ -1,7 +1,7 @@
 # ADR-011 — Project profile: owner, lifecycle, criticality, maturity
 
 @id ADR-011
-**Status**: proposed · **Date**: 2026-09-19 · **Coverage**: code · **Relates to**: ADR-009 (facts pass — the `technologies` list is auto-maintained there), ADR-010 (traceability — one of the controls a profile can require)
+**Status**: proposed · **Date**: 2026-09-19 · **Coverage**: none · **Relates to**: ADR-009 (facts pass — the `technologies` list is auto-maintained there), ADR-010 (traceability — one of the controls a profile can require)
 
 ## Context
 

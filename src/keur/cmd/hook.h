@@ -16,11 +16,12 @@
 
 namespace keur::cmd {
 
-enum class HookAction { Install, Global, Status, Remove };
+enum class HookAction { Install, Global, Status, Remove, Augment };
 
 struct HookOptions {
   HookAction  action   = HookAction::Install;
   bool        global   = false;  // applies to --remove --global
+  bool        remove_augment = false;  // --augment --remove: strip the keur block
 };
 
 /**
@@ -76,5 +77,30 @@ std::string global_hooks_dir();
  * @param git  adapters::Git adapter (injectable for tests).
  */
 std::string repo_hooks_dir(const adapters::Git& git = adapters::Git{});
+
+/**
+ * Insert a guarded keur-check line at the TOP of an existing hook script
+ * (a manager's hook, e.g. .husky/pre-commit), so keur runs first — before the
+ * manager's own checks (fail-fast). PURE: takes the file's current content,
+ * returns the augmented content. Properties:
+ *   - Idempotent: if the `# keur-augment` marker is already present, returns
+ *     the content unchanged.
+ *   - keur-only guard: the inserted line runs keur ONLY when it is on PATH
+ *     (`command -v keur`), so a teammate without keur is never blocked — the
+ *     line is safe to commit team-wide.
+ *   - POSIX sh: works wherever git runs (git supplies the shell, incl.
+ *     Git-Bash on Windows).
+ * Inserted after a leading `#!` shebang if present, else at the very top.
+ * @param content  the hook file's current text ("" for a new file).
+ * @param tier     "pre-commit" | "pre-push".
+ */
+[[nodiscard]] std::string augment_hook(const std::string& content, const std::string& tier);
+
+/// Remove a previously inserted keur-augment block from a hook script (the
+/// marked lines). Idempotent: returns content unchanged if no marker. Pure.
+[[nodiscard]] std::string unaugment_hook(const std::string& content);
+
+/// True when the content already contains a keur-augment block. Pure.
+[[nodiscard]] bool is_augmented(const std::string& content);
 
 }  // namespace keur::cmd

@@ -20,8 +20,10 @@
 #include <vector>
 
 #include "cmd/check.h"
+#include "cmd/config.h"
 #include "cmd/hook.h"
 #include "cmd/learn.h"
+#include "cmd/manager.h"
 #include "cmd/policy.h"
 #include "cmd/rules.h"
 #include "cmd/scan.h"
@@ -42,6 +44,10 @@ static void usage() {
         "Commands:\n"
         "  hook  --install            Install per-repo hooks (.git/hooks)\n"
         "  hook  --global             Install global hooks (~/.config/git/hooks)\n"
+        "  hook  --augment [--remove] Chain keur into the repo's existing hook\n"
+        "                             manager (e.g. Husky) so it runs even when a\n"
+        "                             manager owns core.hooksPath. Guarded: runs\n"
+        "                             only if keur is installed. Commit to share.\n"
         "  hook  --status             Show which hooks are active\n"
         "  hook  --remove [--global]  Uninstall hooks\n"
         "  scan  [path]               Run the scanner pipeline over a directory\n"
@@ -51,6 +57,10 @@ static void usage() {
         "                             T = pre-commit (default) | pre-push\n"
         "  policy explain             Print the resolved policy and thresholds\n"
         "  rules list [--winners]     Show the resolved rule cascade (layers + specificity)\n"
+        "  rules disable <id>         Turn a rule off (writes [rules] disabled to keur.toml)\n"
+        "  rules enable  <id>         Turn a rule back on   [--scope repo|global]\n"
+        "  config list [--json]       Show the resolved config layer stack (read-only)\n"
+        "  manager --status [--json]  One overview: config, hooks, scanners, rules\n"
         "  learn [--stop|--status]    Spin the optimise loop + live TUI monitor\n"
         "        [--source S]         S = corpus (default) | keureval | alternate\n"
         "        [--model M]          Ollama model for the loop (default: keur-rule-engineer)\n"
@@ -73,6 +83,8 @@ static const std::unordered_map<std::string, Handler> k_commands = {
     {"check",  [](const Args& a) { return keur::cmd::check(keur::cmd::check_parse(a)); }},
     {"policy", [](const Args& a) { return keur::cmd::policy(keur::cmd::policy_parse(a)); }},
     {"rules",  [](const Args& a) { return keur::cmd::rules(keur::cmd::rules_parse(a)); }},
+    {"config", [](const Args& a) { return keur::cmd::config(keur::cmd::config_parse(a)); }},
+    {"manager", [](const Args& a) { return keur::cmd::manager(keur::cmd::manager_parse(a)); }},
     {"learn",  [](const Args& a) { return keur::cmd::learn(keur::cmd::learn_parse(a)); }},
     {"version",  [](const Args&) {
         // Prefer the version from a resolved keur.toml; fall back to the

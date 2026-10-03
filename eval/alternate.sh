@@ -22,7 +22,7 @@ mkdir -p "$HERE/.run"
 
 # read previous turn, flip
 prev="$(cat "$TURN_FILE" 2>/dev/null || echo keureval)"
-if [ "$prev" = "corpus" ]; then
+if [[ "$prev" = "corpus" ]]; then
     src="keureval"
 else
     src="corpus"

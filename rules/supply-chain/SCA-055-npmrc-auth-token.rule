@@ -1,0 +1,13 @@
+id: SCA-055
+source: cpm
+title: Committed .npmrc auth token
+category: supply-chain
+severity: error
+engine: pattern
+target:
+  filenames: .npmrc
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (_authToken|_auth)\s*=\s*\S+
+    message: Committed .npmrc with auth token exposes registry credentials. Attackers use these to publish malicious packages under the org scope.
+fix: Never commit auth tokens. Add .npmrc to .gitignore. Use NPM_TOKEN environment variable or npm login per-machine.

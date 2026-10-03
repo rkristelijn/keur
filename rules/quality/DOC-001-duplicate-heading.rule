@@ -1,0 +1,20 @@
+id: DOC-001
+source: cpm
+title: Duplicate heading text in the same document
+category: quality
+severity: warning
+engine: extract-duplicates
+target:
+  extensions: .md .markdown
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/ out/ CHANGELOG
+# Capture the trimmed text of an ATX heading (## .. ######). Two sections with
+# the exact same title make a document hard to navigate and hint at a
+# copy-paste or a numbering/structure mistake (e.g. two "3.1" bodies pasted
+# under the same name). H1 is intentionally excluded: a single top-level title
+# repeated as the document name is common and not a smell.
+extract: ^\s{0,3}#{2,6}\s+(.+?)\s*#*\s*$
+message: "Duplicate heading '{match}' in this document — two sections share the same title, which breaks anchors/navigation and often signals a copy-paste or numbering mistake. Make each heading unique."
+fix: "Rename one of the headings so every section title is unique. If the repetition is intentional (e.g. a recurring 'Example' under different parents), add 'cpm:ignore DOC-001' on the heading line."
+patterns:
+  - regex: "{extract-duplicates}"
+    message: "Duplicate heading '{match}' in this document — two sections share the same title, which breaks anchors/navigation and often signals a copy-paste or numbering mistake. Make each heading unique."

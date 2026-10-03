@@ -1,0 +1,13 @@
+id: SCA-018
+source: cpm
+title: Build.gradle executing shell commands
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: build.gradle build.gradle.kts
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (exec\s*\{|commandLine|"(curl|wget|bash|sh|python|powershell)"|\.execute\(\))
+    message: Gradle build file executes shell commands — can download and run malicious code during build.
+fix: Avoid shell execution in build scripts. Use Gradle plugins for external tool integration.

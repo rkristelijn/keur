@@ -1,0 +1,32 @@
+# keur quality control — directory holding too many logical units.
+#
+# Why this exists: keur's norm (AGENTS.md) is "no dir > ~10 files; regroup into
+# subdirs." This was the directory half of an external shell lint
+# (scripts/check-basics.sh, now retired). It is a CROSS-FILE AGGREGATION (count
+# units per directory), which a per-line rule cannot express — but the FILE-LEVEL
+# engine layer can, because it sees the whole fileset at once (the same layer as
+# file-absence/file-presence). So this norm is now a real keur rule too.
+#
+# HOW: the `max-dir-files` engine groups matched files by their parent directory
+# and counts logical units — a `.h` + `.cpp` with the same stem count as ONE
+# module — flagging a directory with more than min_count units, once per dir.
+#
+# WARN, not block: directory size is an organisation smell, not a bug. It nudges
+# toward regrouping into subdirectories. Tests/vendor/build excluded.
+#
+# @see docs/rules-authoring.md (`max-dir-files`), AGENTS.md.
+id: KEUR-QUAL-006
+title: Directory holds more than ~10 logical units (regroup into subdirs)
+category: quality
+severity: warning
+engine: max-dir-files
+action: warn
+min_count: 10
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: test/ tests/ _test.cpp vendor/ build/ dist/
+patterns:
+  - regex: too many units
+    message: "Directory holds more than ~10 logical units (a .h/.cpp pair counts as one). Regroup into subdirectories by responsibility, the way eval/ or cmd/ are organised. @see KEUR-QUAL-006, AGENTS.md"
+confidence: 0.6
+fix: "Split the directory into responsibility-named subdirectories (e.g. learn/, manager/, config/) so each holds a cohesive set of modules under the ~10-unit norm. A .h/.cpp pair is one unit — count modules, not raw files."

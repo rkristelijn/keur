@@ -1,0 +1,17 @@
+# @external cpm:adr-166 (phase 5: extract-duplicates engine)
+id: TEST-038
+source: cpm
+title: Duplicate test name in same file
+category: quality
+severity: warning
+engine: extract-duplicates
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: test
+extract: (?:it|test)\(\s*['"]([^'"]+)['"]
+message: "Duplicate test name '{match}' — each test should have a unique descriptive name"
+fix: Give each test a unique name describing the specific scenario. Duplicate names cause silent shadowing in some frameworks.
+patterns:
+  - regex: "{extract-duplicates}"
+    message: "Duplicate test name '{match}' — each test should have a unique descriptive name"

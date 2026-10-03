@@ -16,6 +16,7 @@
  * @implements ADR-005
  */
 #pragma once
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
@@ -57,9 +58,20 @@ int run_argv(const std::vector<std::string>& argv,
 struct CaptureResult { int exit_code = 0; std::string out; };
 CaptureResult capture(const std::string& cmd);
 
+/// Shell-free capture: spawn argv[0] (resolved via PATH when it has no
+/// separator) with the given arguments — NO /bin/sh — and capture stdout.
+/// Nothing in `argv` can be interpreted as a shell metacharacter (CWE-78), so
+/// this is the safe form for commands built from non-literal parts. stderr is
+/// discarded. posix: posix_spawnp + pipe   win32: CreateProcess + pipe.
+CaptureResult capture_argv(const std::vector<std::string>& argv);
+
 /// Run a command and stream its raw bytes to `sink` (for NUL-delimited output).
 /// Returns the decoded exit code. stderr is redirected to the null device.
 int capture_bytes(const std::string& cmd, std::string& sink);
+
+/// Shell-free byte capture: like capture_argv but streams raw stdout bytes to
+/// `sink` (for NUL-delimited output). Returns the decoded exit code.
+int capture_bytes_argv(const std::vector<std::string>& argv, std::string& sink);
 
 /// True if a tool is resolvable on PATH (exit 0 = found).
 /// posix: command -v <tool>   win32: where <tool>
@@ -99,5 +111,68 @@ TermSize terminal_size();
 /// True if a process with the given PID is currently alive.
 /// posix: kill(pid, 0) == 0   win32: OpenProcess + GetExitCodeProcess
 bool process_alive(long pid);
+
+// ---------------------------------------------------------------------------
+// Interactive terminal input (for the `keur manager` tree TUI)
+// ---------------------------------------------------------------------------
+
+/// A single logical key press, decoded from raw terminal bytes. Escape
+/// sequences (arrows) and control characters are folded into stable values so
+/// business code never parses `\033[` or termios/console specifics itself.
+enum class Key {
+    Up, Down, Left, Right,   ///< arrows (and their hjkl aliases resolve to Char)
+    Enter, Space, Tab,
+    Backspace, Escape,
+    Char,                    ///< a printable char; the byte is in KeyEvent::ch
+    Unknown,                 ///< anything we don't map
+};
+
+/// One decoded key event. `ch` is meaningful only when `key == Key::Char`.
+struct KeyEvent {
+    Key  key = Key::Unknown;
+    char ch  = '\0';
+};
+
+/// Decode a byte buffer into one KeyEvent. PURE — no I/O — so the whole
+/// escape-sequence mapping is unit-testable without a terminal. `buf` holds the
+/// bytes already read for one logical press:
+///   - a single byte for printable/control keys (e.g. 'j', ' ', '\r', 0x7f),
+///   - the full ESC sequence for arrows (e.g. "\033[A" for Up).
+/// A lone ESC (buf == "\033") maps to Key::Escape.
+/// @id KEUR-KEYINPUT
+[[nodiscard]] KeyEvent decode_key(const std::string& buf);
+
+/// Read one logical key press from stdin, blocking. Reads the leading byte,
+/// and when it is ESC reads the rest of any CSI sequence, then hands the bytes
+/// to decode_key(). This is the I/O edge; the mapping lives in decode_key().
+KeyEvent read_key();
+
+/// RAII guard that puts the terminal into "raw" mode (no line buffering, no
+/// echo, no XON/XOFF flow-control so Ctrl-S/Ctrl-Q reach the app) and restores
+/// the previous mode on destruction — even on early return or throw. Move-only.
+///   posix: tcgetattr/tcsetattr(TCSANOW) with a saved termios
+///   win32: GetConsoleMode/SetConsoleMode (disable line input + echo)
+/// `active()` is false when there is no tty (e.g. output piped), so callers can
+/// fall back to a non-interactive path.
+class RawModeGuard {
+  public:
+    RawModeGuard();
+    ~RawModeGuard();
+    RawModeGuard(RawModeGuard&& other) noexcept;
+    RawModeGuard& operator=(RawModeGuard&& other) noexcept;
+    RawModeGuard(const RawModeGuard&)            = delete;
+    RawModeGuard& operator=(const RawModeGuard&) = delete;
+
+    [[nodiscard]] bool active() const { return active_; }
+
+  private:
+    void restore();
+    bool active_ = false;
+    // Opaque saved-state storage sized for a termios (posix) / DWORD (win32);
+    // the platform .cpp reinterprets it, keeping OS types out of this header.
+    // 128 bytes comfortably fits termios on all POSIX variants (72 on macOS,
+    // 60 on Linux) and a DWORD on Windows; asserted in the .cpp.
+    alignas(std::max_align_t) unsigned char saved_[128] = {};
+};
 
 }  // namespace keur::platform

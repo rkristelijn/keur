@@ -56,6 +56,47 @@ static std::string toml_scalar(const std::string& path, const std::string& key) 
 }
 
 // ---------------------------------------------------------------------------
+// find_config_upward — repo-local discovery
+// ---------------------------------------------------------------------------
+
+std::string find_config_upward(const std::string& start_dir) {
+    // Walk up from start_dir to the filesystem root, returning the first
+    // directory that holds a keur.toml. Portable: treats both '/' and '\' as
+    // separators so it works on POSIX and Windows paths.
+    std::string dir = start_dir;
+    // Normalise a trailing separator or "/." so the first probe hits start_dir.
+    auto trim_trailing = [](std::string& p) {
+        while (p.size() > 1 && (p.back() == '/' || p.back() == '\\')) p.pop_back();
+        if (p.size() >= 2 && p.back() == '.' &&
+            (p[p.size() - 2] == '/' || p[p.size() - 2] == '\\')) {
+            p.pop_back();
+            while (p.size() > 1 && (p.back() == '/' || p.back() == '\\')) p.pop_back();
+        }
+    };
+    trim_trailing(dir);
+
+    while (!dir.empty()) {
+        std::string sep = (dir.back() == '/' || dir.back() == '\\') ? "" : "/";
+        std::string candidate = dir + sep + "keur.toml";
+        std::ifstream f(candidate);
+        if (f.good()) return candidate;
+
+        // Move to the parent directory.
+        auto slash = dir.find_last_of("/\\");
+        if (slash == std::string::npos) break;      // no more parents
+        if (slash == 0) { dir = dir.substr(0, 1); } // POSIX root "/"
+        else dir = dir.substr(0, slash);
+        // Stop once we have probed the root itself.
+        if (dir == "/" ) {
+            std::ifstream rf("/keur.toml");
+            if (rf.good()) return "/keur.toml";
+            break;
+        }
+    }
+    return "";
+}
+
+// ---------------------------------------------------------------------------
 // resolve_config
 // ---------------------------------------------------------------------------
 
@@ -63,7 +104,15 @@ std::string resolve_config(const std::string& hint) {
     // 1. Explicit hint from --config flag
     if (!hint.empty()) return hint;
 
-    // 2. Global: $XDG_CONFIG_HOME/keur/keur.toml
+    // 2. Repo-local: a keur.toml found by walking up from the current directory.
+    //    This lets a project set its own policy (ADR-011) and have the hook
+    //    honour it, without --config. Repo-local wins over the global config.
+    if (const char* cwd = std::getenv("PWD"); cwd && *cwd) {
+        std::string local = find_config_upward(cwd);
+        if (!local.empty()) return local;
+    }
+
+    // 3. Global: $XDG_CONFIG_HOME/keur/keur.toml
     const char* xdg = std::getenv("XDG_CONFIG_HOME");
     std::string global_dir = xdg ? std::string(xdg) : (std::string(std::getenv("HOME") ? std::getenv("HOME") : "") + "/.config");
     std::string global_cfg = global_dir + "/keur/keur.toml";
@@ -72,7 +121,7 @@ std::string resolve_config(const std::string& hint) {
         if (f.good()) return global_cfg;
     }
 
-    // 3. KEUR_HOME (installed location)
+    // 4. KEUR_HOME (installed location)
     const char* keur_home = std::getenv("KEUR_HOME");
     if (keur_home) {
         std::string installed = std::string(keur_home) + "/config/keur.toml";

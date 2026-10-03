@@ -100,8 +100,18 @@ std::vector<std::string> render_source(const std::string& name, const Agg& a,
 
   if (show_bars && !a.accepts.empty()) {
     body.emplace_back("");
-    body.emplace_back("accepted steps");
-    for (const auto& r : a.accepts) {
+    // Bound the list like "last decisions" so the box can't grow without limit
+    // as more steps are accepted (was: one line per accepted step → ~50 rows).
+    const size_t cap = static_cast<size_t>(std::max(1, max_decisions));
+    const size_t n = a.accepts.size();
+    const size_t start = n > cap ? n - cap : 0;
+    if (start > 0)
+      std::snprintf(buf, sizeof(buf), "accepted steps (last %zu of %zu)", cap, n);
+    else
+      std::snprintf(buf, sizeof(buf), "accepted steps");
+    body.emplace_back(buf);
+    for (size_t i = start; i < n; ++i) {
+      const auto& r = a.accepts[i];
       int bw = std::max(6, std::min(24, inner - 18));
       std::snprintf(buf, sizeof(buf), "i%-3d %s %.3f", r.iter, block_bar(r.recall, bw).c_str(), r.recall);
       body.emplace_back(buf);
@@ -145,7 +155,16 @@ Supervisor read_supervisor(const std::string& home) {
   if (ph) std::getline(ph, s.phase);
   std::ifstream lg(home + "/eval/.run/supervisor.log");
   std::string ln;
-  while (std::getline(lg, ln)) if (!ln.empty()) s.last_log = ln;
+  while (std::getline(lg, ln)) {
+    if (ln.empty()) continue;
+    s.last_log = ln;
+    s.last_logs.push_back(ln);
+  }
+  // keep only the last N lines (a rolling tail for the monitor)
+  const size_t keep = 8;
+  if (s.last_logs.size() > keep)
+    s.last_logs.erase(s.last_logs.begin(),
+                      s.last_logs.end() - static_cast<long>(keep));
   return s;
 }
 
@@ -163,6 +182,26 @@ void draw_frame(const std::string& home) {
   std::string head = "keur learn · loop " + status;
   if (!sup.phase.empty()) head += " · phase " + sup.phase;
   std::cout << head << "\n";
+
+  // Session totals across ALL sources (accepted vs rejected this history) +
+  // what the loop is working on right now.
+  {
+    int acc = 0, rej = 0;
+    for (const auto& r : recs) {
+      if (r.decision == "accept") ++acc;
+      else if (r.decision == "reject") ++rej;
+    }
+    int tot = acc + rej;
+    int pct = tot ? static_cast<int>(100.0 * acc / tot + 0.5) : 0;
+    std::string doing = (corpus.empty() == keureval.empty())
+                            ? "corpus+keureval"
+                            : (corpus.empty() ? "keureval" : "corpus");
+    char hb[256];
+    std::snprintf(hb, sizeof(hb),
+                  "session · attempts %d · accepted %d · rejected %d · %d%% kept · working on %s",
+                  tot, acc, rej, pct, doing.c_str());
+    std::cout << hb << "\n";
+  }
 
   // plain-terms summary (jargon-free)
   {
@@ -216,8 +255,13 @@ void draw_frame(const std::string& home) {
     }
   }
 
-  if (!sup.last_log.empty())
+  if (!sup.last_logs.empty()) {
+    std::cout << "recent activity (attempts + steering):\n";
+    for (const auto& lg : sup.last_logs)
+      std::cout << render::truncate_to("  " + lg, inner_total) << "\n";
+  } else if (!sup.last_log.empty()) {
     std::cout << render::truncate_to("log: " + sup.last_log, inner_total) << "\n";
+  }
   std::cout << "(Ctrl+C leaves monitor; loop keeps running · keur learn --stop)\n";
   std::cout.flush();
 }

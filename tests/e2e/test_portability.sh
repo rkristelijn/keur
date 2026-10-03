@@ -11,7 +11,7 @@
 source "$(dirname "$0")/helpers.sh"
 set +o errexit
 BINARY="$(resolve_binary "${1:-}")"
-[ -n "$BINARY" ] || { echo "FAIL: keur binary not found"; exit 1; }
+[[ -n "$BINARY" ]] || { echo "FAIL: keur binary not found"; exit 1; }
 
 ROOT="$(repo_root)"
 export KEUR_RULES_DIRS="$ROOT/rules/keur-internal"
@@ -20,7 +20,7 @@ echo "==> test_portability ($BINARY)"
 
 # 1. The real source tree must be clean (all OS-divergent code lives in common/).
 findings="$("$BINARY" scan "$ROOT/src/keur" 2>/dev/null | grep -c 'KEUR-PORT-' || true)"
-[ "$findings" -eq 0 ] \
+[[ "$findings" -eq 0 ]] \
   && ok "src/keur is portability-clean (0 KEUR-PORT-*)" \
   || fail "portability control fired on real source ($findings findings) — OS code leaked out of common/"
 
@@ -44,7 +44,7 @@ EOF
 fired="$("$BINARY" scan "$ROOT/src/keur/cmd" 2>/dev/null \
   | grep -oE 'KEUR-PORT-00[0-9]' | sort -u | wc -l | tr -d ' ')"
 rm -f "$probe"
-[ "$fired" -ge 5 ] \
+[[ "$fired" -ge 5 ]] \
   && ok "portability controls detect injected violations ($fired distinct KEUR-PORT rules fired)" \
   || fail "portability controls did NOT fire on an injected violation ($fired) — a rule may be dead"
 

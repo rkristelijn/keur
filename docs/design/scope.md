@@ -64,7 +64,7 @@ evaluator + the AI-context filter). Any team can promote/demote per repo via con
 4. **Not a Sonar clone.** Study Sonar as a reference/evidence source; do not
    reimplement its quality engine (and post-2024-11 analyzers are SSALv1 anyway).
 5. **Not a rule-authoring platform.** cpm owns rule authoring + the corpus. KEUR
-   *consumes* rules; it adds only private/APS gap-filler rules that must stay off
+   *consumes* rules; it adds only private/organisation-specific gap-filler rules that must stay off
    the public cpm.
 6. **Not a CI orchestrator / dashboard.** KEUR gates commits/pushes and emits
    JUnit/SARIF; the pipeline/reporting lives in CI + the existing tooling.

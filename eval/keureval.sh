@@ -36,10 +36,10 @@ INDEX="$KEUR_EVAL/index.json"
 OUT="$HERE/corpus/measure.json"
 NATIVE="$KEUR_HOME/bin/keur-rules"
 
-[ -f "$INDEX" ]  || { echo "no keur-eval index: $INDEX (run build-index.sh in keur-eval)" >&2; exit 1; }
-[ -x "$NATIVE" ] || { echo "keur-rules not built; run: (cd src/rules && make)" >&2; exit 1; }
+[[ -f "$INDEX" ]]  || { echo "no keur-eval index: $INDEX (run build-index.sh in keur-eval)" >&2; exit 1; }
+[[ -x "$NATIVE" ]] || { echo "keur-rules not built; run: (cd src/rules && make)" >&2; exit 1; }
 
-MODE="metrics"; [ "${1:-}" = "--fn" ] && MODE="fn"
+MODE="metrics"; [[ "${1:-}" = "--fn" ]] && MODE="fn"
 SPLIT="${KEUR_SPLIT:-all}"
 
 # Run keur once over the whole corpus (fast: single binary invocation per case

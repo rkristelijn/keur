@@ -38,7 +38,7 @@ CACHE="$HERE/corpus/repos"
 
 OUTDIR="$HERE/report"
 CONSOLE_ONLY=0
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
     case "$1" in
         --console) CONSOLE_ONLY=1; shift ;;
         --outdir)  OUTDIR="$2"; shift 2 ;;
@@ -46,7 +46,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-[ -d "$CACHE" ] || { echo "no corpus; run: eval/corpus.sh clone" >&2; exit 1; }
+[[ -d "$CACHE" ]] || { echo "no corpus; run: eval/corpus.sh clone" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # SAST + posture categories we keep. Everything the tools emit is mapped into
@@ -63,7 +63,7 @@ echo "  sources:" >&2
 # groundtruth-cpm.sh runs keur's engine with cpm's rules over the cpm-eval
 # corpus and tags findings repo=cpm-eval. On-scope by construction (cpm's
 # security/framework/iac rules), so we keep its sast/iac/transport output.
-if [ -x "$HERE/groundtruth-cpm.sh" ] && [ -d "${CPM_RULES:-$HOME/git/hub/cpm/rules}" ]; then
+if [[ -x "$HERE/groundtruth-cpm.sh" ]] && [[ -d "${CPM_RULES:-$HOME/git/hub/cpm/rules}" ]]; then
     echo "    cpm      (SAST + framework + hardening)" >&2
     "$HERE/groundtruth-cpm.sh" cpm-eval 2>/dev/null >> "$RAW" || true
 else
@@ -79,7 +79,7 @@ run_tool_over_corpus() {
     have "$tool" || { echo "    $tool MISSING (skipped)" >&2; return; }
     echo "    $label" >&2
     for repo in "$CACHE"/*/; do
-        [ -d "$repo" ] || continue
+        [[ -d "$repo" ]] || continue
         local name; name="$(basename "$repo")"
         "$HERE/preflight.sh" "$KEUR_HOME" >/dev/null 2>&1 || {
             echo "    (resources low, stopping $tool early)" >&2; break; }

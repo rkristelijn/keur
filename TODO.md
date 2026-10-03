@@ -37,9 +37,10 @@ Status legend: [x] done · [~] partially done · [ ] open
 - [ ] extract-duplicates engine (last of cpm's 7 engines; ADR-004 stage 2). Per
       file, extract a capture group via `extract:` regex + `capture:` index and
       flag duplicate captured values (e.g. duplicate test names in one file).
-      Needs fields extract/capture/message and an eval_extract in rule/. Once it
-      lands, scripts/check-basics.sh (an aggregation check) can become a real
-      .rule. cpm ref: adr-166 phase 5.
+      Needs fields extract/capture/message and an eval_extract in rule/. cpm ref:
+      adr-166 phase 5. (NOTE: the file/dir-size aggregation that check-basics.sh
+      did is already ported — max-lines + max-dir-files engines, KEUR-QUAL-005/006;
+      the script is retired. This item is now only the extract-duplicates engine.)
 - [ ] KEUR_HOME should be DERIVED, not a required global env var. Today keur
       hard-reads getenv("KEUR_HOME") in 4 places (util/keur_utils.h rule_dirs,
       cmd/policy.cpp resolve_config, cmd/learn.cpp keur_home, src/rules/main.cpp)
@@ -54,7 +55,26 @@ Status legend: [x] done · [~] partially done · [ ] open
       finishes it for the built-in layer.)
 - [ ] libmode: run external scanners (semgrep, gitleaks, trivy, ...) via the
       Proc adapter, OR ruleengine mode, or both — normalise into one findings
-      report. (Proc adapter seam is ready.)
+      report. (ADR-019.)
+      REALITY CHECK (2026-09-20): the Proc seam (run_argv shell-free + capture)
+      is ready AND config/keur.toml already lists every [scanners.*], but
+      cmd/check.cpp dispatches ONLY the built-in RE2 rule engine today — no
+      external-tool or script scanner is invoked yet (the `pii` script-scanner in
+      config is config-ahead-of-code). So the real prerequisite is a
+      scanner-DISPATCH loop in check(): read the [scanners.*] inventory, run each
+      enabled adapter over the staged files, normalise stdout → Finding, feed the
+      one policy engine. Once that loop exists, both shapes below are thin.
+      - [ ] shape A: proven-tool adapters (shellcheck first — covers the SC2034
+            class that slipped past keur locally but failed GitLab CI in
+            security-tooling; then semgrep/gitleaks/trivy/checkov). PATH-resolved,
+            missing → skip. Shared coverage across all repos.
+      - [ ] shape B: project-local adapter — run a git-TRACKED `.keur/check.sh`
+            (fallback `.config/keur/check.sh`), staged files on argv, JSONL on
+            stdout → Finding. Trust model DECIDED (ADR-019): not config-opt-in;
+            tracked-only execution (untracked/dropped scripts ignored) + shell-
+            free spawn (run_argv) + confidence cap (~0.80) so a repo can't
+            self-BLOCK above calibrated tools. Config `enabled=false` still
+            disables entirely. Thin runner + JSONL parser over the dispatch loop.
 - [ ] ollama learn/loop as designed (eval/ harness exists; optimiser missing).
 - [ ] surface traceability / doc-coverage + test-coverage metrics on the
       dashboard (ADR-017). Decide Route A (own CI gate: doc-coverage.sh --strict
@@ -66,8 +86,32 @@ Status legend: [x] done · [~] partially done · [ ] open
 - [ ] wire cpm in as a second quality gate over keur's own code (ADR-018).
       cpm's mature checks already find ZERO issues on keur's source (good
       regression gate), but cpm scans the corpus fixtures too. Prereq: solve the
-      corpus-exclude (eval/corpus/repos/ + rules-imported/) — the exact cpm
-      exclude mechanism is unconfirmed. Then add cpm.toml + optional CI job.
+      corpus-exclude (eval/corpus/repos/ + the cpm-sourced rules, now
+      `source: cpm` within rules/) — the exact cpm exclude mechanism is
+      unconfirmed. Then add cpm.toml + optional CI job.
+- [ ] SCAN DISPATCH: a rule with an `extract:`/file-metric engine but NO
+      `patterns:` block does not fire — the per-file dispatch only runs a rule
+      that reached `filtered`, and a no-patterns rule is dropped from the
+      candidate path. Workaround in place: the 3 imported extract-duplicates
+      rules carry a dummy `patterns: - regex: "{extract-duplicates}"` block so
+      they dispatch. Proper fix: let engines that don't consume `patterns`
+      (extract-duplicates, max-lines, max-dir-files, max-nesting) dispatch on the
+      rule's own field (extract/min_count) without requiring a patterns block.
+      See src/rules/rule/scan.cpp (candidate/filtered path).
+- [ ] IMPORT THE FULL CPM CORPUS + MATURITY GATING (ADR-026). ~811 more cpm rules
+      use engines keur now supports and could be imported (source: cpm). But
+      shipping ~1000 rules all-active is far too strict. First implement ADR-026:
+      a `maturity:` field per rule (1 prototype .. 5 optimising) + profile
+      templates under config/profiles/ (prototype/startup/standard/hardened/
+      mission-critical) that activate rules with maturity <= the project's level
+      (ADR-011 cascade). THEN bulk-import with maturity seeded from cpm severity/
+      category. No engine change (rules stay data). Backfill maturity on the
+      existing corpus too (deadly rules → 1, opinionated/framework → 5).
+- [ ] PERF: eval/doc-coverage.sh feels slow — investigate + speed up. It greps
+      tags across src/ rules/ docs/ eval/ repeatedly (multiple full-tree greps
+      per section, 235+ rule files now). Profile it (which section dominates),
+      then cache the tag scan once and reuse, or narrow the scan set. It runs as
+      a gate, so sub-second matters.
       Bonus: feed multiline/count engine support upstream to cpm to drop the
       "unsupported engine" warnings. See docs/adr/ADR-018-cpm-second-gate.md.
 - [ ] NO PYTHON in the eval scripting layer — replace inline `python3 -c` JSON
@@ -111,6 +155,20 @@ Status legend: [x] done · [~] partially done · [ ] open
 - [x] expand the corpus: 19 repos now (added WebGoat, crAPI, OWASPWebGoatPHP,
       Pixi, VyAPI + clean OSS flask/express/gin/requests/sinatra). 2 candidates
       failed to clone (payloadbox/sql-injection-payload-list, OWASP/DVGA).
+- [ ] BUILD OUR OWN vulnerable Next.js corpus repo (no good off-the-shelf one
+      exists, and Next.js is a common, high-value target). A small, self-contained
+      "next-goat": intentionally vulnerable Next.js (App Router) app covering the
+      shapes keur should catch — server actions / route handlers with unsafe
+      input, SSRF via fetch to a user-controlled URL, hardcoded secrets in
+      env/config, `dangerouslySetInnerHTML` XSS, open redirect, missing authz on
+      an API route, and a leaky `.env`/`next.config`. Keep it --depth-1-small
+      (<100MB, well under the corpus cap). Two ways to use it:
+        (a) commit it as its own tiny repo and add its slug to repos.txt, or
+        (b) generate it under eval/corpus/repos/ as a local fixture (no clone).
+      Because the ground truth is source-agnostic, we can either run the proven
+      tools over it OR hand-label the planted issues (we know where we put them)
+      — a rare case where we OWN the ground truth exactly. Pairs well with the
+      TS/Node/GraphQL coverage already in the corpus. (idea 2026-09-23)
 - [x] more ground-truth tool adapters: trivy + checkov added (category `iac`).
       Ground truth now 683 combined findings from 5 tools (semgrep/gitleaks/
       trufflehog/trivy/checkov) across 21 repos. Clean security-scope baseline:
@@ -224,7 +282,8 @@ Status legend: [x] done · [~] partially done · [ ] open
       * little copy-paste; build once in a lib/module, then reuse.
       Status: file-size violations RESOLVED (learn.cpp + rule_engine.cpp split).
       cmd/ folder count resolved by counting logical units (.h+.cpp = 1 unit).
-      check-basics is GREEN. Historical notes:
+      check-basics GREEN and now RETIRED into engines (max-lines/max-dir-files,
+      KEUR-QUAL-005/006). Historical notes:
       * src/keur/cmd/learn.cpp (~411 net lines, 4 responsibilities: JSONL parse +
       resource read + TUI render + orchestration) — SPLIT into
       learn/history.{h,cpp} (parse), learn/sysinfo (resources; also the
@@ -237,6 +296,21 @@ Status legend: [x] done · [~] partially done · [ ] open
       cap; regroup (eval/ into subdirs: corpus/, groundtruth/, loop/, report/).
       Consider making these checks KEUR's OWN dogfooding rules once measurable.
 - [ ] rules: do they follow an ISO *ilities structure? would that be applicable?
+- [ ] CENTRALISE the corpus path (DRY) + move it out of the tracked tree.
+      Today the corpus path is hardcoded ~146x across ~8 eval/*.sh scripts
+      (corpus/repos, corpus/groundtruth, corpus/measure, corpus/split) — no
+      shared config. Fix: one `eval/lib.sh` (or env.sh) that defines
+      KEUR_CORPUS_DIR + CORPUS_REPOS/GT/MEASURE/SPLIT as variables; every eval
+      script sources it and uses the vars. THEN move the generated corpus into a
+      conventionally-ignored dot-dir (e.g. eval/.corpus/ or .tmp/corpus/) by
+      changing ONE line — so it's one .gitignore rule (not 4), auto-skipped by
+      the scan walker (hidden dir), and tracked manifest (repos.txt) stays put.
+      Do it in two verifiable steps: (1) introduce the vars pointing at the
+      CURRENT path (behaviour-neutral, bash -n + path-resolves-same per script);
+      (2) flip the path to the dot-dir and verify the learn loop still finds the
+      same ground truth. Ties into the eval/ regroup item above.
+      INTERIM (done 2026-09-23): `corpus` added to the scan walker's skip-dir
+      list so `keur scan .` no longer descends into the ~290MB clones.
 - [ ] run cpm in extreme mode here + semgrep — dead code, dead docs, links
       between code and docs; all should be green.
 - [ ] TUI / a11y / design: are there TUI designs, are we accessible? (see cpm

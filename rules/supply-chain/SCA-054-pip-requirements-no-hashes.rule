@@ -1,0 +1,13 @@
+id: SCA-054
+source: cpm
+title: Missing pip requirements.txt without hash verification
+category: supply-chain
+severity: info
+engine: absence
+target:
+  filenames: requirements.txt
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: --hash=sha256:
+    message: No hash verification in requirements.txt — pip can install tampered or swapped packages. Dependency confusion attacks work because pip trusts version numbers, not content.
+fix: Use pip install --require-hashes and pin all deps with --hash=sha256:<hash>. Generate with pip-compile --generate-hashes.

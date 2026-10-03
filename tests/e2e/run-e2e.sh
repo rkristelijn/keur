@@ -10,7 +10,7 @@ BINARY="${1:-$(cd "$HERE/../.." && pwd -P)/bin/keur}"
 WARN_MS="${TEST_WARN_MS:-2000}"
 FAIL_MS="${TEST_FAIL_MS:-15000}"
 
-if [ ! -x "$BINARY" ]; then
+if [[ ! -x "$BINARY" ]]; then
   echo "ERROR: keur binary not found at $BINARY — run 'make build' first"
   exit 1
 fi
@@ -26,9 +26,9 @@ for t in "$HERE"/test_*.sh; do
   if bash "$t" "$BINARY" >/tmp/keur_e2e_out 2>&1; then
     end=$(date +%s%N 2>/dev/null || echo 0)
     ms=$(((end - start) / 1000000))
-    if [ "$ms" -gt "$FAIL_MS" ]; then
+    if [[ "$ms" -gt "$FAIL_MS" ]]; then
       printf "  \033[31mx %5dms\033[0m %s (TIMEOUT)\n" "$ms" "$name"; FAIL=$((FAIL+1))
-    elif [ "$ms" -gt "$WARN_MS" ]; then
+    elif [[ "$ms" -gt "$WARN_MS" ]]; then
       printf "  \033[33m! %5dms\033[0m %s (slow)\n" "$ms" "$name"; PASS=$((PASS+1))
     else
       printf "  \033[32mok %4dms\033[0m %s\n" "$ms" "$name"; PASS=$((PASS+1))
@@ -45,4 +45,4 @@ rm -f /tmp/keur_e2e_out
 
 echo ""
 echo "  Suites: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+[[ "$FAIL" -eq 0 ]]

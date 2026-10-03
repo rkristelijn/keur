@@ -16,6 +16,7 @@
 #include "rules/rule_engine.h"
 #include "cmd/policy.h"
 #include "adapters/git.h"
+#include "config/ruleset.h"
 #include "util/keur_utils.h"
 
 namespace keur::cmd {
@@ -37,6 +38,20 @@ Verdict policy_evaluate(const PolicyInput& input) {
     if (input.has_secret_block || input.has_rule_block) return Verdict::Block;
     if (input.has_any_finding)                          return Verdict::Warn;
     return Verdict::Pass;
+}
+
+// Pure threshold test — a block-action finding only blocks when its confidence
+// reaches block_at. Malformed/empty confidence fails safe (blocks). This is how
+// block-at in keur.toml governs the gate; a repo can raise block-at above 1.0
+// to make keur report-only (everything degrades to WARN).
+bool finding_blocks(const std::string& action, const std::string& confidence,
+                    double block_at) {
+    if (action != "block") return false;
+    try {
+        return std::stod(confidence) >= block_at;
+    } catch (const std::exception&) {
+        return true;  // fail safe: a blocking rule with a bad confidence blocks
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -77,12 +92,13 @@ int check(const CheckOptions& opts, FileSource file_src) {
     std::cerr << "KEUR (" << tier_str << "): scanning "
               << files.size() << " staged file(s)...\n";
 
-    // 2. Load rules
-    std::vector<Rule> rules;
-    for (auto& d : rule_dirs()) {
-        auto rs = rules_load(d);
-        for (auto& r : rs) rules.push_back(std::move(r));
-    }
+    // 2. Load the active rule set (resolved dirs minus the disable-list).
+    std::vector<Rule> rules = keur::config::load_active_rules();
+
+    // Resolve the policy thresholds (repo-local keur.toml wins over global).
+    // block-at decides whether a blocking finding actually blocks; a repo can
+    // set block-at above 1.0 to make keur report-only.
+    auto policy = policy_load(resolve_config(opts.config));
 
     // 3. Scan in-process
     PolicyInput input{};
@@ -90,7 +106,8 @@ int check(const CheckOptions& opts, FileSource file_src) {
         auto findings = rules_scan_files(rules, files);
         for (auto& f : findings) {
             input.has_any_finding = true;
-            if (f.action == "block") input.has_rule_block = true;
+            if (finding_blocks(f.action, f.confidence, policy.block_at))
+                input.has_rule_block = true;
         }
     }
 

@@ -20,8 +20,8 @@ KEUR_HOME="$(cd "$HERE/.." && pwd -P)"
 CACHE="$HERE/corpus/repos"
 GT="$HERE/corpus/groundtruth.jsonl"
 
-if [ "${1:-}" = "--stats" ]; then
-    [ -f "$GT" ] || { echo "no ground truth yet: $GT"; exit 0; }
+if [[ "${1:-}" = "--stats" ]]; then
+    [[ -f "$GT" ]] || { echo "no ground truth yet: $GT"; exit 0; }
     python3 - "$GT" <<'PY'
 import json, sys, collections
 tools = collections.Counter(); cats = collections.Counter(); repos = collections.Counter()
@@ -43,14 +43,14 @@ PY
 fi
 
 TOOL_ARG=()
-if [ "${1:-}" = "--tool" ]; then TOOL_ARG=(--tool "${2:-all}"); shift 2; fi
+if [[ "${1:-}" = "--tool" ]]; then TOOL_ARG=(--tool "${2:-all}"); shift 2; fi
 
-[ -d "$CACHE" ] || { echo "no corpus; run: eval/corpus.sh clone" >&2; exit 1; }
+[[ -d "$CACHE" ]] || { echo "no corpus; run: eval/corpus.sh clone" >&2; exit 1; }
 
 : > "$GT"   # fresh cache
 total=0
 for repo in "$CACHE"/*/; do
-    [ -d "$repo" ] || continue
+    [[ -d "$repo" ]] || continue
     name="$(basename "$repo")"
     # preflight per repo so a long build cannot run the machine dry.
     if ! "$HERE/preflight.sh" "$KEUR_HOME" >/dev/null 2>&1; then
@@ -60,7 +60,7 @@ for repo in "$CACHE"/*/; do
     echo "  scan  $name" >&2
     n=0
     while IFS= read -r finding; do
-        [ -z "$finding" ] && continue
+        [[ -z "$finding" ]] && continue
         # tag with the repo so measurement can join keur findings by repo+file+line
         echo "$finding" | python3 -c "import json,sys; f=json.load(sys.stdin); f['repo']='$name'; print(json.dumps(f))" >> "$GT"
         n=$((n+1))
@@ -77,7 +77,7 @@ done
 # signal: a finding confirmed by more tools is more trustworthy. Line numbers
 # differ between tools for the same issue, so they are NOT part of the key; the
 # earliest reported line is kept.
-if [ -s "$GT" ]; then
+if [[ -s "$GT" ]]; then
     dedup="$(mktemp)"
     python3 - "$GT" > "$dedup" <<'PY'
 import json, sys, collections
