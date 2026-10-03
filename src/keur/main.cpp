@@ -24,10 +24,12 @@
 #include "cmd/hook.h"
 #include "cmd/learn.h"
 #include "cmd/level.h"
+#include "cmd/difficulty.h"
 #include "cmd/manager.h"
 #include "cmd/policy.h"
 #include "cmd/rules.h"
 #include "cmd/scan.h"
+#include "cmd/train.h"
 
 // ---------------------------------------------------------------------------
 // Type alias for a subcommand handler
@@ -66,9 +68,16 @@ static void usage() {
         "        [--bucket sm|md|lg|xl] Interactive by default; --print/--bucket\n"
         "        [--no-color] [--global]  render deterministically. Persists to\n"
         "        keur.toml (--global: the machine-wide ~/.config/keur/keur.toml).\n"
-        "  learn [--stop|--status]    Spin the optimise loop + live TUI monitor\n"
+        "  difficulty --explain       Explain the resolved difficulty vector + which\n"
+        "        [--why RULE]         rules it activates; --why/--why-not RULE shows\n"
+        "        [--why-not RULE]     why a rule is (in)active and what to change.\n"
+        "        [--json]             Machine-readable output.\n"
+        "  train [--stop|--status]    Train keur's rule set (spin the optimise loop + live TUI monitor)\n"
         "        [--source S]         S = corpus (default) | keureval | alternate\n"
         "        [--model M]          Ollama model for the loop (default: keur-rule-engineer)\n"
+        "        [--explain <RULE>]   Generate docs/rules/<RULE>.md for an existing rule, then exit\n"
+        "  learn <RULE-ID>            Explain a rule (why/unsafe/safe/fix); [--fetch] allows\n"
+        "                             a one-off download. No id = deprecated alias for train.\n"
         "  version                    Print version\n"
         "  help                       Show this message\n"
         "\n"
@@ -91,7 +100,9 @@ static const std::unordered_map<std::string, Handler> k_commands = {
     {"config", [](const Args& a) { return keur::cmd::config(keur::cmd::config_parse(a)); }},
     {"manager", [](const Args& a) { return keur::cmd::manager(keur::cmd::manager_parse(a)); }},
     {"level",  [](const Args& a) { return keur::cmd::level(keur::cmd::level_parse(a)); }},
-    {"learn",  [](const Args& a) { return keur::cmd::learn(keur::cmd::learn_parse(a)); }},
+    {"difficulty", [](const Args& a) { return keur::cmd::difficulty(keur::cmd::difficulty_parse(a)); }},
+    {"train",  [](const Args& a) { return keur::cmd::train(keur::cmd::train_parse(a)); }},
+    {"learn",  [](const Args& a) { return keur::cmd::learn(a); }},
     {"version",  [](const Args&) {
         // Prefer the version from a resolved keur.toml; fall back to the
         // compile-time KEUR_VERSION baked in by the Makefile.

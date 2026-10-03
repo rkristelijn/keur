@@ -56,7 +56,7 @@ TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
-IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/train.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp cmd/level.cpp \
+IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/train.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp cmd/level.cpp cmd/difficulty.cpp \
              config/scopes.cpp config/hookmgr.cpp config/scanners.cpp config/disabled.cpp config/keurignore.cpp config/ruleset.cpp \
              scan/dispatch.cpp scan/mappers.cpp scan/json_util.cpp \
              learn/history.cpp learn/sysinfo.cpp learn/monitor.cpp \
@@ -163,6 +163,9 @@ $(BINDIR)/keur_cmd_manager.o: cmd/manager.cpp cmd/manager.h cmd/config.h cmd/pol
 
 $(BINDIR)/keur_cmd_level.o: cmd/level.cpp cmd/level.h cmd/policy.h render/logo.h adapters/fs.h adapters/git.h config/scopes.h common/platform.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_cmd_difficulty.o: cmd/difficulty.cpp cmd/difficulty.h config/ruleset.h config/scopes.h adapters/fs.h adapters/git.h util/keur_utils.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_config_scopes.o: config/scopes.cpp config/scopes.h common/platform.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@

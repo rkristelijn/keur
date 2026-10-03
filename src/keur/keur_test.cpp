@@ -1335,6 +1335,60 @@ SCENARIO("[feature:rules] rule_active: default_level steers unset ilities (CMMI-
     CHECK_FALSE(keur::rule_active(unset, fresh));   // default maturity 3 > 1 -> sleeps
 }
 
+// --- DESIGN-DIFFRES: difficulty vector loader + merge + filter -------------
+
+SCENARIO("[feature:rules] parse_difficulty reads [difficulty] + [difficulty.rules]") {  // @proves DESIGN-DIFFRES.schema
+    keur::DifficultyVector v; v.default_level = 1;
+    std::map<std::string, bool> ov;
+    keur::config::parse_difficulty(
+        "[policy]\nlevel = 3\n"
+        "[difficulty]\nintegrity = 4\naccessibility = \"off\"\n"
+        "[difficulty.rules]\nKEUR-SQLI-003 = off\nFOO = on\n", v, ov);
+    CHECK(v.level_of("integrity") == 4);
+    CHECK(v.level_of("accessibility") == 0);      // "off" -> 0
+    CHECK(v.level_of("confidentiality") == 1);    // unset -> default_level
+    CHECK(ov["KEUR-SQLI-003"] == false);
+    CHECK(ov["FOO"] == true);
+}
+
+SCENARIO("[feature:rules] merge_difficulty folds global->repo cascade") {  // @proves DESIGN-DIFFRES.merge
+    std::map<std::string, std::string> files;
+    files["global"] = "[policy]\nlevel = 2\n";          // all-equal shorthand
+    files["repo"]   = "[difficulty]\nintegrity = 5\n";  // per-ility override
+    std::map<std::string, bool> ov;
+    auto vec = keur::config::merge_difficulty(
+        {"global", "repo"},
+        [&](const std::string& p) { return files.count(p) ? files[p] : std::string(); },
+        ov, /*default_level=*/1);
+    CHECK(vec.default_level == 2);                 // global [policy] raised it
+    CHECK(vec.level_of("integrity") == 5);         // repo override wins
+    CHECK(vec.level_of("confidentiality") == 2);   // inherits global level
+}
+
+SCENARIO("[feature:rules] filter_by_vector OR/max + per-rule override") {  // @proves DESIGN-DIFFRES.step.wire
+    keur::DifficultyVector vec; vec.default_level = 2;
+    vec.levels = {{"integrity", 5}};
+    std::vector<keur::Rule> rules;
+    keur::Rule a; a.id = "A"; a.maturity = 2; a.ilities = {"integrity"};       rules.push_back(a);
+    keur::Rule b; b.id = "B"; b.maturity = 5; b.ilities = {"confidentiality"}; rules.push_back(b);
+    keur::Rule c; c.id = "C"; c.maturity = 1; c.ilities = {"confidentiality"}; rules.push_back(c);
+    std::map<std::string, bool> ov; ov["C"] = false;  // force C off
+    auto kept = keur::config::filter_by_vector(rules, vec, ov);
+    bool hasA = false, hasB = false, hasC = false;
+    for (const auto& r : kept) { if (r.id=="A") hasA=true; if (r.id=="B") hasB=true; if (r.id=="C") hasC=true; }
+    CHECK(hasA); CHECK_FALSE(hasB); CHECK_FALSE(hasC);
+}
+
+SCENARIO("[feature:rules] filter_by_maturity is the all-equal vector (back-compat)") {  // @proves DESIGN-DIFFRES.compat
+    std::vector<keur::Rule> rules;
+    keur::Rule a; a.id = "A"; a.maturity = 2; a.ilities = {"integrity"};       rules.push_back(a);
+    keur::Rule c; c.id = "C"; c.maturity = 1; c.ilities = {"confidentiality"}; rules.push_back(c);
+    auto k1 = keur::config::filter_by_maturity(rules, 1);
+    REQUIRE(k1.size() == 1);
+    CHECK(k1[0].id == "C");
+    CHECK(keur::config::filter_by_maturity(rules, 0).size() == 2);  // 0 = no filter
+}
+
 SCENARIO("[feature:rules] policy_level reads [policy] level from keur.toml") {  // @proves KEUR-MATURITY.level
     CHECK(keur::config::policy_level("[policy]\nlevel = 2\n") == 2);
     CHECK(keur::config::policy_level("version=\"1\"\n[policy]\nblock-at=0.85\nlevel = 5\n") == 5);
