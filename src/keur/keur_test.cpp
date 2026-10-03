@@ -1288,11 +1288,11 @@ SCENARIO("[feature:rules] rule_ilities falls back to category when ilities empty
     keur::Rule r; r.category = "sqli";          // no explicit ilities
     auto ils = keur::rule_ilities(r);
     REQUIRE(ils.size() == 1);
-    CHECK(ils[0] == "security");                 // sqli -> security
+    CHECK(ils[0] == "integrity");                // sqli -> Security/integrity (ISO 25010)
     keur::Rule a; a.category = "a11y";
-    CHECK(keur::rule_ilities(a)[0] == "inclusivity");
+    CHECK(keur::rule_ilities(a)[0] == "accessibility");   // a11y -> Usability/accessibility
     keur::Rule u; u.category = "totally-unknown";
-    CHECK(keur::rule_ilities(u)[0] == "quality"); // unknown -> quality bucket
+    CHECK(keur::rule_ilities(u)[0] == "analysability");   // unknown -> Maintainability/analysability
 }
 
 SCENARIO("[feature:rules] rule_active resolves OR/max over ilities") {  // @proves ADR-039.resolve
