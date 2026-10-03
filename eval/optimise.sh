@@ -214,8 +214,128 @@ ollama() {
     local prompt="$1"
     local body
     body=$(python3 -c "import json,sys;print(json.dumps({'model':sys.argv[1],'prompt':sys.argv[2],'stream':False,'keep_alive':'10m','options':{'temperature':0.2,'num_predict':500}}))" "$MODEL" "$prompt")
-    curl -s "$OLLAMA_URL/api/generate" -d "$body" \
+    curl -s --connect-timeout 10 --max-time "${KEUR_OLLAMA_TIMEOUT:-180}" "$OLLAMA_URL/api/generate" -d "$body" \
       | python3 -c "import json,sys;print(json.load(sys.stdin).get('response','').strip())"
+}
+
+# ---------------------------------------------------------------------------
+# EXPLAINER GENERATION (ADR-036 §4). When the gate ACCEPTS a rule, the loop asks
+# the model — from the SAME context it just used to author the rule — for the
+# human/AI-facing explainer, and writes it to docs/rules/<ID>.md. A rule and its
+# doc are born together; `keur learn <RULE>` then serves it. The explainer is
+# DOCS, not a gate: an LLM draft is an acceptable starting point, marked
+# `reviewed: false` until a human/PR review flips it. Generation failure is
+# non-fatal — the rule is already accepted; the deterministic .rule fallback in
+# `keur learn` still works with zero explainers.
+# ---------------------------------------------------------------------------
+EXPLAINERS="$KEUR_HOME/docs/rules"           # generated explainer markdown lives here
+# The explainer needs PROSE, but the rule-primed model (keur-rule-engineer) is
+# instructed to emit ONLY .rule files, so it is the wrong tool here. Use a
+# general coder model for the explainer. Overridable via KEUR_EXPLAINER_MODEL.
+EXPLAINER_MODEL="${KEUR_EXPLAINER_MODEL:-qwen2.5-coder:14b-instruct-q5_K_M}"
+
+# ollama_with <model> <prompt> — like ollama() but on an explicit model, and
+# with a larger num_predict for prose (the explainer is longer than a rule).
+ollama_with() {
+    local model="$1" prompt="$2" body
+    body=$(python3 -c "import json,sys;print(json.dumps({'model':sys.argv[1],'prompt':sys.argv[2],'stream':False,'keep_alive':'10m','options':{'temperature':0.3,'num_predict':700}}))" "$model" "$prompt")
+    curl -s --connect-timeout 10 --max-time "${KEUR_OLLAMA_TIMEOUT:-180}" "$OLLAMA_URL/api/generate" -d "$body" \
+      | python3 -c "import json,sys;print(json.load(sys.stdin).get('response','').strip())"
+}
+
+# build_explainer_prompt <rule-file-text> — ask for the fixed explainer sections
+# (why / unsafe / safe / fix / references) as markdown prose, given the rule.
+build_explainer_prompt() {
+    local rule="$1"
+    cat <<EOF
+Below is a keur detection .rule. Write a SHORT explainer in MARKDOWN for the
+developer or AI that hit this finding — so they understand it and can fix it.
+
+--- BEGIN RULE ---
+$rule
+--- END RULE ---
+
+Output EXACTLY these markdown sections and nothing else (no code fences around
+the whole thing, no preamble):
+
+## Why this matters
+<2-3 sentences: the risk in the GENERAL case, why the pattern is dangerous>
+
+## Unsafe (what fires)
+\`\`\`
+<a minimal example that this rule flags>
+\`\`\`
+
+## Safe (what does not)
+\`\`\`
+<the corrected form that does NOT fire>
+\`\`\`
+
+## Fix
+<the remediation in 1-2 sentences, consistent with the rule's fix: field>
+
+## References
+<CWE / OWASP links relevant to this rule's category; one per line, "- " prefixed>
+EOF
+}
+
+# generate_explainer <rule-file-path> — best-effort. Reads the accepted rule,
+# derives its id, asks the model for the explainer body, and writes
+# docs/rules/<ID>.md with a `reviewed: false` front matter + a generated header.
+# Skips silently if the id is unusable or a REVIEWED explainer already exists
+# (never overwrite human-reviewed docs). Returns 0 always (non-fatal).
+generate_explainer() {
+    local rule_path="$1"
+    [[ -f "$rule_path" ]] || return 0
+    local rule; rule="$(cat "$rule_path")"
+    local id title category severity
+    id="$(printf '%s\n' "$rule" | sed -n 's/^id:[[:space:]]*//p' | head -1)"
+    [[ -z "$id" ]] && return 0
+    title="$(printf '%s\n' "$rule" | sed -n 's/^title:[[:space:]]*//p' | head -1)"
+    category="$(printf '%s\n' "$rule" | sed -n 's/^category:[[:space:]]*//p' | head -1)"
+    severity="$(printf '%s\n' "$rule" | sed -n 's/^severity:[[:space:]]*//p' | head -1)"
+
+    mkdir -p "$EXPLAINERS"
+    local out="$EXPLAINERS/$id.md"
+    # Never clobber a human-reviewed explainer (reviewed: true present).
+    if [[ -f "$out" ]] && grep -qE '^reviewed:[[:space:]]*true' "$out"; then
+        echo "[explain] $id: reviewed explainer exists — leaving untouched"
+        return 0
+    fi
+
+    local body; body="$(ollama_with "$EXPLAINER_MODEL" "$(build_explainer_prompt "$rule")")"
+    if [[ -z "$body" ]]; then
+        echo "[explain] $id: model returned nothing — skipping (fallback still works)"
+        return 0
+    fi
+    # Strip a stray leading/trailing markdown fence the model may wrap it in.
+    # Portable (BSD+GNU): drop a first/last line that is only a ``` fence.
+    body="$(printf '%s\n' "$body" | awk '
+        { lines[NR]=$0 }
+        END{
+            start=1; end=NR
+            if (NR>0 && lines[1]   ~ /^[[:space:]]*```/)          start=2
+            if (NR>0 && lines[NR]  ~ /^[[:space:]]*```[[:space:]]*$/) end=NR-1
+            for (i=start; i<=end; i++) print lines[i]
+        }')"
+
+    {
+        echo "---"
+        echo "reviewed: false"
+        echo "generated: true"
+        echo "---"
+        echo ""
+        printf '# %s' "$id"
+        [[ -n "$title" ]] && printf ' — %s' "$title"
+        echo ""
+        printf 'category: %s · severity: %s\n\n' "${category:-?}" "${severity:-?}"
+        printf '%s\n' "$body"
+        echo ""
+        echo "## Suppress (if genuinely a false positive)"
+        echo "\`# keur:ignore $id\`  (or a .keurignore entry — ADR-035)"
+    } > "$out"
+    echo "[explain] wrote $out (reviewed: false — review before trusting)"
+    return 0
 }
 
 # build the rule-authoring prompt from a missed finding + an example file.
@@ -433,11 +553,18 @@ FLOOR          = $MIN_PRECISION
 # The floor is a hard limit; it never moves down.
 train_ok = (c_r > b_r) and (c_p >= FLOOR) and (c_p >= b_p - 1e-9)
 # Generalisation check, but only when the holdout can actually MEASURE
-# precision. If the candidate fired nothing on holdout (h_tp+h_fp == 0),
-# precision is undefined (reported as 0.0) — that is NOT evidence of noise, so
-# we do not punish it; fall back to the train-precision gate. Only when the
-# rule DID fire on holdout do we require it to stay clean.
-holdout_measurable = (h_tp + h_fp) > 0
+# precision MEANINGFULLY. Precision = tp/(tp+fp) is only informative about a
+# candidate when the holdout contains at least one TRUE POSITIVE for it to hit
+# (h_tp > 0). Two degenerate cases must NOT punish the candidate:
+#   - h_tp+h_fp == 0 : the rule fired nothing on holdout — precision undefined.
+#   - h_tp == 0 (h_fp > 0): the holdout split has NO positives this rule can
+#     match, so precision is definitionally 0.0 no matter how good the rule is —
+#     that is a property of the SPLIT, not noise from the candidate. (This was a
+#     dead gate: with a positives-free holdout every candidate inherited
+#     precision 0.0 and was rejected forever — 0 accepts across a whole run.)
+# Only when the rule DID land a true positive on holdout do we require it to
+# stay clean; otherwise fall back to the train-precision gate.
+holdout_measurable = (h_tp > 0)
 holdout_ok = (h_p >= FLOOR) if holdout_measurable else True
 print('yes' if (train_ok and holdout_ok) else 'no')")"
 
@@ -465,6 +592,7 @@ print('yes' if (train_ok and holdout_ok) else 'no')")"
         fi
         cp "$tmpd/candidate.rule" "$LEARNED/${id:-learned-$iter}.rule"
         echo "[iter $iter] ACCEPT -> rules/learned/${id:-learned-$iter}.rule (holdout recall=$h_recall)"
+        generate_explainer "$LEARNED/${id:-learned-$iter}.rule"
         log_attempt "$iter" "$attempt" "$(echo "$fn"|awk '{print $2}')" accept accepted "$cand_rx"
         record "$iter" accept "$c_recall" "$c_prec" "${id} holdout_recall=$h_recall"
         rm -rf "$tmpd"; return 0
@@ -481,7 +609,7 @@ if not (c_r > b_r):
     msgs.append(f'recall did not rise (was {b_r:.3f}, your rule {c_r:.3f}) — it matched nothing NEW; broaden the pattern to catch this case and similar ones')
 if c_p < FLOOR or c_p < b_p-1e-9:
     msgs.append(f'precision dropped too far ({c_p:.3f}, floor {FLOOR}, baseline {b_p:.3f}) — the rule is too broad and fires on safe code; tighten it or add an exclude:')
-if (h_tp+h_fp)>0 and h_p < FLOOR:
+if (h_tp)>0 and h_p < FLOOR:
     msgs.append(f'on the holdout set precision was {h_p:.3f} (fp={h_fp}) — it generalises as NOISE; make it more specific')
 print('; '.join(msgs) or 'the benchmark did not improve')")"
         if [[ "$attempt" -lt "$max_attempts" ]]; then
@@ -539,14 +667,17 @@ gate_verdict() {
 b_r,b_p,c_r,c_p=float('$b_recall'),float('$b_prec'),float('$c_recall'),float('$c_prec')
 h_p=float('$h_prec'); h_tp,h_fp=int('$h_tp'),int('$h_fp'); FLOOR=$MIN_PRECISION
 train_ok = (c_r > b_r) and (c_p >= FLOOR) and (c_p >= b_p - 1e-9)
-holdout_ok = (h_p >= FLOOR) if (h_tp+h_fp)>0 else True
+# holdout precision is only meaningful when the split has a true positive to hit
+# (h_tp>0); a positives-free holdout gives precision 0.0 for ANY rule, which is a
+# property of the split, not the candidate — don't punish it (see iterate_once).
+holdout_ok = (h_p >= FLOOR) if (h_tp>0) else True
 if train_ok and holdout_ok:
     print('')
 else:
     msgs=[]
     if not (c_r > b_r): msgs.append('recall did not rise (was %.3f, seed %.3f) — broaden to catch this case and its siblings'%(b_r,c_r))
     if c_p < FLOOR or c_p < b_p-1e-9: msgs.append('precision too low (%.3f, floor %s) — tighten or add an exclude:'%(c_p,FLOOR))
-    if (h_tp+h_fp)>0 and h_p < FLOOR: msgs.append('holdout precision %.3f (fp=%d) — generalises as noise; be more specific'%(h_p,h_fp))
+    if (h_tp)>0 and h_p < FLOOR: msgs.append('holdout precision %.3f (fp=%d) — generalises as noise; be more specific'%(h_p,h_fp))
     print('; '.join(msgs) or 'benchmark did not improve')
 "
 }
@@ -641,6 +772,7 @@ seed_iterate_once() {
     if [[ -z "$why" ]]; then
         cp "$tmpd/candidate.rule" "$LEARNED/${seed_id:-seed-$iter}.rule"
         echo "[seed $iter] ACCEPT as-is -> rules/learned/${seed_id:-seed-$iter}.rule (recall=$SEED_C_RECALL prec=$SEED_C_PREC)"
+        generate_explainer "$LEARNED/${seed_id:-seed-$iter}.rule"
         log_attempt "$iter" 0 "seed-$seed_src" accept accepted-as-is "$seed_id"
         record "$iter" accept "$SEED_C_RECALL" "$SEED_C_PREC" "${seed_id} source=$seed_src seed=as-is"
         rm -rf "$tmpd"; return 0
@@ -691,6 +823,7 @@ seed_iterate_once() {
       if [[ -z "$why" ]]; then
           cp "$tmpd/candidate.rule" "$LEARNED/${seed_id:-seed-$iter}.rule"
           echo "[seed $iter] ACCEPT refined -> rules/learned/${seed_id:-seed-$iter}.rule (recall=$SEED_C_RECALL prec=$SEED_C_PREC)"
+          generate_explainer "$LEARNED/${seed_id:-seed-$iter}.rule"
           log_attempt "$iter" "$attempt" "seed-$seed_src" accept accepted-refined "$cand_rx"
           record "$iter" accept "$SEED_C_RECALL" "$SEED_C_PREC" "${seed_id} source=$seed_src seed=refined"
           rm -rf "$tmpd"; return 0
@@ -715,7 +848,7 @@ case "${1:-iterate}" in
     MAX_STALL="${KEUR_MAX_STALL:-8}"
     stall=0
     # Stop files: honour both the supervisor's STOP and the loop stop-file, so
-    # `keur learn --stop` (and supervise.sh stop) end the run promptly between
+    # `keur train --stop` (and supervise.sh stop) end the run promptly between
     # iterations, not only at a phase boundary.
     STOP_SUP="$HERE/.run/STOP"; STOP_LOOP="/tmp/stop-keur-eval-loop"
     for i in $(seq 1 "$N"); do
@@ -740,7 +873,7 @@ case "${1:-iterate}" in
     N="${2:-${KEUR_SEED_BATCH:-5}}"
     # All-night resilience: if the queue is missing OR empty, (re)build it from
     # CPM rules + recovered rejected near-misses instead of exiting. This lets
-    # `keur learn` (default seed-iterate) run unattended: the supervisor never
+    # `keur train` (default seed-iterate) run unattended: the supervisor never
     # hits a hard exit just because the queue was consumed.
     if [[ ! -s "$SEED_QUEUE" ]]; then
       echo "seed queue missing/empty — (re)building via seed-harvest.sh"
@@ -768,5 +901,23 @@ case "${1:-iterate}" in
     done
     echo "seed-iterate done: consumed=$consumed accepted=$accepted remaining=$(wc -l < "$SEED_QUEUE" | tr -d ' ')"
     ;;
-  *) echo "usage: eval/optimise.sh {iterate [N]|baseline|seed-iterate [N]}"; exit 1 ;;
+  explain)
+    # ADR-036 §4 back-fill: generate docs/rules/<ID>.md for an EXISTING rule
+    # from its .rule fields. Usage: eval/optimise.sh explain <RULE-ID>
+    RID="${2:-}"
+    [[ -z "$RID" ]] && { echo "usage: eval/optimise.sh explain <RULE-ID>"; exit 1; }
+    # Locate the rule file by its id: line across all rule dirs (base + learned +
+    # any KEUR_RULES_DIRS). grep -rl on the exact "id: <RID>" line.
+    rule_file=""
+    IFS=':' read -ra _dirs <<< "$BASE_RULES:$LEARNED:${KEUR_RULES_DIRS:-}"
+    for d in "${_dirs[@]}"; do
+      [[ -d "$d" ]] || continue
+      hit="$(grep -rlE "^id:[[:space:]]*$RID[[:space:]]*\$" "$d" --include='*.rule' 2>/dev/null | head -1)"
+      [[ -n "$hit" ]] && { rule_file="$hit"; break; }
+    done
+    [[ -z "$rule_file" ]] && { echo "explain: no rule file found for id '$RID'"; exit 1; }
+    echo "explain: $RID -> $rule_file"
+    generate_explainer "$rule_file"
+    ;;
+  *) echo "usage: eval/optimise.sh {iterate [N]|baseline|seed-iterate [N]|explain <RULE-ID>}"; exit 1 ;;
 esac

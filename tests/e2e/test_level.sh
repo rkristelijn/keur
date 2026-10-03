@@ -17,8 +17,17 @@ rc=$?
 [[ "$rc" -eq 0 ]] && ok "level --print exits 0" || fail "level --print exit $rc"
 
 # The logo is braille (U+28xx block: ⠀..⣿). Look for a filled glyph like ⠿/⣿.
-echo "$out" | grep -qE '[⠀-⣿]' && ok "output contains braille logo glyphs" \
-                                || fail "no braille logo glyphs in output"
+# The character-class range is multibyte, so it only matches under a UTF-8
+# locale: GNU grep (Linux CI) treats the bytes literally under LC_ALL=C and the
+# range silently fails, while BSD grep (macOS) matches regardless. Pin a UTF-8
+# locale here so the check behaves identically on every runner.
+braille_locale="C.UTF-8"
+locale -a 2>/dev/null | grep -qiE '^C\.utf-?8$' || braille_locale="en_US.UTF-8"
+if echo "$out" | LC_ALL="$braille_locale" grep -qE '[⠀-⣿]'; then
+  ok "output contains braille logo glyphs"
+else
+  fail "no braille logo glyphs in output"
+fi
 
 # All five level names appear (text, not braille).
 for name in "I'm Too Young to KEUR" "Hey, Not Too Sure" "KEUR Me Plenty" \

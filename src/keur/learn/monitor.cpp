@@ -1,6 +1,6 @@
 /**
  * @file learn/monitor.cpp
- * @brief keur learn TUI — reads state, renders a responsive frame.
+ * @brief keur train TUI — reads state, renders a responsive frame.
  */
 #include "learn/monitor.h"
 
@@ -179,7 +179,7 @@ void draw_frame(const std::string& home) {
 
   std::cout << "\033[2J\033[H";  // clear + home
   std::string status = sup.running ? "RUNNING" : "stopped";
-  std::string head = "keur learn · loop " + status;
+  std::string head = "keur train · loop " + status;
   if (!sup.phase.empty()) head += " · phase " + sup.phase;
   std::cout << head << "\n";
 
@@ -262,7 +262,7 @@ void draw_frame(const std::string& home) {
   } else if (!sup.last_log.empty()) {
     std::cout << render::truncate_to("log: " + sup.last_log, inner_total) << "\n";
   }
-  std::cout << "(Ctrl+C leaves monitor; loop keeps running · keur learn --stop)\n";
+  std::cout << "(Ctrl+C leaves monitor; loop keeps running · keur train --stop)\n";
   std::cout.flush();
 }
 
