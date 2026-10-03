@@ -1,0 +1,24 @@
+# keur C++ nudge (LEAF) — a lambda that is STORED: assigned to a member/variable
+# or returned, so it can outlive its enclosing scope. On its own this is neutral
+# (storing a lambda is fine if it captures nothing dangerous). It becomes the
+# sharp finding only in composite KEUR-CPP-003, AND-ed with the all-capture leaf
+# (KEUR-CPP-001): a stored all-capture lambda is the dangling-reference shape.
+# @see ADR-040  @implements ADR-040
+id: KEUR-CPP-002
+ilities: [analysability]
+maturity: 5
+title: Lambda stored (assigned or returned)
+category: quality
+severity: info
+engine: pattern
+action: advisory
+target:
+  extensions: .cpp .cc .h .hpp
+  exclude_paths: vendor/ ../rules/ build/ dist/
+patterns:
+  - regex: =\s*\[\s*[&=]?\s*[^]]*\]\s*(\(|\{)
+    message: "A lambda is stored (assigned). If it captures by reference and outlives the captured scope, the reference dangles. @see KEUR-CPP-002"
+  - regex: return\s*\[\s*[&=]?\s*[^]]*\]\s*(\(|\{)
+    message: "A lambda is returned — it outlives this scope; by-reference captures will dangle. @see KEUR-CPP-002"
+confidence: 0.4
+fix: "If the stored/returned lambda captures by reference, switch to capture-by-value or a shared owner so nothing dangles."

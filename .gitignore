@@ -54,3 +54,4 @@ eval/.awssec.tmp
 
 # local agent coordination channel (not project history)
 .agent-mailbox/
+eval/__pycache__/
