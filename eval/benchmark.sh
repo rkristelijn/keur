@@ -43,7 +43,10 @@ mkdir -p "$OUT"
 
 # --- time a command in seconds (python perf_counter — macOS-safe) -----------
 timed() {  # timed <label> <outfile> -- <cmd...>
-  local label="$1" outfile="$2"; shift 2; [[ "$1" == "--" ]] && shift
+  local label="$1" outfile="$2"; shift 2
+  # Assign the positional to a local before testing it (Sonar S6641): the
+  # optional "--" separator is consumed here so "$@" is just the command.
+  local sep="${1:-}"; [[ "$sep" == "--" ]] && shift
   local t0 t1
   t0=$(python3 -c 'import time;print(time.perf_counter())')
   "$@" > "$outfile" 2>/dev/null || true

@@ -100,7 +100,7 @@ install -m 755 bin/keur /usr/local/bin/keur
 keur hook   [--install | --global | --status | --remove [--global]]
 keur scan   [path]
 keur check  [--tier pre-commit|pre-push] [--ai off] [--config <file>]
-keur learn  [--source corpus|keureval|alternate] [--model <name>]
+keur train  [--source corpus|keureval|alternate] [--model <name>]
             [--status | --stop | --no-spin | --refresh <sec>]
 keur policy explain
 keur version
@@ -171,18 +171,22 @@ keur check --config keur.toml   # explicit config path
 Exit code: `0` for PASS or WARN, `1` for BLOCK. When nothing is staged, check
 prints a PASS and exits `0`. Progress and the verdict are printed to stderr.
 
-### learn
+### train
 
-Trains keur's own rule set. Where `check` and `scan` *apply* rules, `learn`
+> `keur learn` is a **deprecated alias** for `keur train` (ADR-036): the loop
+> *trains keur*, not the user. It still works — it prints a notice and forwards
+> to `keur train` — but switch your scripts to `train`.
+
+Trains keur's own rule set. Where `check` and `scan` *apply* rules, `train`
 *produces* them: it runs a self-improving loop that grows `rules/learned/`
 against a benchmark, so the detector gets better over time without you
 hand-writing every rule.
 
 ```bash
 ollama create keur-rule-engineer -f eval/Modelfile   # one-time: build the primed model
-keur learn --source alternate                         # start training (auto-uses the primed model)
-keur learn --status                                   # dashboard only, no loop
-keur learn --stop                                     # end the background loop
+keur train --source alternate                         # start training (auto-uses the primed model)
+keur train --status                                   # dashboard only, no loop
+keur train --stop                                     # end the background loop
 ```
 
 Use the expertise-primed `keur-rule-engineer` model (see below): it is built to
@@ -219,16 +223,16 @@ loop pick it up automatically (omit `--model`):
 
 ```bash
 ollama create keur-rule-engineer -f eval/Modelfile
-keur learn --source alternate            # auto-uses keur-rule-engineer if built
+keur train --source alternate            # auto-uses keur-rule-engineer if built
 ```
 
 To prime a different base model, edit the `FROM` line in `eval/Modelfile`
 before `ollama create`. Passing `--model <name>` always overrides this and uses
 the named model as-is (unprimed).
 
-`learn` runs the loop as a supervised background job (`eval/supervise.sh`) and
+`train` runs the loop as a supervised background job (`eval/supervise.sh`) and
 opens a live monitor in the foreground; the loop keeps running after you close
-the monitor, until `keur learn --stop`. Watch progress any time with
+the monitor, until `keur train --stop`. Watch progress any time with
 `eval/progress.sh` (add `watch` for a refreshing view).
 
 Training on your own signal: because the ground truth is source-agnostic
