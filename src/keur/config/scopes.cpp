@@ -75,7 +75,7 @@ std::vector<Layer> resolve_layers(
     // Each optional file layer is added when its path is resolvable; `exists`
     // records whether the file is actually on disk (a layer can be "known but
     // absent", which the UI shows as a place a config *could* live).
-    auto add = [&](Scope scope, const std::string& path) {
+    auto add = [&layers, &file_exists](Scope scope, const std::string& path) {
         if (path.empty()) return;
         layers.push_back({scope, path, file_exists(path)});
     };

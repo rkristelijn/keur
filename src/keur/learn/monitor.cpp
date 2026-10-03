@@ -50,7 +50,7 @@ RuleStats read_rule_stats(const std::string& home) {
   namespace fs = std::filesystem;
   RuleStats s;
   std::error_code ec;
-  auto count_dir = [&](const std::string& dir, bool into_cat) {
+  auto count_dir = [&ec, &s](const std::string& dir, bool into_cat) {
     fs::path p(dir);
     if (!fs::is_directory(p, ec)) return;
     for (auto& e : fs::directory_iterator(p, ec)) {

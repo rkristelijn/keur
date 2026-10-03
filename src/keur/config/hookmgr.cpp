@@ -74,7 +74,7 @@ HookSituation detect_hook_situation(const HookProbe& probe) {
     // manager's dir means that manager owns hooks now (this is the Husky case:
     // core.hooksPath = .husky/_). Otherwise, a detected manager owns them; else
     // an effective path (keur's global) makes keur the owner; else nobody.
-    auto path_points_into = [&](const char* frag) {
+    auto path_points_into = [&s](const char* frag) {
         return !s.effective_path.empty() &&
                s.effective_path.find(frag) != std::string::npos;
     };

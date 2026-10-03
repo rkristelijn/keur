@@ -145,7 +145,7 @@ std::vector<Scanner> parse_scanners(const std::string& toml_body) {
     std::string line;
     size_t pos = 0;
 
-    auto next_line = [&](std::string& out) -> bool {
+    auto next_line = [&pos, &toml_body](std::string& out) -> bool {
         if (pos >= toml_body.size()) return false;
         size_t nl = toml_body.find('\n', pos);
         if (nl == std::string::npos) { out = toml_body.substr(pos); pos = toml_body.size(); }
@@ -206,7 +206,7 @@ std::vector<std::string> tier_scanners(const std::string& toml_body,
     // Split on commas, strip quotes/whitespace.
     std::vector<std::string> out;
     std::string cur;
-    auto flush = [&]() {
+    auto flush = [&cur, &out]() {
         std::string v = trim(cur);
         if (v.size() >= 2 && (v.front() == '"' || v.front() == '\'') && v.back() == v.front())
             v = v.substr(1, v.size() - 2);

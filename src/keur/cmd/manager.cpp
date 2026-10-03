@@ -387,7 +387,7 @@ int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps) {
             defaults.settings.push_back({"Scanners", sc.name, v});
         }
         // A couple of headline policy values, parsed leniently from the body.
-        auto policy_val = [&](const std::string& key) -> std::string {
+        auto policy_val = [&tmpl](const std::string& key) -> std::string {
             std::size_t p = tmpl.find(key);
             if (p == std::string::npos) return "";
             std::size_t eq = tmpl.find('=', p);
@@ -454,7 +454,9 @@ int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps) {
     // Run a hook action (chain/unchain keur into the repo's manager hook) from
     // an ActionNode, then rebuild the model so the Hooks branch refreshes (the
     // ⚠ clears once keur is chained). Preserves the cursor position.
-    auto run_action = [&](const std::string& action) {
+    // Local helper invoked immediately in this scope (not stored), capturing
+    // ~10 locals; an explicit list adds noise without removing dangling risk.
+    auto run_action = [&](const std::string& action) {  // keur:ignore KEUR-CPP-001 — reviewed: local, not stored
         if (action.empty() || repo_root.empty()) return;
         keur::cmd::HookOptions ho;
         ho.action = keur::cmd::HookAction::Augment;
@@ -631,7 +633,7 @@ int manager(const ManagerOptions& opts, const ManagerDeps& deps) {
     auto declared = config::parse_scanners(scanner_toml);
     config::ScannerProbe sp;
     sp.tool_on_path = [](const std::string& t) { return keur::platform::tool_on_path(t); };
-    sp.exists = [&](const std::string& p) { return deps.fs.exists(p); };
+    sp.exists = [&deps](const std::string& p) { return deps.fs.exists(p); };
     sp.repo_root = repo_root;
     board.scanners = config::resolve_scanners(declared, sp);
 
