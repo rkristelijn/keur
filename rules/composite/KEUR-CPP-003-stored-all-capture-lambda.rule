@@ -1,0 +1,21 @@
+# Composite (ADR-009): a file that has BOTH an all-capture lambda (KEUR-CPP-001)
+# AND a stored/returned lambda (KEUR-CPP-002) is the real dangling-reference
+# shape — a [&]/[=] lambda kept past its scope. Either leaf alone is weak
+# (a direct-call [&] is safe; storing a no-capture lambda is fine); together
+# they are the pattern Sonar's data-flow flags. The engine stays dumb — the
+# "both matter" logic is DATA here, like KEUR-IAC-010.
+# @see docs/adr/ADR-040-engine-coverage-gaps.md
+# @implements ADR-009.composite ADR-040
+id: KEUR-CPP-003
+ilities: [analysability]
+maturity: 5
+title: Stored all-capture lambda — likely dangling reference
+category: quality
+severity: warning
+engine: composite
+action: warn
+confidence: 0.65
+composite:
+  all: KEUR-CPP-001 KEUR-CPP-002
+message: "This file both captures a whole scope in a lambda ([&]/[=]) AND stores/returns a lambda — the dangling-reference shape. Give the stored lambda an explicit capture list and capture by value (or a shared owner) if it outlives the scope. @see KEUR-CPP-003"
+fix: "Replace [&]/[=] with an explicit capture list; for a lambda stored in a member or returned, capture by value rather than by reference."

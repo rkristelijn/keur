@@ -72,7 +72,7 @@ std::string unquote(std::string v) {
 
 void parse_difficulty(const std::string& toml_body, DifficultyVector& out_vec,
                       std::map<std::string, bool>& out_overrides) {
-    for_each_toml_line(toml_body, [&](const std::string& section, const std::string& line) {
+    for_each_toml_line(toml_body, [&out_vec, &out_overrides](const std::string& section, const std::string& line) {
         size_t eq = line.find('=');
         if (eq == std::string::npos) return;
         std::string key = line.substr(0, eq);
