@@ -48,7 +48,7 @@ std::string config_layer_line(const config::Layer& l) {
 
 std::vector<std::string> config_render_text(const std::vector<config::Layer>& layers) {
     std::vector<std::string> out;
-    out.emplace_back("keur config layers (general \u2192 specific; later overrides earlier)");
+    out.emplace_back("keur config layers (general → specific; later overrides earlier)");
     for (const auto& l : layers) out.emplace_back(config_layer_line(l));
     return out;
 }

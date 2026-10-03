@@ -50,6 +50,12 @@ BIN    = $(BINDIR)/keur
 
 REPO_ROOT := $(shell cd ../.. && pwd -P)
 
+# UTF-8 locale for codegen (gen-catalog bakes rule titles into C++ strings; a
+# non-UTF-8 locale like CI's LC_ALL=C splits multibyte chars — e.g. em-dashes —
+# mid-byte and emits broken string literals). Pick one the host actually has:
+# C.UTF-8 on Linux/CI, en_US.UTF-8 on macOS.
+UTF8_LOCALE := $(shell locale -a 2>/dev/null | grep -iqE '^C\.utf-?8$$' && echo C.UTF-8 || echo en_US.UTF-8)
+
 # Rule engine (shared, lower layer)
 RULES_OBJ = $(BINDIR)/rule_parse.o $(BINDIR)/rule_match.o $(BINDIR)/rule_scan.o $(BINDIR)/rule_block.o $(BINDIR)/rule_engines.o $(BINDIR)/rule_facts.o $(BINDIR)/rule_semver.o $(BINDIR)/rule_composite.o $(BINDIR)/rule_resolve.o
 TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
@@ -244,7 +250,7 @@ $(BINDIR)/keur_manager_view.o: manager/view.cpp manager/view.h manager/model.h r
 # .rule under rules/ changes. @implements KEUR-MANAGER-CATALOG
 RULE_FILES := $(shell find $(REPO_ROOT)/rules -name '*.rule' 2>/dev/null)
 manager/catalog_generated.cpp: $(REPO_ROOT)/scripts/gen-catalog.sh $(RULE_FILES)
-	$(REPO_ROOT)/scripts/gen-catalog.sh $@ $(REPO_ROOT)/rules
+	LC_ALL=$(UTF8_LOCALE) $(REPO_ROOT)/scripts/gen-catalog.sh $@ $(REPO_ROOT)/rules
 
 .PHONY: catalog
 catalog: manager/catalog_generated.cpp ## Regenerate the baked rule catalogue

@@ -37,6 +37,15 @@ struct HookManager {
     std::string signature;   ///< the file/dir that identifies it (e.g. ".husky/")
     HookKind    kind = HookKind::Manager;  ///< manager (owns hooks) vs runner (in a hook)
     bool        detected = false;
+
+    HookManager() = default;
+    // Explicit constructor so vector::emplace_back works on every toolchain:
+    // libc++ (macOS Xcode CI) cannot emplace a constructor-less aggregate.
+    // @see KEUR-PORT-007
+    HookManager(std::string name_, std::string signature_,
+                HookKind kind_ = HookKind::Manager, bool detected_ = false)
+        : name(std::move(name_)), signature(std::move(signature_)),
+          kind(kind_), detected(detected_) {}
 };
 
 /// Where git will actually look for hooks in this repo, and who owns that path.

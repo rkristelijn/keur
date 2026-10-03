@@ -1,0 +1,37 @@
+# keur quality control — a printable Unicode glyph written as a numeric \uXXXX
+# escape instead of the literal UTF-8 character.
+#
+# Why this exists: SonarCloud (cpp:S6659) flagged keur's TUI glyphs (✓ ☐ • ◦ ▼ ▶
+# and the → arrow) written as \u2713-style escapes. The braced forms Sonar
+# suggests (\u{2713}) are C++23; keur builds -std=c++20 on gcc/clang/MSVC, so the
+# portable, reviewable fix is to write the literal UTF-8 character in the source
+# string. That also reads better in a diff. This rule makes it a keur-native
+# check so the next escaped glyph is caught at commit time — fix + control.
+#
+# What it flags — a \uXXXX escape for a codepoint in the printable/symbol range
+# (>= U+00A1), i.e. a real glyph. It deliberately does NOT flag control
+# characters (ESC \033 / \x1b for ANSI SGR sequences), which have no readable
+# literal and are legitimately written as escapes.
+#
+# WARN, not block: a readability/portability smell, not a bug. Tests excluded —
+# key-decoding tests assert on literal escape sequences on purpose.
+#
+# @see SonarCloud cpp:S6659.
+id: KEUR-QUAL-011
+title: Write printable Unicode glyphs as literal UTF-8, not \uXXXX escapes
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .c .cpp .cc .cxx .h .hpp .hh
+  exclude_paths: test/ tests/ _test.cpp vendor/ build/ dist/
+patterns:
+  # Any \uXXXX escape (4 hex). keur's TUI uses only printable glyphs
+  # (bullets, arrows, checkmarks, middle dot); there are no \u00xx control
+  # escapes here. ANSI ESC is written \033 (octal), so it never matches \u.
+  - regex: \\u[0-9A-Fa-f]{4}
+    message: "Printable Unicode glyph written as a \\uXXXX escape — write the literal UTF-8 character instead (Sonar suggests \\u{...}, but that is C++23; UTF-8 is portable on -std=c++20 and clearer in diffs). @see KEUR-QUAL-011, SonarCloud cpp:S6659"
+confidence: 0.6
+fix: "Replace the \\uXXXX escape with the literal UTF-8 glyph in the string (e.g. \\u2713 -> the ✓ character). Keep numeric escapes only for control characters like ESC (\\033) in ANSI sequences, which have no readable literal."

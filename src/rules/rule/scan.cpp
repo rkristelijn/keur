@@ -212,19 +212,31 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
 
     // Comment/string-aware matching (ADR-004 stage 1): strip once per file when
     // an applicable rule opts in; match those rules against the stripped lines.
+    //
+    // Two independent strip variants, chosen PER RULE by its own flags. A single
+    // shared "widest strip" is wrong: if one rule wants skip_strings and another
+    // only skip_comments, a shared comments+strings strip would blank out the
+    // string literals that the skip_comments-only rule needs to match (its
+    // pattern often targets text inside a string, e.g. a \uXXXX escape). So we
+    // keep comments-only and comments+strings separate.
     bool need_comments = false, need_strings = false;
     for (auto* r : filtered) {
-      if (r->skip_comments) need_comments = true;
+      if (r->skip_comments && !r->skip_strings) need_comments = true;
       if (r->skip_strings) need_strings = true;
     }
-    std::string stripped_content;
-    std::vector<re2::StringPiece> stripped_lines;
+    std::string comments_only_content, comments_strings_content;
+    std::vector<re2::StringPiece> comments_only_lines, comments_strings_lines;
     if (need_comments || need_strings) {
       const LangSyntax* syntax = lang_syntax(get_ext(rel));
       if (syntax) {
-        stripped_content = need_strings ? strip_comments_and_strings(content, syntax)
-                                        : strip_comments(content, syntax);
-        split_lines(stripped_content, stripped_lines);
+        if (need_comments) {
+          comments_only_content = strip_comments(content, syntax);
+          split_lines(comments_only_content, comments_only_lines);
+        }
+        if (need_strings) {
+          comments_strings_content = strip_comments_and_strings(content, syntax);
+          split_lines(comments_strings_content, comments_strings_lines);
+        }
       }
     }
 
@@ -232,8 +244,12 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
     for (auto* r : filtered) {
       auto& c = compiled[to_compiled[r]];
       const std::string engine = r->engine.empty() ? "pattern" : r->engine;
+      // Pick the strip variant that matches THIS rule's flags: strings-stripping
+      // implies comments too; comments-only keeps string literals intact.
       const std::vector<re2::StringPiece>& lines =
-          ((r->skip_comments || r->skip_strings) && !stripped_lines.empty()) ? stripped_lines : raw_lines;
+          (r->skip_strings && !comments_strings_lines.empty())      ? comments_strings_lines
+          : (r->skip_comments && !comments_only_lines.empty())      ? comments_only_lines
+                                                                    : raw_lines;
 
       // Engine dispatch via the strategy registry (ADR-014): look up the engine
       // by name and run it. File-level engines run separately over the fileset,
