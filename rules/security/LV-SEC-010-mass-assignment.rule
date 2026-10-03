@@ -1,0 +1,20 @@
+id: LV-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Laravel unguarded model — mass assignment (CVE-2025-2304)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .php
+  exclude_paths: test/ tests/ vendor/ .git/ build/
+patterns:
+  - regex: \$guarded\s*=\s*\[\s*\]
+    message: "Empty $guarded array — all attributes mass-assignable, enabling privilege escalation (is_admin=true)"
+  - regex: Model::create\(\$request->all\(\)
+    message: "Model::create with $request->all() — mass assignment without field filtering"
+  - regex: ->fill\(\$request->all\(\)
+    message: "fill() with $request->all() — mass assignment vulnerability"
+fix: Use $fillable to allowlist fields. Never set $guarded = []. Use $request->only(['field1', 'field2']).

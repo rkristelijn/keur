@@ -1,0 +1,20 @@
+id: BE-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Log injection / log forging
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: (?:log|logger|logging)\.\w+\(.*(?:req\.|request\.|params|body|query|input|user_input)
+    message: "User input in log statement — log injection risk. Attacker can forge log entries or inject ANSI/CRLF"
+  - regex: console\.(?:log|info|warn|error)\(.*(?:req\.|request\.|params\[|body\[|query\[)
+    message: "User input in console output — log injection/information exposure"
+  - regex: (?:log|logger)\.(?:info|warn|error|debug)\(.*\+\s*(?:req|param|input|user)
+    message: "String concat with user input in log — sanitize to prevent log forging (remove \\n, \\r)"
+fix: "Sanitize log input: strip newlines, encode special chars. Use structured logging (JSON). CWE-117"

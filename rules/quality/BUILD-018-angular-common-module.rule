@@ -1,0 +1,17 @@
+id: BUILD-018
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Angular @NgModule missing CommonModule or BrowserModule
+category: build
+severity: error
+engine: absence
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: @NgModule
+patterns:
+  - regex: CommonModule|BrowserModule|standalone:\s*true
+    message: "@NgModule without CommonModule/BrowserModule import — *ngIf, *ngFor, and other directives won't work"
+fix: Add CommonModule to the imports array, or use BrowserModule in the root AppModule.

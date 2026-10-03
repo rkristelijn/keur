@@ -1,0 +1,16 @@
+id: CLI-A11Y-011
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: Box-drawing characters in output without plain mode option
+category: a11y
+severity: info
+engine: presence
+target:
+  extensions: .cpp .c .h .go .rs .py .ts .js .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/
+patterns:
+  - regex: [─│┌┐└┘├┤┬┴┼═║╔╗╚╝╠╣╦╩╬]
+    message: "Box-drawing characters in source — screen readers may read these as individual Unicode names. Offer a --plain flag to disable decorative output."
+fix: "Add a --plain or --no-decorations flag. When active, use plain dashes, pipes, or omit borders entirely."

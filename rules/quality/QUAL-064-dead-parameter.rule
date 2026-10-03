@@ -1,0 +1,16 @@
+id: QUAL-064
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Unused/dead function parameter (prefixed with underscore convention)
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: function\s+\w+\s*\([^)]*,\s*_\w+
+    message: "Underscore-prefixed parameter (convention for unused) — consider removing or restructuring"
+fix: If a parameter is unused, consider whether the function signature can be simplified.

@@ -1,0 +1,17 @@
+id: RS-SEC-038
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: HTTP client without timeout
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: Client
+patterns:
+  - regex: Client::new\(\)|ClientBuilder::new\(\)\.build
+    message: HTTP client without explicit timeout — requests may hang indefinitely
+fix: Set a timeout with ClientBuilder::new().timeout(Duration::from_secs(30)).build()

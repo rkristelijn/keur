@@ -1,0 +1,17 @@
+id: ANS-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Shell/command instead of dedicated module
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: shell
+patterns:
+  - regex: ^\s*-?\s*(shell|command):\s*(apt|yum|pip|npm|gem|systemctl|service|mkdir|chmod|chown)
+    message: "Using shell/command for package management — use apt/yum/pip module instead"
+fix: Replace shell/command with the dedicated Ansible module. apt for apt, yum for yum, pip for pip, file for mkdir/chmod/chown, systemd for systemctl.

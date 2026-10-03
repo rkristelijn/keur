@@ -1,0 +1,17 @@
+id: RS-SEC-037
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Logging secrets
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: info!
+patterns:
+  - regex: (log::|tracing::)(debug|info|warn|error)!.*\b(password|secret|token|key|credential)
+    message: Logging potentially sensitive data — secrets must never appear in log output
+fix: Remove sensitive fields from log statements, or use a redacting formatter

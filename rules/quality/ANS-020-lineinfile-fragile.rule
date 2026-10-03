@@ -1,0 +1,17 @@
+id: ANS-020
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Lineinfile is fragile
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: lineinfile
+patterns:
+  - regex: lineinfile:
+    message: "lineinfile is fragile and order-dependent — use template for config management"
+fix: Replace lineinfile with template module for full config files. Use lineinfile only for single-line changes in files you don't own (e.g. /etc/hosts).

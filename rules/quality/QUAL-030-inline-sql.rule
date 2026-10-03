@@ -1,0 +1,18 @@
+id: QUAL-030
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Inline SQL antipattern
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .kt .cs .go .rb .php .rs
+  exclude_paths: test/ tests/ spec/ dist/ target/ migrations/
+patterns:
+  - regex: (?:SELECT|INSERT INTO|UPDATE|DELETE FROM)\s+\w+.*(?:SELECT|INSERT INTO|UPDATE|DELETE FROM|WHERE|JOIN|GROUP BY|ORDER BY|HAVING).*(?:WHERE|JOIN|GROUP BY|ORDER BY|HAVING)
+    message: "Complex multi-clause SQL inline in code — extract to a named query, view, or query builder"
+  - regex: (?:CREATE TABLE|ALTER TABLE|DROP TABLE|CREATE INDEX)
+    message: "DDL statement inline in code — extract to migration files"
+fix: "Extract complex SQL to named constants, repository methods, or migration files"

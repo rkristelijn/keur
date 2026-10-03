@@ -1,0 +1,17 @@
+id: CLI-A11Y-012
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: CLI tool without machine-readable output option
+category: a11y
+severity: info
+engine: absence
+target:
+  filenames: main.cpp main.c main.go main.rs main.py cli.py cli.ts cli.js index.ts index.js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/
+  content_contains: --help
+patterns:
+  - regex: --json|--plain|--format|--output-format|--machine-readable|-o\s+json
+    message: "CLI has --help but no machine-readable output format (--json/--plain) — assistive tech users and AI agents benefit from structured output"
+fix: "Add --json or --plain flag that outputs structured, parseable data. This helps screen reader users (who pipe through jq), AI agents, and CI systems."

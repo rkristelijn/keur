@@ -1,0 +1,17 @@
+id: ANS-010
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Using become without become_user
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: become:
+patterns:
+  - regex: become:\s*true|become:\s*yes
+    message: "become: true defaults to root — specify become_user for least-privilege"
+fix: Add become_user to specify the target user. Example: become_user: deploy. Only escalate to root when absolutely necessary.

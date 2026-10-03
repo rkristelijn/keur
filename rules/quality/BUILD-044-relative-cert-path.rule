@@ -1,0 +1,19 @@
+id: BUILD-044
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Relative path to SSL certificate
+category: build
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: cert
+patterns:
+  - regex: readFileSync\(\s*['"]\.\.?/.*\.(pem|crt|key|cert)
+    message: "Relative path to SSL certificate — breaks after build/deploy to a different directory structure"
+  - regex: readFile\(\s*['"]\.\.?/.*\.(pem|crt|key|cert)
+    message: "Relative path to SSL certificate — breaks when process.cwd() changes"
+fix: Use path.resolve(__dirname, ...) or path.join(__dirname, ...) for cert paths, or load from environment variable.

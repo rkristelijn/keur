@@ -1,0 +1,18 @@
+id: GO-SEC-020
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Goroutine without context cancellation
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: go\s+func\(\)\s*\{
+    message: "Anonymous goroutine without context — risk of goroutine leak if parent exits"
+  - regex: go\s+\w+\([^c]*\)$
+    message: "Goroutine launched without context parameter — cannot be cancelled"
+fix: Pass context.Context to goroutines and select on ctx.Done() for cleanup

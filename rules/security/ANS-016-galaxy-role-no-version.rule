@@ -1,0 +1,17 @@
+id: ANS-016
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Galaxy role without version pin
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  filenames: requirements.yml requirements.yaml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: src:
+patterns:
+  - regex: -\s*(role|src):\s*[a-z].*$
+    message: "Galaxy role without version pin — may break on role updates"
+fix: Add version pin to Galaxy roles. Example: - role: geerlingguy.docker, version: '6.1.0'. Always pin to exact versions for reproducibility.

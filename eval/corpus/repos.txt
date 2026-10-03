@@ -5,6 +5,15 @@
 #   - deliberately-vulnerable ("worst repo ever")  -> tests RECALL (catch the holes)
 #   - realistic clean OSS                           -> tests PRECISION (stay quiet on normal code)
 # The corpus was almost all vulnerable-by-design; the clean repos below balance it.
+#
+# Where to find MORE deliberately-vulnerable repos (the naslag/reference lists we
+# pick candidates from — all git repos with clonable source trees):
+#   - OWASP VWAD (Vulnerable Web Applications Directory):
+#       https://owasp.org/www-project-vulnerable-web-applications-directory/
+#       repo: https://github.com/OWASP/www-project-vulnerable-web-applications-directory
+#   - awesome-vulnerable-apps:  https://github.com/vavkamil/awesome-vulnerable-apps
+#   - awesome-vulnerable:       https://github.com/kaiiyer/awesome-vulnerable
+#   - GitHub topic:             https://github.com/topics/vulnerable-application
 
 # --- deliberately vulnerable (recall) — currently cloned ---------------------
 OWASP/NodeGoat
@@ -17,6 +26,8 @@ snyk-labs/nodejs-goof
 we45/DVFaaS-Damn-Vulnerable-Functions-as-a-Service
 payloadbox/sql-injection-payload-list
 swisskyrepo/PayloadsAllTheThings
+# NestJS + Next.js worst-repo (fills a stack gap: TS/Nest/Next/SQLite/TanStack).
+rkristelijn/mestjs
 
 # --- deliberately vulnerable (recall) — candidates to add --------------------
 # More holes, different languages/stacks, so recall is not measured on JS alone.

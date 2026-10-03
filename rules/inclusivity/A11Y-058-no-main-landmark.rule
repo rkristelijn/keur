@@ -1,0 +1,17 @@
+id: A11Y-058
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: No main landmark
+category: a11y
+severity: warning
+engine: absence
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <body
+patterns:
+  - regex: <main[\s>]
+    message: Page has no <main> landmark — helps screen readers find main content
+fix: Wrap main content in <main> element.

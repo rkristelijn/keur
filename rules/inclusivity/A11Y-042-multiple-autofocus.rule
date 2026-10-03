@@ -1,0 +1,17 @@
+id: A11Y-042
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Multiple autofocus
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: autofocus
+patterns:
+  - regex: \bautofocus\b
+    message: autofocus attribute found — ensure only one element per page has autofocus
+fix: Remove duplicate autofocus attributes.

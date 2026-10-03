@@ -1,0 +1,16 @@
+id: QUAL-072
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Long method chain (6+ dots — hard to debug)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \w+\.\w+\([^)]*\)\.\w+\([^)]*\)\.\w+\([^)]*\)\.\w+\([^)]*\)\.\w+\([^)]*\)\.\w+\(
+    message: "6+ chained method calls — hard to debug (which call failed?). Break into intermediate variables."
+fix: Break long chains into named intermediates. const filtered = items.filter(...); const sorted = filtered.sort(...).

@@ -1,0 +1,18 @@
+id: GO-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Potential command injection
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: exec\.Command\(.*(fmt\.Sprintf|\+)
+    message: Variable input in exec.Command — risk of command injection
+  - regex: exec\.CommandContext\(.*(fmt\.Sprintf|\+)
+    message: Variable input in exec.CommandContext — risk of command injection
+fix: Avoid shell execution with user input. Use argument arrays instead of string interpolation.

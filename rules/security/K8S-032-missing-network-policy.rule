@@ -1,0 +1,17 @@
+id: K8S-032
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Deployment missing NetworkPolicy
+category: security
+severity: info
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: kind: Deployment
+patterns:
+  - regex: NetworkPolicy
+    message: "No NetworkPolicy — all pods can communicate with all other pods by default"
+fix: Create NetworkPolicy resources to restrict ingress/egress traffic. Default-deny with explicit allow is the safest approach.

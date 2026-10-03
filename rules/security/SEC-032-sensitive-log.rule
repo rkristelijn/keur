@@ -1,4 +1,6 @@
 id: SEC-032
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Secrets/PII logged in plaintext (CWE-532)
 category: security

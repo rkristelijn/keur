@@ -1,0 +1,26 @@
+id: CSS-PERF-011
+ilities: [time-behaviour]
+source: cpm
+maturity: 3
+action: advisory
+title: Animation and GPU performance
+category: performance
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: will-change\s*:
+    message: will-change consumes GPU memory — only apply just before animation starts, remove after
+  - regex: \*\s*\{[^}]*will-change
+    message: will-change on * promotes every element to its own layer — severe memory impact
+  - regex: filter\s*:\s*blur\s*\(\s*([0-9]{2,}|[5-9])px
+    message: Large blur radius is GPU-intensive — keep under 5px or use pre-blurred images
+  - regex: animation[^:]*:[^;]*\binfinite\b
+    message: Infinite animation runs forever consuming CPU/GPU — ensure prefers-reduced-motion is respected
+  - regex: @font-face\s*\{[^}]*src\s*:
+    message: "@font-face without font-display causes invisible text during load — add font-display: swap"
+  - regex: outline\s*:[^;]*([0-9]{3,}px)
+    message: Very large outline is expensive to render and may indicate a layout workaround
+fix: Use will-change sparingly, respect prefers-reduced-motion, add font-display to @font-face

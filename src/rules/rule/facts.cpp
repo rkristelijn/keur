@@ -96,7 +96,7 @@ std::string facts_lang_for_ext(const std::string& ext) {
 
 void facts_read_package_json(const std::string& content, Facts& out) {
   // dependencies + devDependencies -> frameworks + direct version pins.
-  auto add_dep = [&](const std::string& name, const std::string& ver) {
+  auto add_dep = [&out](const std::string& name, const std::string& ver) {
     out.frameworks.insert(name);
     std::string v = clean_version(ver);
     if (!v.empty()) out.versions[name] = v;
@@ -104,7 +104,7 @@ void facts_read_package_json(const std::string& content, Facts& out) {
   json_object_pairs(content, "dependencies", add_dep);
   json_object_pairs(content, "devDependencies", add_dep);
   // engines.node / engines.npm -> runtimes.
-  json_object_pairs(content, "engines", [&](const std::string& name, const std::string& ver) {
+  json_object_pairs(content, "engines", [&out](const std::string& name, const std::string& ver) {
     std::string v = clean_version(ver);
     if (!v.empty()) out.runtimes[name] = v;
   });
@@ -205,7 +205,7 @@ void facts_read_pom_xml(const std::string& content, Facts& out) {
 void facts_read_composer_json(const std::string& content, Facts& out) {
   out.langs.insert("php");
   out.frameworks.insert("composer");
-  auto add = [&](const std::string& name, const std::string& ver) {
+  auto add = [&out](const std::string& name, const std::string& ver) {
     if (name == "php") { std::string v = clean_version(ver); if (!v.empty()) out.runtimes["php"] = v; return; }
     out.frameworks.insert(name);
     std::string v = clean_version(ver);
@@ -244,7 +244,7 @@ void walk_facts(const std::string& dir, Facts& out, int depth) {
       if (!lang.empty()) out.langs.insert(lang);
     }
     // manifests -> readers
-    auto slurp = [&]() {
+    auto slurp = [&full]() {
       std::ifstream f(full);
       return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
     };

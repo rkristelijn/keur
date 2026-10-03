@@ -1,0 +1,17 @@
+id: TEST-010
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Jest testEnvironment mismatch
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: jest.config.js jest.config.ts jest.config.json jest.config.mjs
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: testEnvironment
+patterns:
+  - regex: testEnvironment.*node
+    message: "testEnvironment node — if testing React/DOM components, use jsdom"
+fix: Set testEnvironment to jsdom for React/DOM tests. Use node only for pure Node.js/API tests.

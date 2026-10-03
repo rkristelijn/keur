@@ -6,6 +6,8 @@
 # (e.g. `dir + "/"`), not every "/" in the source. The platform layer and the
 # POSIX git-hook stubs (which git always runs via sh) are excluded.
 id: KEUR-PORT-004
+ilities: [adaptability]
+maturity: 3
 title: Hardcoded path separator (use keur::platform::path_join)
 category: architecture
 severity: warning

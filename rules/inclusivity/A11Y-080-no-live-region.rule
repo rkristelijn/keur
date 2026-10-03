@@ -1,0 +1,17 @@
+id: A11Y-080
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: Live region check
+category: a11y
+severity: info
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: aria-live
+patterns:
+  - regex: aria-live=["']
+    message: "aria-live region found — verify it announces dynamic content changes"
+fix: Use aria-live=polite for non-urgent updates, aria-live=assertive for critical alerts.

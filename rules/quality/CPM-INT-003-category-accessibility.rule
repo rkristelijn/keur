@@ -1,0 +1,17 @@
+# @see R-030 synthesis: HOOG-5
+id: CPM-INT-003
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Inconsistent accessibility category name in rule
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .rule
+  exclude_paths: .git/
+patterns:
+  - regex: ^category:\s*accessibility\s*$
+    message: "Rule uses 'category: accessibility' instead of the standard 'category: a11y' — 120 rules use a11y"
+fix: Replace 'category: accessibility' with 'category: a11y' for consistency.

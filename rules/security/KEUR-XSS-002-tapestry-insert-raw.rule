@@ -1,0 +1,29 @@
+# Tapestry XSS: <span jwcid="@Insert" ... raw="true" /> disables Tapestry's
+# default HTML output escaping. Any value bound to that Insert is written to the
+# page verbatim. If the value is user- or tenant-influenced (help text, FAQ
+# answers, news items, welcome text, contact info, notes) this is a stored-XSS
+# sink (CWE-79).
+#
+# Complements KEUR-XSS-001 (Angular bypassSecurityTrust*). Apache Tapestry 4.x
+# escapes @Insert output by default; raw="true" opts out of that escaping, so a
+# single attribute turns a safe render into an injection point.
+#
+# Match @Insert components that carry raw="true". The data source cannot be
+# judged statically, so this is a warn (needs human triage: is the bound value
+# user-influenced?).
+id: KEUR-XSS-002
+ilities: [integrity]
+maturity: 1
+title: Tapestry XSS — @Insert raw="true" disables output escaping
+category: xss
+severity: warning
+engine: pattern
+action: warn
+target:
+  extensions: .html .jwc .script
+  exclude_paths: /test/ /tests/ node_modules/
+patterns:
+  - regex: jwcid\s*=\s*"[^"]*@Insert[^"]*"[^>]*\braw\s*=\s*"true"
+    message: Tapestry @Insert with raw="true" writes the bound value to the page without HTML-escaping (CWE-79). If the value is user- or tenant-influenced this is a stored-XSS sink. Confirm the source is fully trusted, or drop raw="true" so Tapestry escapes it.
+confidence: 0.55
+fix: Remove raw="true" so Tapestry HTML-escapes the output. Only keep it for values that are provably trusted (constant markup you control). For user-supplied rich text, sanitise server-side (e.g. OWASP Java HTML Sanitizer) before rendering.

@@ -1,0 +1,17 @@
+id: BUILD-025
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: TypeScript project references without composite
+category: build
+severity: warning
+engine: presence
+target:
+  filenames: tsconfig.json
+  exclude_paths: node_modules/ .git/ build/ dist/
+  content_contains: references
+patterns:
+  - regex: "references"\s*:\s*\[
+    message: "Project references found — each referenced tsconfig must have composite:true or builds will fail"
+fix: Add "composite": true to compilerOptions of all tsconfig.json files listed in the references array.

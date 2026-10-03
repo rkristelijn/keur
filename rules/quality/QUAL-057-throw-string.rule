@@ -1,0 +1,16 @@
+id: QUAL-057
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Throwing string literal instead of Error object
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: throw\s+['"`]
+    message: "Throwing a string literal — loses stack trace. Throw new Error('message') instead."
+fix: Always throw Error objects. throw new Error('message') preserves the stack trace for debugging.

@@ -1,0 +1,17 @@
+id: A11Y-063
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Skip link missing
+category: a11y
+severity: warning
+engine: absence
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <body
+patterns:
+  - regex: skip|Skip|#main|#content
+    message: "No skip navigation link found"
+fix: Add <a href="#main-content" class="skip-link">Skip to main content</a> as first element in body.

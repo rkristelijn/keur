@@ -1,0 +1,20 @@
+id: GO-QUAL-025
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Test quality indicators
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: _test.go
+  exclude_paths: vendor/
+patterns:
+  - regex: func Test\w+\(t \*testing\.T\)\s*\{\s*\}
+    message: "Empty test function — add assertions or remove"
+  - regex: t\.Skip\(
+    message: "Skipped test — document why or fix and re-enable"
+  - regex: //\s*TODO.*test
+    message: "TODO marker in test — missing test coverage"
+fix: Ensure all test functions contain meaningful assertions

@@ -1,0 +1,17 @@
+id: A11Y-028
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Embed element possibly missing accessible name
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <embed
+patterns:
+  - regex: <embed\s[^>]*>
+    message: "<embed> found — ensure aria-label is present for accessibility"
+fix: "Add aria-label to <embed> element"

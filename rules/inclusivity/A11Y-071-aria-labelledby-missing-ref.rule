@@ -1,0 +1,17 @@
+id: A11Y-071
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: Aria-labelledby reference check
+category: a11y
+severity: info
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: aria-labelledby
+patterns:
+  - regex: aria-labelledby=["']
+    message: "aria-labelledby used — verify referenced ID exists in document"
+fix: Ensure aria-labelledby value matches an existing element ID.

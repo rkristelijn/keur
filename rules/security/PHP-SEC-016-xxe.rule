@@ -1,0 +1,19 @@
+id: PHP-SEC-016
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: XXE in PHP XML parsers
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .php
+  exclude_paths: test/ tests/
+  content_contains: xml
+patterns:
+  - regex: simplexml_load_string\(.*\$_(GET|POST|REQUEST)
+    message: "simplexml_load_string with user input — XXE risk. Call libxml_disable_entity_loader(true) first (PHP < 8.0)"
+  - regex: DOMDocument.*loadXML.*\$_(GET|POST|REQUEST)
+    message: "DOMDocument loadXML with user input — XXE vulnerability"
+fix: Use libxml_disable_entity_loader(true) before parsing (PHP < 8.0). In PHP 8.0+, external entities are disabled by default.

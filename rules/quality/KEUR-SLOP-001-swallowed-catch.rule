@@ -1,0 +1,40 @@
+# Swallowed promise rejection: `.catch(() => {})` (or `.catch(e => {})`) — an
+# empty rejection handler attached to a promise (jsts#33, CWE-390). It marks
+# the rejection as "handled" so no unhandledRejection fires, while discarding
+# the error completely: network failures, parse errors and thrown exceptions
+# all vanish silently. This is the async twin of the empty `catch {}` block.
+#
+# Why a NEW rule (verified false-negative on mestjs slop.service.ts,
+# 2026-09-26): `fetch(url).catch(() => {});` was detected by no existing rule.
+# The empty-catch rule (KEUR-ERR-001) only covers `try/catch`, not the
+# promise-chain `.catch()` form.
+#
+# HOW: match a `.catch(` call whose argument is an arrow function with an empty
+# body — zero params `()` or a single param `x` / `(x)`, then `=>`, then `{}`
+# (whitespace only, which is what skip_comments leaves for a comment-only
+# body). A `.catch` handler that logs, rethrows or does anything real has a
+# non-empty body and does not match.
+#
+# RE2-safe: `[^)]*` for the param list is a single bounded star scoped to the
+# parens; `\s*` inside the braces is bounded; no backreferences, no nested
+# unbounded quantifiers -> no catastrophic backtracking. WARN, not block.
+#
+# @see docs/research/javascript-typescript.md #33, MDN Using_promises#error_handling.
+id: KEUR-SLOP-001
+ilities: [analysability]
+maturity: 1
+title: Swallowed promise rejection — empty .catch(() => {}) handler
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .js .ts .jsx .tsx
+  exclude_paths: node_modules/ dist/ build/ vendor/
+patterns:
+  # `.catch(` -> arrow fn with 0/1 param -> `=> {}` (whitespace-only body).
+  - regex: (?s)\.catch\s*\(\s*(?:\(\s*[^)]*\)|[A-Za-z_$][\w$]*)\s*=>\s*\{\s*\}\s*\)
+    message: "Empty .catch(() => {}) — the promise rejection is caught and silently swallowed (jsts#33, CWE-390). Handle the rejection (log/rethrow) or let it propagate. @see KEUR-SLOP-001"
+confidence: 0.8
+fix: "Give the rejection handler a real body: `.catch(e => logger.error(e))`, rethrow, or remove the empty `.catch` and `await` the promise inside a try/catch so the error propagates. Never attach an empty handler purely to silence unhandledRejection warnings."

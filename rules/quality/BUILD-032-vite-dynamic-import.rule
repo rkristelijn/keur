@@ -1,0 +1,17 @@
+id: BUILD-032
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Vite dynamic import with template literal
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .ts .tsx .js .jsx .vue
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: import(
+patterns:
+  - regex: import\(\s*`[^`]*\$\{[^}]*\}[^`]*`\s*\)
+    message: "Dynamic import with template literal — Vite requires explicit file extension for static analysis and code splitting"
+fix: Add explicit file extension to the dynamic import path. Use import.meta.glob() for pattern-based imports.

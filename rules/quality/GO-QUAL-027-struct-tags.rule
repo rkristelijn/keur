@@ -1,0 +1,20 @@
+id: GO-QUAL-027
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Struct tag issues
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: json:"-".*validate:"required"
+    message: "Field is json-ignored but marked as required validation — contradiction"
+  - regex: `json:"[^"]*"[^`]*json:"
+    message: "Duplicate json struct tag — only first will be used"
+  - regex: `json:"[A-Z]
+    message: "JSON field starts with uppercase — convention is lowercase/snake_case"
+fix: Ensure struct tags are consistent and non-contradictory

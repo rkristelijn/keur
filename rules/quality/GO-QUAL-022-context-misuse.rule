@@ -1,0 +1,18 @@
+id: GO-QUAL-022
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Context misuse
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: context\.Background\(\)
+    message: "context.Background() in non-main code — pass context from caller instead"
+  - regex: context\.TODO\(\)
+    message: "context.TODO() should be temporary — replace with proper context propagation"
+fix: Accept context.Context as first parameter and propagate from caller

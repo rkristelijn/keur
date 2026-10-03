@@ -1,0 +1,17 @@
+id: API-021
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: POST route for data retrieval
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .java .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: security
+patterns:
+  - regex: \.post\(['"`][^'"]*\/(get|fetch|list|search|find|query|read|lookup)[^'"]*['"`]
+    message: "POST used for read operation — violates HTTP semantics. Use GET for idempotent data retrieval."
+fix: Use GET for reads. POST should create resources or trigger side effects.

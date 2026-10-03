@@ -1,4 +1,6 @@
 id: SCA-023
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: GitHub Actions workflow_run without branch filtering
 category: supply-chain

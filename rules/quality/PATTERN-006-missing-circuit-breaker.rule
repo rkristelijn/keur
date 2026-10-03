@@ -1,0 +1,23 @@
+# @see R-030 (Design Patterns vs Native Platform Features)
+id: PATTERN-006
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: External service call without circuit breaker or timeout
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .java .py .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: fetch\s*\([^)]*https?://
+    message: "External HTTP call — consider adding a circuit breaker and timeout for resilience against downstream failures"
+  - regex: axios\.\w+\s*\([^)]*https?://
+    message: "Axios call to external service — add timeout and circuit breaker (opossum, cockatiel) to prevent cascading failures"
+  - regex: HttpClient\.\w+\s*\(|this\.http\.\w+\s*\(
+    message: "HTTP client call — for external services, ensure timeout and retry with backoff are configured"
+  - regex: requests\.(get|post|put|delete|patch)\s*\(
+    message: "Python requests call — add timeout parameter and consider circuit breaker (pybreaker, tenacity) for external services"
+fix: Wrap external service calls with circuit breaker pattern. Libraries — opossum/cockatiel (Node.js), resilience4j (Java), pybreaker (Python), gobreaker (Go). Always set timeouts.

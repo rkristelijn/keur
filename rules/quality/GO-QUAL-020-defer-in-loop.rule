@@ -1,0 +1,16 @@
+id: GO-QUAL-020
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Defer inside loop
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: for\s.*\{[^}]*defer\s
+    message: "defer in loop body — deferred calls won't execute until function returns, causing resource leaks"
+fix: Extract loop body into a separate function, or close resources explicitly within the loop

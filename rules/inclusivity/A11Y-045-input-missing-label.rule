@@ -1,0 +1,17 @@
+id: A11Y-045
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Input missing label
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <input
+patterns:
+  - regex: <input[^>]*type=["'](text|email|password|tel|url|search|number|date|time)["'][^>]*>
+    message: File contains form inputs — ensure all have associated <label>, aria-label, or aria-labelledby
+fix: Add <label for="id"> or aria-label to every form input.

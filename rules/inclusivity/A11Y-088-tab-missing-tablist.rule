@@ -1,0 +1,17 @@
+id: A11Y-088
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Tab missing tablist container
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role="tab"
+patterns:
+  - regex: role=["']tab["']
+    message: "role=tab found — ensure it's inside a role=tablist container"
+fix: Wrap tab elements in a container with role=tablist.

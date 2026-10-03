@@ -1,4 +1,6 @@
 id: SEC-034
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Overly permissive file permissions (CWE-732)
 category: security

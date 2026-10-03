@@ -1,4 +1,6 @@
 id: SCA-020
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: GitHub Actions environment variable injection
 category: supply-chain

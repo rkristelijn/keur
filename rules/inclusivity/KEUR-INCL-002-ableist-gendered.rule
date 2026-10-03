@@ -1,5 +1,7 @@
 # Adopted from cpm rules/style/STYLE-021 (github.com/rkristelijn/cpm).
 id: KEUR-INCL-002
+ilities: [accessibility]
+maturity: 5
 title: Non-inclusive terminology (ableist/gendered)
 category: inclusivity
 severity: warning

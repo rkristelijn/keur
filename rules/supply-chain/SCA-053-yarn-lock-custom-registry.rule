@@ -1,4 +1,6 @@
 id: SCA-053
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Suspicious yarn.lock with non-standard registry URL
 category: supply-chain

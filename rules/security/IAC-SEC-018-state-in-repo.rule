@@ -1,0 +1,20 @@
+id: IAC-SEC-018
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Terraform state or tfvars in repository
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .tf .hcl .tfstate .tfvars
+  exclude_paths: test/
+patterns:
+  - regex: ^\s*"serial"\s*:\s*\d+
+    message: "Terraform state file committed to repo — contains secrets and infrastructure details"
+  - regex: ^\s*password\s*=\s*"[^"]+
+    message: "Password in tfvars/tf file — use secrets manager or environment variables"
+  - regex: ^\s*secret_key\s*=\s*"[^"]+
+    message: "Secret key in tfvars/tf file — use secrets manager or environment variables"
+fix: "Add *.tfstate and *.tfvars to .gitignore — use remote state backend and secrets manager"

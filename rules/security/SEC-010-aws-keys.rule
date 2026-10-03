@@ -1,4 +1,6 @@
 id: SEC-010
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Hardcoded AWS Access Key
 category: security

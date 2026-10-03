@@ -1,0 +1,19 @@
+id: MIG-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Non-concurrent index creation (table-locking)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sql
+  exclude_paths: test/ tests/ vendor/ .git/ build/ seed/
+  content_contains: CREATE INDEX
+patterns:
+  - regex: CREATE\s+INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?\w
+    message: "CREATE INDEX without CONCURRENTLY — locks the table during index build, causing downtime"
+  - regex: CREATE\s+UNIQUE\s+INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?\w
+    message: "CREATE UNIQUE INDEX without CONCURRENTLY — locks the table during index build, causing downtime"
+fix: Use CREATE INDEX CONCURRENTLY for zero-downtime index creation (PostgreSQL). Requires separate transaction.

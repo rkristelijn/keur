@@ -1,0 +1,27 @@
+# Next.js config that ships without security response headers. Next.js does NOT
+# add security headers by default — you must define an async headers() block in
+# next.config that returns HSTS, X-Content-Type-Options, Referrer-Policy,
+# Permissions-Policy, X-Frame-Options and a CSP. A next.config with no headers()
+# means the app serves every page with no CSP/HSTS/clickjacking protection.
+# Sourced from docs/research/nextjs.md #1-14 (Next.js headers + CSP docs).
+#
+# HOW (absence engine): fires when the config file contains NONE of the header
+# markers (a `headers` function, or a CSP/HSTS/security-header string). Targeted
+# at next.config by filename so it does not fire on unrelated code.
+id: KEUR-NEXT-002
+ilities: [integrity]
+maturity: 1
+title: Next.js config without security response headers
+category: security
+severity: warning
+engine: absence
+action: warn
+target:
+  filenames: next.config.js next.config.mjs next.config.ts
+patterns:
+  # satisfied (no finding) if the config declares a headers() block OR any
+  # recognised security-header/CSP token. Absent => fire.
+  - regex: (?i)\bheaders\s*\(|Strict-Transport-Security|Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy|Permissions-Policy
+    message: "next.config defines no security headers — Next.js adds none by default, so pages ship without CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy or Permissions-Policy (Next.js headers/CSP docs). Add an async headers() block."
+confidence: 0.6
+fix: "Add `async headers()` to next.config returning HSTS, X-Content-Type-Options: nosniff, X-Frame-Options: SAMEORIGIN (or CSP frame-ancestors), Referrer-Policy, Permissions-Policy and a Content-Security-Policy. Also set poweredByHeader: false."

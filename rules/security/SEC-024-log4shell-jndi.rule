@@ -1,4 +1,6 @@
 id: SEC-024
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Log4j JNDI lookup injection (CVE-2021-44228 — Log4Shell)
 category: security

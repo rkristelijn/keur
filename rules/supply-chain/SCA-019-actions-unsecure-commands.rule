@@ -1,4 +1,6 @@
 id: SCA-019
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: GitHub Actions ACTIONS_ALLOW_UNSECURE_COMMANDS enabled
 category: supply-chain

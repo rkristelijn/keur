@@ -1,0 +1,21 @@
+id: HO-QUAL-010
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Hono route without input validation
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .tsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: hono
+patterns:
+  - regex: c\.req\.query\(
+    message: "Raw query parameter without validation — use Hono validator middleware (@hono/zod-validator)"
+  - regex: c\.req\.param\(
+    message: "Raw path parameter without validation — use Hono validator middleware for type-safe input"
+  - regex: await c\.req\.json\(\)
+    message: "Raw JSON body without schema validation — use @hono/zod-validator to validate request body"
+fix: "Use zod validation: import { zValidator } from '@hono/zod-validator'; app.post('/users', zValidator('json', userSchema), (c) => { ... })"

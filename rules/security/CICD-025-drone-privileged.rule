@@ -1,0 +1,17 @@
+id: CICD-025
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Drone CI privileged pipeline
+category: security
+severity: error
+engine: pattern
+target:
+  filenames: .drone.yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: privileged
+patterns:
+  - regex: privileged:\s*true|trusted:\s*true
+    message: "Privileged/trusted Drone pipeline — can escape container and access host"
+fix: Remove privileged: true unless building Docker images. Use Drone Docker runner with unprivileged mode. For Docker-in-Docker, use --userns=host instead.

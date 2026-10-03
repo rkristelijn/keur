@@ -1,0 +1,19 @@
+id: API-022
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: API route without version prefix
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: api
+patterns:
+  - regex: \.(get|post|put|patch|delete)\(['"`]\/api\/[^v'"][^'"]*['"`]
+    message: "Unversioned API route (/api/ without /v1/) — breaking changes will affect all clients at once"
+  - regex: \.(get|post|put|patch|delete)\(['"`]\/api\/v[^0-9'"][^'"]*['"`]
+    message: "Unversioned API route (/api/v without digit) — use /api/v1/, /api/v2/ for proper versioning"
+fix: Version your API routes. Use /api/v1/resource, /api/v2/resource for backward compatibility.

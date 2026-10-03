@@ -1,0 +1,25 @@
+# @see R-030 (Design Patterns vs Native Platform Features)
+id: PATTERN-004
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Missing structured error handling
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .go .rs .java .kt
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: catch\s*\(\s*\w*\s*\)\s*\{\s*\}
+    message: "Empty catch block — errors are silently swallowed. Handle, rethrow, or log the error"
+  - regex: catch\s*\(\s*\w*\s*\)\s*\{\s*//
+    message: "Catch block with only a comment — the error is still swallowed. Add proper error handling"
+  - regex: \.catch\(\s*\(\)\s*=>\s*\{\s*\}\s*\)
+    message: "Empty .catch() — promise errors are silently ignored. Handle or propagate the error"
+  - regex: except:\s*$|except\s+Exception\s*:
+    message: "Bare except or catch-all Exception — catch specific errors and handle them appropriately"
+  - regex: catch\s*\(Exception\s+
+    message: "Catching generic Exception — catch specific exception types for targeted error handling"
+fix: Use structured error handling — Result/Either types (Rust, fp-ts), typed exceptions, or at minimum log and rethrow with context. Never silently swallow errors.

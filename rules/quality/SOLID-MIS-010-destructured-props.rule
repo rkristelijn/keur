@@ -1,0 +1,17 @@
+id: SOLID-MIS-010
+ilities: [analysability]
+source: cpm
+maturity: 2
+action: advisory
+title: SolidJS destructured props breaks reactivity
+category: quality
+severity: error
+engine: pattern
+target:
+  extensions: .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: solid-js
+patterns:
+  - regex: const\s+\{\s*\w+(?:\s*,\s*\w+)*\s*\}\s*=\s*props
+    message: "Destructuring props in SolidJS breaks reactivity — values become static at call time"
+fix: "Access props directly: props.name, props.count. Use splitProps() if you need to separate props."

@@ -1,0 +1,18 @@
+id: VUE-COR-001
+ilities: [reliability-maturity]
+source: cpm
+maturity: 3
+action: advisory
+title: Reassigning a reactive()/computed() variable breaks reactivity
+category: correctness
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .vue .ts .js
+  exclude_paths: test/ tests/ __tests__/ .spec. .test. lib/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: reactive
+patterns:
+  - regex: ^\s*[A-Za-z_$][\w$]*\s*=\s*reactive\(
+    message: "Reassigning a variable that already held a reactive() proxy replaces the proxy — existing template/watch bindings keep pointing at the old object and stop updating. Mutate the reactive object's properties, or use ref() and set .value."
+fix: "Do not reassign a reactive() binding. Mutate its fields (state.x = ...), replace contents (Object.assign(state, next)), or use ref() and assign .value. See https://vuejs.org/guide/essentials/reactivity-fundamentals.html"

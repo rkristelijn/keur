@@ -1,0 +1,17 @@
+id: TEST-027
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Real HTTP calls in test files
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/ e2e/ integration/
+  content_contains: describe
+patterns:
+  - regex: (fetch|axios|got|superagent|request)\(['"`]https?://
+    message: "Real HTTP call in unit test — makes tests flaky, slow, and externally dependent. Use mocks."
+fix: Use nock, msw, or jest.mock() to mock HTTP calls. Integration tests should be in a separate directory.

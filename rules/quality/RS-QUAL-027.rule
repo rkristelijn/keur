@@ -1,0 +1,17 @@
+id: RS-QUAL-027
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Clippy allow without reason
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: allow
+patterns:
+  - regex: #\[allow\(clippy::
+    message: Clippy lint suppressed — add a comment explaining why the lint does not apply
+fix: Add a comment above the allow attribute explaining the justification, or fix the lint

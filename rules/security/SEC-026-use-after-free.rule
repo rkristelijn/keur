@@ -1,4 +1,6 @@
 id: SEC-026
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Use-after-free / double-free patterns (Chrome V8 CVEs)
 category: security

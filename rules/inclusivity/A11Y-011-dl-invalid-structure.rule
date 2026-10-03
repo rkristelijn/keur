@@ -1,0 +1,17 @@
+id: A11Y-011
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Definition list contains invalid child element
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <dl
+patterns:
+  - regex: <dl[^>]*>\s*<(p|span|a|h[1-6]|ul|ol)
+    message: "<dl> contains invalid child — should only contain <dt>, <dd>, or <div>"
+fix: "Use <dt> and <dd> pairs inside <dl>"

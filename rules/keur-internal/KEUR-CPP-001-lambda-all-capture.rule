@@ -1,0 +1,24 @@
+# keur C++ nudge (LEAF) — all-capture lambda detection. On its own this is a
+# weak signal (most [&] lambdas are direct-call args and safe), so it is a quiet
+# advisory. The sharp finding is the COMPOSITE KEUR-CPP-003, which fires only
+# when this leaf AND the "stored lambda" leaf (KEUR-CPP-002) both match — a
+# stored all-capture lambda, the real dangling-reference shape. @see ADR-040
+# @implements ADR-040
+id: KEUR-CPP-001
+ilities: [analysability]
+maturity: 5
+title: Lambda captures entire scope ([&] / [=])
+category: quality
+severity: info
+engine: pattern
+action: advisory
+target:
+  extensions: .cpp .cc .h .hpp
+  exclude_paths: vendor/ ../rules/ build/ dist/
+patterns:
+  - regex: \[\s*&\s*\]\s*(\(|\{)
+    message: "Lambda captures everything by reference [&]. Prefer an explicit capture list naming only what it uses. @see KEUR-CPP-001 (sharp signal: KEUR-CPP-003 when stored)"
+  - regex: \[\s*=\s*\]\s*(\(|\{)
+    message: "Lambda captures everything by value [=]. Capture only what you use, explicitly. @see KEUR-CPP-001"
+confidence: 0.4
+fix: "Replace [&] / [=] with an explicit capture list (e.g. [&fs] or [limit])."

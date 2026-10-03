@@ -1,0 +1,18 @@
+id: IAC-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Hardcoded AWS account ID
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .tf .hcl .tfvars
+  exclude_paths: test/
+patterns:
+  - regex: \b\d{12}\b
+    message: "Possible hardcoded AWS account ID — use variables or data sources instead"
+  - regex: arn:aws:[^:]*:\d{12}:
+    message: "Hardcoded AWS account ID in ARN — parameterize with variable or data source"
+fix: "Use var.account_id or data.aws_caller_identity.current.account_id"

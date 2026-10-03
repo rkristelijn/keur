@@ -1,0 +1,17 @@
+id: CICD-012
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Jenkinsfile agent any
+category: security
+severity: info
+engine: pattern
+target:
+  filenames: Jenkinsfile
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: agent
+patterns:
+  - regex: agent\s+any
+    message: "agent any — build runs on any available agent with no isolation guarantee"
+fix: Specify a labeled agent or use agent { docker { image 'node:20' } } for isolation. This ensures builds run in a controlled environment.

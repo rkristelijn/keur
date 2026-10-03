@@ -1,4 +1,6 @@
 id: SCA-028
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Committed git hooks with network calls
 category: supply-chain

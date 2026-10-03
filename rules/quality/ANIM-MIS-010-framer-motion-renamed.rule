@@ -1,0 +1,17 @@
+id: ANIM-MIS-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Framer Motion deprecated package name
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: framer-motion
+patterns:
+  - regex: import\s.*from\s+["']framer-motion["']
+    message: "framer-motion is renamed to 'motion' — update imports to 'motion/react'"
+fix: "npm install motion && import { motion } from 'motion/react'"

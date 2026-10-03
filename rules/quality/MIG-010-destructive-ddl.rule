@@ -1,0 +1,21 @@
+id: MIG-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Destructive database migration (irreversible DDL)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sql
+  exclude_paths: test/ tests/ vendor/ .git/ build/ seed/
+  content_contains: DROP
+patterns:
+  - regex: DROP\s+TABLE\s
+    message: "DROP TABLE in migration — irreversible data loss. Use expand-contract pattern."
+  - regex: DROP\s+COLUMN\s
+    message: "DROP COLUMN in migration — irreversible data loss. Deprecate first, then remove in a later release."
+  - regex: TRUNCATE\s+TABLE\s
+    message: "TRUNCATE in migration — deletes all data. Consider archival or soft-delete."
+fix: Use the expand-contract pattern. Add new column → migrate data → deprecate old → drop in next release.

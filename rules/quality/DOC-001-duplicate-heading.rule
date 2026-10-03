@@ -1,4 +1,6 @@
 id: DOC-001
+ilities: [analysability]
+maturity: 3
 source: cpm
 title: Duplicate heading text in the same document
 category: quality

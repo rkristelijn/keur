@@ -1,0 +1,23 @@
+id: ERR-002
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Exception swallowed with `except ...: pass`
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ dist/ __pycache__/
+# The single-line `except SomeError: pass` idiom silences an exception without
+# any handling — the most common Python error-swallow pattern flagged in code
+# review. QUAL-050 only catches a bare `except:` at end-of-line and
+# `except Exception:`; it does not catch the `: pass` inline form nor a typed
+# `except ValueError: pass`. Sourced from the GitLab review-audit: "error
+# handling" was the #2 reviewer topic (49 comments).
+patterns:
+  - regex: ^\s*except\b[^:]*:\s*pass\s*(#.*)?$
+    message: "Exception silently swallowed with `except ...: pass` — the error disappears with no logging or handling. Log it, re-raise, or handle it explicitly."
+fix: "At minimum log the exception (`logging.exception(\"...\")`) or re-raise. Catch the narrowest exception type you expect. Reviewed exception: add `# cpm:ignore ERR-002` on the line."

@@ -1,0 +1,17 @@
+id: TRANS-007
+ilities: [authenticity]
+source: cpm
+maturity: 2
+action: block
+title: Git SSL verification disabled (MITM risk)
+category: transport
+severity: error
+engine: pattern
+target:
+  extensions: .sh .yml .yaml .env .gitconfig
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: GIT_SSL
+patterns:
+  - regex: GIT_SSL_NO_VERIFY\s*=\s*(true|1)|http\.sslVerify\s*=\s*false
+    message: "Git SSL verification disabled — enables MITM on git operations"
+fix: Fix the certificate or configure a custom CA bundle with GIT_SSL_CAINFO. Never disable SSL verification for git operations.

@@ -1,0 +1,17 @@
+id: GQL-014
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Exposed introspection in production
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .rb .go
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: introspection
+patterns:
+  - regex: introspection:\s*true|enable_introspection\s*=\s*True
+    message: "GraphQL introspection enabled — disable in production to prevent schema reconnaissance"
+fix: Set introspection to false in production. Use environment checks — introspection: process.env.NODE_ENV !== 'production'.

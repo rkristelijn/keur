@@ -1,0 +1,55 @@
+# NestJS auth controller with no rate limiting — brute-force / credential-stuffing
+# / OTP-abuse risk (OWASP API4:2023 Unrestricted Resource Consumption, A07 auth
+# failures). NestJS does NOT throttle by default: you must register
+# @nestjs/throttler (ThrottlerModule + ThrottlerGuard) and/or decorate the login
+# route so repeated password guesses are capped. A login/auth controller that
+# defines a POST handler but carries no throttle/guard anywhere in the class
+# accepts unlimited authentication attempts.
+#
+# Why a NEW rule (not SEC-036): SEC-036 matches the Express idiom
+# app.post('/login') / router.post(...). It is BLIND to the NestJS form — a
+# @Controller('login'|'auth') class with an @Post() method decorator — because
+# there is no app/router.post() call to see. That is a documented false negative
+# on NestJS auth code (see the mestjs login.controller.ts KEUR-NOTE). This rule
+# closes it. Sourced from docs/research/nestjs.md (throttler/guard antipatterns)
+# + OWASP API Security Top 10 (API4). Validated against the mestjs authored
+# fixtures (login.controller.ts, auth.controller.ts, 2026-09-26).
+#
+# HOW (block-absence engine): starting at the @Controller(...) decorator, the
+# engine counts braces to the end of the controller class. block_trigger gates
+# the check to auth-bearing controllers only (the controller path or a login/
+# signin/authenticate/register handler name). block_inner is the throttle/guard
+# marker that MUST appear inside the class; if it is ABSENT the block is flagged.
+# skip_comments strips comments first, so a mention of the guard in a doc comment
+# cannot satisfy block_inner — only real code counts.
+#
+# WARN (not block): a controller can also be rate-limited by a global
+# APP_GUARD/ThrottlerGuard wired in a module, which this per-file rule cannot
+# see; so this is a high-signal nudge, not a hard gate, to keep false positives
+# from a legitimate global throttler in check.
+id: KEUR-NEST-004
+ilities: [integrity]
+maturity: 2
+title: NestJS auth controller without rate limiting (brute-force risk)
+category: security
+severity: warning
+engine: block-absence
+action: warn
+confidence: 0.6
+skip_comments: true
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ spec/ node_modules/ .git/ dist/ build/
+# START: the controller class decorator opens the scanned block (class braces).
+patterns:
+  - regex: (?i)@Controller\s*\(
+    message: "NestJS auth/login controller defines a POST handler but registers no rate limiting anywhere in the class — unlimited login attempts (brute force, credential stuffing, OTP abuse). NestJS does not throttle by default. Add @nestjs/throttler (ThrottlerModule + guard) and cap the auth route (OWASP API4)."
+# TRIGGER: only evaluate controllers that are auth-bearing — the controller path
+# is login/auth/signin/session, OR the class exposes a login/signin/authenticate/
+# register/token handler. Non-auth controllers are out of scope (no finding).
+block_trigger: (?i)@Controller\s*\(\s*['"](?:login|auth|signin|session|account|token)|\b(?:login|signin|signIn|authenticate|register|resetPassword|verifyOtp)\s*\(
+# INNER (must be present): any throttling / rate-limit / auth-guard marker. Its
+# ABSENCE inside the class is what fires the rule. (Tokens intentionally not
+# echoed in any KEUR-EXPECT marker, else the marker would self-silence it.)
+block_inner: (?i)@Throttle\b|Throttler|@UseGuards|@RateLimit|rate[_-]?limit|ThrottlerGuard|express-rate-limit|rate-limiter
+fix: "Register @nestjs/throttler: import ThrottlerModule.forRoot([{ ttl, limit }]) and apply ThrottlerGuard globally (APP_GUARD) or per-route with @UseGuards(ThrottlerGuard)/@Throttle({...}). Cap the login/auth POST route so repeated password guesses are rejected."

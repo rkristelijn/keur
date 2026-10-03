@@ -1,0 +1,31 @@
+# @see R-028 (AI development quality research)
+id: SLOP-114
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Reinventing standard library (NIH anti-pattern)
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/
+patterns:
+  - regex: function\s+debounce\s*\(
+    message: "Hand-rolled debounce — use lodash/debounce or a proven utility"
+  - regex: function\s+throttle\s*\(
+    message: "Hand-rolled throttle — use lodash/throttle or a proven utility"
+  - regex: function\s+deepClone\s*\(|function\s+deepCopy\s*\(
+    message: "Hand-rolled deep clone — use structuredClone() (built-in) or lodash/cloneDeep"
+  - regex: function\s+flatten\s*\(|function\s+flattenArray\s*\(
+    message: "Hand-rolled flatten — use Array.prototype.flat() (built-in since ES2019)"
+  - regex: function\s+isEqual\s*\(|function\s+deepEqual\s*\(
+    message: "Hand-rolled deep equality — use lodash/isEqual or a tested utility"
+  - regex: function\s+uuid\s*\(|function\s+generateId\s*\(
+    message: "Hand-rolled ID generator — use crypto.randomUUID() (built-in) or uuid package"
+  - regex: function\s+retry\s*\(|function\s+withRetry\s*\(
+    message: "Hand-rolled retry logic — use p-retry, async-retry, or a proven utility"
+  - regex: function\s+groupBy\s*\(
+    message: "Hand-rolled groupBy — use Object.groupBy() (built-in since ES2024) or lodash"
+fix: Use battle-tested standard library or utility functions. Hand-rolled implementations miss edge cases and don't get community security patches.

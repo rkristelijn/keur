@@ -1,0 +1,17 @@
+id: AIML-012
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Keras load_model arbitrary code via Lambda
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: load_model
+patterns:
+  - regex: (keras|tf\.keras)\.models\.load_model\(
+    message: Keras load_model() can execute arbitrary code via Lambda layers
+fix: Use safe_mode=True (Keras 3+) or avoid Lambda layers in loaded models

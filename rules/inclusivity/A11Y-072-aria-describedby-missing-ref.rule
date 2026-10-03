@@ -1,0 +1,17 @@
+id: A11Y-072
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: Aria-describedby reference check
+category: a11y
+severity: info
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: aria-describedby
+patterns:
+  - regex: aria-describedby=["']
+    message: "aria-describedby used — verify referenced ID exists in document"
+fix: Ensure aria-describedby value matches an existing element ID.

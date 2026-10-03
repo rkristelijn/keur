@@ -1,0 +1,24 @@
+id: BE-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Server-side request forgery (SSRF)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: (?:fetch|axios|got|request|http\.get|urllib|requests\.get|HttpClient)\(.*(?:req\.|request\.|params|body|query|input)
+    message: "User input in HTTP request URL — SSRF risk. Validate URL against allowlist of domains/IPs"
+  - regex: (?:fetch|axios|got|http\.get|requests\.get)\(\s*(?:req|request)\.(?:body|query|params)\[
+    message: "Request parameter directly used as URL — SSRF can access internal services"
+  - regex: new\s+URL\(.*(?:req|param|input|user|query)
+    message: "User input in URL constructor — validate protocol (https only) and domain against allowlist"
+  - regex: \.open\(\s*["']GET["']\s*,.*(?:req|param|input|user|query)
+    message: "User input in XMLHttpRequest URL — SSRF risk"
+  - regex: file_get_contents\(\s*\$_(GET|POST|REQUEST)
+    message: "PHP file_get_contents with user URL — SSRF/LFI risk. Validate against allowlist"
+fix: "Validate URLs: allowlist domains, block internal IPs (127.0.0.1, 10.x, 169.254.x, ::1). Use URL parser. CWE-918"

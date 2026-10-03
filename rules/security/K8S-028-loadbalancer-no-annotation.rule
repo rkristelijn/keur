@@ -1,0 +1,17 @@
+id: K8S-028
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: LoadBalancer Service without annotations
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: LoadBalancer
+patterns:
+  - regex: type:\s*LoadBalancer
+    message: "LoadBalancer creates cloud LB — ensure cost/security annotations (internal-only, etc.)"
+fix: Add cloud-provider annotations (e.g., service.beta.kubernetes.io/aws-load-balancer-internal for AWS) to control LB behavior and cost.

@@ -1,0 +1,16 @@
+id: A11Y-037
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Anchor used as button
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: <a[^>]*href=["']#["'][^>]*on[Cc]lick|<a[^>]*href=["']javascript:
+    message: <a href="#"> or javascript: used as button — use <button>
+fix: Replace with <button> element for non-navigation actions.

@@ -1,0 +1,44 @@
+# @see ADR-167
+id: TEST-032
+ilities: [analysability]
+source: cpm
+maturity: 2
+action: advisory
+title: Redundant self-referential assertion (always passes)
+category: quality
+severity: error
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx _test.go _test.py .test.rb .java .cpp .h
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: assert
+patterns:
+  - regex: expect\(true\)\.toBe\(true\)
+    message: "Redundant assertion — expect(true).toBe(true) always passes, test actual behavior"
+  - regex: expect\(false\)\.toBe\(false\)
+    message: "Redundant assertion — expect(false).toBe(false) always passes"
+  - regex: expect\(1\)\.toBe\(1\)
+    message: "Redundant assertion — expect(1).toBe(1) always passes, test actual values"
+  - regex: expect\(null\)\.toBeNull\(\)
+    message: "Redundant assertion — expect(null).toBeNull() always passes"
+  - regex: expect\(undefined\)\.toBeUndefined\(\)
+    message: "Redundant assertion — expect(undefined).toBeUndefined() always passes"
+  - regex: assert\.equal\(true,\s*true\)
+    message: "Redundant assertion — assert.equal(true, true) always passes"
+  - regex: assert\s+True\s*$
+    message: "Redundant assertion — 'assert True' always passes, assert on actual values"
+  - regex: assert\s+1\s*==\s*1
+    message: "Redundant assertion — assert 1 == 1 always passes"
+  - regex: self\.assertTrue\(True\)
+    message: "Redundant assertion — assertTrue(True) always passes"
+  - regex: assertEquals\(\s*true\s*,\s*true\s*\)
+    message: "Redundant assertion — assertEquals(true, true) always passes"
+  - regex: assertEqual\(\s*True\s*,\s*True\s*\)
+    message: "Redundant assertion — assertEqual(True, True) always passes"
+  - regex: CHECK\(\s*true\s*\)
+    message: "Redundant assertion — CHECK(true) always passes"
+  - regex: REQUIRE\(\s*true\s*\)
+    message: "Redundant assertion — REQUIRE(true) always passes"
+  - regex: assert\.True\(t,\s*true\)
+    message: "Redundant Go assertion — assert.True(t, true) always passes"
+fix: Replace self-referential assertions with checks on actual computed values. Test real behavior, not constants.

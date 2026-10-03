@@ -1,0 +1,17 @@
+id: A11Y-113
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Deprecated-i-element
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <i>
+patterns:
+  - regex: <i>|<i\s+class=
+    message: <i> has no semantic meaning — use <em> for emphasis or icon framework
+fix: Replace <i> with <em> for emphasis

@@ -1,0 +1,17 @@
+id: K8S-025
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Enabled hostNetwork gives full host network access
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: hostNetwork
+patterns:
+  - regex: hostNetwork:\s*true
+    message: "hostNetwork gives pod full host network access — defeats container isolation"
+fix: Remove hostNetwork or set to false. Use Services and NetworkPolicies for controlled network access.

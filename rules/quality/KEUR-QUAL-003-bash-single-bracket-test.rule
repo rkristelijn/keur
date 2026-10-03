@@ -21,6 +21,8 @@
 #
 # @see docs/adr/ADR-013 (self-guarding controls), SonarCloud script:S6748.
 id: KEUR-QUAL-003
+ilities: [analysability]
+maturity: 3
 title: Use `[[ ... ]]` instead of the `[ ... ]` test in bash scripts
 category: quality
 severity: warning

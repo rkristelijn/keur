@@ -1,0 +1,16 @@
+id: QUAL-076
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: String concatenation in loop (performance anti-pattern)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .java .kt .cs .py .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \+=\s*['"].*['"]
+    message: "String concatenation with += — in loops this creates O(n²) copies. Use StringBuilder/join."
+fix: Java: StringBuilder. Python: ''.join(list). C#: StringBuilder. Go: strings.Builder.

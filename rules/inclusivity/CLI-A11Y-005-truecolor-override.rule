@@ -1,0 +1,20 @@
+id: CLI-A11Y-005
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: 256-color or truecolor ANSI escapes ignore user terminal theme
+category: a11y
+severity: info
+engine: pattern
+target:
+  extensions: .cpp .c .h .go .rs .py .ts .js .rb .sh .bash
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/
+patterns:
+  - regex: \\033\[38;5;\d+m
+    message: "256-color ANSI escape — these override user terminal theme colors and may have poor contrast on some backgrounds"
+  - regex: \\033\[38;2;\d+;\d+;\d+m
+    message: "Truecolor ANSI escape — these override user terminal theme and cannot be customized by the user"
+  - regex: \\x1[bB]\[38;5;\d+m
+    message: "256-color escape (hex notation) — prefer ANSI 4-bit colors that respect user terminal theme"
+fix: "Use standard ANSI 4-bit colors (30-37, 90-97) so users can customize via their terminal emulator preferences."

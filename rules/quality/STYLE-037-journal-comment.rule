@@ -1,0 +1,18 @@
+id: STYLE-037
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Journal/changelog comments in source code
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go .rb .c .cpp .h
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: //\s*(Added|Modified|Changed|Updated|Fixed|Removed|Created)\s+(by|on|at|in)\s+
+    message: "Journal comment — this information belongs in git commit messages, not source code"
+  - regex: #\s*(Added|Modified|Changed|Updated|Fixed|Removed|Created)\s+(by|on|at|in)\s+
+    message: "Journal comment (Python/Ruby) — use git log instead of manual changelogs in code"
+fix: Delete journal comments. Use 'git log' and 'git blame' for history. Code should explain 'why', not 'when'.

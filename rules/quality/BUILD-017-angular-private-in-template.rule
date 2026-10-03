@@ -1,0 +1,17 @@
+id: BUILD-017
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Private property in Angular @Component — AOT failure
+category: build
+severity: warning
+engine: pattern
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: @Component
+patterns:
+  - regex: ^\s+private\s+\w+
+    message: "Private property in @Component — AOT compilation cannot access private members from templates, causing build failures"
+fix: Use public or protected for properties accessed in templates. Keep private only for internal logic.

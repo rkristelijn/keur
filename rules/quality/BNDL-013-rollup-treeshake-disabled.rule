@@ -1,0 +1,17 @@
+id: BNDL-013
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Rollup treeshake disabled
+category: quality
+severity: warning
+engine: pattern
+target:
+  filenames: rollup.config.js rollup.config.ts rollup.config.mjs
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: treeshake
+patterns:
+  - regex: treeshake:\s*false
+    message: "Tree shaking disabled — dead code included in bundle"
+fix: Remove treeshake: false to enable tree shaking. Rollup tree-shakes by default.

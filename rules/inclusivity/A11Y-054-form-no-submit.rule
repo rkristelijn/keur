@@ -1,0 +1,17 @@
+id: A11Y-054
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Form without submit button
+category: a11y
+severity: warning
+engine: absence
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <form
+patterns:
+  - regex: type=["']submit["']|<button[^>]*>
+    message: Form has no submit button — users need a way to submit
+fix: Add <button type="submit"> or <input type="submit"> to the form.

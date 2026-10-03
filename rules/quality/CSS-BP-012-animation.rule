@@ -1,0 +1,22 @@
+id: CSS-BP-012
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Animation and transition best practices
+category: best-practice
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: transition[^:]*:\s*[^;]*(top|left|right|bottom|width|height|margin|padding)\b
+    message: Transitioning layout properties (top/left/width/height/margin/padding) triggers reflow — use transform instead
+  - regex: @keyframes[^{]*\{[^}]*!important
+    message: "!important in @keyframes is ignored in most browsers and misleading — remove it"
+  - regex: animation\s*:\s*[a-zA-Z_-]+\s+[0-9]
+    message: animation shorthand is hard to read and maintain — use longhand properties for clarity
+  - regex: #\{[^}]*\}\s*\)\s*;
+    message: SCSS interpolation inside var() or calc() can produce invalid CSS — use SCSS variables directly
+fix: Use transform/opacity for animations, avoid layout-triggering properties, prefer longhand animation properties

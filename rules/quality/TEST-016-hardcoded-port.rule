@@ -1,0 +1,17 @@
+id: TEST-016
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Hardcoded port in test
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js _test.go
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: it(
+patterns:
+  - regex: (listen|port|PORT).*\b(3000|8080|8000|5000|4200)\b
+    message: "Hardcoded port in test — use port 0 (random) to avoid CI conflicts"
+fix: Use port 0 to let the OS assign a random available port. Read the actual port from the server after it starts.

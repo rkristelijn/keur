@@ -1,0 +1,24 @@
+id: CS-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Dangerous .NET deserializer usage (Exchange Server RCEs)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .cs
+  exclude_paths: test/ tests/ Test/ Tests/ vendor/ .git/ build/ bin/ obj/
+patterns:
+  - regex: new\s+BinaryFormatter\(
+    message: "BinaryFormatter is deprecated and insecure — enables RCE via gadget chains. Microsoft recommendation: never use."
+  - regex: new\s+SoapFormatter\(
+    message: "SoapFormatter is insecure — same RCE risks as BinaryFormatter"
+  - regex: new\s+NetDataContractSerializer\(
+    message: "NetDataContractSerializer is insecure — type info in payload enables RCE"
+  - regex: new\s+ObjectStateFormatter\(
+    message: "ObjectStateFormatter can be exploited for RCE via ViewState deserialization"
+  - regex: new\s+LosFormatter\(
+    message: "LosFormatter is insecure for untrusted data — ViewState deserialization RCE risk"
+fix: Use System.Text.Json or DataContractSerializer. BinaryFormatter is banned by Microsoft security guidance.

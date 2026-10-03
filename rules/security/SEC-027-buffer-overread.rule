@@ -1,4 +1,6 @@
 id: SEC-027
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Buffer over-read with user-controlled length (CVE-2014-0160 Heartbleed)
 category: security

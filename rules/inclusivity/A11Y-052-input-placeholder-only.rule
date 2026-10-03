@@ -1,0 +1,17 @@
+id: A11Y-052
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Input placeholder only
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: placeholder
+patterns:
+  - regex: placeholder=["'][^"']+["']
+    message: placeholder found — do not use placeholder as the only label
+fix: Add a visible <label> element; placeholder is supplementary, not a replacement.

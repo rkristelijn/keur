@@ -1,0 +1,16 @@
+id: IAC-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Using apply_immediately in production
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .tf .hcl
+  exclude_paths: test/
+patterns:
+  - regex: apply_immediately\s*=\s*true
+    message: "apply_immediately = true — changes apply without maintenance window, risking downtime"
+fix: "Set apply_immediately = false for production — changes apply during maintenance window"

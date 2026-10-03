@@ -1,0 +1,18 @@
+id: GO-SEC-023
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Template injection risk
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: template\.(HTML|JS|URL|CSS)\(
+    message: "Explicit template type assertion — verify input is sanitized"
+  - regex: template\.New\(.*\.Parse\(.*(fmt\.Sprintf|\+)
+    message: "Dynamic template construction — risk of template injection"
+fix: Use static template files. Never construct templates from user input.

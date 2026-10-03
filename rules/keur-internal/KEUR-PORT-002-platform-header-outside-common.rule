@@ -2,6 +2,8 @@
 # OS-specific system headers belong ONLY in the platform layer (common/).
 # Included elsewhere they break the build on the other OS. @see docs/adr/ADR-005.
 id: KEUR-PORT-002
+ilities: [adaptability]
+maturity: 3
 title: Platform-specific system header included outside common/
 category: architecture
 severity: error

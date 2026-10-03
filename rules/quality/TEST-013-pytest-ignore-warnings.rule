@@ -1,0 +1,17 @@
+id: TEST-013
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Avoid pytest ignoring all warnings
+category: quality
+severity: warning
+engine: pattern
+target:
+  filenames: pytest.ini setup.cfg pyproject.toml
+  exclude_paths: .git/ vendor/
+  content_contains: sleep
+patterns:
+  - regex: filterwarnings.*=.*ignore
+    message: "pytest ignoring all warnings — deprecation warnings are upgrade signals"
+fix: Filter specific warnings instead of ignoring all. Use filterwarnings = ["ignore::SpecificWarning"] for known false positives only.

@@ -1,0 +1,17 @@
+id: A11Y-084
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Combobox missing required attributes
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role="combobox
+patterns:
+  - regex: role=["']combobox["']
+    message: "Combobox found — ensure aria-controls and aria-expanded are present"
+fix: Add aria-controls and aria-expanded to combobox elements.

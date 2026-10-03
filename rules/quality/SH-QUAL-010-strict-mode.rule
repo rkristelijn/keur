@@ -1,0 +1,20 @@
+id: SH-QUAL-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Missing strict mode (set -euo pipefail)
+category: quality
+severity: warning
+engine: absence
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/
+patterns:
+  - regex: set\s+-[a-zA-Z]*e|set\s+-o\s+errexit
+    message: "Missing 'set -e' or 'set -o errexit' — script continues after errors"
+  - regex: set\s+-[a-zA-Z]*u|set\s+-o\s+nounset
+    message: "Missing 'set -u' or 'set -o nounset' — unset variables silently expand to empty"
+  - regex: set\s+-o\s+pipefail
+    message: "Missing 'set -o pipefail' — pipe failures are silently ignored"
+fix: "Add 'set -euo pipefail' after the shebang line"

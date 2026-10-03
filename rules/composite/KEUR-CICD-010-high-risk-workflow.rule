@@ -8,6 +8,8 @@
 # @see docs/adr/ADR-009-composite-rules-and-facts.md
 # @implements ADR-009.composite
 id: KEUR-CICD-010
+ilities: [integrity]
+maturity: 2
 title: High-risk CI workflow (mutable action tag AND no permissions block)
 category: sast
 severity: error

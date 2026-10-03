@@ -1,0 +1,17 @@
+id: API-019
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Request body without content type specification
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: requestBody
+patterns:
+  - regex: requestBody:
+    message: "Request body defined — ensure content type (application/json) and schema are specified"
+fix: Add content with media type (e.g., application/json) and schema definition under requestBody.

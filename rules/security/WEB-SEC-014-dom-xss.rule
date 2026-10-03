@@ -1,0 +1,24 @@
+id: WEB-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: DOM XSS via dangerous sinks
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .html .htm .vue
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \.innerHTML\s*=
+    message: "innerHTML assignment — DOM XSS risk if value contains user input. Use textContent or DOMPurify.sanitize()"
+  - regex: \.outerHTML\s*=
+    message: "outerHTML assignment — DOM XSS risk. Use safe DOM APIs or sanitize input"
+  - regex: document\.write\(
+    message: "document.write() — XSS risk and blocks page rendering. Use DOM APIs instead"
+  - regex: document\.writeln\(
+    message: "document.writeln() — same risks as document.write(). Use DOM APIs"
+  - regex: \.insertAdjacentHTML\(
+    message: "insertAdjacentHTML() with dynamic content — XSS risk. Sanitize input first"
+fix: "Use textContent for text, DOMPurify.sanitize() for HTML. Prefer React/Vue rendering over raw DOM. CWE-79"

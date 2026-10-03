@@ -1,0 +1,23 @@
+id: CICD-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: GitHub Actions expression injection in shell
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: .git/ node_modules/
+  content_contains: github.event
+patterns:
+  - regex: \$\{\{\s*github\.event\.pull_request\.title
+    message: "PR title interpolated in shell — attacker controls PR title, enabling command injection and secret exfiltration"
+  - regex: \$\{\{\s*github\.event\.head_commit\.message
+    message: "Commit message interpolated in shell — enables command injection via crafted commit messages"
+  - regex: \$\{\{\s*github\.event\.issue\.title
+    message: "Issue title interpolated in shell — user-controlled data in command execution"
+  - regex: \$\{\{\s*github\.event\.comment\.body
+    message: "Comment body interpolated in shell — enables command injection via issue/PR comments"
+fix: Use environment variables: env: TITLE=${{ github.event.pull_request.title }} then reference as $TITLE. Or use actions/github-script.

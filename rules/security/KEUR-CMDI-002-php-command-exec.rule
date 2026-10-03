@@ -1,4 +1,6 @@
 id: KEUR-CMDI-002
+ilities: [integrity]
+maturity: 2
 title: PHP OS command execution sink
 category: cmdi
 severity: error

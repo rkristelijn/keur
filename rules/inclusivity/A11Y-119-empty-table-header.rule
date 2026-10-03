@@ -1,0 +1,17 @@
+id: A11Y-119
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Empty-table-header
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <th
+patterns:
+  - regex: <th[^>]*>\s*</th>
+    message: Empty table header — <th> must have text content
+fix: Add descriptive text to <th> elements

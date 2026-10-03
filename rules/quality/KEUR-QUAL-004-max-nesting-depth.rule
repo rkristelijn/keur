@@ -19,6 +19,8 @@
 #
 # @see docs/rules-authoring.md (`max-nesting`), SonarCloud cpp:S134.
 id: KEUR-QUAL-004
+ilities: [analysability]
+maturity: 3
 title: Function nested more than 3 control blocks deep
 category: quality
 severity: warning

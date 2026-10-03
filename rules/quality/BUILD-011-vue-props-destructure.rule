@@ -1,0 +1,19 @@
+id: BUILD-011
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Vue props destructured — loses reactivity
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .vue
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: defineProps
+patterns:
+  - regex: const\s*\{[^}]*\}\s*=\s*defineProps
+    message: "Destructuring defineProps loses Vue reactivity — changes to parent props won't trigger re-renders"
+  - regex: const\s*\{[^}]*\}\s*=\s*props
+    message: "Destructuring props object loses Vue reactivity — use props.x or toRefs(props)"
+fix: Use const props = defineProps<...>() and access via props.name, or use const { x } = toRefs(props).

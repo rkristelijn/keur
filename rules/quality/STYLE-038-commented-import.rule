@@ -1,0 +1,18 @@
+id: STYLE-038
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Commented-out import/require statement
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ^\s*//\s*(import|require|from)\s
+    message: "Commented-out import — dead code noise. Delete it; git has the history."
+  - regex: ^\s*#\s*(import|from)\s+\w
+    message: "Commented-out import (Python) — delete it; git has the history."
+fix: Delete commented-out imports. If you need the dependency later, git has the history.

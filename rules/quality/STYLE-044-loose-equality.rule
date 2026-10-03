@@ -1,0 +1,18 @@
+id: STYLE-044
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Loose equality operator (== instead of ===)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: [^!=<>]\s*==[^=]
+    message: "Loose equality (==) — uses type coercion with surprising results. Use strict === instead."
+  - regex: !=[^=]
+    message: "Loose inequality (!=) — uses type coercion. Use strict !== instead."
+fix: Always use === and !== in JavaScript/TypeScript. ESLint rule: eqeqeq.

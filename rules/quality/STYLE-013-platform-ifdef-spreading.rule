@@ -1,0 +1,27 @@
+# @see ADR-170 (multi-OS platform abstraction)
+id: STYLE-013
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Platform #ifdef outside src/common/ (ifdef-spreading)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: src/common/ vendor/ test/ tests/ build/ dist/
+patterns:
+  - regex: \#ifdef\s+_WIN32
+    message: "Platform guard #ifdef _WIN32 outside src/common/ — move to platform.h or compat.h (ADR-170)"
+  - regex: \#ifdef\s+__APPLE__
+    message: "Platform guard #ifdef __APPLE__ outside src/common/ — move to platform.h or compat.h (ADR-170)"
+  - regex: \#ifdef\s+__linux__
+    message: "Platform guard #ifdef __linux__ outside src/common/ — move to platform.h or compat.h (ADR-170)"
+  - regex: \#if defined.*_WIN32
+    message: "Platform guard #if defined(_WIN32) outside src/common/ — move to platform.h or compat.h (ADR-170)"
+  - regex: \#if defined.*__APPLE__
+    message: "Platform guard #if defined(__APPLE__) outside src/common/ — move to platform.h or compat.h (ADR-170)"
+  - regex: \#elif defined.*_WIN32
+    message: "Platform guard #elif defined(_WIN32) outside src/common/ — move to platform.h or compat.h (ADR-170)"
+fix: "Declare platform::your_function() in src/common/platform.h. Implement it in src/common/platform_posix.cpp (macOS+Linux) and src/common/platform_win32.cpp (Windows) — no #ifdef needed in either file. The Makefile selects the correct translation unit. See ADR-170."

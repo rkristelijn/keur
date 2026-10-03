@@ -1,4 +1,6 @@
 id: SEC-014
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Mass assignment / unfiltered parameter binding
 category: security

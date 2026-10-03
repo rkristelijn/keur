@@ -31,6 +31,14 @@ ProcResult Proc::default_capture(const std::string& cmd) {
     return r;
 }
 
+ProcResult Proc::default_capture_argv(const std::vector<std::string>& argv) {
+    ProcResult r;
+    auto cap = platform::capture_argv(argv);
+    r.exit_code = cap.exit_code;
+    r.stdout_text = std::move(cap.out);
+    return r;
+}
+
 bool Proc::default_has(const std::string& bin) {
     return platform::tool_on_path(bin);
 }

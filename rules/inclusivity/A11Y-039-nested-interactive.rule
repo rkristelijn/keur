@@ -1,0 +1,16 @@
+id: A11Y-039
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Nested interactive elements
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: <a[^>]*>[^<]*<button|<button[^>]*>[^<]*<a\s|<a[^>]*>[^<]*<input|<button[^>]*>[^<]*<button
+    message: Interactive elements nested inside other interactive elements
+fix: Remove nesting — interactive elements should not contain other interactive elements.

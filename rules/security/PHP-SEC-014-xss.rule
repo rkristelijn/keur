@@ -1,0 +1,20 @@
+id: PHP-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Cross-site scripting (XSS)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: echo\s+\$_(GET|POST|REQUEST|COOKIE)
+    message: "Direct echo of user input — XSS risk. Use htmlspecialchars() to encode output"
+  - regex: print\s+\$_(GET|POST|REQUEST|COOKIE)
+    message: "Direct print of user input — XSS risk. Use htmlspecialchars()"
+  - regex: <\?=\s*\$_(GET|POST|REQUEST|COOKIE)
+    message: "Short echo tag with user input — XSS risk. Use htmlspecialchars()"
+fix: "Always encode output: echo htmlspecialchars($input, ENT_QUOTES, 'UTF-8')"

@@ -1,0 +1,28 @@
+# @see ADR-167
+id: TEST-042
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Test depends on execution order (shared mutable state)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx _test.py .java
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: test
+patterns:
+  - regex: ^let\s+\w+\s*=\s*
+    message: "Mutable let at file/describe scope — tests may depend on mutation order, use const or reset in beforeEach"
+  - regex: ^var\s+\w+\s*=\s*
+    message: "Mutable var at file scope — shared state between tests causes order dependency"
+  - regex: ^(let|var)\s+\w+\s*;\s*$
+    message: "Uninitialized mutable variable at file scope — initialize in beforeEach to isolate tests"
+  - regex: static\s+\w+\s+\w+\s*=\s*.*;\s*\n[\s\S]*@Test
+    message: "Static mutable field in Java test class — tests share state and depend on execution order"
+  - regex: class\s+\w+.*:\s*\n\s+\w+\s*=\s*\[\]
+    message: "Mutable class attribute in Python test — use setUp() to reset state between tests"
+  - regex: class\s+\w+.*:\s*\n\s+\w+\s*=\s*\{\}
+    message: "Mutable class dict in Python test — use setUp() to reset state between tests"
+fix: "Reset state in beforeEach/setUp, not at file scope. Each test must work in isolation regardless of execution order. Use const for immutable test data, and create fresh instances in setup hooks."

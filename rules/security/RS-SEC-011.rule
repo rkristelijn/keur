@@ -1,0 +1,17 @@
+id: RS-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Command::new with variable input
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: Command
+patterns:
+  - regex: Command::new\(\s*[a-z_]
+    message: Command::new with variable — potential command injection
+fix: Validate and sanitize the input before passing to Command::new, or use a hardcoded command name

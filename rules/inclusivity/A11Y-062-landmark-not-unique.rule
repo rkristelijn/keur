@@ -1,0 +1,16 @@
+id: A11Y-062
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Landmark not unique
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: <nav\s*>|<nav\s+class=
+    message: "<nav> without unique aria-label — multiple navs need distinct labels"
+fix: Add aria-label to distinguish multiple landmarks of same type.

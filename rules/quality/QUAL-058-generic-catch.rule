@@ -1,0 +1,20 @@
+id: QUAL-058
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Catching generic Exception (too broad)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .java .kt .cs .py
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: catch\s*\(\s*Exception\s
+    message: "Catching generic Exception — catches everything including programming errors. Catch specific types."
+  - regex: catch\s*\(\s*Throwable\s
+    message: "Catching Throwable — includes OutOfMemoryError and other fatal errors. Catch specific types."
+  - regex: except\s+Exception\s*:
+    message: "Catching generic Exception (Python) — use specific exception types"
+fix: Catch specific exception types. catch (IOException e) instead of catch (Exception e).

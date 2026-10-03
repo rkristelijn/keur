@@ -1,0 +1,22 @@
+# @see ADR-167
+id: SLOP-100
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Size-only test assertion without value verification
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .cpp .h
+  exclude_paths: vendor/ node_modules/
+  content_contains: CHECK
+patterns:
+  - regex: CHECK\(.*\.size\(\)\s*==\s*\d+\)\s*;\s*$
+    message: "Size-only assertion — also verify the content (e.g. findings[0].rule_id, findings[0].message)"
+  - regex: REQUIRE\(.*\.size\(\)\s*==\s*\d+\)\s*;\s*$
+    message: "Size-only assertion — also verify what was found, not just count"
+  - regex: CHECK\(.*\.size\(\)\s*>=\s*\d+\)\s*;\s*$
+    message: "Threshold-only assertion — verify specific items, not just minimum count"
+fix: "After checking size, add assertions on content: CHECK(findings[0].rule_id == \"EXPECTED\"); CHECK(findings[0].line == N);"

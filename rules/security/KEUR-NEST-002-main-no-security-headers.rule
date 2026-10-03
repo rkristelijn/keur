@@ -1,0 +1,32 @@
+# NestJS bootstrap (main.ts) that never registers response security headers.
+# NestJS adds NO security headers by default — the app must opt in during
+# bootstrap, right after NestFactory.create(), via app.useSecurityHeaders()
+# (NestJS >= v12.1) or app.use(helmet()). A main.ts that wires up the app but
+# registers none of these ships every response without CSP, HSTS, X-Frame-Options,
+# X-Content-Type-Options, Referrer-Policy or the X-Powered-By strip — so the API
+# is open to clickjacking, MIME-sniffing and TLS-downgrade attacks.
+# Sourced from docs/research/nestjs.md antipattern #1 / best-practice #1
+# (NestJS Helmet docs: https://docs.nestjs.com/security/helmet).
+#
+# HOW (absence engine): fires when the bootstrap file contains NONE of the
+# header-registration markers (the helmet call, the built-in security-headers
+# call, the powered-by hider, or a literal security-header name). Targeted at
+# main.ts by filename so it only judges the bootstrap entrypoint, not arbitrary
+# code. absence engine => the satisfying pattern absent means "fire".
+id: KEUR-NEST-002
+ilities: [integrity]
+maturity: 1
+title: NestJS main.ts registers no response security headers
+category: security
+severity: warning
+engine: absence
+action: warn
+target:
+  filenames: main.ts
+patterns:
+  # satisfied (no finding) if the bootstrap registers security headers by any
+  # recognised means, OR names a specific security header. Absent => fire.
+  - regex: (?i)\bhelmet\b|useSecurityHeaders|hidePoweredBy|disable\s*\(\s*['"]x-powered-by['"]|Strict-Transport-Security|Content-Security-Policy|X-Frame-Options|X-Content-Type-Options|Referrer-Policy|Permissions-Policy
+    message: "NestJS antipattern #1 — main.ts bootstrap registers no response security headers. NestJS adds none by default, so every response ships without CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy or Permissions-Policy. Call app.useSecurityHeaders() (or app.use(helmet())) immediately after NestFactory.create()."
+confidence: 0.6
+fix: "Right after NestFactory.create(), call app.useSecurityHeaders() (NestJS >= v12.1) or app.use(helmet()) before any other app.use()/route middleware, so the default CSP + HSTS + nosniff + frame + powered-by-strip headers cover every response."

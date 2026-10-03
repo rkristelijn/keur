@@ -1,0 +1,21 @@
+# @see R-030 (Design Patterns vs Native Platform Features)
+id: PATTERN-003
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Interface + single implementation pair (cargo cult)
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: class\s+\w+Impl\s+(implements|extends|:)
+    message: "FooImpl class — if there's only one implementation, the interface adds indirection without value. Add interfaces when you need polymorphism"
+  - regex: interface\s+I[A-Z]\w+Service
+    message: "IFooService interface — Hungarian I-prefix with single implementation is a code smell. Interface is justified only if multiple implementations exist or for testing boundaries"
+  - regex: interface\s+I[A-Z]\w+Repository
+    message: "IFooRepository interface — if your ORM already provides a repository (Spring Data, TypeORM), this extra layer is redundant"
+fix: Remove the interface if only one implementation exists. Use the concrete class directly. Add an interface later when a second implementation is actually needed (YAGNI principle).

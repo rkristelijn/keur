@@ -1,0 +1,17 @@
+id: RS-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Insecure TLS configuration
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: asm!
+patterns:
+  - regex: danger_accept_invalid_certs\(true\)|danger_accept_invalid_hostnames\(true\)
+    message: TLS certificate validation disabled — allows man-in-the-middle attacks
+fix: Remove danger_accept_invalid_certs/danger_accept_invalid_hostnames or set to false in production

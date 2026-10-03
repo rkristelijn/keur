@@ -1,0 +1,17 @@
+id: KT-QUAL-024
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Deprecated Kotlin synthetics
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .kt
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: kotlinx.android.synthetic
+patterns:
+  - regex: import kotlinx\.android\.synthetic
+    message: Kotlin synthetics deprecated — use ViewBinding or Jetpack Compose
+fix: Migrate to ViewBinding (recommended) or Jetpack Compose for view references

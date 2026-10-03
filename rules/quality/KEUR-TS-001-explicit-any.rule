@@ -1,0 +1,45 @@
+# Explicit `any` type annotation — the TypeScript escape hatch that opts a
+# value out of type checking entirely.
+#
+# From work-epub/backend/typescript-training/typescript-training.md (the team's
+# TS training material): `any` = "Opt-out of type checking (disables safety)",
+# recommended only "when migrating code ... (avoid if possible)". Its safe twin
+# `unknown` "forces type narrowing before use". An `any` param or return value
+# silently disables inference for every caller downstream, so a single `any`
+# erodes safety far beyond the annotated symbol. typescript-eslint's
+# `no-explicit-any` targets exactly this.
+#
+# Why a NEW rule (verified false-negative on mestjs slop.service.ts,
+# 2026-09-26): `coerce(input: any): any` was flagged by no existing rule; no
+# KEUR-TS-* rule existed.
+#
+# HOW: match a type-annotation position `: any` — a colon, optional
+# whitespace, the word `any`, then a boundary (`)`, `,`, `;`, `=`, `{`,
+# end-of-line, or `[]` for `any[]`). Anchoring on `:` plus a trailing boundary
+# avoids matching the word "any" in prose, identifiers like `many`/`anyone`
+# (word-boundary), or `Company:` style keys (requires the value to BE `any`).
+#
+# RE2-safe: a single bounded `\s*` and a fixed alternation for the trailing
+# boundary; no backreferences or nested unbounded quantifiers. WARN, not block:
+# `any` is sometimes a deliberate, reviewed migration choice.
+#
+# @see work-epub typescript-training.md (type table: any = disables safety);
+#      typescript-eslint no-explicit-any.
+id: KEUR-TS-001
+ilities: [analysability]
+maturity: 1
+title: Explicit `any` type annotation — opts out of type checking
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .ts .tsx
+  exclude_paths: node_modules/ dist/ build/ vendor/
+patterns:
+  # `: any` in annotation position, followed by a type-boundary token.
+  - regex: :\s*any\b(?:\[\])?\s*(?:[),;={]|$)
+    message: "Explicit `any` disables type checking for this value and every downstream caller (ts-training: 'opt-out of type checking, disables safety'). Prefer `unknown` (forces narrowing) or a concrete type. @see KEUR-TS-001"
+confidence: 0.75
+fix: "Replace `any` with a concrete type, or `unknown` when the shape is genuinely dynamic (then narrow with a type guard before use). Reserve `any` for reviewed, temporary migration code and annotate why."

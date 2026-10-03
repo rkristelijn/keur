@@ -1,0 +1,17 @@
+id: A11Y-013
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Image possibly missing alt attribute
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <img
+patterns:
+  - regex: <img\s+src=[^>]*>
+    message: "<img> found — ensure alt attribute is present (WCAG 1.1.1). Use alt=\"\" for decorative images."
+fix: "Add alt attribute to <img> (use alt=\"\" for decorative images)"

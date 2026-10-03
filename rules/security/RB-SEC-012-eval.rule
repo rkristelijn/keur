@@ -1,0 +1,26 @@
+id: RB-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Dangerous eval and code execution
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .rb
+  exclude_paths: test/ tests/ spec/
+patterns:
+  - regex: \beval\s*\(
+    message: "eval() executes arbitrary Ruby code — never use with user input"
+  - regex: \bclass_eval\s*\(
+    message: "class_eval() executes code in class context — avoid with dynamic input"
+  - regex: \binstance_eval\s*\(
+    message: "instance_eval() executes code in object context — avoid with dynamic input"
+  - regex: \bsend\(\s*params
+    message: "send() with user input — allows calling any method. Validate against allowlist"
+  - regex: \bconstantize\b
+    message: "constantize converts string to class — use allowlist to prevent loading arbitrary classes"
+  - regex: \bsafe_constantize\b
+    message: "safe_constantize can still load arbitrary classes — validate against explicit allowlist"
+fix: "Avoid eval/send with user input. Use allowlists for method/class dispatch"

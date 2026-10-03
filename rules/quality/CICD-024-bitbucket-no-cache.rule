@@ -1,0 +1,17 @@
+id: CICD-024
+ilities: [time-behaviour]
+source: cpm
+maturity: 3
+action: advisory
+title: Bitbucket pipeline without caches
+category: performance
+severity: warning
+engine: absence
+target:
+  filenames: bitbucket-pipelines.yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: bitbucket
+patterns:
+  - regex: caches:
+    message: "No caching in Bitbucket pipeline — builds re-download dependencies every run"
+fix: Add caches section. Example: caches: [node] for npm, caches: [pip] for Python. Custom caches: caches: { custom: { path: ~/.cache }}.

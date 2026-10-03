@@ -1,0 +1,19 @@
+id: STATE-MIS-013
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Redux connect() HOC instead of hooks
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: connect
+patterns:
+  - regex: connect\s*\(\s*mapStateToProps
+    message: "connect() HOC is legacy Redux — use useSelector() and useDispatch() hooks for simpler, type-safe code"
+  - regex: connect\s*\(\s*null\s*,\s*mapDispatchToProps
+    message: "connect() with mapDispatchToProps — use useDispatch() hook instead"
+fix: "const dispatch = useDispatch(); const items = useSelector((state) => state.items);"

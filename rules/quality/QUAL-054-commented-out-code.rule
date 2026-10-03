@@ -1,0 +1,18 @@
+id: QUAL-054
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Commented-out code (dead code noise)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ^\s*//\s*(const|let|var|function|class|import|export|return|if|for|while)\s
+    message: "Commented-out code — use version control instead. Dead code adds noise and confusion."
+  - regex: ^\s*#\s*(def|class|import|from|return|if|for|while)\s
+    message: "Commented-out Python code — delete it. Git has your history."
+fix: Delete commented-out code. It's preserved in git history if you ever need it back.

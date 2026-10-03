@@ -1,0 +1,19 @@
+id: FA-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: FastAPI admin route may lack authentication
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: admin
+patterns:
+  - regex: @app\.(get|post|put|delete|patch)\(["'][^"']*/admin
+    message: "Admin route detected — verify it has an authentication dependency (Depends(verify_token) or similar)"
+  - regex: @router\.(get|post|put|delete|patch)\(["'][^"']*/admin
+    message: "Admin router route detected — verify it has an authentication dependency"
+fix: "Add authentication dependency: @app.get('/admin', dependencies=[Depends(verify_admin)])"

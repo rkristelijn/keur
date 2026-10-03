@@ -1,4 +1,6 @@
 id: SCA-063
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Piping curl/wget to shell execution
 category: supply-chain

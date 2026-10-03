@@ -1,0 +1,22 @@
+id: BE-SEC-034
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: ReDoS (Regular Expression Denial of Service)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \([\.\*\+]\+\)\+
+    message: "Nested quantifier pattern (.+)+ — catastrophic backtracking (ReDoS). Simplify or use RE2/atomic groups"
+  - regex: \([^\)]+\|[^\)]+\)\{2,\}\+
+    message: "Alternation with repetition — exponential backtracking risk"
+  - regex: new RegExp\(.*(?:req|param|input|user|query|body)
+    message: "User input in RegExp constructor — ReDoS risk. Validate or use RE2 library"
+  - regex: re\.compile\(.*(?:req|param|input|user|query|request)
+    message: "User input in regex compilation — ReDoS risk. Use re2 library or validate pattern"
+fix: "Use RE2 (linear-time regex). Avoid nested quantifiers. Never compile user input as regex. Set regex timeout. CWE-1333"

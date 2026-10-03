@@ -1,0 +1,17 @@
+id: A11Y-120
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Redundant-title-alt
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: title=
+patterns:
+  - regex: <img[^>]*alt=[^>]*title=
+    message: Image has both alt and title — ensure they serve different purposes
+fix: Remove title if it duplicates alt text, or make them complementary

@@ -70,6 +70,21 @@ Verdict policy_evaluate(const PolicyInput& input);
 bool finding_blocks(const std::string& action, const std::string& confidence,
                     double block_at);
 
+/**
+ * Format one finding as a self-explaining gate line:
+ *   "<mark> <rule> | <action> | conf <c> | <file>:<line> | <message>"
+ *   "        fix: <fix>"                              (if the rule ships a fix)
+ *   "        false positive? add on that line: keur:ignore <rule>"
+ * A blocked commit must tell a human OR an AI exactly what to fix and how to
+ * suppress a genuine false positive — so nobody reaches for --no-verify
+ * (README/vision). Pure — table-testable.
+ * @implements KEUR-SCAN-DISPATCH
+ */
+std::string format_finding_line(const std::string& rule, const std::string& action,
+                                const std::string& confidence, const std::string& file,
+                                int line, const std::string& message, bool blocks,
+                                const std::string& fix = "");
+
 // ---------------------------------------------------------------------------
 // I/O boundary (injectable for tests)
 // ---------------------------------------------------------------------------

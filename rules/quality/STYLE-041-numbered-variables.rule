@@ -1,0 +1,16 @@
+id: STYLE-041
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Numbered variables (item1, item2, data3)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (const|let|var)\s+\w+[2-9]\s*=
+    message: "Numbered variable (item2, data3) — indicates unclear naming or need for an array/object"
+fix: Use descriptive names or a collection. 'primaryAddress' and 'billingAddress' not 'address1' and 'address2'.

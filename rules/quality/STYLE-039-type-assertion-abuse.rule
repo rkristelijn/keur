@@ -1,0 +1,16 @@
+id: STYLE-039
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Type assertion abuse (as unknown as / double cast)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: as\s+unknown\s+as\s
+    message: "Double type assertion (as unknown as X) — code smell. Fix the underlying type mismatch."
+fix: Fix the type mismatch at its source. If needed, use a type guard function instead of casting.

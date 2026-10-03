@@ -1,0 +1,16 @@
+id: QUAL-062
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Logging and rethrowing (double error handling)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (console\.(log|error)|logger\.(error|warn)|log\.(error|warn)).*throw\s
+    message: "Log-and-rethrow on same line — the caller will also log, producing duplicate entries"
+fix: Choose one: either log it (and handle), or rethrow it (let the caller log). Not both.

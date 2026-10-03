@@ -1,0 +1,17 @@
+id: GQL-004
+ilities: [authenticity]
+source: cpm
+maturity: 2
+action: block
+title: Apollo CSRF prevention disabled
+category: graphql
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .rb .go .java
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: csrfPrevention
+patterns:
+  - regex: csrfPrevention\s*:\s*false
+    message: "Apollo CSRF prevention disabled — enables cross-site request forgery"
+fix: Set csrfPrevention: true (default in Apollo Server 4+). CSRF protection prevents malicious sites from executing mutations on behalf of authenticated users.

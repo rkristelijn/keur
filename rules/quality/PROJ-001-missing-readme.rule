@@ -1,0 +1,13 @@
+# @see ADR-166
+id: PROJ-001
+ilities: [traceability]
+source: cpm
+maturity: 2
+action: advisory
+title: Missing README.md
+category: docs
+severity: error
+engine: file-absence
+target:
+  filenames: README.md
+fix: Create a README.md with project description, setup, and usage instructions.

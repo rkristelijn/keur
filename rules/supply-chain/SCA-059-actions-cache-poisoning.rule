@@ -1,4 +1,6 @@
 id: SCA-059
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: GitHub Actions cache poisoning risk
 category: supply-chain

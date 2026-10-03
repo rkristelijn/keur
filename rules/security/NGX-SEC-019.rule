@@ -1,0 +1,17 @@
+id: NGX-SEC-019
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Apache Options Indexes enabled
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .conf .htaccess
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: add_header
+patterns:
+  - regex: Options.*\+?Indexes
+    message: Apache directory listing enabled — exposes file structure to attackers
+fix: Use Options -Indexes in .htaccess or httpd.conf to disable directory listing

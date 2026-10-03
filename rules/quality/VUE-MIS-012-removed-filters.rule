@@ -1,0 +1,16 @@
+id: VUE-MIS-012
+ilities: [analysability]
+source: cpm
+maturity: 2
+action: advisory
+title: Vue 3 removed filter syntax
+category: quality
+severity: error
+engine: pattern
+target:
+  extensions: .vue
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \{\{\s*\w+\s*\|\s*\w+\s*\}\}
+    message: "Filters ({{ value | filter }}) are removed in Vue 3 — use computed properties or methods"
+fix: "Replace {{ price | currency }} with {{ formatCurrency(price) }} or a computed property."

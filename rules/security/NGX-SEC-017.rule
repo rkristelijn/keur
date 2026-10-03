@@ -1,0 +1,17 @@
+id: NGX-SEC-017
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Root directive in location block
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: root
+patterns:
+  - regex: ^\s+root\s+/;
+    message: root inside location is error-prone — use alias or put root in server block
+fix: Move the root directive to the server block, or use alias inside location blocks

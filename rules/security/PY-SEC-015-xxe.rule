@@ -1,0 +1,21 @@
+id: PY-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: XXE in Python XML parsers
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/
+  content_contains: xml
+patterns:
+  - regex: xml\.etree\.ElementTree\.parse\(.*request
+    message: "xml.etree parsing user input — XXE risk. Use defusedxml.ElementTree instead"
+  - regex: xml\.sax\.parse.*request
+    message: "xml.sax parsing user input — XXE vulnerability. Use defusedxml"
+  - regex: lxml\.etree\.parse\(.*request
+    message: "lxml.etree parsing user input — XXE risk. Use defusedxml or set resolve_entities=False"
+fix: Use defusedxml library instead of stdlib xml parsers. Install: pip install defusedxml.

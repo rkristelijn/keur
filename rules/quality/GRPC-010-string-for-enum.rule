@@ -1,0 +1,17 @@
+id: GRPC-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: String type for enum-like fields in protobuf
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .proto
+  exclude_paths: test/ vendor/ .git/
+  content_contains: string
+patterns:
+  - regex: string\s+(status|type|state|kind|role|category|priority|level|mode|action)\s*=\s*\d+
+    message: "String type for enum-like field — loses type safety and wastes bandwidth. Use a proto enum instead."
+fix: Define an enum type. enum Status { UNKNOWN = 0; ACTIVE = 1; INACTIVE = 2; } instead of string status.

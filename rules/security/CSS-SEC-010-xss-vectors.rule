@@ -1,0 +1,24 @@
+id: CSS-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: CSS XSS vectors
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: expression\s*\(
+    message: CSS expression() executes JavaScript — XSS vector in IE
+  - regex: url\s*\(\s*['"]?\s*javascript\s*:
+    message: javascript: URI in CSS url() — XSS vector
+  - regex: -moz-binding\s*:
+    message: -moz-binding can load XBL that executes JavaScript — XSS vector in Firefox
+  - regex: behavior\s*:\s*url\s*\(
+    message: behavior: url() executes HTC scripts — XSS vector in IE
+  - regex: -o-link\s*:
+    message: -o-link can navigate to arbitrary URLs — XSS vector in Opera
+fix: Remove dangerous CSS patterns that execute scripts — these are legacy browser attack vectors

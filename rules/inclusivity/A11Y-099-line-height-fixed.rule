@@ -1,0 +1,17 @@
+id: A11Y-099
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Line-height-fixed
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: line-height
+patterns:
+  - regex: line-height:\s*[0-9]+px
+    message: Fixed line-height in px — use unitless values for better scaling
+fix: Use unitless line-height values (e.g. 1.5 instead of 24px)

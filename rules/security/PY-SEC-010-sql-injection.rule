@@ -1,0 +1,30 @@
+id: PY-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: SQL injection via string formatting
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \.execute\(\s*f".*(?:SELECT|INSERT|UPDATE|DELETE)
+    message: "f-string in SQL execute() — use parameterized queries: cursor.execute('SELECT ... WHERE id = %s', (id,))"
+  - regex: \.execute\(\s*".*(?:SELECT|INSERT|UPDATE|DELETE).*"\s*%
+    message: "%-formatting in SQL execute() — use parameterized queries instead of string interpolation"
+  - regex: \.execute\(\s*".*(?:SELECT|INSERT|UPDATE|DELETE).*"\.format\(
+    message: ".format() in SQL execute() — use parameterized queries instead of .format()"
+  - regex: \.execute\(\s*".*(?:SELECT|INSERT|UPDATE|DELETE).*"\s*\+
+    message: "String concatenation in SQL execute() — use parameterized queries"
+  - regex: \.execute\(\s*'.*(?:SELECT|INSERT|UPDATE|DELETE).*'\s*%
+    message: "%-formatting in SQL execute() — use parameterized queries"
+  - regex: \.execute\(\s*'.*(?:SELECT|INSERT|UPDATE|DELETE).*'\s*\+
+    message: "String concatenation in SQL execute() — use parameterized queries"
+  - regex: \.raw\(\s*f"
+    message: "f-string in Django .raw() query — use parameterized queries: Model.objects.raw('SELECT ... WHERE id = %s', [id])"
+  - regex: \.extra\(\s*where\s*=\s*\[.*f"
+    message: "f-string in Django .extra(where=) — use parameterized queries or Q objects"
+fix: "Use parameterized queries: cursor.execute('SELECT ... WHERE id = %s', (id,))"

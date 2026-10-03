@@ -1,0 +1,17 @@
+id: RS-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Unsafe mem::transmute usage
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: transmute
+patterns:
+  - regex: mem::transmute|transmute::<
+    message: transmute bypasses type system — use safe alternatives (as, From/Into, bytemuck)
+fix: Replace transmute with safe conversion traits (as, From, Into) or bytemuck for zero-copy casts

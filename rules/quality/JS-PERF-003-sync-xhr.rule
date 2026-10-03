@@ -1,0 +1,18 @@
+id: JS-PERF-003
+ilities: [time-behaviour]
+source: cpm
+maturity: 2
+action: advisory
+title: Synchronous XMLHttpRequest blocks the UI thread
+category: performance
+severity: error
+engine: pattern
+skip_comments: true
+target:
+  extensions: .ts .js .tsx .jsx .vue
+  exclude_paths: test/ tests/ __tests__/ .spec. .test. lib/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: .open(
+patterns:
+  - regex: \.open\(\s*['"](GET|POST|PUT|DELETE|HEAD|PATCH)['"]\s*,[^)]*,\s*false\s*\)
+    message: "Synchronous XMLHttpRequest (async flag = false) blocks the main thread until the request completes, freezing the entire UI. Use fetch() or async XHR."
+fix: "Use fetch() (async by default) or pass true as the third arg to xhr.open(). "

@@ -1,0 +1,17 @@
+id: NGX-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Missing HSTS header
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: ssl
+patterns:
+  - regex: Strict-Transport-Security
+    message: HTTPS without HSTS — browsers can be downgraded to HTTP
+fix: Add 'add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always'

@@ -1,0 +1,17 @@
+id: K8S-033
+ilities: [reliability-maturity]
+source: cpm
+maturity: 3
+action: advisory
+title: Missing emptyDir without size limit
+category: reliability
+severity: warning
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: emptyDir
+patterns:
+  - regex: emptyDir:\s*\{\}
+    message: "emptyDir without sizeLimit — can fill node disk causing eviction"
+fix: Add sizeLimit to emptyDir volumes (e.g., emptyDir: { sizeLimit: 1Gi }) to prevent node disk exhaustion.

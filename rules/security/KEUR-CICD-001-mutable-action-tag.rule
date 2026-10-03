@@ -4,6 +4,8 @@
 # github-actions-mutable-action-tag (the dominant workflow SAST miss, 32x).
 # exclude: a 40-hex SHA pin is the safe case — subtract it (pattern-not).
 id: KEUR-CICD-001
+ilities: [integrity]
+maturity: 2
 title: GitHub Action pinned to a mutable tag (use a commit SHA)
 category: sast
 severity: warning

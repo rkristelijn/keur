@@ -1,0 +1,17 @@
+id: SLS-014
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: IAM wildcard action
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml .json
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: Effect
+patterns:
+  - regex: Action:\s*["']?\*["']?
+    message: "IAM Action * grants all permissions — specify exact actions needed"
+fix: Replace Action: '*' with specific actions like Action: ['s3:GetObject', 's3:PutObject']. Use IAM Access Analyzer to identify needed permissions.

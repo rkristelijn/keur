@@ -1,0 +1,17 @@
+id: AIML-016
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Dangerous eval/exec in ML pipeline
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: eval
+patterns:
+  - regex: \b(eval|exec)\s*\(
+    message: eval()/exec() in ML code — arbitrary code execution, often used in model config parsing
+fix: Use ast.literal_eval() for safe evaluation or structured config parsing

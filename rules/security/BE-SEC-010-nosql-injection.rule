@@ -1,0 +1,26 @@
+id: BE-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: NoSQL injection
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .rb .java .go .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \$where\s*:\s*function
+    message: "MongoDB $where with function — server-side JavaScript execution risk"
+  - regex: \$where\s*:\s*["']
+    message: "MongoDB $where with string expression — JavaScript injection risk with user input"
+  - regex: \$(?:ne|gt|gte|lt|lte|in|nin|regex|exists|or|and)\b.*(?:req\.|params|body|query|input)
+    message: "MongoDB operator with user input — NoSQL injection risk. Sanitize input or use explicit field queries"
+  - regex: \.find\(\s*\{[^}]*\$
+    message: "MongoDB find() with $ operator — ensure user input cannot inject NoSQL operators"
+  - regex: eval\s*:\s*(?:true|function)
+    message: "MongoDB eval enabled — server-side JavaScript execution risk"
+  - regex: collection\.find\(\s*(?:req\.|params|body|query)
+    message: "Direct user input in MongoDB find() — sanitize to prevent NoSQL injection"
+fix: "Validate and sanitize input. Use mongoose schemas with strict mode. Strip $ operators from user input. CWE-943"

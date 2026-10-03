@@ -1,0 +1,18 @@
+id: LOG-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: String concatenation in structured logger
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .java .py
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: logger\.(info|warn|error|debug|log)\(['"`].*\s*\+\s
+    message: "String concatenation in logger — defeats structured logging and wastes CPU on disabled log levels"
+  - regex: log\.(info|warn|error|debug)\(['"`].*\s*\+\s
+    message: "String concatenation in log call — use structured logging with parameters instead"
+fix: Use structured parameters. Node: logger.info({userId, action}, 'msg'). Java: log.info("User {} did {}", userId, action). Python: logger.info('msg', extra={'user': userId}).

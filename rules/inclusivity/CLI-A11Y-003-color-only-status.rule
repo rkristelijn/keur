@@ -1,0 +1,18 @@
+id: CLI-A11Y-003
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Color-only status indicator without text or symbol
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .cpp .c .h .go .rs .py .ts .js .rb .sh .bash
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/
+patterns:
+  - regex: \\033\[31m[^\\]*\\033\[0m
+    message: "Red-colored text — ensure a symbol (✗) or label (FAIL/ERROR) accompanies it. Color-blind users cannot distinguish red from normal text."
+  - regex: \\033\[32m[^\\]*\\033\[0m
+    message: "Green-colored text — ensure a symbol (✓) or label (PASS/OK) accompanies it. Color-blind users cannot distinguish green from normal text."
+fix: "Always pair color with a text label (PASS/FAIL/ERROR/OK) or symbol (✓/✗/⚠). Never convey meaning through color alone (WCAG 1.4.1)."

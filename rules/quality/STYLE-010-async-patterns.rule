@@ -1,0 +1,18 @@
+id: STYLE-010
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: Async anti-patterns (.then, new Promise)
+category: style
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \.then\s*\(
+    message: "Consider using async/await instead of .then() chains for readability"
+  - regex: new\s+Promise\s*\(
+    message: "Consider whether async/await can replace new Promise() (valid for callback adaptation)"
+fix: Refactor to async/await pattern

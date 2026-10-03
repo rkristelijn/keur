@@ -1,0 +1,18 @@
+id: OAUTH-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: OAuth2 implicit grant flow (deprecated by RFC 9700)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .java .yaml .yml .json .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: response_type\s*[=:]\s*['"]?token['"]?
+    message: "OAuth2 implicit grant (response_type=token) is deprecated — tokens leak via URL fragments and browser history"
+  - regex: grant_type\s*[=:]\s*['"]?implicit['"]?
+    message: "OAuth2 implicit grant type is deprecated — use authorization_code with PKCE instead"
+fix: Use authorization code flow with PKCE (Proof Key for Code Exchange) for all clients.

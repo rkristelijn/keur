@@ -1,0 +1,17 @@
+id: MIG-026
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Raw SQL in ORM migration
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .py .rb .ts .js
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: migration
+patterns:
+  - regex: (execute|raw|exec_sql|sequelize\.query)\s*\(
+    message: "Raw SQL in ORM migration — use ORM methods for database portability"
+fix: Use ORM migration methods (e.g., add_column, create_table) instead of raw SQL for cross-database compatibility.

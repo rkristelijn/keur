@@ -1,0 +1,20 @@
+id: SESS-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Insecure cookie configuration (session hijacking risk)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .java .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: httpOnly\s*:\s*false
+    message: "Cookie httpOnly:false — JavaScript can read session cookies, enabling XSS-based session theft"
+  - regex: secure\s*:\s*false
+    message: "Cookie secure:false — cookies sent over unencrypted HTTP, enabling network sniffing"
+  - regex: sameSite\s*:\s*['"](?:none|None)['"]
+    message: "Cookie sameSite:'none' — enables cross-site request forgery (CSRF) attacks"
+fix: Set httpOnly: true, secure: true, sameSite: 'strict' (or 'lax') for session cookies.

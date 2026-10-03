@@ -1,0 +1,17 @@
+id: STATE-MIS-040
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Vuex import in Vue 3 project
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .vue
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: vuex
+patterns:
+  - regex: import\s.*from\s+["']vuex["']
+    message: "Vuex is in maintenance mode — Pinia is the official Vue state management library"
+fix: "Migrate to Pinia: import { defineStore } from 'pinia'"

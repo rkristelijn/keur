@@ -1,0 +1,22 @@
+id: QUAL-010
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Technical debt marker
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .py .cpp .h .java .sh .rs .go
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \bTODO\b.*
+    message: TODO marker found
+  - regex: \bFIXME\b.*
+    message: FIXME marker — needs immediate attention
+  - regex: \bHACK\b.*
+    message: HACK marker — temporary workaround
+  - regex: \bXXX\b.*
+    message: XXX marker — dangerous/broken code
+fix: Resolve or create an issue to track the debt

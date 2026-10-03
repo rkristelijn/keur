@@ -1,0 +1,17 @@
+id: A11Y-082
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Heading role missing level
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role="heading
+patterns:
+  - regex: role=["']heading["']
+    message: "role=heading found — ensure aria-level is specified"
+fix: Add aria-level attribute (e.g. aria-level="2") to role=heading elements.

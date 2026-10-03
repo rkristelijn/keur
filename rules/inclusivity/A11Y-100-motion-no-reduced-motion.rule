@@ -1,0 +1,17 @@
+id: A11Y-100
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Motion-no-reduced-motion
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .css .scss .less
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: animation
+patterns:
+  - regex: animation:|animation-name:|@keyframes
+    message: Animations found — ensure prefers-reduced-motion media query is respected
+fix: Add @media (prefers-reduced-motion: reduce) to disable/reduce animations

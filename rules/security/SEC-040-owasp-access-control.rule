@@ -1,4 +1,6 @@
 id: SEC-040
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: OWASP Top 10 — A01 Broken Access Control + A02 Security Misconfiguration
 category: security
@@ -22,6 +24,10 @@ patterns:
     message: "A02 CORS wildcard in Express/Node — restrict to specific trusted origins"
   - regex: cors\(origins=\[[\"']\*[\"']\]
     message: "A02 CORS wildcard in Python — restrict origins to trusted domains"
+  - regex: enableCors\(\s*\{[^}]*origin:\s*[\"']\*[\"']
+    message: "A02 CORS wildcard in NestJS — enableCors({ origin: '*' }) lets any site read responses. Restrict to trusted origins."
+  - regex: enableCors\(\s*\{[^}]*origin:\s*true
+    message: "A02 CORS origin reflection in NestJS — enableCors({ origin: true }) reflects any Origin. Restrict to an explicit allowlist."
   - regex: X-Powered-By
     message: "A02 Server info leak — X-Powered-By header reveals framework/version to attackers"
   - regex: stack\s*trace

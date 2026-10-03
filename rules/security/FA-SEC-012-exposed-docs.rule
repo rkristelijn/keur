@@ -1,0 +1,17 @@
+id: FA-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: FastAPI default docs/redoc endpoints exposed
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: FastAPI(
+patterns:
+  - regex: docs_url\s*=\s*None
+    message: "FastAPI app created without docs_url=None — /docs and /redoc expose your full API schema in production"
+fix: "Disable in production: FastAPI(docs_url=None, redoc_url=None) or gate behind authentication."

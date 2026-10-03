@@ -1,0 +1,17 @@
+id: BUILD-015
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Nuxt plugin without defineNuxtPlugin
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: nuxtApp
+patterns:
+  - regex: export\s+default.*nuxtApp
+    message: "Nuxt plugin exports function with nuxtApp directly — use defineNuxtPlugin for proper Nuxt 3 plugin registration"
+fix: Use export default defineNuxtPlugin((nuxtApp) => { ... }) for type safety and correct lifecycle handling.

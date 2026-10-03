@@ -1,0 +1,21 @@
+id: PHP-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: PHP object injection via unserialize (CVE-2018-15133)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .php
+  exclude_paths: test/ tests/
+  content_contains: unserialize
+patterns:
+  - regex: unserialize\(.*\$_(GET|POST|REQUEST|COOKIE)
+    message: "unserialize() with user input — PHP Object Injection enables RCE via POP chains (CVE-2018-15133)"
+  - regex: unserialize\(.*base64_decode
+    message: "unserialize() with base64 decoded data — likely processing user-supplied serialized objects"
+  - regex: unserialize\(.*file_get_contents
+    message: "unserialize() from file — ensure source is trusted, not user-controllable"
+fix: Use json_decode() instead. If unserialize is required, use allowed_classes parameter: unserialize($data, ['allowed_classes' => false]).

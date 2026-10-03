@@ -1,0 +1,22 @@
+id: WEB-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Clickjacking / missing frame protection
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .rb .php .go .cs
+  exclude_paths: test/ tests/
+patterns:
+  - regex: X-Frame-Options.*ALLOWALL
+    message: "X-Frame-Options set to ALLOWALL — allows clickjacking. Use DENY or SAMEORIGIN"
+  - regex: frameguard\(\s*\{.*action:\s*['"]allow
+    message: "Helmet frameguard set to allow — enables clickjacking. Use 'deny' or 'sameorigin'"
+  - regex: X_FRAME_OPTIONS\s*=\s*['"]ALLOW
+    message: "Django X_FRAME_OPTIONS set to ALLOW — clickjacking risk. Use 'DENY'"
+  - regex: frame-ancestors\s+\*
+    message: "CSP frame-ancestors set to * — allows any site to frame this page (clickjacking)"
+fix: "Set X-Frame-Options: DENY and CSP frame-ancestors 'self'. CWE-1021"

@@ -1,0 +1,17 @@
+id: RS-QUAL-033
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Dead code suppression
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: dead_code
+patterns:
+  - regex: #\[allow\(dead_code\)\]
+    message: dead_code suppression — remove unused code instead of suppressing the warning
+fix: Delete the unused code, or prefix with underscore if intentionally unused (e.g., _reserved)

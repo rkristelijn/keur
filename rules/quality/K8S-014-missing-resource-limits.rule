@@ -1,0 +1,17 @@
+id: K8S-014
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Kubernetes pod missing resource limits
+category: quality
+severity: warning
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: .git/ node_modules/
+  content_contains: containers:
+patterns:
+  - regex: resources:
+    message: "Pod spec has no resources section — containers can consume unlimited CPU/memory, causing node OOM kills"
+fix: Add resources.limits and resources.requests for cpu and memory on every container.

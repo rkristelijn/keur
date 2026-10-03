@@ -1,0 +1,18 @@
+id: QUAL-059
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Complex boolean expression (4+ operators — extract to named function)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs .py .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: if\s*\([^)]*&&[^)]*&&[^)]*&&[^)]*&&
+    message: "Complex boolean (5+ AND operators) — extract to a named function like isEligibleForDiscount()"
+  - regex: if\s*\([^)]*\|\|[^)]*\|\|[^)]*\|\|[^)]*\|\|
+    message: "Complex boolean (5+ OR operators) — extract to a named function"
+fix: Extract complex conditions to descriptively-named functions. if (isEligible(user)) instead of if (user.age > 18 && user.active && ...).

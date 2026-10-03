@@ -1,0 +1,23 @@
+id: TEST-045
+ilities: [analysability]
+source: cpm
+maturity: 2
+action: advisory
+title: Test case without an assertion
+category: quality
+severity: error
+engine: block-absence
+skip_comments: true
+target:
+  extensions: .test.ts .test.js .test.tsx .test.jsx .spec.ts .spec.js .spec.tsx .spec.jsx
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: it(
+# The block-START pattern: an it()/test() case (optionally .only/.skip/.each).
+# block_inner must appear somewhere inside its braces, otherwise the test
+# always passes regardless of behaviour (the "Unknown Test" smell). Covers
+# expect(), assert(), and common matcher entry points.
+block_inner: \b(expect|assert|expectTypeOf|assertType|should)\s*[.(]
+patterns:
+  - regex: (^|[^.\w])(it|test)(\.(only|skip|concurrent|each\([^)]*\)|failing))?\s*\(\s*['"`]
+    message: "Test case has no assertion (expect/assert) — it passes regardless of behaviour. Add an assertion, or if this is a smoke/throws test use expect(() => ...).not.toThrow()."
+fix: "Add an assertion inside the test body. For a 'does not throw' smoke test use `expect(fn).not.toThrow()`. Reviewed exception: add `// cpm:ignore TEST-045` on the it()/test() line."

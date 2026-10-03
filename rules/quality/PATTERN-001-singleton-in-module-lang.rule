@@ -1,0 +1,21 @@
+# @see R-030 (Design Patterns vs Native Platform Features)
+id: PATTERN-001
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Singleton getInstance() in module-based language
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .rb .go .kt .php
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: static\s+getInstance\s*\(
+    message: "Manual Singleton pattern — in module-based languages, module scope is already a singleton. Use module exports or framework DI (@Injectable, @Service) instead"
+  - regex: private\s+static\s+\w*[Ii]nstance
+    message: "Singleton instance field — module-scope variables are singletons by design in TS/JS/Python/Go/Ruby"
+  - regex: private\s+constructor\s*\(\s*\)
+    message: "Private constructor for Singleton — consider module-scope or DI-managed singleton instead"
+fix: Remove getInstance() pattern. In TypeScript/JavaScript, export a module-level instance. In Python, use module-level variables. In frameworks (Angular, NestJS, Spring), use @Injectable()/@Service() — DI manages lifecycle.

@@ -1,0 +1,18 @@
+id: GO-SEC-016
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: HTTP server without timeout
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: http\.ListenAndServe\(
+    message: http.ListenAndServe has no timeout — vulnerable to slowloris attacks
+  - regex: http\.ListenAndServeTLS\(
+    message: http.ListenAndServeTLS has no timeout — use http.Server with timeouts
+fix: "Use http.Server{ReadTimeout: 10*time.Second, WriteTimeout: 10*time.Second} instead"

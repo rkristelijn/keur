@@ -1,0 +1,17 @@
+id: AIML-002
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Unsafe torch.load without weights_only
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: torch.load
+patterns:
+  - regex: torch\.load\(
+    message: torch.load() uses pickle internally — arbitrary code execution risk (CVE-2025-32434)
+fix: Use torch.load(path, weights_only=True) or migrate to safetensors

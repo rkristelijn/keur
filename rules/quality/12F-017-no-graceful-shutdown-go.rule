@@ -1,0 +1,17 @@
+id: 12F-017
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: No graceful shutdown handler — Go (12-Factor IX: Disposability)
+category: quality
+severity: info
+engine: absence
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+  content_contains: ListenAndServe
+patterns:
+  - regex: signal\.Notify\(
+    message: Go server without signal.Notify — may lose in-flight requests on shutdown
+fix: Use signal.NotifyContext or signal.Notify(ch, syscall.SIGTERM) for graceful shutdown (12-Factor IX)

@@ -1,0 +1,26 @@
+# @see ADR-167
+id: TEST-043
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Empty Gherkin/Cucumber step definition
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .steps.ts .steps.js _steps.rb _steps.py .java
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: Given
+patterns:
+  - regex: (Given|When|Then|And)\(\s*['"/].*['"/]\s*,\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)
+    message: "Empty step definition — Given/When/Then with no implementation always passes"
+  - regex: (Given|When|Then|And)\(\s*['"/].*['"/]\s*,\s*function\s*\(\s*\)\s*\{\s*\}\s*\)
+    message: "Empty step definition — implement the step or mark as pending"
+  - regex: "@(Given|When|Then)\(.*\)\s*\n\s*public\s+void\s+\w+\(\)\s*\{\s*\}"
+    message: "Empty Java step definition — @Given/@When/@Then with no body always passes"
+  - regex: "(Given|When|Then)\(.*\)\s+do\s*\n\s*end"
+    message: "Empty Ruby step definition — implement the step or mark as pending"
+  - regex: "@(given|when|then)\(.*\)\s*\n\s*def\s+\w+\(.*\):\s*\n\s+pass"
+    message: "Empty Python step definition — implement the step or use pytest.skip"
+fix: "Implement step definitions with actual test logic: interact with the system under test, then assert expected outcomes. Use 'pending' markers if the step is not yet implemented rather than leaving it empty."

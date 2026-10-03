@@ -1,0 +1,17 @@
+id: ANS-012
+ilities: [reliability-maturity]
+source: cpm
+maturity: 3
+action: advisory
+title: Using ignore_errors hides failures
+category: reliability
+severity: warning
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: ignore_errors
+patterns:
+  - regex: ignore_errors:\s*(yes|true)
+    message: "ignore_errors hides failures — use failed_when or register + when instead"
+fix: Replace ignore_errors with targeted error handling. Use register: result and when: result.rc != 0 or failed_when with specific conditions.

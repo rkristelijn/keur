@@ -1,0 +1,17 @@
+id: TRANS-001
+ilities: [authenticity]
+source: cpm
+maturity: 2
+action: block
+title: TLS certificate verification disabled via environment variable
+category: transport
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .mjs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: NODE_TLS_REJECT_UNAUTHORIZED
+patterns:
+  - regex: NODE_TLS_REJECT_UNAUTHORIZED.*['"]?0['"]?
+    message: "TLS certificate verification disabled — enables MITM attacks"
+fix: Fix the certificate chain instead of disabling verification. Use NODE_EXTRA_CA_CERTS to add custom CA certificates.

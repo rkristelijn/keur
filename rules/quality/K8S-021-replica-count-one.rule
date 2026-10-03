@@ -1,0 +1,18 @@
+id: K8S-021
+ilities: [reliability-maturity]
+source: cpm
+maturity: 4
+action: advisory
+title: Low replicaCount 1 has no redundancy
+category: reliability
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  filenames: values.yaml values.yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: replicaCount
+patterns:
+  - regex: replicaCount:\s*1\s*$
+    message: "replicaCount: 1 has no redundancy — use >=2 for high availability"
+fix: Set replicaCount to at least 2 for production workloads. Combine with PodDisruptionBudget for safe rollouts.

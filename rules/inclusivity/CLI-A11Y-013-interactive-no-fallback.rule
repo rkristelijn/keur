@@ -1,0 +1,16 @@
+id: CLI-A11Y-013
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Interactive prompt without non-interactive fallback
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .cpp .c .h .go .rs .py .ts .js .rb
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/
+patterns:
+  - regex: inquirer\.prompt|prompts?\(|Prompt::new|readline\(\)|dialoguer::|promptui\.|raw_input\(|input\s*\(
+    message: "Interactive prompt detected — ensure a non-interactive fallback exists (--yes, --no-input, CI env check) for screen reader users and automation"
+fix: "Add --yes or --no-input flag for non-interactive use. Also check CI=true or !isatty(stdin) to auto-skip prompts in non-interactive environments."

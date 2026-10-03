@@ -1,0 +1,13 @@
+# @see ADR-166
+id: PROJ-003
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Missing SECURITY.md
+category: security
+severity: warning
+engine: file-absence
+target:
+  filenames: SECURITY.md
+fix: Create a SECURITY.md with vulnerability reporting instructions.

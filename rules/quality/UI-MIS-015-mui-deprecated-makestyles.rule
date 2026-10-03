@@ -1,0 +1,21 @@
+id: UI-MIS-015
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: MUI makeStyles/withStyles (deprecated in v5)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: makeStyles
+patterns:
+  - regex: import\s.*makeStyles.*from\s+["']@mui
+    message: "makeStyles is deprecated in MUI v5 — migrate to sx prop or styled() for better performance and tree-shaking"
+  - regex: import\s.*withStyles.*from\s+["']@mui
+    message: "withStyles is deprecated in MUI v5 — migrate to sx prop or styled() API"
+  - regex: const\s+useStyles\s*=\s*makeStyles
+    message: "makeStyles pattern detected — MUI v5 uses sx prop, styled(), or the system props instead"
+fix: "Migrate to sx prop: <Box sx={{ p: 2, color: 'primary.main' }}>. For complex styles use styled(): const StyledBox = styled(Box)({ ... })."

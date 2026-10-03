@@ -1,0 +1,23 @@
+# @see R-030 synthesis: MIDDEN-7
+id: CPM-INT-009
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Non-standard finding() column width deviates from %-30s standard
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .sh
+  exclude_paths: node_modules/ vendor/ .git/ build/ dist/
+patterns:
+  - regex: printf.*%-25s
+    message: "finding() uses %-25s — standard is %-30s for consistent terminal output alignment"
+  - regex: printf.*%-35s
+    message: "finding() uses %-35s — standard is %-30s for consistent terminal output alignment"
+  - regex: printf.*%-36s
+    message: "finding() uses %-36s — standard is %-30s for consistent terminal output alignment"
+  - regex: printf.*%-40s
+    message: "finding() uses %-40s — standard is %-30s for consistent terminal output alignment"
+fix: Standardize the printf column width to %-30s in all finding()/error() functions.

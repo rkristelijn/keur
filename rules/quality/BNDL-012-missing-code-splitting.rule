@@ -1,0 +1,17 @@
+id: BNDL-012
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Missing code splitting
+category: quality
+severity: info
+engine: absence
+target:
+  filenames: webpack.config.js webpack.config.ts
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: entry
+patterns:
+  - regex: splitChunks|optimization\.split
+    message: "No code splitting — entire app bundled in one file, poor loading performance"
+fix: Add optimization.splitChunks to webpack config. Example — optimization: { splitChunks: { chunks: 'all' } }

@@ -1,0 +1,22 @@
+id: GO-SEC-014
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Weak cryptographic algorithm
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: "crypto/md5"
+    message: MD5 is cryptographically broken — do not use for security
+  - regex: "crypto/sha1"
+    message: SHA1 is deprecated for security — use SHA256 or higher
+  - regex: "crypto/des"
+    message: DES is insecure — use AES
+  - regex: "crypto/rc4"
+    message: RC4 is broken — use AES-GCM
+fix: Use crypto/sha256, crypto/sha512, or crypto/aes for cryptographic operations

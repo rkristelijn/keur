@@ -1,0 +1,17 @@
+id: RS-QUAL-039
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Ignored test
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: vendor/ target/ .git/
+  content_contains: ignore
+patterns:
+  - regex: #\[ignore\]
+    message: Ignored test — either fix it or remove it, ignored tests rot
+fix: Fix the failing test, or remove it if it is no longer relevant

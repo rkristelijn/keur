@@ -1,0 +1,16 @@
+id: STYLE-032
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Hungarian notation remnants (strName, bIsActive, iCount)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (const|let|var|int|string|bool)\s+(str|int|bln|btn|lbl|txt|frm|obj|arr|lst|dbl|flt)[A-Z]\w+
+    message: "Hungarian notation (strName, intCount, etc.) — modern IDEs show types. Use descriptive names instead."
+fix: Use descriptive names. 'userName' instead of 'strUserName'. Types are visible in IDE and type annotations.

@@ -1,0 +1,16 @@
+id: QUAL-070
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Node.js callback error parameter ignored
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: function\s*\(\s*err\s*,\s*\w+\s*\)\s*\{
+    message: "Callback error parameter potentially ignored — always check err before using data"
+fix: Always handle the error parameter first. if (err) return callback(err) or throw err.

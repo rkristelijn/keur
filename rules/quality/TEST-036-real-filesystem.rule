@@ -1,0 +1,34 @@
+# @see ADR-167
+id: TEST-036
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Test accesses real filesystem without temp/mock
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx _test.go _test.py .java .test.rb
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/ e2e/
+  content_contains: read
+patterns:
+  - regex: fs\.readFileSync\(\s*['"][^'"]*['"]
+    message: "Test reads real file — use mock-fs, memfs, or fixtures with temp dirs"
+  - regex: fs\.writeFileSync\(\s*['"][^'"]*['"]
+    message: "Test writes to real filesystem — use tmp dirs with cleanup or mock-fs"
+  - regex: fs\.unlinkSync\(
+    message: "Test deletes real files — use tmp dirs with automatic cleanup"
+  - regex: open\(\s*['"]\/[^'"]+['"]\s*,\s*['"]r
+    message: "Test reads absolute path (Python) — use tmp_path fixture or unittest.mock"
+  - regex: open\(\s*['"]\/[^'"]+['"]\s*,\s*['"]w
+    message: "Test writes to absolute path (Python) — use tmp_path fixture"
+  - regex: new\s+File\(\s*['"]\/[^'"]+['"]
+    message: "Test uses absolute File path (Java) — use @TempDir or TemporaryFolder"
+  - regex: os\.Create\(\s*['"]\/[^'"]+['"]
+    message: "Test creates file at absolute path (Go) — use t.TempDir()"
+  - regex: ioutil\.ReadFile\(\s*['"]\/[^'"]+['"]
+    message: "Test reads absolute path (Go) — use t.TempDir() or embed test fixtures"
+  - regex: os\.ReadFile\(\s*['"]\/[^'"]+['"]
+    message: "Test reads absolute path (Go) — use t.TempDir() or embed test fixtures"
+fix: "Use temporary directories with automatic cleanup: tmp_path (pytest), t.TempDir() (Go), @TempDir (JUnit 5), mock-fs/memfs (Node.js). Avoid absolute paths — they break on other machines and CI."

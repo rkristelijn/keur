@@ -1,4 +1,6 @@
 id: KEUR-SEC-004
+ilities: [integrity]
+maturity: 2
 title: Dynamic code execution from a string literal
 category: sast
 severity: warning

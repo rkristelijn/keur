@@ -1,0 +1,20 @@
+id: WEB-SEC-023
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Insecure iframe sandbox
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .tsx .jsx .vue .erb .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: sandbox\s*=\s*["']allow-scripts\s+allow-same-origin["']
+    message: "iframe sandbox with allow-scripts + allow-same-origin — sandbox is effectively bypassed"
+  - regex: sandbox\s*=\s*["']allow-top-navigation["']
+    message: "iframe sandbox with allow-top-navigation — embedded page can redirect parent (clickjacking variant)"
+  - regex: <iframe[^>]*src\s*=\s*["']http
+    message: "<iframe> loading external content — ensure sandbox attribute is set"
+fix: "Use sandbox='' (most restrictive) and add only needed permissions. Never combine allow-scripts with allow-same-origin. CWE-1021"

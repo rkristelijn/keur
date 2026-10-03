@@ -1,0 +1,17 @@
+id: KT-QUAL-023
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: GlobalScope coroutine usage
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .kt
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: GlobalScope
+patterns:
+  - regex: GlobalScope\.(launch|async)
+    message: GlobalScope lives forever — use viewModelScope, lifecycleScope, or a structured scope
+fix: Replace GlobalScope with a lifecycle-aware scope (viewModelScope, lifecycleScope, or custom CoroutineScope)

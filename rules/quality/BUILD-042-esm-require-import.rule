@@ -1,0 +1,21 @@
+id: BUILD-042
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Avoid require() in ESM context
+category: build
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .mjs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: require(
+patterns:
+  - regex: ^const\s+.*=\s*require\(
+    message: "require() — fails in ESM context ('type': 'module') with ERR_REQUIRE_ESM"
+  - regex: ^var\s+.*=\s*require\(
+    message: "require() with var — use import syntax for ESM compatibility"
+  - regex: ^let\s+.*=\s*require\(
+    message: "require() with let — use import syntax for ESM compatibility"
+fix: Use import syntax, or createRequire() from 'module' package for mixed CJS/ESM compatibility.

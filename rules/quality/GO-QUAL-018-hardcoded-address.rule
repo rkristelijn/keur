@@ -1,0 +1,18 @@
+id: GO-QUAL-018
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Hardcoded network address
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: ":(8080|3000|8000|9090|80|443)"
+    message: Hardcoded port — use configuration or environment variable
+  - regex: "(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0):"
+    message: Hardcoded host — use configuration or environment variable
+fix: Read host:port from environment variables, config file, or CLI flags

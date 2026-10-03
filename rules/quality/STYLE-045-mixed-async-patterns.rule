@@ -1,0 +1,17 @@
+id: STYLE-045
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Mixed async patterns (.then and await in same file)
+category: style
+severity: warning
+engine: presence
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: await
+patterns:
+  - regex: \.then\s*\(
+    message: "Mixed async patterns — file uses both await and .then(). Pick one style for consistency."
+fix: Use async/await consistently. It's more readable and has better error handling than .then() chains.

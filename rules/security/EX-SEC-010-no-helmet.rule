@@ -1,0 +1,17 @@
+id: EX-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Express.js missing security headers (no helmet)
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .js .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: express()
+patterns:
+  - regex: helmet\(
+    message: "Express app without helmet() — missing security headers (X-XSS-Protection, X-Frame-Options, CSP, etc.)"
+fix: Install helmet and add app.use(helmet()) before routes. npm install helmet.

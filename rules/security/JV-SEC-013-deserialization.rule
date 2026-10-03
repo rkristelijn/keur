@@ -1,0 +1,24 @@
+id: JV-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Insecure deserialization
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .java .kt
+  exclude_paths: test/ tests/ target/
+patterns:
+  - regex: ObjectInputStream\(
+    message: "ObjectInputStream can execute arbitrary code during deserialization — validate source and use ObjectInputFilter"
+  - regex: readObject\(\)
+    message: "readObject() can execute arbitrary code during deserialization — validate source and use filtering"
+  - regex: readUnshared\(\)
+    message: "readUnshared() has same deserialization risks as readObject()"
+  - regex: XMLDecoder\(
+    message: "XMLDecoder can execute arbitrary code — do not use with untrusted XML input"
+  - regex: \.enableDefaultTyping\(
+    message: "Jackson enableDefaultTyping() allows polymorphic deserialization attacks — use @JsonTypeInfo on specific classes"
+fix: "Use ObjectInputFilter (Java 9+) or a serialization allowlist. Prefer JSON over Java serialization"

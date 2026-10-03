@@ -1,0 +1,17 @@
+id: K8S-022
+ilities: [reliability-maturity]
+source: cpm
+maturity: 3
+action: advisory
+title: Deployment missing resource limits
+category: reliability
+severity: warning
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: kind: Deployment
+patterns:
+  - regex: resources:
+    message: "No resource limits — pods can consume unlimited CPU/memory and starve the node"
+fix: Add resources.requests and resources.limits for cpu and memory on every container in the pod spec.

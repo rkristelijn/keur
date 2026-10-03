@@ -1,0 +1,17 @@
+id: A11Y-046
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Label missing for attribute
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <label
+patterns:
+  - regex: <label\s*>|<label\s+class=
+    message: <label> without for/htmlFor attribute — may not be associated with input
+fix: Add for="inputId" to <label> or wrap the input inside <label>.

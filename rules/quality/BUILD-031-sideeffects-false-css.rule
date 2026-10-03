@@ -1,0 +1,17 @@
+id: BUILD-031
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Misconfigured sideEffects:false drops CSS imports during tree-shaking
+category: build
+severity: warning
+engine: presence
+target:
+  filenames: package.json
+  exclude_paths: node_modules/ .git/ build/ dist/
+  content_contains: sideEffects
+patterns:
+  - regex: "sideEffects"\s*:\s*false
+    message: "sideEffects:false — CSS and SCSS imports will be dropped during tree-shaking, causing missing styles in production"
+fix: Use sideEffects array to preserve CSS — "sideEffects": ["*.css", "*.scss", "*.less"].

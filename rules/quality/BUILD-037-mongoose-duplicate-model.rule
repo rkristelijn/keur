@@ -1,0 +1,17 @@
+id: BUILD-037
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Mongoose model registration — OverwriteModelError risk
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: mongoose.model
+patterns:
+  - regex: mongoose\.model\(\s*['"][^'"]+['"]\s*,
+    message: "mongoose.model() registration — causes 'OverwriteModelError' during hot-reloading (Next.js, Vite, ts-node-dev)"
+fix: Use mongoose.models.ModelName || mongoose.model('ModelName', schema) pattern to prevent duplicate registration.

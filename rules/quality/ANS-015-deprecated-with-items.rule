@@ -1,0 +1,17 @@
+id: ANS-015
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Deprecated with_items loop syntax
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: with_
+patterns:
+  - regex: with_items:|with_dict:|with_nested:|with_together:
+    message: "with_* is deprecated — use loop: instead (Ansible 2.5+)"
+fix: Replace with_items with loop. Replace with_dict with loop: "{{ dict | dict2items }}". Replace with_nested with loop: "{{ list1 | product(list2) | list }}".

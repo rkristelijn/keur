@@ -1,0 +1,17 @@
+id: A11Y-015
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Image with empty alt inside link
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <a
+patterns:
+  - regex: <a[^>]*>\s*<img[^>]*alt=["']["'][^>]*>\s*</a>
+    message: "Image with empty alt inside link — link has no accessible name"
+fix: "Add alt text to image or aria-label to link"

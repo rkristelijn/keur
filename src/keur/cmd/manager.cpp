@@ -69,7 +69,7 @@ std::vector<RuleCategoryCount> count_rules_by_category(int& total_out) {
     for (const auto& [cat, ids] : ids_by_cat) {
         int n = 0;
         for (auto it = ids.begin(); it != ids.end(); ++it) ++n;  // count as int (no size_t truncation, ADR-006)
-        out.emplace_back(cat, n);
+        out.push_back({cat, n});
         total += n;
     }
     total_out = total;
@@ -259,8 +259,8 @@ std::vector<manager::HookInfoItem> hook_info_for_scope(
     std::vector<manager::HookInfoItem> out;
     if (scope == manager::Scope::Global) {
         // The machine baseline: is a global core.hooksPath set to keur's dir?
-        out.emplace_back("global hooksPath",
-                       hs.global_hooks_path.empty() ? "(unset)" : hs.global_hooks_path);
+        out.push_back({"global hooksPath",
+                       hs.global_hooks_path.empty() ? "(unset)" : hs.global_hooks_path});
         return out;
     }
     // Repo scope: the live situation, including whether a manager shadows keur.
@@ -281,33 +281,33 @@ std::vector<manager::HookInfoItem> hook_info_for_scope(
     bool chained = false;
     if (!target.empty()) { auto rr = fs.read_file(target); chained = rr.ok && keur::cmd::is_augmented(rr.content); }
 
-    out.emplace_back("effective owner", owner);
+    out.push_back({"effective owner", owner});
     // "keur global" is a warning ONLY when keur does not run here at all
     // (shadowed AND not chained). Shadowed-but-chained is fine — keur runs.
     if (shadowed && chained)
-        out.emplace_back("keur global", "shadowed by " + owner + ", but keur is chained (runs)", /*warn=*/false);
+        out.push_back({"keur global", "shadowed by " + owner + ", but keur is chained (runs)", /*warn=*/false});
     else if (shadowed)
-        out.emplace_back("keur global", "shadowed by " + owner + " (repo-local core.hooksPath)", /*warn=*/true);
+        out.push_back({"keur global", "shadowed by " + owner + " (repo-local core.hooksPath)", /*warn=*/true});
     else if (!hs.global_hooks_path.empty())
-        out.emplace_back("keur global", "effective", false);
+        out.push_back({"keur global", "effective", false});
     else
-        out.emplace_back("keur global", "not installed", /*warn=*/true);
+        out.push_back({"keur global", "not installed", /*warn=*/true});
     // Detected coexisting tools, labelled manager (owns hooks) vs runner (runs
     // inside a hook — not an owner).
     for (const auto& m : hs.managers)
         if (m.detected) {
             const char* kind = (m.kind == config::HookKind::Runner) ? "runner" : "manager";
-            out.emplace_back(std::string(kind) + " detected", m.name, false);
+            out.push_back({std::string(kind) + " detected", m.name, false});
         }
     // Chained state + the interactive fix/restore action.
     if (!target.empty()) {
-        out.emplace_back("keur chained", chained ? "yes (keur hook --augment)"
+        out.push_back({"keur chained", chained ? "yes (keur hook --augment)"
                                                 : "no  (run: keur hook --augment)",
-                       /*warn=*/(!chained && shadowed), /*action=*/"");
+                       /*warn=*/(!chained && shadowed), /*action=*/""});
         if (chained)
-            out.emplace_back("restore " + owner + " (remove keur)", "", false, "unaugment");
+            out.push_back({"restore " + owner + " (remove keur)", "", false, "unaugment"});
         else if (shadowed)
-            out.emplace_back("fix this with keur hook --augment", "", false, "augment");
+            out.push_back({"fix this with keur hook --augment", "", false, "augment"});
     }
     return out;
 }
@@ -384,10 +384,10 @@ int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps) {
             std::string v = sc.group;
             if (!sc.default_action.empty()) v += (v.empty() ? "" : " ") + sc.default_action;
             if (!sc.enabled) v += " (disabled)";
-            defaults.settings.emplace_back("Scanners", sc.name, v);
+            defaults.settings.push_back({"Scanners", sc.name, v});
         }
         // A couple of headline policy values, parsed leniently from the body.
-        auto policy_val = [&](const std::string& key) -> std::string {
+        auto policy_val = [&tmpl](const std::string& key) -> std::string {
             std::size_t p = tmpl.find(key);
             if (p == std::string::npos) return "";
             std::size_t eq = tmpl.find('=', p);
@@ -401,7 +401,7 @@ int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps) {
         };
         for (const char* k : {"block-at", "warn-at"}) {
             std::string v = policy_val(k);
-            if (!v.empty()) defaults.settings.emplace_back("Policy", k, v);
+            if (!v.empty()) defaults.settings.push_back({"Policy", k, v});
         }
         // Catalogue baseline: the full set, all enabled.
         defaults.catalog = rule_items_for_scope({});
@@ -454,7 +454,9 @@ int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps) {
     // Run a hook action (chain/unchain keur into the repo's manager hook) from
     // an ActionNode, then rebuild the model so the Hooks branch refreshes (the
     // ⚠ clears once keur is chained). Preserves the cursor position.
-    auto run_action = [&](const std::string& action) {
+    // Local helper invoked immediately in this scope (not stored), capturing
+    // ~10 locals; an explicit list adds noise without removing dangling risk.
+    auto run_action = [&](const std::string& action) {  // keur:ignore KEUR-CPP-001 — reviewed: local, not stored
         if (action.empty() || repo_root.empty()) return;
         keur::cmd::HookOptions ho;
         ho.action = keur::cmd::HookAction::Augment;
@@ -631,7 +633,7 @@ int manager(const ManagerOptions& opts, const ManagerDeps& deps) {
     auto declared = config::parse_scanners(scanner_toml);
     config::ScannerProbe sp;
     sp.tool_on_path = [](const std::string& t) { return keur::platform::tool_on_path(t); };
-    sp.exists = [&](const std::string& p) { return deps.fs.exists(p); };
+    sp.exists = [&deps](const std::string& p) { return deps.fs.exists(p); };
     sp.repo_root = repo_root;
     board.scanners = config::resolve_scanners(declared, sp);
 

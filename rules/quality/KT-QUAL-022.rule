@@ -1,0 +1,17 @@
+id: KT-QUAL-022
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Non-null assertion operator
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .kt
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: !!
+patterns:
+  - regex: \w+!!\.\w|\w+!!\)
+    message: !! throws NullPointerException — use safe call ?. or let{}
+fix: Replace !! with safe call operator ?., elvis operator ?:, or let/also scope function

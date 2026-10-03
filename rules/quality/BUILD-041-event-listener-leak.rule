@@ -1,0 +1,21 @@
+id: BUILD-041
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Event listener registration without cleanup
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: addEventListener
+patterns:
+  - regex: addEventListener\(\s*['"]
+    message: "Event listener registration — ensure cleanup to prevent memory leaks in long-running apps and SPAs"
+  - regex: process\.on\(\s*['"]
+    message: "process event listener — ensure removal in tests and graceful shutdown to prevent memory leaks"
+  - regex: \.on\(\s*['"].*['"],\s*(function|async|\()
+    message: "Event emitter .on() registration — ensure corresponding .off() or .removeListener() in cleanup"
+fix: Remove listeners in cleanup — useEffect return, component destroy, AbortController signal, or .off().

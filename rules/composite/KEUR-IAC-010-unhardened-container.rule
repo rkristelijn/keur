@@ -9,6 +9,8 @@
 # @see docs/adr/ADR-009-composite-rules-and-facts.md
 # @implements ADR-009.composite
 id: KEUR-IAC-010
+ilities: [integrity]
+maturity: 2
 title: Unhardened container image (runs as root and has no healthcheck)
 category: iac
 severity: warning

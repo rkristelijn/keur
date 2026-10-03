@@ -1,0 +1,17 @@
+id: BUILD-036
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Prisma used but no prisma generate in build pipeline
+category: build
+severity: error
+engine: absence
+target:
+  filenames: package.json Makefile Dockerfile
+  exclude_paths: node_modules/ .git/ build/ dist/
+  content_contains: prisma
+patterns:
+  - regex: prisma generate|npx prisma generate|bunx prisma generate|pnpm prisma generate
+    message: "Prisma dependency found but no 'prisma generate' in build scripts — Prisma Client will be out of sync with schema"
+fix: Add "prisma generate" to your build script in package.json, Makefile, or Dockerfile.

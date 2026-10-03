@@ -1,0 +1,16 @@
+id: QUAL-071
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Magic string repeated 3+ times (extract to constant)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (status|type|role|state)\s*===?\s*['"]\w+['"]
+    message: "String comparison for status/type/role — use an enum or constants object to prevent typos"
+fix: Define constants. const STATUS = {ACTIVE: 'active', INACTIVE: 'inactive'} then use STATUS.ACTIVE.

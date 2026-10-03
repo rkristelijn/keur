@@ -1,0 +1,17 @@
+id: MIG-024
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Migration with hardcoded data
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .sql .rb .py
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/ seed/
+  content_contains: INSERT
+patterns:
+  - regex: INSERT\s+INTO.*VALUES|execute.*INSERT
+    message: "Data insertion in migration — consider separate seed files for test data"
+fix: Move data inserts to seed files. Migrations should only change schema, not insert application data.

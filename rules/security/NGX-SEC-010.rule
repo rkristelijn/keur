@@ -1,0 +1,17 @@
+id: NGX-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Server tokens enabled
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: server_tokens
+patterns:
+  - regex: server_tokens\s+on
+    message: server_tokens on discloses Nginx version — aids targeted exploits
+fix: Set server_tokens off in the http or server block

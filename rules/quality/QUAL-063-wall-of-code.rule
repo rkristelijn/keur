@@ -1,0 +1,16 @@
+id: QUAL-063
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Wall of code (>20 consecutive non-empty lines without visual break)
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ^\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S.*\n\S
+    message: "20+ consecutive non-empty lines — add blank lines between logical sections for readability"
+fix: Group related statements with blank lines. Code paragraphs improve scanability.

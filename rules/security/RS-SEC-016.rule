@@ -1,0 +1,17 @@
+id: RS-SEC-016
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Panic in library code
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: panic!
+patterns:
+  - regex: \bpanic!\(
+    message: panic! in library crashes the consumer — return Result instead
+fix: Replace panic!() with Result<T, E> and use the ? operator for error propagation

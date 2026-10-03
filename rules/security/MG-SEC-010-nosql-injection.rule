@@ -1,0 +1,21 @@
+id: MG-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: NoSQL injection via Mongoose/MongoDB (CWE-943)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .js .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: req.
+patterns:
+  - regex: (?:find|findOne|findById|updateOne|deleteOne|countDocuments)\(\s*req\.body
+    message: "Passing req.body directly to MongoDB query — NoSQL injection via $gt/$ne operators bypasses auth"
+  - regex: (?:find|findOne)\(\s*req\.query
+    message: "Passing req.query to MongoDB query — NoSQL injection enables auth bypass ({password: {$ne: ''}})"
+  - regex: \$where.*req\.
+    message: "$where with user input — allows arbitrary JavaScript execution in MongoDB"
+fix: Validate/sanitize input types. Use mongoose schema validation. Never pass req.body/query directly as query filter.

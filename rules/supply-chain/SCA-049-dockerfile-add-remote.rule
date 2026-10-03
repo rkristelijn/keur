@@ -1,4 +1,6 @@
 id: SCA-049
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Dockerfile ADD with remote URL
 category: supply-chain

@@ -1,0 +1,17 @@
+id: A11Y-044
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Double-click without keyboard
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: dblclick
+patterns:
+  - regex: ondblclick=|onDoubleClick=
+    message: Double-click handler without keyboard alternative
+fix: Add keyboard equivalent for double-click actions.

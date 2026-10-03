@@ -1,0 +1,17 @@
+id: A11Y-116
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Iframe-missing-title
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <iframe
+patterns:
+  - regex: <iframe[\s>]
+    message: <iframe> found — ensure it has a title attribute
+fix: Add title attribute describing the iframe content

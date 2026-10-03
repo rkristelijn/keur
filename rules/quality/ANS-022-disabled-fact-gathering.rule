@@ -1,0 +1,17 @@
+id: ANS-022
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Disabled fact gathering
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: gather_facts
+patterns:
+  - regex: gather_facts:\s*(false|no)
+    message: "Facts disabled — ensure play doesn't need ansible_hostname, ansible_os_family, etc."
+fix: Only disable gather_facts when the play genuinely doesn't use any facts. Add a comment explaining why facts are disabled.

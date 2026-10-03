@@ -1,0 +1,17 @@
+id: RS-QUAL-026
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Unnecessary string allocation
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: format!
+patterns:
+  - regex: format!\("\{\}",
+    message: Unnecessary string allocation — use &str or write! for zero-copy formatting
+fix: Use the value directly with &str or use write! macro to avoid allocating a new String

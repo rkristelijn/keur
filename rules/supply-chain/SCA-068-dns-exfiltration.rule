@@ -1,4 +1,6 @@
 id: SCA-068
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: DNS exfiltration pattern
 category: supply-chain

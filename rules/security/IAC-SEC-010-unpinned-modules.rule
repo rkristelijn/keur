@@ -1,0 +1,20 @@
+id: IAC-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Unpinned Terraform module source
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .tf .hcl
+  exclude_paths: test/
+patterns:
+  - regex: source\s*=\s*"git::[^"]*"
+    message: "Git module source — verify ?ref= tag is pinned to a specific version or commit SHA"
+  - regex: source\s*=\s*"github\.com/[^"]*"
+    message: "GitHub module source — verify ?ref= tag is pinned to prevent supply chain drift"
+  - regex: source\s*=\s*"https://[^"]*\.git"
+    message: "HTTPS git module source — pin with ?ref= tag or commit SHA"
+fix: "Add ?ref=v1.2.3 (or commit SHA) to all remote module sources"
