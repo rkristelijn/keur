@@ -149,6 +149,61 @@ int capture_bytes(const std::string& cmd, std::string& sink) {
     return wait_exit(_pclose(p));
 }
 
+// Shell-free capture: CreateProcess with stdout redirected to a pipe and no
+// cmd.exe, so argv content can never be interpreted as a shell (CWE-78).
+int capture_bytes_argv(const std::vector<std::string>& argv, std::string& sink) {
+    if (argv.empty()) return -1;
+
+    // Quote each argument per CommandLineToArgvW rules (same as run_argv).
+    auto quote = [](const std::string& a) -> std::string {
+        if (!a.empty() && a.find_first_of(" \t\"") == std::string::npos) return a;
+        std::string out = "\"";
+        size_t bs = 0;
+        for (char c : a) {
+            if (c == '\\') { ++bs; }
+            else if (c == '"') { out.append(bs * 2 + 1, '\\'); out += '"'; bs = 0; }
+            else { out.append(bs, '\\'); bs = 0; out += c; }
+        }
+        out.append(bs * 2, '\\'); out += '"';
+        return out;
+    };
+    std::string cmdline;
+    for (size_t i = 0; i < argv.size(); ++i) { if (i) cmdline += ' '; cmdline += quote(argv[i]); }
+
+    SECURITY_ATTRIBUTES sa{}; sa.nLength = sizeof(sa); sa.bInheritHandle = TRUE;
+    HANDLE rd = nullptr, wr = nullptr;
+    if (!CreatePipe(&rd, &wr, &sa, 0)) return -1;
+    SetHandleInformation(rd, HANDLE_FLAG_INHERIT, 0);  // parent read end not inherited
+
+    STARTUPINFOA si{}; si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdOutput = wr;
+    si.hStdError  = GetStdHandle(STD_ERROR_HANDLE);  // stderr passthrough
+    si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+    PROCESS_INFORMATION pi{};
+
+    std::vector<char> cl(cmdline.begin(), cmdline.end()); cl.push_back('\0');
+    BOOL ok = CreateProcessA(nullptr, cl.data(), nullptr, nullptr, TRUE,
+                             0, nullptr, nullptr, &si, &pi);
+    CloseHandle(wr);  // parent doesn't write
+    if (!ok) { CloseHandle(rd); return -1; }
+
+    char buf[512]; DWORD n = 0;
+    while (ReadFile(rd, buf, sizeof(buf), &n, nullptr) && n > 0)
+        sink.append(buf, n);
+    CloseHandle(rd);
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD code = 1; GetExitCodeProcess(pi.hProcess, &code);
+    CloseHandle(pi.hProcess); CloseHandle(pi.hThread);
+    return static_cast<int>(code);
+}
+
+CaptureResult capture_argv(const std::vector<std::string>& argv) {
+    CaptureResult r;
+    r.exit_code = capture_bytes_argv(argv, r.out);
+    return r;
+}
+
 bool tool_on_path(const std::string& tool) {
     // Shell-free PATH resolution via the Win32 SearchPath API — no system()/
     // _popen and no string interpolation, so a tool name cannot break out into
@@ -239,6 +294,75 @@ bool process_alive(long pid) {
     bool alive = GetExitCodeProcess(h, &code) && code == STILL_ACTIVE;
     CloseHandle(h);
     return alive;
+}
+
+// ---------------------------------------------------------------------------
+// Interactive terminal input (Win32): raw mode + one-key read.
+// We enable ENABLE_VIRTUAL_TERMINAL_INPUT so the console delivers the same
+// "\033[A"-style sequences POSIX does — then the shared decode_key() maps them
+// identically. Line input + echo are disabled for single-key reads.
+// ---------------------------------------------------------------------------
+
+RawModeGuard::RawModeGuard() {
+    HANDLE h = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode = 0;
+    if (h == INVALID_HANDLE_VALUE || !GetConsoleMode(h, &mode)) return;  // no console
+    static_assert(sizeof(DWORD) <= sizeof(saved_), "saved_ too small for DWORD");
+    std::memcpy(saved_, &mode, sizeof(DWORD));
+
+    DWORD raw = mode;
+    raw &= ~(DWORD)(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT);
+    raw |= ENABLE_VIRTUAL_TERMINAL_INPUT;  // deliver VT sequences like POSIX
+    if (SetConsoleMode(h, raw)) active_ = true;
+}
+
+void RawModeGuard::restore() {
+    if (!active_) return;
+    HANDLE h = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD prev = 0;
+    std::memcpy(&prev, saved_, sizeof(DWORD));
+    if (h != INVALID_HANDLE_VALUE) SetConsoleMode(h, prev);
+    active_ = false;
+}
+
+RawModeGuard::~RawModeGuard() { restore(); }
+
+RawModeGuard::RawModeGuard(RawModeGuard&& other) noexcept {
+    active_ = other.active_;
+    std::memcpy(saved_, other.saved_, sizeof(saved_));
+    other.active_ = false;
+}
+
+RawModeGuard& RawModeGuard::operator=(RawModeGuard&& other) noexcept {
+    if (this != &other) {
+        restore();
+        active_ = other.active_;
+        std::memcpy(saved_, other.saved_, sizeof(saved_));
+        other.active_ = false;
+    }
+    return *this;
+}
+
+KeyEvent read_key() {
+    HANDLE h = GetStdHandle(STD_INPUT_HANDLE);
+    if (h == INVALID_HANDLE_VALUE) return {Key::Unknown, '\0'};
+
+    char c = 0;
+    DWORD n = 0;
+    if (!ReadFile(h, &c, 1, &n, nullptr) || n == 0) return {Key::Unknown, '\0'};
+
+    std::string buf(1, c);
+    if (static_cast<unsigned char>(c) == 0x1b) {
+        char b1 = 0;
+        if (ReadFile(h, &b1, 1, &n, nullptr) && n == 1) {
+            buf.push_back(b1);
+            if (b1 == '[') {
+                char b2 = 0;
+                if (ReadFile(h, &b2, 1, &n, nullptr) && n == 1) buf.push_back(b2);
+            }
+        }
+    }
+    return decode_key(buf);
 }
 
 }  // namespace keur::platform

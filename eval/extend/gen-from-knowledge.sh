@@ -31,7 +31,7 @@ KEUR_EVAL="${KEUR_EVAL:-$HOME/git/hub/keur-eval}"
 KNOWLEDGE="${KNOWLEDGE:-$HERE/knowledge/cpm.jsonl}"
 
 DOMAIN=""; LIMIT=5; MOCK=0
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   case "$1" in
     --domain) DOMAIN="$2"; shift 2;;
     --limit)  LIMIT="$2"; shift 2;;
@@ -40,8 +40,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-[ -f "$KNOWLEDGE" ] || { echo "knowledge cache not found: $KNOWLEDGE (run knowledge-cpm.sh)" >&2; exit 1; }
-[ -d "$KEUR_EVAL" ] || { echo "keur-eval not found: $KEUR_EVAL" >&2; exit 1; }
+[[ -f "$KNOWLEDGE" ]] || { echo "knowledge cache not found: $KNOWLEDGE (run knowledge-cpm.sh)" >&2; exit 1; }
+[[ -d "$KEUR_EVAL" ]] || { echo "keur-eval not found: $KEUR_EVAL" >&2; exit 1; }
 
 # Map a concept domain -> (keur rule-id, primary language, extension). Only
 # domains keur can actually detect today get a real rule-id; others are recall
@@ -57,7 +57,7 @@ rule_for() {
   esac
 }
 
-if [ "$MOCK" -eq 0 ]; then
+if [[ "$MOCK" -eq 0 ]]; then
   curl -sf "$OLLAMA_URL/api/tags" >/dev/null 2>&1 || {
     echo "Ollama not reachable at $OLLAMA_URL. Use --mock to test the pipeline." >&2
     exit 1
@@ -67,7 +67,7 @@ fi
 # Call Ollama (or the mock) with a prompt; echo the raw snippet (fences stripped).
 generate() {
   local prompt="$1" ext="$2" kind="$3" concept_id="$4"
-  if [ "$MOCK" -eq 1 ]; then
+  if [[ "$MOCK" -eq 1 ]]; then
     mock_snippet "$ext" "$kind"
     return
   fi
@@ -133,7 +133,7 @@ for c in out[:limit]:
 PY
 )
 
-[ "${#CONCEPTS[@]}" -gt 0 ] || { echo "no concepts matched (domain='$DOMAIN')"; exit 0; }
+[[ "${#CONCEPTS[@]}" -gt 0 ]] || { echo "no concepts matched (domain='$DOMAIN')"; exit 0; }
 
 drafted=0 skipped=0
 for line in "${CONCEPTS[@]}"; do
@@ -144,7 +144,7 @@ for line in "${CONCEPTS[@]}"; do
   cwe=$(printf '%s' "$line"    | python3 -c "import json,sys;print(' '.join(json.load(sys.stdin).get('cwe',[])))")
 
   map=$(rule_for "$domain")
-  if [ -z "$map" ]; then skipped=$((skipped+1)); continue; fi
+  if [[ -z "$map" ]]; then skipped=$((skipped+1)); continue; fi
   read -r rule lang ext cstyle <<<"$map"
   tier=recall; case "$rule" in KEUR-*) tier=detectable;; esac
 

@@ -1,0 +1,11 @@
+id: KEUR-SAST-002
+title: Unsafe deserialization via pickle.loads
+category: sast
+severity: error
+engine: pattern
+target:
+  extensions: .py
+patterns:
+  - regex: \bpickle\.loads\s*\(
+    message: "pickle.loads on untrusted data allows arbitrary code execution (CWE-502) — use a safe format (json) or verify the source before deserialising."
+confidence: 0.85

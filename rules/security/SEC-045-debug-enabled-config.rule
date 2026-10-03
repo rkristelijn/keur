@@ -1,0 +1,23 @@
+id: SEC-045
+source: cpm
+title: Debug mode enabled in configuration
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .env .yml .yaml .json .ini .conf .toml
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ .env.example .env.sample .env.template
+  content_contains: debug
+# Debug mode in a shipped config exposes stack traces, secrets, SQL, and
+# internal paths to end users. Framework-specific variants are covered
+# elsewhere (DJ-SEC-011 Django, LV-SEC-011 Laravel, FL-SEC-010 Flask,
+# FA-SEC-010 FastAPI); this rule covers the generic config-file forms in
+# .env/.yml/.json/.ini/.toml that those framework rules don't target.
+# Migrated from the native `owasp-debug-enabled` grep check. Note: sample/
+# template envs are excluded by convention.
+patterns:
+  - regex: (?i)^\s*(APP_)?DEBUG\s*[:=]\s*true\b
+    message: "DEBUG enabled in config — exposes stack traces, secrets, and internal paths. Set it to false for production."
+  - regex: (?i)"debug"\s*:\s*true
+    message: "\"debug\": true in JSON config — disable debug mode in production builds."
+fix: "Set debug to false (or drive it from an environment variable that defaults to false) in any config that can reach production. Reviewed exception: add a cpm:ignore SEC-045 comment where supported."

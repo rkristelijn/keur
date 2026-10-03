@@ -27,9 +27,9 @@ CPM_RULES="${CPM_RULES:-$HOME/git/hub/cpm/rules}"
 CPM_EVAL="${CPM_EVAL:-$HOME/git/hub/cpm-eval}"
 REPO="${1:-cpm-eval}"
 
-[ -x "$NATIVE" ]     || { echo "cpm-gt: keur-rules not built (cd src/rules && make)" >&2; exit 1; }
-[ -d "$CPM_RULES" ]  || { echo "cpm-gt: cpm rules dir not found: $CPM_RULES" >&2; exit 1; }
-[ -d "$CPM_EVAL" ]   || { echo "cpm-gt: cpm-eval corpus not found: $CPM_EVAL" >&2; exit 1; }
+[[ -x "$NATIVE" ]]     || { echo "cpm-gt: keur-rules not built (cd src/rules && make)" >&2; exit 1; }
+[[ -d "$CPM_RULES" ]]  || { echo "cpm-gt: cpm rules dir not found: $CPM_RULES" >&2; exit 1; }
+[[ -d "$CPM_EVAL" ]]   || { echo "cpm-gt: cpm-eval corpus not found: $CPM_EVAL" >&2; exit 1; }
 
 # Run keur's engine with ONLY cpm's rules (empty KEUR_HOME so keur's own rules
 # are not mixed in) over the cpm-eval corpus. Normalise each finding to the keur

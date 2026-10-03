@@ -22,7 +22,7 @@ REG=""
 LIMIT=200
 STATS=0
 
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) OUT="$2"; shift 2;;
     --registry) REG="$2"; shift 2;;
@@ -32,8 +32,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ "$STATS" -eq 1 ]; then
-  [ -f "$OUT" ] || { echo "no cache yet: $OUT"; exit 0; }
+if [[ "$STATS" -eq 1 ]]; then
+  [[ -f "$OUT" ]] || { echo "no cache yet: $OUT"; exit 0; }
   python3 - "$OUT" <<'PY'
 import json, sys, collections
 doms = collections.Counter(); n = 0
@@ -45,8 +45,8 @@ PY
   exit 0
 fi
 
-[ -n "$REG" ] || { echo "--registry DIR required (clone github.com/semgrep/semgrep-rules)" >&2; exit 1; }
-[ -d "$REG" ] || { echo "registry dir not found: $REG" >&2; exit 1; }
+[[ -n "$REG" ]] || { echo "--registry DIR required (clone github.com/semgrep/semgrep-rules)" >&2; exit 1; }
+[[ -d "$REG" ]] || { echo "registry dir not found: $REG" >&2; exit 1; }
 python3 -c "import yaml" 2>/dev/null || { echo "PyYAML required: pip install pyyaml" >&2; exit 1; }
 mkdir -p "$(dirname "$OUT")"
 

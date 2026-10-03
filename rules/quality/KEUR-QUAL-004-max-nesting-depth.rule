@@ -1,0 +1,35 @@
+# keur quality control — a function nested more than 3 control blocks deep.
+#
+# Why this exists: SonarCloud (S134) flagged keur's own code for exceeding 3
+# nested control blocks (cmd/hook.cpp augment loop, common/platform_posix.cpp
+# read_key). Deep nesting hides the happy path and multiplies the states a
+# reader must hold. This rule makes S134 a keur-native check so the next deep
+# nest is caught at commit time, not in CI — fix + control, the same way
+# KEUR-ARCH-*/KEUR-PORT-* guard architecture and portability.
+#
+# HOW: the `max-nesting` engine (rules-authoring.md) tracks control-flow brace
+# depth with a string/regex-aware lexer (shared with block-absence), counting
+# only if/else/for/while/switch/do scopes. A function whose peak depth is > 3 is
+# flagged once, at its opening line. Structs, lambdas and initializers do not
+# count, so normal data code is quiet.
+#
+# WARN, not block: deep nesting is a maintainability smell, not a bug. It nudges
+# toward guard clauses / extracting a helper. Tests are excluded (fixtures build
+# deliberately nested shapes).
+#
+# @see docs/rules-authoring.md (`max-nesting`), SonarCloud cpp:S134.
+id: KEUR-QUAL-004
+title: Function nested more than 3 control blocks deep
+category: quality
+severity: warning
+engine: max-nesting
+action: warn
+min_count: 3
+target:
+  extensions: .c .cpp .cc .h .hpp
+  exclude_paths: test/ tests/ _test.cpp vendor/ build/ dist/
+patterns:
+  - regex: nesting too deep
+    message: "Function nests more than 3 control blocks (if/for/while/switch) deep — hard to read and test. Flatten with guard clauses (early return/continue) or extract the inner work into a named helper. @see KEUR-QUAL-004, SonarCloud cpp:S134"
+confidence: 0.6
+fix: "Reduce control nesting to <=3: invert conditions into early return/continue guard clauses at the top, and extract the deepest block into a small named function. See docs/rules-authoring.md (max-nesting) and the augment_one_target / read_escape_tail extractions in cmd/hook.cpp and common/platform_posix.cpp."

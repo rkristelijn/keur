@@ -13,19 +13,19 @@ HERE="$(cd "$(dirname "$0")" && pwd -P)"
 ROOT="$(cd "$HERE/.." && pwd -P)"
 cd "$ROOT"
 
-STRICT=0; [ "${1:-}" = "--strict" ] && STRICT=1
+STRICT=0; [[ "${1:-}" = "--strict" ]] && STRICT=1
 green() { printf "\033[32m%s\033[0m" "$1"; }
 red()   { printf "\033[31m%s\033[0m" "$1"; }
 yellow(){ printf "\033[33m%s\033[0m" "$1"; }
 row()   { printf '  %-22s %s\n' "$1" "$2"; }
 hdr()   { echo; echo "── $1 ──"; }
-pct()   { [ "$2" -eq 0 ] && echo 100 || echo $(( $1 * 100 / $2 )); }
+pct()   { [[ "$2" -eq 0 ]] && echo 100 || echo $(( $1 * 100 / $2 )); }
 
 # --- gather CI config text (GitHub, GitLab, common others) ------------------
 CI_TEXT=$(cat .github/workflows/*.yml .github/workflows/*.yaml \
               .gitlab-ci.yml .circleci/config.yml Jenkinsfile azure-pipelines.yml \
               2>/dev/null)
-if [ -z "$CI_TEXT" ]; then
+if [[ -z "$CI_TEXT" ]]; then
     echo "pipeline-coverage: no CI config found (.github/workflows, .gitlab-ci.yml, ...)" >&2
     exit 0
 fi
@@ -65,8 +65,8 @@ for G in A B C D; do
     hdr "Group $G — $(group_name "$G")"
     present=0; total=0
     while IFS=$'\t' read -r stage grp evidence; do
-        [ -z "$stage" ] && continue
-        [ "$grp" != "$G" ] && continue
+        [[ -z "$stage" ]] && continue
+        [[ "$grp" != "$G" ]] && continue
         total=$((total+1))
         if printf '%s' "$CI_TEXT" | grep -qiE "$evidence"; then
             row "$stage" "$(green '✓ present')"; present=$((present+1))
@@ -74,7 +74,7 @@ for G in A B C D; do
             row "$stage" "$(yellow '· absent')"
         fi
     done <<< "$STAGES"
-    [ "$total" -gt 0 ] && row "" "$present/$total present ($(pct $present $total)%)"
+    [[ "$total" -gt 0 ]] && row "" "$present/$total present ($(pct $present $total)%)"
 done
 
 echo
@@ -82,5 +82,5 @@ echo "────────────────────────�
 echo "  Note: which stages are REQUIRED follows from the project profile"
 echo "  (ADR-011 lifecycle × criticality × maturity). '· absent' is only a"
 echo "  gap when the profile requires that stage."
-[ "$STRICT" -eq 1 ] && [ "$FAIL" -eq 1 ] && exit 1
+[[ "$STRICT" -eq 1 ]] && [[ "$FAIL" -eq 1 ]] && exit 1
 exit 0

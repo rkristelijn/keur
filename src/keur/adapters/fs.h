@@ -21,6 +21,12 @@
 
 namespace keur::adapters {
 
+/** Result of reading a file: `ok` false means the file could not be opened. */
+struct ReadResult {
+    bool        ok = false;
+    std::string content;
+};
+
 /**
  * Filesystem operations used by keur orchestrators. Implemented once in fs.cpp
  * over POSIX; tests substitute fakes by assigning the function members.
@@ -36,6 +42,22 @@ struct Fs {
     std::function<bool(const std::string& path, const std::string& content)>
         write_executable = default_write_executable;
 
+    /**
+     * Write content to a file verbatim (no executable bit). Creates/truncates
+     * the file. Returns true on success. Used for config files (keur.toml),
+     * journals, etc. — the non-executable counterpart of write_executable.
+     * @implements ADR-003
+     */
+    std::function<bool(const std::string& path, const std::string& content)>
+        write_file = default_write_file;
+
+    /**
+     * Read a whole file into a string. Returns {true, content} on success,
+     * {false, ""} if the file cannot be opened. A query (no side effect).
+     * @implements ADR-003
+     */
+    std::function<ReadResult(const std::string& path)> read_file = default_read_file;
+
     /** Remove a file (no error if absent). */
     std::function<void(const std::string& path)> remove = default_remove;
 
@@ -44,6 +66,9 @@ struct Fs {
     static bool default_mkdir_p(const std::string& path);
     static bool default_write_executable(const std::string& path,
                                          const std::string& content);
+    static bool default_write_file(const std::string& path,
+                                   const std::string& content);
+    static ReadResult default_read_file(const std::string& path);
     static void default_remove(const std::string& path);
 };
 

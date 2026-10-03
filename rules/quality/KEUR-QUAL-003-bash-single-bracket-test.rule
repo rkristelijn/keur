@@ -1,0 +1,41 @@
+# keur quality control — POSIX single-bracket `[ ... ]` test in a bash script.
+#
+# Why this exists: SonarCloud flagged keur's own shell scripts (script:S6748 /
+# "Consistency") for using the `[ ... ]` test builtin instead of the `[[ ... ]]`
+# keyword. `[[` is safer and more feature-rich: it does no word-splitting or
+# pathname expansion on unquoted variables, supports `&&`/`||`/`<`/`>` and `=~`
+# directly, and removes a whole class of quoting bugs. This rule makes that a
+# self-guarding control (fix + control, never just the fix), the same way
+# KEUR-PORT-*/KEUR-QUAL-* guard the C++ side.
+#
+# What it flags — a `[` used as the *command* of a conditional test:
+#   - a line whose first token is `[` (e.g. `[ -f x ] && ...`)
+#   - `if` / `elif` / `while` / `until` immediately followed by `[ `
+#   - a `[` opened right after `&&` or `||`
+# It deliberately does NOT flag `[[ ... ]]` (already correct), array indexing
+# (`${arr[i]}`), globs (`[abc]*`), or `[` inside a string.
+#
+# WARN, not block: this is a consistency smell, not a bug. It nudges toward the
+# safer form without stopping a commit. Scope: bash/sh scripts only. SonarCloud
+# checks test scripts too, so tests/ is NOT excluded — only vendored/build dirs.
+#
+# @see docs/adr/ADR-013 (self-guarding controls), SonarCloud script:S6748.
+id: KEUR-QUAL-003
+title: Use `[[ ... ]]` instead of the `[ ... ]` test in bash scripts
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .sh .bash
+  exclude_paths: vendor/ build/ dist/
+patterns:
+  # A `[` acting as the test command: at line start, or right after a
+  # conditional keyword, or after a && / || operator. The trailing space/`]`
+  # requirement avoids matching `[[`, `[abc]` globs and `${arr[i]}` indexing.
+  - regex: (?:^|\bif|\belif|\bwhile|\buntil|&&|\|\|)\s*\[\s
+    exclude: \[\[
+    message: "POSIX `[ ... ]` test — prefer the `[[ ... ]]` keyword: no word-splitting/globbing on unquoted vars, native &&/||/</>/=~, fewer quoting bugs. @see KEUR-QUAL-003, SonarCloud script:S6748"
+confidence: 0.6
+fix: "Replace the `[ ... ]` test with `[[ ... ]]` in bash scripts. Note the semantics shift: inside `[[ ]]` use `==` for pattern match, `=~` for regex, and `<`/`>` for string comparison; quoting of the right-hand side of `==`/`=~` changes literal-vs-pattern behaviour. Keep `[ ]` only in strict POSIX-sh scripts that must not depend on bash."

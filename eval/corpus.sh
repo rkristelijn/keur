@@ -52,7 +52,7 @@ REPOS
 }
 
 mkdir -p "$HERE/corpus"
-[ -f "$LIST" ] || default_list > "$LIST"
+[[ -f "$LIST" ]] || default_list > "$LIST"
 
 cmd="${1:-status}"
 case "$cmd" in
@@ -65,19 +65,19 @@ case "$cmd" in
     mkdir -p "$CACHE"
     i=0
     while IFS= read -r repo; do
-      [ -z "$repo" ] && continue
+      [[ -z "$repo" ]] && continue
       case "$repo" in \#*) continue ;; esac
       i=$((i+1))
-      [ "$n" -gt 0 ] && [ "$i" -gt "$n" ] && break
+      [[ "$n" -gt 0 ]] && [[ "$i" -gt "$n" ]] && break
       name="$(echo "$repo" | tr '/' '__')"
       dest="$CACHE/$name"
-      if [ -d "$dest/.git" ]; then
+      if [[ -d "$dest/.git" ]]; then
         echo "  have  $repo"
         continue
       fi
       # disk guard: stop before we run the volume dry.
       free="$(free_mb "$CACHE")"
-      if [ -n "$free" ] && [ "$free" -lt "$MIN_FREE_MB" ]; then
+      if [[ -n "$free" ]] && [[ "$free" -lt "$MIN_FREE_MB" ]]; then
         echo "  STOP  free disk ${free}MB < ${MIN_FREE_MB}MB threshold; aborting clone" >&2
         break
       fi
@@ -94,7 +94,7 @@ case "$cmd" in
          git clone --depth 1 --single-branch --quiet "$url" "$dest" 2>/dev/null; then
         # size cap: drop an oversized outlier so it cannot fill the disk.
         sz="$(dir_mb "$dest")"
-        if [ -n "$sz" ] && [ "$sz" -gt "$MAX_REPO_MB" ]; then
+        if [[ -n "$sz" ]] && [[ "$sz" -gt "$MAX_REPO_MB" ]]; then
           echo "  SKIP  $repo (${sz}MB > ${MAX_REPO_MB}MB cap) — removed"
           rm -rf "$dest"
         else
@@ -109,7 +109,7 @@ case "$cmd" in
     ;;
 
   status)
-    if [ ! -d "$CACHE" ]; then echo "corpus: not built (run: eval/corpus.sh clone)"; exit 0; fi
+    if [[ ! -d "$CACHE" ]]; then echo "corpus: not built (run: eval/corpus.sh clone)"; exit 0; fi
     count="$(find "$CACHE" -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d ' ')"
     size="$(du -sh "$CACHE" 2>/dev/null | awk '{print $1}')"
     echo "corpus: $count repo(s), $size in $CACHE"

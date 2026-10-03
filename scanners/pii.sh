@@ -2,14 +2,13 @@
 # scanners/pii.sh — KEUR adapter over the PROVEN pii-sensitive-scan.sh.
 #
 # We do NOT reimplement PII detection. We encapsulate the existing, production-
-# proven scanner (BSN 11-proef, IBAN mod-97, validated email/phone, APS SENSITIVE
-# patterns) and normalise its verdict into a KEUR Finding (one JSON line/finding).
+# proven scanner (BSN 11-proef, IBAN mod-97, validated email/phone, organisation
+# SENSITIVE patterns) and normalise its verdict into a KEUR Finding (one JSON line/finding).
 #
 # Resolution order for the underlying scanner (first hit wins), all overridable
 # via KEUR_PII_SCAN:
 #   1. $KEUR_PII_SCAN (explicit)
 #   2. pii-sensitive-scan.sh on PATH
-#   3. the known tooling location
 #
 # Usage: scanners/pii.sh <file> [<file> ...]
 # Output: zero or more Finding JSON lines on stdout. No content, no values.
@@ -17,16 +16,13 @@ set -euo pipefail
 
 # Locate the proven scanner without hardcoding a user path.
 resolve_pii_scan() {
-  if [ -n "${KEUR_PII_SCAN:-}" ] && [ -x "$KEUR_PII_SCAN" ]; then echo "$KEUR_PII_SCAN"; return; fi
+  if [[ -n "${KEUR_PII_SCAN:-}" ]] && [[ -x "$KEUR_PII_SCAN" ]]; then echo "$KEUR_PII_SCAN"; return; fi
   if command -v pii-sensitive-scan.sh >/dev/null 2>&1; then command -v pii-sensitive-scan.sh; return; fi
-  # Best-effort known location in the sibling security-tooling repo.
-  local guess="$HOME/git/lab/tech-services/security/security-tooling/src/tools/ticket-audit/pii-sensitive-scan.sh"
-  [ -x "$guess" ] && { echo "$guess"; return; }
   echo ""   # not found
 }
 
 PII_SCAN="$(resolve_pii_scan)"
-[ -n "$PII_SCAN" ] || { echo "keur:pii: proven pii-sensitive-scan.sh not found (set KEUR_PII_SCAN)" >&2; exit 0; }
+[[ -n "$PII_SCAN" ]] || { echo "keur:pii: proven pii-sensitive-scan.sh not found (set KEUR_PII_SCAN)" >&2; exit 0; }
 
 # Map the scanner verdict to a KEUR action/confidence.
 emit_finding() {
@@ -44,7 +40,7 @@ emit_finding() {
 }
 
 for f in "$@"; do
-  [ -f "$f" ] || continue
+  [[ -f "$f" ]] || continue
   # Skip obvious binaries / large files cheaply.
   case "$f" in *.png|*.jpg|*.gif|*.pdf|*.zip|*.gz|*.woff|*.ttf|*.bin) continue ;; esac
   # The proven scanner reads text on argv or stdin; feed file content (capped).

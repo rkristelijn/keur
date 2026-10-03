@@ -21,7 +21,7 @@ HERE="$(cd "$(dirname "$0")" && pwd -P)"
 KEUR_HOME="$(cd "$HERE/.." && pwd -P)"; export KEUR_HOME
 # Prefer the expertise-primed model (eval/Modelfile) when it exists; fall back
 # to the base coder model otherwise. Override with MODEL=...
-if [ -z "${MODEL:-}" ]; then
+if [[ -z "${MODEL:-}" ]]; then
     if curl -sf "${OLLAMA_URL:-http://localhost:11434}/api/tags" 2>/dev/null | grep -q '"keur-rule-engineer'; then
         MODEL="keur-rule-engineer"
     else
@@ -121,11 +121,11 @@ is_slop() {
     local target=""
     for base in "$KEUR_HOME/eval/corpus/repos" "${KEUR_EVAL:-$HOME/git/hub/keur-eval}"; do
         for c in "$base/$ref" "$base/${ref#*/}"; do
-            [ -f "$c" ] && { target="$c"; break; }
+            [[ -f "$c" ]] && { target="$c"; break; }
         done
-        [ -n "$target" ] && break
+        [[ -n "$target" ]] && break
     done
-    [ -z "$target" ] && return 1   # can't locate -> can't judge -> not slop
+    [[ -z "$target" ]] && return 1   # can't locate -> can't judge -> not slop
 
     local sd; sd="$(mktemp -d)"
     printf '%s\n' "$cand" > "$sd/r.rule"
@@ -136,13 +136,13 @@ is_slop() {
     # (isolated: empty KEUR_HOME so only THIS rule loads).
     local hit="" f ext
     for f in "$dir"/*; do
-        [ -f "$f" ] || continue
+        [[ -f "$f" ]] || continue
         ext="${f##*.}"
         if KEUR_HOME="" KEUR_RULES_DIRS="$sd" "$NATIVE" --files "$f" 2>/dev/null | grep -q "\"$id\""; then
             hit="$f"; break
         fi
     done
-    [ -z "$hit" ] && { rm -rf "$sd"; return 1; }   # fires nowhere here -> can't judge
+    [[ -z "$hit" ]] && { rm -rf "$sd"; return 1; }   # fires nowhere here -> can't judge
 
     # Perturb the case it DID fire on, keep the same extension, re-test.
     ext="${hit##*.}"
@@ -152,7 +152,7 @@ is_slop() {
     rm -rf "$sd"
 
     # slop iff it fired on the (real) original but vanished on the perturbed one
-    [ "$on_pert" -eq 0 ]
+    [[ "$on_pert" -eq 0 ]]
 }
 
 ollama() {
@@ -199,11 +199,11 @@ build_prompt() {
     for base in "$KEUR_HOME/eval/corpus/repos" "${KEUR_EVAL:-$HOME/git/hub/keur-eval}"; do
         # ref may be "repo/path" (corpus) or "positive/cat/file" (keur-eval)
         for cand in "$base/$ref" "$base/${ref#*/}"; do
-            [ -f "$cand" ] && { example_file="$cand"; break; }
+            [[ -f "$cand" ]] && { example_file="$cand"; break; }
         done
-        [ -n "$example_file" ] && break
+        [[ -n "$example_file" ]] && break
     done
-    if [ -n "$example_file" ]; then
+    if [[ -n "$example_file" ]]; then
         # first ~25 non-empty lines, stripped of KEUR-EXPECT annotations
         snippet=$(grep -vE 'KEUR-(EXPECT|CATEGORY|NOTE)' "$example_file" 2>/dev/null \
                   | grep -v '^[[:space:]]*$' | head -25)
@@ -222,7 +222,7 @@ build_prompt() {
     # ${feedback:+...} expansion in the heredoc — a literal '}' in the text would
     # close that expansion early and break the whole prompt). Only on retries.
     local retry_block=""
-    if [ -n "$feedback" ]; then
+    if [[ -n "$feedback" ]]; then
         local good; good="$(good_example_for "$cat")"
         retry_block="
 YOUR PREVIOUS ATTEMPT WAS REJECTED. Reason: $feedback
@@ -278,10 +278,10 @@ iterate_once() {
     local dirs="$BASE_RULES:$LEARNED"
     read -r b_recall b_prec b_f1 b_fn < <(measure "$dirs")
     echo "[iter $iter] baseline: recall=$b_recall precision=$b_prec f1=$b_f1 fn=$b_fn"
-    if [ "$b_fn" = "0" ]; then echo "[iter $iter] no FN left; nothing to learn"; return 1; fi
+    if [[ "$b_fn" = "0" ]]; then echo "[iter $iter] no FN left; nothing to learn"; return 1; fi
 
     local fn; fn="$(sample_fn "$dirs" "$iter")"
-    [ -z "$fn" ] && { echo "[iter $iter] no FN sample"; return 1; }
+    [[ -z "$fn" ]] && { echo "[iter $iter] no FN sample"; return 1; }
     echo "[iter $iter] target FN: $fn"
 
     # RETRY LOOP (up to KEUR_MAX_ATTEMPTS): give Ollama several shots at the SAME
@@ -290,7 +290,7 @@ iterate_once() {
     # the old behaviour and threw away fixable near-misses. @see TODO retry-loop
     local max_attempts="${KEUR_MAX_ATTEMPTS:-4}"
     local feedback="" attempt=1
-    while [ "$attempt" -le "$max_attempts" ]; do
+    while [[ "$attempt" -le "$max_attempts" ]]; do
       echo "[iter $iter] attempt $attempt/$max_attempts${feedback:+ (retry: ${feedback})}"
       # ask Ollama for a candidate rule (with feedback on retries)
       local candidate; candidate="$(ollama "$(build_prompt "$fn" "$feedback")")"
@@ -306,7 +306,7 @@ iterate_once() {
         | sed -E "s/^([[:space:]]*- regex: )'(.*)'$/\1\2/; s/^([[:space:]]*- regex: )\"(.*)\"$/\1\2/")"
     if ! printf '%s' "$candidate" | grep -q '^id:'; then
         log_attempt "$iter" "$attempt" "$(echo "$fn"|awk '{print $2}')" retry no-rule ""
-        if [ "$attempt" -lt "$max_attempts" ]; then
+        if [[ "$attempt" -lt "$max_attempts" ]]; then
             feedback="you did not return a valid .rule starting with 'id:'"; attempt=$((attempt+1)); continue
         fi
         echo "[iter $iter] Ollama did not return a valid rule; reject"
@@ -320,13 +320,13 @@ iterate_once() {
     local cand_rx; cand_rx="$(printf '%s\n' "$candidate" | awk -F'- regex: ' '/- regex:/{print $2;exit}')"
 
     # ANTI-OVERFIT: reject a regex that just memorises the training value.
-    # A rule like `regex: AKIAIOSFODNN7EXAMPLE` or `regex: 1234` would "find" the
+    # A rule like `regex: AKIAIOSFODNN7EXAMPLE` or `regex: 1234` would "find" the  # keur:ignore SEC-010
     # one training case and generalise to nothing. Require the pattern to be a
     # GENERALISING matcher (character classes + quantifiers), not a long literal
     # copied from the secret, and not present verbatim in the corpus.
     if ! regex_generalises "$candidate"; then
         log_attempt "$iter" "$attempt" "$(echo "$fn"|awk '{print $2}')" retry overfit-regex "$cand_rx"
-        if [ "$attempt" -lt "$max_attempts" ]; then
+        if [[ "$attempt" -lt "$max_attempts" ]]; then
             feedback="the regex was too literal/specific (memorised the example). Use character classes + quantifiers to match the FAMILY, not the exact value"; attempt=$((attempt+1)); continue
         fi
         echo "[iter $iter] REJECT (anti-overfit: regex is too literal/specific)"
@@ -374,7 +374,7 @@ holdout_measurable = (h_tp + h_fp) > 0
 holdout_ok = (h_p >= FLOOR) if holdout_measurable else True
 print('yes' if (train_ok and holdout_ok) else 'no')")"
 
-    if [ "$accept" = "yes" ]; then
+    if [[ "$accept" = "yes" ]]; then
         local id; id="$(printf '%s' "$candidate" | awk -F': *' '/^id:/{print $2;exit}')"
         # SLOP TEST: the candidate passed the benchmark, but does it generalise
         # beyond the training case's FORM? Perturb the case it fires on (keep the
@@ -417,7 +417,7 @@ if c_p < FLOOR or c_p < b_p-1e-9:
 if (h_tp+h_fp)>0 and h_p < FLOOR:
     msgs.append(f'on the holdout set precision was {h_p:.3f} (fp={h_fp}) — it generalises as NOISE; make it more specific')
 print('; '.join(msgs) or 'the benchmark did not improve')")"
-        if [ "$attempt" -lt "$max_attempts" ]; then
+        if [[ "$attempt" -lt "$max_attempts" ]]; then
             feedback="$why"; attempt=$((attempt+1)); rm -rf "$tmpd"; continue
         fi
         echo "[iter $iter] REJECT (gate: train or holdout criteria not met)"
@@ -459,7 +459,7 @@ case "${1:-iterate}" in
     # iterations, not only at a phase boundary.
     STOP_SUP="$HERE/.run/STOP"; STOP_LOOP="/tmp/stop-keur-eval-loop"
     for i in $(seq 1 "$N"); do
-      if [ -f "$STOP_SUP" ] || [ -f "$STOP_LOOP" ]; then
+      if [[ -f "$STOP_SUP" ]] || [[ -f "$STOP_LOOP" ]]; then
         echo "stop requested; ending iterate"; break
       fi
       iterate_once "$i"; rc=$?
@@ -468,7 +468,7 @@ case "${1:-iterate}" in
         1) echo "converged: nothing left to learn"; break ;;
         *) stall=$((stall+1)) ;;              # rejected
       esac
-      if [ "$stall" -ge "$MAX_STALL" ]; then
+      if [[ "$stall" -ge "$MAX_STALL" ]]; then
         echo "converged: $stall consecutive rejects (no improvement); stopping"
         break
       fi

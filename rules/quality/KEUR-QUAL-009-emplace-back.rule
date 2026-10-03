@@ -1,0 +1,36 @@
+# keur quality control — a temporary object push_back'd where emplace_back would
+# construct in place.
+#
+# Why this exists: SonarCloud (cpp:S6019 / "Use emplace_back") flagged several
+# keur call sites that push_back({...}) or push_back(T(...)) — building a
+# temporary, then move/copy-constructing it into the vector. emplace_back builds
+# the element directly in the container, avoiding the extra temporary. This rule
+# makes that a keur-native check so the next one is caught at commit time —
+# fix + control, the same as KEUR-PORT-*/KEUR-QUAL-*.
+#
+# What it flags — a `.push_back(` immediately followed by a brace-init `{` or a
+# constructor call, i.e. a temporary is being materialised. It does NOT flag
+# push_back of an existing named variable or a move (push_back(std::move(x))),
+# where emplace_back gains nothing.
+#
+# WARN, not block: a performance/idiom smell, not a bug. Tests excluded — they
+# often push fixtures for readability over micro-optimisation.
+#
+# @see SonarCloud cpp:S6019.
+id: KEUR-QUAL-009
+title: Use emplace_back to construct in place instead of push_back(temporary)
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .c .cpp .cc .cxx .h .hpp .hh
+  exclude_paths: test/ tests/ _test.cpp vendor/ build/ dist/
+patterns:
+  # push_back({...}) brace-init, or push_back(Type(...)) constructing a temporary.
+  - regex: \.push_back\(\s*(\{|[A-Z][A-Za-z0-9_:]*\s*\()
+    exclude: std::move
+    message: "push_back() of a temporary (brace-init or constructor) — use emplace_back() to construct the element directly in the container and skip the extra temporary. @see KEUR-QUAL-009, SonarCloud cpp:S6019"
+confidence: 0.6
+fix: "Replace `.push_back({a, b})` / `.push_back(T(a, b))` with `.emplace_back(a, b)` so the element is constructed in place. Leave push_back for an already-constructed named object or an explicit move."

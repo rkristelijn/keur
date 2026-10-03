@@ -20,7 +20,7 @@ set -euo pipefail
 KEUR_HOME="$(cd "$(dirname "$0")/.." && pwd -P)"
 CORPUS="${KEUR_EVAL:-$HOME/git/hub/keur-eval}"
 TIER="pre-push"; QUIET=0
-while [ $# -gt 0 ]; do case "$1" in
+while [[ $# -gt 0 ]]; do case "$1" in
   --corpus) CORPUS="$2"; shift 2 ;;
   --tier)   TIER="$2"; shift 2 ;;
   --quiet)  QUIET=1; shift ;;
@@ -28,7 +28,7 @@ while [ $# -gt 0 ]; do case "$1" in
 esac; done
 
 INDEX="$CORPUS/index.json"
-[ -f "$INDEX" ] || { echo "eval: corpus index not found: $INDEX" >&2; exit 1; }
+[[ -f "$INDEX" ]] || { echo "eval: corpus index not found: $INDEX" >&2; exit 1; }
 
 METRICS_CSV="$KEUR_HOME/eval/metrics.csv"
 HISTDIR="$KEUR_HOME/eval/history"
@@ -44,12 +44,12 @@ detect_rules() {
   # detect_rules <file> → space-separated rule-IDs (may be empty)
   local file="$1" rules=""
   # PII adapter (proven scanner) → emits rule like "PII-PII" / "PII-SENSITIVE".
-  if [ -x "$KEUR_HOME/scanners/pii.sh" ]; then
+  if [[ -x "$KEUR_HOME/scanners/pii.sh" ]]; then
     rules="$rules $("$KEUR_HOME/scanners/pii.sh" "$file" 2>/dev/null \
       | sed -n 's/.*"rule":"\([^"]*\)".*/\1/p' | tr '\n' ' ')"
   fi
   # keur-rules engine (M4) will add its rule-IDs here once built.
-  [ -x "$KEUR_HOME/scanners/rules.sh" ] && \
+  [[ -x "$KEUR_HOME/scanners/rules.sh" ]] && \
     rules="$rules $("$KEUR_HOME/scanners/rules.sh" "$file" 2>/dev/null \
       | sed -n 's/.*"rule":"\([^"]*\)".*/\1/p' | tr '\n' ' ')"
   echo "$rules" | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ' '
@@ -69,7 +69,7 @@ for c in json.load(open(sys.argv[1]))["cases"]:
     print(c["path"] + "\t" + c["class"])
 PY
   file="$CORPUS/$path"
-  [ -f "$file" ] || continue
+  [[ -f "$file" ]] || continue
   printf '%s\t%s\n' "$path" "$(detect_rules "$file")" >> "$DETECTED_MAP"
 done
 

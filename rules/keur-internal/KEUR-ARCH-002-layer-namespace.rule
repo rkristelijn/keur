@@ -1,0 +1,31 @@
+id: KEUR-ARCH-002
+title: Layer directory must match its C++ namespace
+category: architecture
+severity: error
+engine: path-derived
+action: block
+# ONE rule for the whole layer↔namespace invariant (ADR-003), replacing the
+# former four near-identical literal rules (adapters/cmd/report + a manual edit
+# per new layer). The `path-derived` engine (ADR-020) computes the expected
+# namespace from the file's own path: it captures the directory the file sits in
+# and requires `namespace keur::<that dir>` to appear in the file. Add a new
+# conforming layer (config/, manager/, …) and it is checked automatically — no
+# rule edit, ever.
+#
+# path_capture group 1 = the immediate directory of a .cpp/.h file, at ANY depth
+# (so it works both for `keur scan src/keur` → "adapters/fs.cpp" and a repo-wide
+# `keur scan .` → "src/keur/adapters/fs.cpp"). Files directly under src/keur
+# (main.cpp) have no layer dir → the capture doesn't match → out of scope.
+#
+# exclude_paths names the DELIBERATE exceptions that do not follow keur::<dir>:
+#   common/  → keur::platform (dir is 'common', ns is 'platform')
+#   util/    → keur          (no sub-namespace by design)
+# plus tests/vendor/generated. This is a small allowlist of real deviations, not
+# duplication: the positive rule itself is fully dynamic.
+# @implements ADR-020 ADR-003
+target:
+  extensions: .cpp .h
+  exclude_paths: common/ util/ main.cpp _test.cpp keur_test.cpp test/ tests/ vendor/ ../rules/ rules/
+path_capture: '([a-z_]+)/[a-z0-9_]+\.(cpp|h)$'
+derived_template: 'namespace keur::\1'
+message: "File under src/keur/<layer>/ must declare 'namespace keur::<layer>' — the directory layer maps 1:1 onto the namespace (ADR-003). E.g. a file in adapters/ needs 'namespace keur::adapters'."

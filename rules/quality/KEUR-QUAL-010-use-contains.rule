@@ -1,0 +1,35 @@
+# keur quality control — an associative-container membership test written as
+# `c.find(k) != c.end()` instead of the C++20 `c.contains(k)`.
+#
+# Why this exists: SonarCloud (cpp:S6069 / "Use contains") flagged keur call
+# sites that ask "is this key present?" via find()/count() comparisons. The
+# C++20 `contains()` member states that intent directly, avoids an iterator, and
+# reads at a glance. Making it a keur-native check keeps the next one out at
+# commit time — fix + control.
+#
+# What it flags — `.find(...) != .end()` / `== .end()` and `.count(...) > 0`
+# membership idioms. It does NOT flag find() whose iterator is actually used
+# (dereferenced/erased), only the boolean-membership shape.
+#
+# WARN, not block: readability smell, not a bug. Tests excluded.
+#
+# @see SonarCloud cpp:S6069.
+id: KEUR-QUAL-010
+title: Use contains() for membership instead of find()/count() comparisons
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .c .cpp .cc .cxx .h .hpp .hh
+  exclude_paths: test/ tests/ _test.cpp vendor/ build/ dist/
+patterns:
+  # x.find(k) != end / == end  (membership test, iterator discarded)
+  - regex: \.find\([^;]*\)\s*(!=|==)\s*[A-Za-z_][A-Za-z0-9_.]*\.end\(\)
+    message: "Membership test via find()!=end() — use the C++20 contains() member: it states intent, needs no iterator, and reads clearer. @see KEUR-QUAL-010, SonarCloud cpp:S6069"
+  # x.count(k) > 0 / >= 1  on a set/map (membership, not a real count)
+  - regex: \.count\([^;)]*\)\s*(>\s*0|>=\s*1|!=\s*0)
+    message: "Membership test via count()>0 — use contains() for a set/map key: clearer and avoids implying a real count. @see KEUR-QUAL-010, SonarCloud cpp:S6069"
+confidence: 0.6
+fix: "Replace `c.find(k) != c.end()` with `c.contains(k)` (and the negation with `!c.contains(k)`); replace `c.count(k) > 0` with `c.contains(k)`. Keep find() when you actually use the returned iterator."

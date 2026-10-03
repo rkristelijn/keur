@@ -75,12 +75,29 @@ struct Rule {
   std::string action;      // optional: "block"|"warn"|"advisory"
   std::string confidence;  // optional: "0.0".."1.0"
   std::string fix;
+  std::string source;      // optional provenance: e.g. "cpm" for rules adopted
+                           // from cpm. Metadata only — the engine ignores it;
+                           // it records origin (attribution, upstream-sync,
+                           // corpus-exclude) so imported rules need no separate
+                           // directory. Empty = keur's own rule.
   std::string message;     // optional: default finding message (fallback for patterns without their own)
   std::string block_inner;    // block-absence: regex that MUST appear inside the block
   std::string block_trigger;  // block-absence: optional gate — only check blocks containing this
   int min_count = 0;          // count engine: fire only at >= this many matches (ADR-014)
   std::string within;         // count engine: scope — "file" (default). Reserved for "block".
   int window = 0;             // multiline engine: sliding window size in lines (default 2)
+  // path-derived engine (ADR-020): the expected string is computed from the
+  // file's path. `path_capture` is a regex with capture group(s) applied to the
+  // relative path; `derived_template` is the expected string with \1, \2, …
+  // placeholders substituted from those groups. If the path matches and the
+  // derived string is absent from the file, the rule fires. @implements ADR-020
+  std::string path_capture;
+  std::string derived_template;
+  // extract-duplicates engine: `extract` is a regex with a capture group; the
+  // captured value (group `capture`, default 1) is collected per file and the
+  // rule fires on the SECOND+ occurrence of the same value. @implements ADR-004.stage2
+  std::string extract;
+  int capture = 1;
   bool skip_comments = false;  // strip comments before matching (ADR-004 stage 1)
   bool skip_strings = false;   // strip string literals before matching
   RuleRequires requires_;      // ADR-009: facts guard (empty = always applies)
@@ -101,6 +118,18 @@ struct RuleFinding {
   std::string file;
   int line = 0;
   std::string message;
+
+  RuleFinding() = default;
+  // Explicit constructor so vector::emplace_back works on every toolchain:
+  // libc++ (macOS Xcode CI) cannot emplace a constructor-less aggregate.
+  // @see KEUR-PORT-007
+  RuleFinding(std::string rule_id_, std::string title_, std::string category_,
+              std::string severity_, std::string action_, std::string confidence_,
+              std::string file_, int line_, std::string message_)
+      : rule_id(std::move(rule_id_)), title(std::move(title_)),
+        category(std::move(category_)), severity(std::move(severity_)),
+        action(std::move(action_)), confidence(std::move(confidence_)),
+        file(std::move(file_)), line(line_), message(std::move(message_)) {}
 };
 
 /** Parse a single .rule file. */

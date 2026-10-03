@@ -1,0 +1,14 @@
+id: SCA-063
+source: cpm
+title: Piping curl/wget to shell execution
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  extensions: .sh .bash .yml .yaml
+  filenames: Makefile Dockerfile
+  exclude_paths: test/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (curl|wget)\s+[^|]*\|\s*(ba)?sh
+    message: curl|bash downloads and immediately executes code. A compromised server, CDN, or MITM can serve malicious scripts.
+fix: Download first, verify checksum, then execute — curl -o script.sh URL && sha256sum -c checksums.txt && bash script.sh.

@@ -7,18 +7,18 @@ GREEN='\033[32m'; RED='\033[31m'; YEL='\033[33m'; DIM='\033[90m'; R='\033[0m'
 PASS=0; FAIL=0
 
 ok()   { PASS=$((PASS+1)); printf "  ${GREEN}ok${R}   %s\n" "$1"; }
-fail() { FAIL=$((FAIL+1)); printf "  ${RED}FAIL${R} %s\n" "$1"; [ -n "${2:-}" ] && echo "         $2"; }
+fail() { FAIL=$((FAIL+1)); printf "  ${RED}FAIL${R} %s\n" "$1"; [[ -n "${2:-}" ]] && echo "         $2"; }
 
 # Resolve the keur binary: arg, then repo bin/, then PATH.
 resolve_binary() {
   local cand="${1:-}"
-  if [ -n "$cand" ] && [ -x "$cand" ]; then
+  if [[ -n "$cand" ]] && [[ -x "$cand" ]]; then
     (cd "$(dirname "$cand")" && printf '%s/%s\n' "$(pwd -P)" "$(basename "$cand")")
     return
   fi
   local here; here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
   local repo; repo="$(cd "$here/../.." && pwd -P)"
-  if [ -x "$repo/bin/keur" ]; then echo "$repo/bin/keur"; return; fi
+  if [[ -x "$repo/bin/keur" ]]; then echo "$repo/bin/keur"; return; fi
   command -v keur 2>/dev/null || echo ""
 }
 
@@ -44,5 +44,5 @@ make_temp_repo() {
 summary() {
   echo ""
   echo "  Results: ${PASS} passed, ${FAIL} failed"
-  [ "$FAIL" -eq 0 ]
+  [[ "$FAIL" -eq 0 ]]
 }

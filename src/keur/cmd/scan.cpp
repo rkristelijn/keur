@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "rules/rule_engine.h"
+#include "config/ruleset.h"
 #include "util/keur_utils.h"
 #include "report/report.h"
 
@@ -36,11 +37,7 @@ ScanOptions scan_parse(const std::vector<std::string>& args) {
 }
 
 int scan(const ScanOptions& opts) {
-    std::vector<Rule> rules;
-    for (auto& d : rule_dirs()) {
-        auto rs = rules_load(d);
-        for (auto& r : rs) rules.push_back(std::move(r));
-    }
+    std::vector<Rule> rules = keur::config::load_active_rules();
 
     if (rules.empty()) {
         std::cerr << "keur scan: no rules found "

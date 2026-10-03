@@ -60,6 +60,13 @@ void eval_block_absence(const Rule& rule, const RE2* start_re, const RE2* inner_
                         const RE2* trigger_re, const std::vector<re2::StringPiece>& lines,
                         const std::string& rel, std::vector<RuleFinding>& findings);
 
+// max-nesting engine (rule/block.cpp): flag each function whose control-flow
+// nesting depth exceeds `limit`. Uses the same string/regex-aware brace lexer as
+// block-absence; only control-keyword-opened braces raise the depth.
+void eval_max_nesting(const Rule& rule, int limit,
+                      const std::vector<re2::StringPiece>& lines,
+                      const std::string& rel, std::vector<RuleFinding>& findings);
+
 // --- engine strategy registry (ADR-014) -------------------------------------
 // Per-line engines (pattern/presence/absence/block-absence/count/...) share this
 // context: the compiled rule, the lines to scan, the file path. Each engine is a

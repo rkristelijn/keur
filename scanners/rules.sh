@@ -15,8 +15,8 @@ KEUR_HOME="${KEUR_HOME:-$(cd "$(dirname "$0")/.." && pwd -P)}"
 export KEUR_HOME
 NATIVE="$KEUR_HOME/bin/keur-rules"
 
-if [ "${KEUR_NO_NATIVE:-0}" != "1" ] && [ -x "$NATIVE" ]; then
-  if [ "${1:-}" = "--dir" ]; then
+if [[ "${KEUR_NO_NATIVE:-0}" != "1" ]] && [[ -x "$NATIVE" ]]; then
+  if [[ "${1:-}" = "--dir" ]]; then
     exec "$NATIVE" --dir "${2:-.}"
   else
     exec "$NATIVE" --files "$@"
@@ -24,8 +24,8 @@ if [ "${KEUR_NO_NATIVE:-0}" != "1" ] && [ -x "$NATIVE" ]; then
 fi
 
 # ── fallback: shell engine (slow, dependency-free) ──────────────────────────
-if [ -x "$KEUR_HOME/lib/rules.sh" ]; then
-  if [ "${1:-}" = "--dir" ]; then
+if [[ -x "$KEUR_HOME/lib/rules.sh" ]]; then
+  if [[ "${1:-}" = "--dir" ]]; then
     # shell engine takes an explicit file list; expand the dir (best effort).
     shift
     root="${1:-.}"
