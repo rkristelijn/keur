@@ -26,9 +26,9 @@ namespace {
 
 // DOOM-menu red (ANSI-256 196) for the title + level list; a dimmer red (124)
 // for the unselected rows so the selection stands out. @implements KEUR-LEVEL
-constexpr const char* k_red        = "\033[38;5;196m";
-constexpr const char* k_red_dim    = "\033[38;5;124m";
-constexpr const char* k_reset      = "\033[0m";
+constexpr const char* k_red        = "\x1b""[38;5;196m";
+constexpr const char* k_red_dim    = "\x1b""[38;5;124m";
+constexpr const char* k_reset      = "\x1b""[0m";
 
 std::string paint(const std::string& s, const char* code, bool color) {
     if (!color) return s;
@@ -312,7 +312,7 @@ int level(const LevelOptions& opts) {
     bool running = true;
     int exit_code = 0;
     while (running) {
-        std::cout << "\033[2J\033[H";  // clear + home
+        std::cout << "\x1b""[2J\x1b""[H";  // clear + home
         std::cout << render_level_screen(bucket, color, selected, show_logo) << std::flush;
 
         platform::KeyEvent ev = platform::read_key();
