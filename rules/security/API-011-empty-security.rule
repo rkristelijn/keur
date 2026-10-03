@@ -1,0 +1,17 @@
+id: API-011
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Endpoint with empty security array
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: openapi
+patterns:
+  - regex: security:\s*\[\]
+    message: "Endpoint with empty security array — explicitly unauthenticated, verify this is intended"
+fix: Remove empty security array if endpoint should inherit global security, or document why this endpoint is intentionally public.

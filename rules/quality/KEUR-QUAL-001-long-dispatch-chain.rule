@@ -11,6 +11,8 @@
 # @see docs/adr/ADR-014-engine-registry.md
 # @implements ADR-014
 id: KEUR-QUAL-001
+ilities: [analysability]
+maturity: 3
 title: Long conditional dispatch chain (consider a table or strategy registry)
 category: quality
 severity: warning

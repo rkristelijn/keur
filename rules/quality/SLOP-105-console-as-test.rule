@@ -1,0 +1,21 @@
+# @see ADR-167
+id: SLOP-105
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Avoid console.log/print as test verification
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx
+  exclude_paths: vendor/ node_modules/
+patterns:
+  - regex: console\.log\(.*result
+    message: "Console.log is not a test — use expect() assertions"
+  - regex: console\.log\(.*response
+    message: "Logging response is not testing — assert on the response content"
+  - regex: console\.log\(.*output
+    message: "Logging output is not testing — assert on the expected output"
+fix: "Replace console.log with assertions: expect(result).toEqual(expected);"

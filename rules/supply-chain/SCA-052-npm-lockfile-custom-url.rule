@@ -1,4 +1,6 @@
 id: SCA-052
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Suspicious npm lockfile with non-standard resolved URL
 category: supply-chain

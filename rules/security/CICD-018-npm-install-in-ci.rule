@@ -1,0 +1,18 @@
+id: CICD-018
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Using npm install instead of npm ci
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  extensions: .yaml .yml
+  filenames: Jenkinsfile .travis.yml .circleci/config.yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: npm install
+patterns:
+  - regex: \bnpm install\b
+    message: "npm install in CI modifies lockfile — use npm ci for reproducible builds"
+fix: Replace npm install with npm ci in CI pipelines. npm ci installs from package-lock.json exactly, is faster, and fails if lockfile is out of sync.

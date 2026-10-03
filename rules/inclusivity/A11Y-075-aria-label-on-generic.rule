@@ -1,0 +1,19 @@
+id: A11Y-075
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Aria-label on generic element
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: aria-label
+patterns:
+  - regex: <span\s+aria-label=
+    message: "aria-label on generic element (span) — may not be announced"
+  - regex: <p\s+aria-label=
+    message: "aria-label on generic element (p) — may not be announced"
+fix: Add an explicit role or use aria-label on a landmark/widget element.

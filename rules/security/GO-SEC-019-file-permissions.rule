@@ -1,0 +1,20 @@
+id: GO-SEC-019
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Overly permissive file permissions
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: os\.(Mkdir|MkdirAll|WriteFile|OpenFile)\(.*0777
+    message: "File permissions 0777 — world-writable, use 0750 or stricter"
+  - regex: os\.(Mkdir|MkdirAll|WriteFile|OpenFile)\(.*0766
+    message: "File permissions 0766 — world-readable+writable, use 0640 or stricter"
+  - regex: os\.Chmod\(.*0777
+    message: "Chmod 0777 — world-writable, use minimal required permissions"
+fix: Use 0750 for directories, 0640 for files, or stricter as needed

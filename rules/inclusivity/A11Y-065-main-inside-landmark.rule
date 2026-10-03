@@ -1,0 +1,17 @@
+id: A11Y-065
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Main inside landmark
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <main
+patterns:
+  - regex: <(nav|aside|footer|header)[^>]*>[^<]*<main
+    message: "<main> appears to be nested inside another landmark"
+fix: Ensure <main> is a top-level landmark, not nested inside other landmarks.

@@ -1,0 +1,16 @@
+id: GO-QUAL-016
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Error not wrapped
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: return\s+err\s*$
+    message: "Error returned without context — wrap with fmt.Errorf(\"%w\", err)"
+fix: "Use fmt.Errorf(\"doing X: %w\", err) to add context while preserving the error chain"

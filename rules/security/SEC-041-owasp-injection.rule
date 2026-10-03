@@ -1,4 +1,6 @@
 id: SEC-041
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: OWASP Top 10 — A05 Injection (SQL, XSS, Template)
 category: security

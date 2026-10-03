@@ -1,0 +1,18 @@
+id: GO-QUAL-013
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Ignored error return value
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: ^\s+\w+\(.*\)\s*$
+    message: Function return value (likely error) not captured
+  - regex: \b_\s*=\s*\w+\(
+    message: Error explicitly ignored with underscore
+fix: Handle the error or document why it's safe to ignore (// nolint:errcheck — reason)

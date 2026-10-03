@@ -1,0 +1,16 @@
+id: QUAL-041
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Avoid setInterval without cleanup (memory leak risk)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ tests/
+patterns:
+  - regex: setInterval\s*\(
+    message: "setInterval() — ensure corresponding clearInterval() exists. Uncleaned intervals cause memory leaks."
+fix: Store the interval ID and call clearInterval() in cleanup (componentWillUnmount, useEffect return, or beforeDestroy).

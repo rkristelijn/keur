@@ -1,0 +1,17 @@
+id: ANS-017
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: YAML truthy values
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: yes
+patterns:
+  - regex: :\s*(yes|no|on|off|y|n)\s*$
+    message: "YAML truthy string (yes/no/on/off) — use true/false to avoid ambiguity"
+fix: Replace yes/no/on/off/y/n with true/false. YAML 1.1 treats these as booleans which causes subtle bugs. yamllint rule truthy can enforce this.

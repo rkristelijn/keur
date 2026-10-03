@@ -1,0 +1,24 @@
+id: PHP-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Dangerous eval and code execution
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \beval\s*\(
+    message: "eval() executes arbitrary PHP code — never use with user input. Restructure logic"
+  - regex: \bassert\s*\(\s*["'$]
+    message: "assert() with string argument executes as code in PHP 7 — remove or use boolean expression"
+  - regex: \bpreg_replace\s*\(\s*['"].*['"]e
+    message: "preg_replace() with /e modifier executes code — removed in PHP 7. Use preg_replace_callback()"
+  - regex: \bcreate_function\s*\(
+    message: "create_function() is deprecated and uses eval internally — use closures (anonymous functions)"
+  - regex: \bcall_user_func\(.*\$_(GET|POST|REQUEST|COOKIE)
+    message: "User input in call_user_func() — allows arbitrary function calls. Validate against allowlist"
+fix: "Replace eval/assert with proper control flow. Use closures instead of create_function()"

@@ -1,0 +1,17 @@
+id: A11Y-024
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Video without captions track
+category: a11y
+severity: error
+engine: absence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <video
+patterns:
+  - regex: kind=["']captions["']
+    message: "Video without captions track — add <track kind=\"captions\">"
+fix: "Add <track kind=\"captions\" src=\"captions.vtt\"> to video"

@@ -1,4 +1,6 @@
 id: SCA-041
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Gemfile git source without ref pin
 category: supply-chain

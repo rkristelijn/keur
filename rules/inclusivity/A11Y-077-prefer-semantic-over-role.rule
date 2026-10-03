@@ -1,0 +1,25 @@
+id: A11Y-077
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Prefer semantic element over ARIA role
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role=
+patterns:
+  - regex: <div[^>]*role=["']button["']
+    message: "Use <button> instead of <div role=button>"
+  - regex: <div[^>]*role=["']link["']
+    message: "Use <a> instead of <div role=link>"
+  - regex: <div[^>]*role=["']navigation["']
+    message: "Use <nav> instead of <div role=navigation>"
+  - regex: <div[^>]*role=["']banner["']
+    message: "Use <header> instead of <div role=banner>"
+  - regex: <div[^>]*role=["']main["']
+    message: "Use <main> instead of <div role=main>"
+fix: Use native HTML elements instead of ARIA roles on <div>.

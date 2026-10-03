@@ -1,0 +1,18 @@
+id: SLS-018
+ilities: [availability]
+source: cpm
+maturity: 4
+action: advisory
+title: Missing tracing
+category: observability
+severity: info
+engine: absence
+target:
+  extensions: .yaml .yml
+  filenames: serverless.yml serverless.yaml template.yaml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: handler:
+patterns:
+  - regex: tracing|Tracing|xray|X-Ray
+    message: "No X-Ray tracing — difficult to debug distributed Lambda functions"
+fix: Enable tracing. Serverless Framework: tracing: { lambda: true, apiGateway: true }. SAM: Tracing: Active under Globals or per function.

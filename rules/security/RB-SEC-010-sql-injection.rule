@@ -1,0 +1,28 @@
+id: RB-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: SQL injection via string interpolation
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .rb .erb
+  exclude_paths: test/ tests/ spec/
+patterns:
+  - regex: \.where\(\s*".*#\{
+    message: "String interpolation in .where() — use parameterized query: where('name = ?', name)"
+  - regex: \.find_by_sql\(\s*".*#\{
+    message: "String interpolation in find_by_sql() — use parameterized query with ? placeholders"
+  - regex: \.execute\(\s*".*#\{
+    message: "String interpolation in .execute() — SQL injection risk. Use parameterized queries"
+  - regex: \.select\(\s*".*#\{
+    message: "String interpolation in .select() — use Arel or sanitize_sql_array()"
+  - regex: \.order\(\s*".*#\{
+    message: "String interpolation in .order() — SQL injection risk. Validate against allowlist"
+  - regex: \.group\(\s*".*#\{
+    message: "String interpolation in .group() — SQL injection risk"
+  - regex: \.having\(\s*".*#\{
+    message: "String interpolation in .having() — use parameterized queries"
+fix: "Use parameterized queries: where('name = ?', params[:name]) or where(name: params[:name])"

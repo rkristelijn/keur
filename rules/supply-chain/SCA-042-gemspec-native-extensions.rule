@@ -1,4 +1,6 @@
 id: SCA-042
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Gemspec with native extensions
 category: supply-chain

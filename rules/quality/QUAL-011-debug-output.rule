@@ -1,0 +1,18 @@
+id: QUAL-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Debug output left in code
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ spec/ __tests__/ vendor/ node_modules/ .git/
+patterns:
+  - regex: \bconsole\.(log|debug|info)\(
+    message: console.log left in production code
+  - regex: \bdebugger\b
+    message: debugger statement left in code
+fix: Remove debug statements or use a proper logging library

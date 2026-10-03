@@ -1,0 +1,18 @@
+id: LV-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Laravel APP_DEBUG=true in production
+category: security
+severity: error
+engine: pattern
+target:
+  filenames: .env .env.production
+  exclude_paths: test/ vendor/ .git/
+patterns:
+  - regex: APP_DEBUG\s*=\s*true
+    message: "Laravel APP_DEBUG=true — exposes detailed error pages with stack traces, DB credentials, and config to all users"
+  - regex: APP_ENV\s*=\s*local
+    message: "Laravel APP_ENV=local in production config — should be 'production'"
+fix: Set APP_DEBUG=false and APP_ENV=production in production .env files.

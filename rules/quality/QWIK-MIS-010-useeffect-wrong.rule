@@ -1,0 +1,17 @@
+id: QWIK-MIS-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Qwik using React useEffect pattern
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@builder.io/qwik"
+patterns:
+  - regex: useEffect\s*\(
+    message: "useEffect is React — in Qwik use useTask$() for server effects or useVisibleTask$() for client-side"
+fix: "useTask$(() => { ... }) for server-side, useVisibleTask$(() => { ... }) for browser-only effects."

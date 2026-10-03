@@ -1,0 +1,35 @@
+# @see ADR-167
+id: SLOP-001
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: AI filler phrases in code or documentation
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .cpp .h .ts .js .py .md .txt .java .go .rb .cs .rs
+  exclude_paths: test/ tests/ vendor/ node_modules/ slop.cpp
+patterns:
+  - regex: Certainly!
+    message: "AI filler phrase — remove or rewrite in your own voice"
+  - regex: I'd be happy to
+    message: "AI filler phrase — remove or rewrite"
+  - regex: As an AI
+    message: "AI self-reference — remove"
+  - regex: It's important to note
+    message: "AI filler phrase — be direct"
+  - regex: Let me know if
+    message: "AI filler phrase in code — remove"
+  - regex: I cannot and will not
+    message: "AI refusal pattern in code — remove"
+  - regex: I hope this helps
+    message: "AI sign-off phrase — remove"
+  - regex: Feel free to
+    message: "AI filler — be direct about what the user should do"
+  - regex: Happy coding!
+    message: "AI sign-off in code — remove"
+  - regex: Absolutely!.*(?:here|let)
+    message: "AI enthusiasm filler — be direct"
+fix: Remove AI-generated filler and rewrite in your own voice.

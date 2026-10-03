@@ -1,0 +1,16 @@
+id: BUILD-020
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Angular incorrect two-way binding syntax
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .html .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \(\[\w+\]\)
+    message: "Incorrect two-way binding syntax ([prop]) — parentheses must wrap square brackets, not the reverse"
+fix: Use [(ngModel)]="value" — square brackets for property binding first, then parentheses for event binding.

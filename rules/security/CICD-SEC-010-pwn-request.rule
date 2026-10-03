@@ -1,0 +1,17 @@
+id: CICD-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: GitHub Actions pull_request_target RCE
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yml .yaml
+  exclude_paths: .git/ node_modules/
+  content_contains: pull_request_target
+patterns:
+  - regex: on:.*pull_request_target
+    message: "pull_request_target trigger — if checkout uses PR head ref, attacker code runs with repo secrets and write access"
+fix: Never checkout PR head code with pull_request_target. Use pull_request trigger, or use a two-workflow approach.

@@ -1,0 +1,17 @@
+id: NGX-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Weak TLS protocols
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: ssl_protocols
+patterns:
+  - regex: ssl_protocols?.*\b(SSLv2|SSLv3|TLSv1[^.]|TLSv1\.0|TLSv1\.1)\b
+    message: Weak TLS protocol enabled — SSLv2/v3 and TLS 1.0/1.1 have known vulnerabilities
+fix: Set ssl_protocols TLSv1.2 TLSv1.3 and remove all older protocol versions

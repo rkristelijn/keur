@@ -1,0 +1,27 @@
+id: TEST-025
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Skipped tests accumulation (test rot)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .rb
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: skip
+patterns:
+  - regex: (it|test|describe)\.skip\s*\(
+    message: "Skipped test — fix or remove to maintain test suite health"
+  - regex: (it|test|describe)\.only\s*\(
+    message: ".only() in test — focuses single test, other tests won't run in CI"
+  - regex: @Disabled
+    message: "@Disabled test — fix or remove to prevent test rot"
+  - regex: @Ignore
+    message: "@Ignore test — fix or remove to prevent test rot"
+  - regex: pytest\.mark\.skip
+    message: "pytest.mark.skip — fix or remove to prevent test rot"
+  - regex: xdescribe\s*\(|xit\s*\(
+    message: "xdescribe/xit — Jasmine-style skipped test. Fix or remove."
+fix: Fix the underlying issue or delete dead tests. Skipped tests give false confidence in test coverage.

@@ -1,0 +1,16 @@
+id: QUAL-065
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Hardcoded URL or file path in source code
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ['"`]https?://[a-zA-Z][a-zA-Z0-9._-]{2,}\.[a-z]{2,}[^'"`]{10,}['"`]
+    message: "Hardcoded URL — extract to configuration or environment variable for environment portability"
+fix: Move URLs to config files or env vars. const API_URL = process.env.API_URL || 'http://localhost:3000'.

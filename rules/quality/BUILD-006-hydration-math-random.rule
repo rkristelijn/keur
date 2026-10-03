@@ -1,0 +1,17 @@
+id: BUILD-006
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Math.random() in component causes hydration mismatch
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .tsx .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: Math.random
+patterns:
+  - regex: Math\.random\(\)
+    message: "Math.random() in component — produces different values on server vs client, causing hydration mismatch"
+fix: Move to useEffect or useState with lazy initializer — useState(() => Math.random()).

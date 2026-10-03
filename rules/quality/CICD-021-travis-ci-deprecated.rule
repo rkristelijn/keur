@@ -1,0 +1,17 @@
+id: CICD-021
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Travis CI deprecated
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: .travis.yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: sudo
+patterns:
+  - regex: language:
+    message: "Travis CI has severely limited free tier since 2020 — consider GitHub Actions or GitLab CI"
+fix: Migrate to GitHub Actions or GitLab CI. Both offer free CI for open source. Use travis-migrate tool or manually convert .travis.yml to workflow YAML.

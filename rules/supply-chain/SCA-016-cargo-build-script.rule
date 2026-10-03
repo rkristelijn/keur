@@ -1,4 +1,6 @@
 id: SCA-016
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Cargo.toml build script declaration
 category: supply-chain

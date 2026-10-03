@@ -1,0 +1,16 @@
+id: CLI-A11Y-022
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: Documentation mentions colors but not NO_COLOR
+category: a11y
+severity: info
+engine: absence
+target:
+  filenames: README.md readme.md CONTRIBUTING.md
+  content_contains: color
+patterns:
+  - regex: NO_COLOR|no.color|accessible|a11y
+    message: "Documentation mentions colors or styling but does not mention NO_COLOR or accessibility — users who need accessible output may not know it is supported"
+fix: "Add a section documenting NO_COLOR support and any other accessibility options (--plain, --json). Link to https://no-color.org/"

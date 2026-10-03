@@ -1,0 +1,17 @@
+id: A11Y-001
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: HTML document missing lang attribute
+category: a11y
+severity: error
+engine: absence
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <html
+patterns:
+  - regex: <html[^>]*\slang=
+    message: "HTML document missing lang attribute — add lang to <html> for screen readers"
+fix: "Add lang attribute to <html>, e.g. <html lang=\"en\">"

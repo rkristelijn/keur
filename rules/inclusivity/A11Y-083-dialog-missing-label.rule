@@ -1,0 +1,19 @@
+id: A11Y-083
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Dialog missing label
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role="dialog
+patterns:
+  - regex: role=["']dialog["']
+    message: "Dialog found — ensure it has aria-label or aria-labelledby"
+  - regex: role=["']alertdialog["']
+    message: "Alert dialog found — ensure it has aria-label or aria-labelledby"
+fix: Add aria-label or aria-labelledby to dialog elements.

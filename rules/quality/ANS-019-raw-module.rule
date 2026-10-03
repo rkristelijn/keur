@@ -1,0 +1,17 @@
+id: ANS-019
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Raw module usage
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: raw
+patterns:
+  - regex: ^\s*-?\s*raw:
+    message: "raw module bypasses Ansible module system — only use for bootstrapping Python"
+fix: Replace raw with the appropriate Ansible module. raw is only needed when Python is not yet installed on the target. Use shell or command for other cases.

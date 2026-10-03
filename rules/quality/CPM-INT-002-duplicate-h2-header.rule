@@ -1,0 +1,14 @@
+# @see R-030 synthesis: HOOG-3
+id: CPM-INT-002
+ilities: [analysability]
+source: cpm
+maturity: 2
+action: advisory
+title: Duplicate header file with .h2 extension
+category: quality
+severity: error
+engine: file-presence
+target:
+  filenames: constants.h2
+  exclude_paths: .git/ build/ dist/
+fix: Remove constants.h2 and ensure all includes reference constants.h (the constexpr version).

@@ -1,0 +1,24 @@
+id: BE-SEC-023
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: GraphQL security issues
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .graphql .yml .yaml
+  exclude_paths: test/ tests/
+patterns:
+  - regex: introspection\s*[:=]\s*true
+    message: "GraphQL introspection enabled — exposes full schema to attackers. Disable in production"
+  - regex: (?:depthLimit|maxDepth|depth_limit)\s*[:=]\s*(?:[0-9]{2,}|null|undefined|None)
+    message: "GraphQL depth limit too high or disabled — enables deeply nested DoS queries"
+  - regex: graphiql\s*[:=]\s*true
+    message: "GraphiQL/playground enabled — interactive query tool exposed in production"
+  - regex: (?:maxComplexity|complexity_limit)\s*[:=]\s*(?:null|undefined|None|0)
+    message: "GraphQL query complexity limit disabled — enables expensive queries (DoS)"
+  - regex: \.graphql.*(?:playground|explorer|altair).*(?:prod|production)
+    message: "GraphQL IDE exposed in production — disable playground/explorer endpoints"
+fix: "Disable introspection + playground in production. Set depth limit (7-10), complexity limit, and rate limiting. CWE-200"

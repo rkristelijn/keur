@@ -1,0 +1,16 @@
+id: STYLE-043
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: Overly long identifier (>40 characters)
+category: style
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (function|const|let|var|class|interface|type)\s+\w{41,}
+    message: "Identifier exceeds 40 characters — too verbose. Simplify or restructure."
+fix: Shorten names by removing redundancy. 'getUserById' not 'getUpdatedUserProfileFromDatabaseById'.

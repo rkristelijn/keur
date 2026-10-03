@@ -1,0 +1,17 @@
+id: RS-SEC-031
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Regex from user input
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: Regex::new
+patterns:
+  - regex: Regex::new\(\s*[a-z_&]
+    message: Regex compiled from variable — may cause ReDoS if input is untrusted
+fix: Validate and sanitize regex input, set a size limit, or use regex::RegexBuilder with size_limit()

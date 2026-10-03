@@ -1,0 +1,27 @@
+# @see ADR-167
+id: SLOP-002
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Boilerplate comment restating the obvious
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .py .java .go .rb .cs .rs .cpp .h
+  exclude_paths: test/ tests/ vendor/ node_modules/
+patterns:
+  - regex: //\s*This (function|method|class) (returns|takes|accepts|creates|handles|processes|is used to)
+    message: "Comment restates what the code already says — add 'why' not 'what'"
+  - regex: #\s*This (function|method|class) (returns|takes|accepts|creates|handles|processes|is used to)
+    message: "Comment restates what the code already says — add 'why' not 'what'"
+  - regex: //\s*(The following|Below is|Here we|The code below)
+    message: "Narration comment — code should speak for itself, comment the 'why'"
+  - regex: //\s*(Constructor|Destructor|Getter|Setter)\s*$
+    message: "Trivial structural comment — these are self-evident from the code"
+  - regex: //\s*Default constructor\s*$
+    message: "Trivial structural comment — remove"
+  - regex: //\s*Returns? (the|a) \w+\s*$
+    message: "Comment just restates the return type — explain why or remove"
+fix: Good comments explain WHY, not WHAT. If the code is clear, no comment is needed.

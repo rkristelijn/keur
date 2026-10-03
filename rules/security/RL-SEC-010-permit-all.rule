@@ -1,0 +1,16 @@
+id: RL-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Rails params.permit! — mass assignment (GitHub 2012 exploit)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .rb
+  exclude_paths: test/ tests/ spec/ vendor/ .git/ build/
+patterns:
+  - regex: params\.permit!
+    message: "params.permit! allows ALL parameters — complete mass assignment vulnerability (GitHub 2012 exploit)"
+fix: Always use strong parameters: params.require(:model).permit(:field1, :field2). Never use params.permit!.

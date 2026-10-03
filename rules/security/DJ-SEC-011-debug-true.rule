@@ -1,0 +1,17 @@
+id: DJ-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Django DEBUG=True in production settings
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: DEBUG
+patterns:
+  - regex: ^DEBUG\s*=\s*True
+    message: "Django DEBUG=True — exposes detailed error pages with settings, SQL queries, and file paths to all users"
+fix: Set DEBUG = False in production. Use environment variable: DEBUG = os.environ.get('DEBUG', 'False') == 'True'.

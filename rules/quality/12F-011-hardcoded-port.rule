@@ -1,0 +1,18 @@
+id: 12F-011
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Hardcoded port binding (12-Factor VII: Port binding)
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .py .java .go .rs .rb
+  exclude_paths: test/ spec/ __tests__/ vendor/ node_modules/ _test.go mock
+patterns:
+  - regex: \.listen\((3000|8080|8000|8888|4000|5000|9000|80|443)\b
+    message: Hardcoded port in listen() — read from PORT env variable
+  - regex: :(3000|8080|8000|8888|4000|5000|9000)"\)
+    message: Hardcoded port in address string — read from PORT env variable
+fix: Read the port from process.env.PORT / os.Getenv("PORT") (12-Factor VII)

@@ -39,7 +39,7 @@ std::set<std::string> parse_disabled(const std::string& toml_body) {
     std::string line;
     size_t pos = 0;
 
-    auto next = [&](std::string& out) -> bool {
+    auto next = [&pos, &toml_body](std::string& out) -> bool {
         if (pos >= toml_body.size()) return false;
         size_t nl = toml_body.find('\n', pos);
         if (nl == std::string::npos) { out = toml_body.substr(pos); pos = toml_body.size(); }
@@ -108,7 +108,7 @@ std::string upsert_disabled_section(const std::string& toml_body,
     { std::string cur; for (char c : toml_body) { if (c == '\n') { lines.push_back(cur); cur.clear(); } else cur += c; } if (!cur.empty()) lines.push_back(cur); }
 
     const std::string disabled_line =
-        ids.empty() ? "" : ("disabled = " + [&]{
+        ids.empty() ? "" : ("disabled = " + [&ids]{
             std::string a = "[";
             bool first = true;
             for (const auto& id : ids) { if (!first) a += ", "; a += "\"" + id + "\""; first = false; }

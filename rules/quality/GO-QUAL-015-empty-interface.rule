@@ -1,0 +1,18 @@
+id: GO-QUAL-015
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Empty interface overuse
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: interface\{\}
+    message: "Empty interface{} loses type safety — use generics (Go 1.18+) or specific interfaces"
+  - regex: \bany\b
+    message: "'any' (alias for interface{}) loses type safety — consider a typed interface"
+fix: Define specific interfaces or use generics for type-safe polymorphism

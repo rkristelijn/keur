@@ -1,0 +1,16 @@
+id: BUILD-022
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Top-level import in .d.ts file breaks global declarations
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .d.ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ^import\s+
+    message: "Top-level import in .d.ts file — converts global ambient declarations into module scope, breaking type augmentation"
+fix: Use import() type syntax instead — type X = import('./module').X — or wrap in declare global { }.

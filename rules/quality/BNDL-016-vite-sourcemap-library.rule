@@ -1,0 +1,17 @@
+id: BNDL-016
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Vite build sourcemap in library
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: vite.config.ts vite.config.js
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: sourcemap
+patterns:
+  - regex: sourcemap:\s*true
+    message: "Source maps in library build expose implementation and increase package size"
+fix: Set sourcemap to false for production library builds, or use 'hidden' to keep maps separate.

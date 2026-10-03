@@ -1,0 +1,16 @@
+id: STYLE-048
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: Negative boolean name (isNotReady, disableFeature)
+category: style
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (const|let|var|bool|boolean)\s+(isNot|isnt|hasNo|hasnt|not|disable|dont|doesnt|shouldNot|cantBe|wontBe)\w+
+    message: "Negative boolean name — causes double negatives (if !isNotReady). Use positive name (isReady)."
+fix: Use positive names. 'isReady' not 'isNotReady', 'enabled' not 'disabled'.

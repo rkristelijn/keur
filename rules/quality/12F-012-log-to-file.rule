@@ -1,0 +1,26 @@
+id: 12F-012
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Logging to file instead of stdout (12-Factor XI: Logs)
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .rs .rb .cs
+  exclude_paths: test/ spec/ __tests__/ vendor/ node_modules/ _test.go mock
+patterns:
+  - regex: new.*transports\.File
+    message: Winston file transport — logs should go to stdout
+  - regex: new\s+FileHandler\(
+    message: Java FileHandler — logs should go to stdout
+  - regex: logging\.FileHandler\(
+    message: Python FileHandler — logs should go to stdout
+  - regex: log4j\.appender\.(File|RollingFile)
+    message: Log4j file appender — logs should go to stdout
+  - regex: createLogger.*streams.*path:
+    message: Bunyan file stream — logs should go to stdout
+  - regex: RotatingFileHandler
+    message: Python RotatingFileHandler — logs should go to stdout
+fix: Write logs to stdout/stderr and let the execution environment handle routing (12-Factor XI)

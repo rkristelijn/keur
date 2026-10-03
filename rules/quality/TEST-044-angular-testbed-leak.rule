@@ -1,0 +1,26 @@
+# @see ADR-167
+id: TEST-044
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Angular TestBed resource leak
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .spec.ts .test.ts
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: TestBed
+patterns:
+  - regex: TestBed\.configureTestingModule\(
+    message: "TestBed configured — ensure teardown is enabled or resetTestingModule is called in afterEach"
+  - regex: TestBed\.inject\(
+    message: "TestBed.inject without cleanup — ensure resetTestingModule or destroyAfterEach is set"
+  - regex: fixture\.detectChanges\(\)
+    message: "detectChanges called — verify fixture.destroy() or TestBed teardown is configured"
+  - regex: async\s*\(\s*\)\s*=>\s*\{[^}]*TestBed
+    message: "Async test with TestBed — use waitForAsync() or fakeAsync() to properly handle async operations"
+  - regex: new\s+\w+Component\(\)
+    message: "Component instantiated with new instead of TestBed — use TestBed.createComponent for proper DI and lifecycle"
+fix: "Enable automatic teardown: TestBed.configureTestingModule({ teardown: { destroyAfterEach: true } }). Or call TestBed.resetTestingModule() in afterEach. Wrap async operations in waitForAsync() or fakeAsync()/tick(). Leaked TestBed state causes flaky tests and memory leaks."

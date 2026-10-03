@@ -1,0 +1,35 @@
+# @see ADR-170 (multi-OS platform abstraction)
+#
+# Business logic must not hardcode POSIX shell commands inside system()/
+# cpm_exec()/popen(). Commands like `mkdir -p`, `rm -rf`, `cp`, `chmod`, and
+# `command -v` do not exist (or behave differently) under the Windows `cmd`
+# interpreter, so a binary that *builds* on Windows still fails at runtime
+# (e.g. `mkdir -p .cpm` -> "A subdirectory or file .cpm already exists").
+# Route filesystem/process operations through the platform:: abstraction
+# (platform::make_dir, platform::cmd_which, ...) instead.
+id: STYLE-017
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Hardcoded POSIX shell command in system()/cpm_exec()
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .c .cpp .cc
+  exclude_paths: src/common/ vendor/ test/ tests/ build/ dist/
+patterns:
+  - regex: (system|cpm_exec|popen)\s*\(\s*"[^"]*\bmkdir -p\b
+    message: "Hardcoded 'mkdir -p' in a shell command — breaks on Windows cmd (no -p flag). Use platform::make_dir() (ADR-170)."
+  - regex: (system|cpm_exec|popen)\s*\(\s*"[^"]*\brm -rf\b
+    message: "Hardcoded 'rm -rf' in a shell command — not portable to Windows cmd. Route through the platform abstraction (ADR-170)."
+  - regex: (system|cpm_exec|popen)\s*\(\s*"[^"]*\brm -f\b
+    message: "Hardcoded 'rm -f' in a shell command — not portable to Windows cmd. Route through the platform abstraction (ADR-170)."
+  - regex: (system|cpm_exec|popen)\s*\(\s*"[^"]*\bcommand -v\b
+    message: "Hardcoded 'command -v' in a shell command — POSIX-only. Use platform::cmd_which() (ADR-170)."
+  - regex: (system|cpm_exec|popen)\s*\(\s*"[^"]*\bchmod \+?x\b
+    message: "Hardcoded 'chmod +x' in a shell command — no chmod on Windows. Route through the platform abstraction (ADR-170)."
+  - regex: (system|cpm_exec|popen)\s*\(\s*"[^"]*(^|[^A-Za-z])cp -[rR]
+    message: "Hardcoded 'cp -r' in a shell command — not portable to Windows cmd. Route through the platform abstraction (ADR-170)."
+fix: "Filesystem and process operations must go through src/common/platform.* (e.g. platform::make_dir instead of system(\"mkdir -p ...\"), platform::cmd_which instead of \"command -v\"). Only genuinely POSIX-shell artifacts (git hook scripts) may remain, and then only in a platform-guarded path. See ADR-170."

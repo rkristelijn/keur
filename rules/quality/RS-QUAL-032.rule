@@ -1,0 +1,17 @@
+id: RS-QUAL-032
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Blocking in async context
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: std::thread::sleep
+patterns:
+  - regex: std::thread::sleep|std::fs::(read|write|remove|create)
+    message: Blocking operation in async code — use tokio::time::sleep or tokio::fs
+fix: Replace std::thread::sleep with tokio::time::sleep and std::fs with tokio::fs in async functions

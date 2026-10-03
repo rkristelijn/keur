@@ -1,0 +1,22 @@
+id: BE-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: LDAP injection
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \.search\(\s*["'].*\(\s*.*\+\s*(?:req|param|input|user|query)
+    message: "String concat in LDAP search filter — LDAP injection risk. Use parameterized LDAP queries"
+  - regex: ldap.*filter.*\+\s*(?:req|param|input|user|query)
+    message: "User input in LDAP filter — injection risk. Escape special characters (*, (, ), \\, NUL)"
+  - regex: \.bind\(\s*["'].*\+\s*(?:req|param|input|user|query)
+    message: "User input in LDAP bind DN — injection risk. Validate against allowlist"
+  - regex: f".*\((?:cn|uid|sAMAccountName|mail)=.*\{
+    message: "f-string in LDAP filter — injection risk. Use ldap.filter.escape_filter_chars()"
+fix: "Escape LDAP special characters. Use parameterized filters. Validate input against strict patterns. CWE-90"

@@ -1,0 +1,17 @@
+id: GIN-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Gin trusted proxies not configured
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ .git/ build/
+  content_contains: gin.Default
+patterns:
+  - regex: SetTrustedProxies
+    message: "Gin app without SetTrustedProxies — by default trusts all proxies, enabling IP spoofing via X-Forwarded-For"
+fix: "Configure: r.SetTrustedProxies([]string{\"10.0.0.0/8\"}) or r.SetTrustedProxies(nil) to trust no proxies."

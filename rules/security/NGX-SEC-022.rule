@@ -1,0 +1,17 @@
+id: NGX-SEC-022
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Nginx if directive usage
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: if
+patterns:
+  - regex: ^\s+if\s*\(
+    message: Nginx if is evil — it does not inherit parent headers. Use map + try_files instead
+fix: Replace if blocks with map directive and try_files for conditional logic in Nginx

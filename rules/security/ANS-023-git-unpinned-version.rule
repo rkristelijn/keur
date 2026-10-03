@@ -1,0 +1,17 @@
+id: ANS-023
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Git module with unpinned version
+category: supply-chain
+severity: warning
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: git
+patterns:
+  - regex: git:.*version:\s*(HEAD|master|main)
+    message: "git clone with HEAD/master/main is non-reproducible — pin to a tag or commit"
+fix: Pin to a specific tag or commit SHA. Example: version: v1.2.3 or version: abc123def. This ensures reproducible deployments.

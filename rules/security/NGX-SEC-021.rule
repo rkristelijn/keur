@@ -1,0 +1,17 @@
+id: NGX-SEC-021
+ilities: [integrity]
+source: cpm
+maturity: 4
+action: warn
+title: Nginx resolver without TTL
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: resolver
+patterns:
+  - regex: ^\s*resolver\s+\d+\.\d+
+    message: DNS resolver configured — ensure valid= TTL is set to prevent DNS cache poisoning
+fix: Add valid=30s (or appropriate TTL) to the resolver directive, e.g. resolver 8.8.8.8 valid=30s

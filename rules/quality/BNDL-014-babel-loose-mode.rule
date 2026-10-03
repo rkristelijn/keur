@@ -1,0 +1,17 @@
+id: BNDL-014
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Babel loose mode
+category: quality
+severity: info
+engine: pattern
+target:
+  filenames: babel.config.js babel.config.json .babelrc .babelrc.json
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: targets
+patterns:
+  - regex: loose:\s*true
+    message: "Babel loose mode generates non-spec-compliant code — may break with edge cases"
+fix: Remove loose: true unless you have measured the bundle size difference and accept the spec deviation.

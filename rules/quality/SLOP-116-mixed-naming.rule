@@ -1,0 +1,19 @@
+# @see R-028 (AI development quality research)
+id: SLOP-116
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: Mixed naming conventions in same file
+category: style
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (const|let|var)\s+[a-z]+_[a-z]+\s*=
+    message: "snake_case variable in JS/TS file — project convention is likely camelCase"
+  - regex: function\s+[a-z]+_[a-z]+\s*\(
+    message: "snake_case function name in JS/TS — use camelCase for consistency"
+fix: "Pick one naming convention per language and stick with it. JS/TS convention: camelCase for variables/functions, PascalCase for classes/components."

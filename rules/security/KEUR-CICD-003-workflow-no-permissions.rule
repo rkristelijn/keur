@@ -3,6 +3,8 @@
 # scope — violating least privilege. Flag a workflow file where `permissions:`
 # never appears. content_contains gates it to real workflow files.
 id: KEUR-CICD-003
+ilities: [integrity]
+maturity: 2
 title: Workflow has no permissions block (least-privilege token scope)
 category: sast
 severity: warning

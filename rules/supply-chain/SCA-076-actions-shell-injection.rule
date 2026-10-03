@@ -1,4 +1,6 @@
 id: SCA-076
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: GitHub Actions shell injection via untrusted inputs
 category: supply-chain

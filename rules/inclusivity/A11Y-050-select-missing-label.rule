@@ -1,0 +1,17 @@
+id: A11Y-050
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Select missing label
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <select
+patterns:
+  - regex: <select[\s>]
+    message: <select> element found — ensure it has an associated label
+fix: Add <label for="id"> or aria-label to <select>.

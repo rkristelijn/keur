@@ -1,0 +1,17 @@
+id: A11Y-061
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Duplicate contentinfo landmark
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <footer
+patterns:
+  - regex: <footer[\s>]
+    message: "<footer> element found — ensure only one top-level contentinfo per page"
+fix: Use one top-level <footer>; use inner footers inside <section> or <article>.

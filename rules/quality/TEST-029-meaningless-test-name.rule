@@ -1,0 +1,21 @@
+id: TEST-029
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Meaningless test name (test1, works, should work)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: test
+patterns:
+  - regex: (it|test)\(['"](?:test\s*\d+|works|should work|it works|test|check|verify|ok)['"]\s*,
+    message: "Meaningless test name — test names should describe the expected behavior"
+  - regex: def\s+test_\d+\s*\(
+    message: "Numbered test name (test_1) — describe the expected behavior instead"
+  - regex: func\s+Test[A-Z]\w*\d+\s*\(
+    message: "Numbered Go test — describe the scenario being tested"
+fix: Name tests by behavior. 'should return 404 when user not found' instead of 'test1' or 'works'.

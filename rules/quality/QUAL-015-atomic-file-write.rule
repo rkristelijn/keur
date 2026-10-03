@@ -1,0 +1,18 @@
+id: QUAL-015
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Non-atomic file write (crash risk)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/
+patterns:
+  - regex: >\s*"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?"
+    message: Writing directly to target file — not crash-safe. Use tmp+mv pattern for atomicity
+  - regex: >\s*"\$file"
+    message: Writing directly to $file — not crash-safe. Write to tmpfile then mv for atomicity
+fix: "Replace `cmd > \"$file\"` with `cmd > \"$tmp\" && mv \"$tmp\" \"$file\"`"

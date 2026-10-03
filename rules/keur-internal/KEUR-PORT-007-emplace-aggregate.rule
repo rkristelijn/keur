@@ -1,0 +1,36 @@
+# keur portability control: emplace_back constructing a constructor-less
+# aggregate struct. This compiles on libstdc++ (Linux) and MSYS2 (Windows) but
+# FAILS on macOS libc++ (Xcode): C++20 std::construct_at requires a real
+# constructor, so `vec.emplace_back(a, b)` on an aggregate `struct{...};` errors
+# with "no matching function for call to 'construct_at'". The whole keur macOS
+# CI build broke on exactly this across 7 structs (RuleCategoryCount,
+# HookInfoItem, Layer, ScannerConfigFile, HookManager, RuleFinding, Row) — a
+# multi-round whack-a-mole that a single rule would have caught at commit time.
+#
+# The fix is always the same: use push_back({...}) (brace/aggregate init) instead
+# of emplace_back(...). A regex cannot know whether the element type has a
+# constructor, so this WARNs (not blocks) on the risky shapes: emplace_back with
+# multiple arguments, or a single &address / brace — the forms that hit an
+# aggregate. emplace_back of a single string/number (std::string, counters) is
+# left quiet. Review each hit: if the target is an aggregate, switch to
+# push_back({...}). @see docs/adr/ADR-005 (platform), ADR-006 (portability).
+id: KEUR-PORT-007
+ilities: [adaptability]
+maturity: 3
+title: emplace_back on a (possibly) constructor-less aggregate — breaks on macOS libc++
+category: architecture
+severity: warning
+engine: pattern
+action: warn
+target:
+  extensions: .cpp .cc .h .hpp
+  exclude_paths: vendor/ _test.cpp test/ tests/ build/ dist/
+patterns:
+  # multi-argument emplace_back: an aggregate {a, b, ...} built via parens.
+  - regex: \.emplace_back\(\s*[^)]*,[^)]*\)
+    message: "emplace_back(a, b, ...) constructs the element in place and needs a real constructor; on a constructor-less aggregate struct this fails on macOS libc++ (construct_at). Use push_back({a, b, ...}) if the element type is an aggregate. @see KEUR-PORT-007"
+  # single &address emplace_back: aggregate wrapping a pointer, e.g. Row{&n}.
+  - regex: \.emplace_back\(\s*&\w
+    message: "emplace_back(&x) on an aggregate that wraps a pointer fails on macOS libc++ (construct_at needs a constructor). Use push_back({&x}). @see KEUR-PORT-007"
+confidence: 0.55
+fix: "Replace emplace_back(args) with push_back({args}) whenever the vector's element type is a constructor-less aggregate struct. Brace-init works on libstdc++, libc++ and MSVC; emplace_back's in-place construction does not, because C++20 std::construct_at requires a matching constructor. See ADR-005/ADR-006."

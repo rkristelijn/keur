@@ -1,0 +1,23 @@
+id: JV-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: XXE (XML External Entity) vulnerability
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .java .kt
+  exclude_paths: test/ tests/ target/
+  content_contains: XML
+patterns:
+  - regex: XMLInputFactory\.newInstance\(\)
+    message: "XMLInputFactory without disabling external entities — XXE risk. Set IS_SUPPORTING_EXTERNAL_ENTITIES to false"
+  - regex: DocumentBuilderFactory\.newInstance\(\)
+    message: "DocumentBuilderFactory without hardened config — XXE risk. Disable external entities and DTDs"
+  - regex: SAXParserFactory\.newInstance\(\)
+    message: "SAXParserFactory without hardened config — XXE risk. Disable external entities"
+  - regex: TransformerFactory\.newInstance\(\)
+    message: "TransformerFactory without hardened config — XXE risk. Set ACCESS_EXTERNAL_DTD/STYLESHEET to empty"
+fix: "Disable external entities: factory.setFeature(\"http://xml.org/sax/features/external-general-entities\", false)"

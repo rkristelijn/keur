@@ -1,0 +1,16 @@
+id: GIT-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Meaningless git commit message patterns
+category: quality
+severity: warning
+engine: pattern
+target:
+  filenames: COMMIT_EDITMSG
+  exclude_paths: .git/hooks/
+patterns:
+  - regex: ^(fix|update|wip|asdf|test|temp|tmp|changes|stuff|misc|cleanup|refactor|oops|typo)$
+    message: "Meaningless commit message — describe WHAT changed and WHY"
+fix: Use conventional commits. 'fix(auth): prevent session fixation on login' instead of 'fix'.

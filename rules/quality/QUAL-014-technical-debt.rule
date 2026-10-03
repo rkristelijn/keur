@@ -1,0 +1,22 @@
+id: QUAL-014
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Technical debt markers (TODO, FIXME, HACK, XXX)
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .cpp .h .ts .js .py .sh .tf .php .java .go .rs
+  exclude_paths: vendor/ node_modules/ .git/ build/
+patterns:
+  - regex: \bTODO\b
+    message: TODO marker — track as technical debt
+  - regex: \bFIXME\b
+    message: FIXME marker — indicates known bug
+  - regex: \bHACK\b
+    message: HACK marker — temporary workaround needs proper fix
+  - regex: \bXXX\b
+    message: XXX marker — needs attention
+fix: Create a ticket for each marker and schedule resolution

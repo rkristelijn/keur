@@ -1,0 +1,52 @@
+# keur quality control — a bare positional parameter ($1..$9) tested or
+# expanded in a function body instead of being assigned to a named local first.
+#
+# Why this exists: SonarCloud flagged keur's own eval/benchmark.sh (script:S6641,
+# reported as a Security-category smell that dropped the New-Code Security Rating
+# to C and failed the quality gate) for using a positional parameter — a bare
+# `$1` in a `[[ ... ]]` test — after a `shift`, without first binding it to a
+# local. Positional parameters are unvalidated, position-fragile input: a `shift`
+# or a caller change silently repoints `$1`, and unquoted use word-splits/globs.
+# Assigning `local name="$1"` up front documents intent, freezes the value, and
+# makes the function testable. This rule makes S6641 a keur-native control so the
+# next occurrence is caught at commit time, not in CI — fix + control, the same
+# way KEUR-QUAL-003/004 mirror SonarCloud script:S6748 / cpp:S134.
+#
+# What it flags — a bare positional ($1..$9) used as a *test operand*, e.g.:
+#   [[ "$1" == "--" ]]        (test after a shift)
+#   [ $2 -gt 0 ]              (unquoted, word-splits)
+# It deliberately does NOT flag: the assignment that fixes it (`local x="$1"`,
+# `x="$1"`, `x=${1:-def}`); `"$@"` / `"$*"` (whole-list, idiomatic); `$0`; or the
+# top-of-script `case "$1" in ...) ... shift ;;` argument-parser, which is the
+# accepted bash idiom (position is still fixed there — S6641 targets use *after*
+# a shift, not the initial parse). Restricting to `[`/`[[` tests keeps the rule
+# precise: it fires on the fragile case (test a raw positional) and stays quiet
+# on the safe one (dispatch to parse args).
+#
+# WARN, not block: this is a shell-hygiene smell, not a guaranteed bug. It nudges
+# toward `local name="$1"` at the top of the function. SonarCloud scans test
+# scripts too, so tests/ is NOT excluded — only vendored/build dirs.
+#
+# @see docs/adr/ADR-013 (self-guarding controls), SonarCloud script:S6641.
+id: KEUR-QUAL-013
+ilities: [analysability]
+maturity: 3
+title: Assign a positional parameter to a local before using it in bash
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .sh .bash
+  exclude_paths: vendor/ build/ dist/
+patterns:
+  # A bare positional ($1..$9), optionally double-quoted, used inside a test
+  # (`[ ` / `[[ `). The `exclude` drops the assignment forms (`=` immediately
+  # before the `$n`) which are exactly the recommended fix. `case` heads are not
+  # matched: the top-of-script arg-parser is the accepted idiom.
+  - regex: \[\[?\s+[^]]*"?\$[1-9]\b
+    exclude: =\s*"?\$[1-9]\b
+    message: "Bare positional parameter used in a test — assign it to a named local first (`local name=\"$1\"`). Positionals are unvalidated, shift-fragile input and word-split when unquoted. @see KEUR-QUAL-013, SonarCloud script:S6641"
+confidence: 0.6
+fix: "At the top of the function, bind each positional you use to a named local: `local label=\"$1\" outfile=\"$2\"; shift 2`, then test the local (`[[ \"$sep\" == \"--\" ]]`) instead of a bare `$1`. This freezes the value across `shift`, documents the parameter, and quotes it against word-splitting. Keep `\"$@\"`/`\"$*\"` for forwarding the whole argument list."

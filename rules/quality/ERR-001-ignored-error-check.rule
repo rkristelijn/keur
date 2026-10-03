@@ -1,0 +1,28 @@
+id: ERR-001
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Error checked but ignored (empty `if err != nil` block)
+category: quality
+severity: warning
+engine: block-absence
+skip_comments: true
+skip_strings: true
+target:
+  extensions: .go
+  exclude_paths: vendor/ .git/ build/ dist/ _test.go
+  content_contains: err != nil
+# A Go idiom smell: the code checks `if err != nil { ... }` but the block body
+# does nothing meaningful with the error — no return, no log, no panic, no
+# propagation. That silently swallows the failure and the program continues in
+# a broken state. block_inner lists the things a real handler does; a checked-
+# but-empty (or purely cosmetic) block is flagged. This is distinct from
+# QUAL-050 (empty `catch {}` in JS/Java/etc.) which never matches Go's
+# `if err != nil` construct. Sourced from the GitLab review-audit: "error
+# handling" was the #2 topic reviewers raise by hand (49 comments).
+patterns:
+  - regex: \bif\s+err\s*!=\s*nil\s*\{
+    message: "Error is checked but the `if err != nil` block does nothing with it — the failure is silently swallowed. Return it, wrap it, log it, or panic."
+block_inner: \breturn\b|\bpanic\s*\(|\.Fatal|\.Error\s*\(|\.Errorf\s*\(|\blog\.|\bcontinue\b|\bbreak\b|os\.Exit\s*\(|\berr\s*=
+fix: "Handle the error inside the block: `return fmt.Errorf(\"doing X: %w\", err)` at minimum. Reviewed exception: add `// cpm:ignore ERR-001` on the `if err != nil` line."

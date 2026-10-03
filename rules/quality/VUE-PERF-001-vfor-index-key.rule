@@ -1,0 +1,17 @@
+id: VUE-PERF-001
+ilities: [time-behaviour]
+source: cpm
+maturity: 3
+action: advisory
+title: Vue v-for uses array index as :key
+category: performance
+severity: warning
+engine: pattern
+target:
+  extensions: .vue .tsx .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: v-for
+patterns:
+  - regex: v-for=["'][^"']*\bin\b[^"']*["'][^>]*:key=["']\s*(?:index|i|idx|\$index)\s*["']
+    message: "v-for keyed by array index — when the list reorders/inserts/removes, Vue reuses the wrong DOM nodes, causing subtle bugs and wasted patches. Key by a stable unique id (item.id)."
+fix: "Use a stable unique identifier: :key=\"item.id\". Only fall back to index for a static list that never reorders. See https://vuejs.org/api/built-in-directives.html#v-for"

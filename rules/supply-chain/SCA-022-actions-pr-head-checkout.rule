@@ -1,4 +1,6 @@
 id: SCA-022
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: GitHub Actions checkout of PR head ref
 category: supply-chain

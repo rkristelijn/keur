@@ -1,0 +1,17 @@
+id: STATE-MIS-060
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Recoil library is unmaintained
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: recoil
+patterns:
+  - regex: import\s.*from\s+["']recoil["']
+    message: "Recoil is no longer actively maintained (Meta deprioritized it) — consider migrating to Jotai or Zustand"
+fix: "Jotai has a similar atomic model. Zustand is simpler for most use cases."

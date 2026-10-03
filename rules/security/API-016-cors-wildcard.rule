@@ -1,0 +1,17 @@
+id: API-016
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: CORS wildcard origin
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .yaml .yml .json
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: Access-Control
+patterns:
+  - regex: Access-Control-Allow-Origin.*\*
+    message: "CORS wildcard origin — any website can call this API"
+fix: Replace wildcard with specific allowed origins. Use a whitelist of trusted domains.

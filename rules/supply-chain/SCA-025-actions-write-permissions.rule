@@ -1,4 +1,6 @@
 id: SCA-025
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: GitHub Actions workflow with broad write permissions
 category: supply-chain

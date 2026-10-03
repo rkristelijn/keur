@@ -1,0 +1,17 @@
+id: BUILD-008
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Metadata/generateMetadata exported from 'use client' file
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: use client
+patterns:
+  - regex: export\s+(const|function)\s+(metadata|generateMetadata)
+    message: "metadata/generateMetadata exported from 'use client' file — Next.js metadata must be in server components"
+fix: Move metadata export to a separate server component file (remove 'use client' or split the file).

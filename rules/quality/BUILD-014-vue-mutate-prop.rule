@@ -1,0 +1,17 @@
+id: BUILD-014
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Direct mutation of Vue prop
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .vue
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: props
+patterns:
+  - regex: props\.\w+\s*=\s
+    message: "Direct mutation of prop — Vue enforces one-way data flow, mutation triggers runtime warning and causes bugs"
+fix: Emit an event to the parent component, or use a local copy via computed property or ref.

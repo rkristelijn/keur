@@ -1,0 +1,17 @@
+id: API-017
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: API spec without pagination parameters
+category: quality
+severity: info
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: openapi
+patterns:
+  - regex: (limit|offset|page|per_page|pageSize|cursor)
+    message: "API spec without pagination parameters — unbounded responses cause performance issues"
+fix: Add pagination parameters (limit/offset, page/pageSize, or cursor-based) to list endpoints that can return multiple results.

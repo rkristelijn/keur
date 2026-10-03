@@ -1,0 +1,16 @@
+id: QUAL-060
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Unhandled promise rejection (.then without .catch)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \.then\(.*\)\s*;\s*$
+    message: ".then() without .catch() — unhandled promise rejection crashes Node.js 15+ and is silently lost in browsers"
+fix: Add .catch() or use async/await with try/catch. Unhandled rejections crash Node.js processes.

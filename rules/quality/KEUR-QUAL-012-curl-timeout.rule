@@ -1,0 +1,42 @@
+# keur quality control — `curl` invoked without a timeout.
+#
+# Why this exists: the consumer repo `security-tooling` runs a CI check
+# (check-curl-timeout) that flags a curl call with no `--max-time` /
+# `--connect-timeout`. A curl without a timeout can hang forever — in a CI job,
+# a hook, or an install script it stalls the whole pipeline on a slow or dead
+# endpoint. Porting the norm into keur gives every repo the same local nudge as
+# a SECOND net. @see .tmp/enrich-prompt-ci-checks-to-rules.md (Group 1).
+#
+# HOW (pattern + exclude): flag a line that invokes `curl` UNLESS it already
+# carries a timeout flag. RE2 has no lookahead (ADR-001/ADR-007), so the
+# "unless" is expressed with `exclude:` — the allowlist-negative: the line
+# matches the curl pattern, and is suppressed when it also matches a timeout
+# flag. `skip_comments` avoids flagging a curl mentioned in a comment.
+#
+# NOTE this is per LINE — a curl whose flags are split across a `\`-continuation
+# onto the next line will still be flagged (the engine matches one line). That
+# is an accepted false-positive for a WARN-level smell; put the flag on the same
+# line, or add a keur:ignore, if the continuation form is intended.
+#
+# WARN, not block: a missing timeout is a robustness smell. Scope: shell + CI
+# scripts; tests/vendored/build excluded.
+id: KEUR-QUAL-012
+ilities: [analysability]
+maturity: 3
+title: curl without a timeout (--max-time / --connect-timeout)
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+confidence: 0.6
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/ vendor/ build/ dist/
+patterns:
+  # A line invoking curl (as a command, after a pipe, or in $(...)), suppressed
+  # by `exclude:` when a timeout flag is present on the same line.
+  - regex: (?:^|\||\$\(|&&|;)\s*curl\b
+    exclude: (--max-time|--connect-timeout|-m\s|--speed-time)
+    message: "curl without --max-time/--connect-timeout can hang forever on a slow/dead endpoint. Add e.g. `--max-time 30 --connect-timeout 10`. @see KEUR-QUAL-012"
+fix: "Add a timeout to the curl invocation: `--connect-timeout <s>` caps the TCP connect, `--max-time <s>` caps the whole transfer. For retriable fetches also consider `--retry` with `--retry-max-time`."

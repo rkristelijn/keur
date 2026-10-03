@@ -1,0 +1,17 @@
+id: A11Y-090
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Menu missing menuitem children
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role="menu"
+patterns:
+  - regex: role=["']menu["']
+    message: "role=menu found — ensure it contains menuitem, menuitemcheckbox, or menuitemradio"
+fix: Add role=menuitem to menu children.

@@ -1,0 +1,19 @@
+id: DATA-MIS-040
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Raw fetch to tRPC endpoint
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@trpc"
+patterns:
+  - regex: fetch\s*\(\s*["']/api/trpc
+    message: "Raw fetch to tRPC endpoint — use the tRPC client for end-to-end type-safe API calls"
+  - regex: fetch\s*\(\s*["'].*trpc
+    message: "Direct HTTP call to tRPC — use trpc.query.useQuery() or trpc.mutation.useMutation() for type safety"
+fix: "const { data } = trpc.users.getAll.useQuery() — type errors caught at compile time."

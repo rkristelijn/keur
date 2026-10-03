@@ -1,4 +1,6 @@
 id: SCA-018
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Build.gradle executing shell commands
 category: supply-chain

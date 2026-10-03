@@ -1,4 +1,6 @@
 id: SCA-055
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Committed .npmrc auth token
 category: supply-chain

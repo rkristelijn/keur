@@ -1,0 +1,19 @@
+id: UI-MIS-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: MUI inline style instead of sx prop or theme
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui"
+patterns:
+  - regex: <(Box|Typography|Button|Paper|Card|Grid|Stack|Container|TextField)\s[^>]*style=\{\{
+    message: "MUI component with inline style={{}} — use the sx prop or theme.spacing() for consistent theming"
+  - regex: style=\{\{[^}]*(margin|padding|fontSize|color|background)\s*:
+    message: "Inline CSS on MUI component — use sx={{ }} or styled() to respect the MUI theme system"
+fix: "Replace style={{...}} with sx={{...}}. The sx prop integrates with MUI theme, supports responsive values, and enables design system consistency."

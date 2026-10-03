@@ -1,0 +1,16 @@
+id: QUAL-077
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: TODO/FIXME without issue tracker reference
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go .rb .c .cpp .h
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (TODO|FIXME|HACK|XXX|TEMP)\s*(:|\s|$)
+    message: "TODO without issue reference — will be forgotten. Link to a ticket: TODO(PROJ-123)"
+fix: Link TODOs to issue tracker. TODO(PROJ-123): refactor when API v2 ships. Unlinked TODOs rot forever.

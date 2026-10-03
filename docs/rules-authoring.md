@@ -19,6 +19,7 @@ category: secret               # secret | sast | cmdi | cbi | pii | quality | in
 severity: critical             # critical | error | warning | info
 engine: pattern                # pattern | presence | absence | file-absence | file-presence | block-absence | count | multiline | path-derived
 action: block                  # optional: block | warn | advisory (else derived from severity)
+maturity: 3                    # optional (ADR-026): lowest CMMI project maturity (1..5) at which this rule gates; keur activates it when maturity <= the project level. Omitted or 0 = default band 3 (defined)
 confidence: 0.9                # optional: 0.0..1.0 (else derived from action)
 message: default finding text  # optional rule-level message (fallback for patterns without one)
 fix: Load it from a secret store instead.   # optional remediation hint

@@ -1,0 +1,17 @@
+id: A11Y-111
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Blink-element
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <blink
+patterns:
+  - regex: <blink[\s>]
+    message: <blink> is deprecated and causes seizure risk — violates WCAG 2.3.1
+fix: Remove <blink> element entirely

@@ -1,0 +1,24 @@
+id: SH-QUAL-021
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Inline foreign-language program embedded in a shell script
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/ vendor/ .git/ node_modules/ dist/ build/ .tmp/
+patterns:
+  # Heredoc piped/redirected into a NON-shell interpreter = an embedded program
+  # of another language inside a shell script. jq/awk/sed one-liners are NOT
+  # matched (they take their program as a quoted arg, not a heredoc).
+  - regex: (python3?|node|deno|ruby|perl|php)\b[^\n]*<<-?\s*['\"]?[A-Za-z_]+
+    message: "Foreign-language heredoc in a shell script — extract to a standalone script that reads stdin/writes stdout (keep the pipeline language-agnostic, but one language per file)"
+  # perl/python/ruby -e / -c carrying a multi-statement program (has ';' or a
+  # keyword), not a trivial one-expression print. Length + a statement separator
+  # distinguish a real program from a harmless one-liner.
+  - regex: (python3?|ruby|perl)\s+-[ec]\s+['\"][^'\"]{80,}[;:][^'\"]*['\"]
+    message: "Multi-statement foreign-language program in -e/-c — extract to a standalone script file instead of embedding it in shell"
+fix: "Move the embedded program to its own file (e.g. stage.py / stage.ts / stage.js run via a shebang) and call it as a normal command in the pipe. Shell + binary tools (jq, awk, sed, grep/rg) stay inline; whole programs of another language do not. Suppress a deliberate exception with 'cpm:ignore SH-QUAL-021'."

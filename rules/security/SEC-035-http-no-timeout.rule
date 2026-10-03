@@ -1,4 +1,6 @@
 id: SEC-035
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: HTTP client without timeout (CWE-400)
 category: security

@@ -1,0 +1,17 @@
+id: API-018
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Deprecated endpoint without sunset guidance
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: deprecated
+patterns:
+  - regex: deprecated:\s*true
+    message: "Deprecated endpoint — add sunset date header and migration guide for consumers"
+fix: Add Sunset header with removal date and document migration path to replacement endpoint in the description.

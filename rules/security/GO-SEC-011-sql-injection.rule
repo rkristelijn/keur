@@ -1,0 +1,18 @@
+id: GO-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Potential SQL injection
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: (Query|Exec|QueryRow)\(.*(fmt\.Sprintf|"\s*\+|\+\s*")
+    message: String concatenation or Sprintf in SQL query — use parameterized queries
+  - regex: (Query|Exec|QueryRow)\(.*\+\s*\w+
+    message: Variable concatenation in SQL query — use prepared statements
+fix: Use parameterized queries with $1/$2 placeholders or prepared statements

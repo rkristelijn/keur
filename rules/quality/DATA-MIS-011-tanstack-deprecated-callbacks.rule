@@ -1,0 +1,19 @@
+id: DATA-MIS-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: TanStack Query deprecated onSuccess/onError on useQuery
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@tanstack/react-query"
+patterns:
+  - regex: useQuery\s*\(\s*\{[^}]*onSuccess\s*:
+    message: "onSuccess on useQuery is removed in TanStack Query v5 — handle in render via returned data/status"
+  - regex: useQuery\s*\(\s*\{[^}]*onError\s*:
+    message: "onError on useQuery is removed in TanStack Query v5 — handle via returned error/isError"
+fix: "const { data, error, isError } = useQuery({...}); if (isError) { handleError(error); }"

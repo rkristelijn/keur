@@ -1,0 +1,17 @@
+id: A11Y-081
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Custom checkbox missing checked state
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: role="checkbox
+patterns:
+  - regex: role=["']checkbox["']
+    message: "Custom checkbox found — ensure aria-checked state is managed"
+fix: Add aria-checked="true" or aria-checked="false" to role=checkbox elements.

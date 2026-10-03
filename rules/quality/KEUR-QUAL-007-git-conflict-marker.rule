@@ -19,6 +19,8 @@
 #
 # @see AGENTS.md (anti-slop), docs/design/vision.md ("contains AI-slop").
 id: KEUR-QUAL-007
+ilities: [analysability]
+maturity: 1
 title: Committed git merge-conflict marker
 category: quality
 severity: critical

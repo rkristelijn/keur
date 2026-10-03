@@ -16,7 +16,8 @@
  *   [feature:rule-engine]  rules_load, rules_scan_files, rules_scan_dir
  *   [feature:suppress]     keur:ignore inline suppression
  *   [feature:version]      version string resolution (keur.toml → compile-time)
- *   [feature:learn]        learn_parse option parsing
+ *   [feature:train]        train_parse option parsing (the optimise loop)
+ *   [feature:learn]        learn = deprecated alias forwarding to train (ADR-036)
  *   [feature:help]         usage/help dispatch (behaviour proven e2e in smoke.sh)
  *
  * @see docs/adr/ADR-002-single-cpp-binary.md
@@ -43,9 +44,11 @@
 #include "cmd/config.h"
 #include "cmd/hook.h"
 #include "cmd/learn.h"
+#include "cmd/level.h"
 #include "cmd/manager.h"
 #include "cmd/policy.h"
 #include "cmd/scan.h"
+#include "cmd/train.h"
 #include "config/hookmgr.h"
 #include "config/scanners.h"
 #include "config/disabled.h"
@@ -54,6 +57,7 @@
 #include "adapters/git.h"
 #include "util/keur_utils.h"
 #include "adapters/proc.h"
+#include "scan/dispatch.h"
 #include "adapters/sysinfo.h"
 #include "learn/sysinfo.h"
 #include "report/report.h"
@@ -328,8 +332,25 @@ SCENARIO("[feature:check] cmd_check_parse ignores unknown flags") {
     CHECK(keur::cmd::check_parse({"--nope", "x"}).tier == keur::cmd::Tier::PreCommit);
 }
 
-SCENARIO("[feature:check] cmd_check PASS with empty file source") {
-    keur::cmd::CheckOptions opts;
+SCENARIO("[feature:check] format_finding_line — marks a blocker and shows file:line") {
+    auto s = keur::cmd::format_finding_line("KEUR-SEC-001", "block", "0.98",
+                                            "id_rsa.pem", 1, "Private key committed", true);
+    CHECK(s.rfind("BLOCK ", 0) == 0);          // starts with the blocker marker
+    CHECK(s.find("KEUR-SEC-001") != std::string::npos);
+    CHECK(s.find("conf 0.98") != std::string::npos);
+    CHECK(s.find("id_rsa.pem:1") != std::string::npos);
+    CHECK(s.find("Private key committed") != std::string::npos);
+}
+
+SCENARIO("[feature:check] format_finding_line — a warn finding is marked warn") {
+    auto s = keur::cmd::format_finding_line("KEUR-QUAL-002", "warn", "0.60",
+                                            "SECURITY.md", 0, "No SECURITY.md", false);
+    CHECK(s.rfind("warn  ", 0) == 0);
+    CHECK(s.find("SECURITY.md") != std::string::npos);
+    CHECK(s.find(":0") == std::string::npos);  // line 0 is not appended
+}
+
+SCENARIO("[feature:check] cmd_check PASS with empty file source") {    keur::cmd::CheckOptions opts;
     CHECK(keur::cmd::check(opts, []() { return std::vector<std::string>{}; }) == 0);
 }
 
@@ -341,8 +362,302 @@ SCENARIO("[feature:check] staged_files returns empty outside a git repo") {
     chdir(orig);
 }
 
-// --- [feature:scan] ---------------------------------------------------------
+// --- [feature:dispatch] -----------------------------------------------------
+// Scanner dispatch (ADR-019): resolve repo-local tool config, map proven-tool
+// JSON to Findings, and orchestrate enabled scanners over injected seams.
 
+SCENARIO("[feature:dispatch] resolve_tool_config — prefers repo root over .config/") {
+    // Both exist; root wins (the tool's documented default location).
+    auto exists = [](const std::string& p) {
+        return p == "/repo/.gitleaks.toml" || p == "/repo/.config/.gitleaks.toml";
+    };
+    CHECK(keur::scan::resolve_tool_config({".gitleaks.toml"}, "/repo", exists)
+          == "/repo/.gitleaks.toml");
+}
+
+SCENARIO("[feature:dispatch] resolve_tool_config — falls back to .config/") {
+    // Only the .config/ copy exists → that is returned.
+    auto exists = [](const std::string& p) {
+        return p == "/repo/.config/.gitleaks.toml";
+    };
+    CHECK(keur::scan::resolve_tool_config({".gitleaks.toml"}, "/repo", exists)
+          == "/repo/.config/.gitleaks.toml");
+}
+
+SCENARIO("[feature:dispatch] resolve_tool_config — none present → empty") {
+    auto exists = [](const std::string&) { return false; };
+    CHECK(keur::scan::resolve_tool_config({".gitleaks.toml"}, "/repo", exists).empty());
+}
+
+SCENARIO("[feature:dispatch] resolve_tool_config — tries candidates in order") {
+    // .semgrep.yml missing, .semgrep.yaml present → second candidate wins.
+    auto exists = [](const std::string& p) { return p == "/r/.semgrep.yaml"; };
+    CHECK(keur::scan::resolve_tool_config({".semgrep.yml", ".semgrep.yaml"}, "/r", exists)
+          == "/r/.semgrep.yaml");
+}
+
+SCENARIO("[feature:dispatch] map_gitleaks_json — maps a finding record") {
+    const std::string sample = R"([
+      {
+        "RuleID": "generic-api-key",
+        "Description": "Detected a generic API key",
+        "File": "src/config.js",
+        "StartLine": 42,
+        "Secret": "AKIA...redacted"
+      }
+    ])";
+    auto out = keur::scan::map_gitleaks_json(sample);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].source == "gitleaks");
+    CHECK(out[0].rule == "generic-api-key");
+    CHECK(out[0].category == "secret");
+    CHECK(out[0].action == "block");
+    CHECK(out[0].file == "src/config.js");
+    CHECK(out[0].line == 42);
+    CHECK(out[0].title == "Detected a generic API key");
+}
+
+SCENARIO("[feature:dispatch] map_gitleaks_json — empty/garbage yields no findings") {
+    CHECK(keur::scan::map_gitleaks_json("").empty());
+    CHECK(keur::scan::map_gitleaks_json("[]").empty());
+    CHECK(keur::scan::map_gitleaks_json("not json { }").empty());
+}
+
+SCENARIO("[feature:dispatch] map_semgrep_json — maps results[] records") {
+    const std::string sample = R"({
+      "results": [
+        {
+          "check_id": "javascript.lang.security.audit.sqli",
+          "path": "src/db.js",
+          "start": { "line": 7, "col": 3 },
+          "extra": { "severity": "ERROR", "message": "Possible SQL injection" }
+        }
+      ],
+      "errors": []
+    })";
+    auto out = keur::scan::map_semgrep_json(sample);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].source == "semgrep");
+    CHECK(out[0].rule == "javascript.lang.security.audit.sqli");
+    CHECK(out[0].category == "sast");
+    CHECK(out[0].severity == "error");
+    CHECK(out[0].action == "warn");
+    CHECK(out[0].file == "src/db.js");
+    CHECK(out[0].line == 7);
+    CHECK(out[0].message == "Possible SQL injection");
+}
+
+SCENARIO("[feature:dispatch] map_semgrep_json — no results key → empty") {
+    CHECK(keur::scan::map_semgrep_json("{\"errors\":[]}").empty());
+}
+
+SCENARIO("[feature:dispatch] dispatch — skips scanner not on PATH") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    keur::config::Scanner gl; gl.name = "gitleaks"; gl.enabled = true; gl.on_path = false;
+    ctx.scanners = {gl};
+    bool spawned = false;
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    ctx.exists = [](const std::string&) { return false; };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    CHECK(out.empty());
+    CHECK_FALSE(spawned);  // a missing tool is never spawned
+}
+
+SCENARIO("[feature:dispatch] dispatch — runs gitleaks and passes repo-local config") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    ctx.repo_root = "/repo";
+    keur::config::Scanner gl; gl.name = "gitleaks"; gl.bin = "gitleaks";
+    gl.enabled = true; gl.on_path = true;
+    ctx.scanners = {gl};
+    // .gitleaks.toml present in repo root.
+    ctx.exists = [](const std::string& p) { return p == "/repo/.gitleaks.toml"; };
+    std::vector<std::string> seen_argv;
+    ctx.proc.capture_argv = [&seen_argv](const std::vector<std::string>& argv) {
+        seen_argv = argv;
+        keur::adapters::ProcResult r;
+        r.stdout_text = R"([{"RuleID":"aws-key","Description":"AWS key","File":"a.js","StartLine":1}])";
+        return r;
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].rule == "aws-key");
+    // The resolved repo-local config was passed through with --config.
+    bool has_config_flag = false;
+    for (size_t i = 0; i + 1 < seen_argv.size(); ++i)
+        if (seen_argv[i] == "--config" && seen_argv[i + 1] == "/repo/.gitleaks.toml")
+            has_config_flag = true;
+    CHECK(has_config_flag);
+}
+
+SCENARIO("[feature:dispatch] dispatch — no repo config → no --config flag for gitleaks") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    ctx.repo_root = "/repo";
+    keur::config::Scanner gl; gl.name = "gitleaks"; gl.bin = "gitleaks";
+    gl.enabled = true; gl.on_path = true;
+    ctx.scanners = {gl};
+    ctx.exists = [](const std::string&) { return false; };  // no tool config
+    std::vector<std::string> seen_argv;
+    ctx.proc.capture_argv = [&seen_argv](const std::vector<std::string>& argv) {
+        seen_argv = argv; return keur::adapters::ProcResult{};
+    };
+    keur::scan::dispatch_scanners(ctx);
+    bool has_config_flag = false;
+    for (const auto& a : seen_argv) if (a == "--config") has_config_flag = true;
+    CHECK_FALSE(has_config_flag);
+}
+
+SCENARIO("[feature:dispatch] dispatch — keur-rules layer flows through") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"x.py"};
+    ctx.keur_rules = [](const std::vector<std::string>&) {
+        keur::scan::Finding f; f.source = "keur-rules"; f.rule = "SEC-041";
+        f.action = "warn"; f.confidence = "0.60";
+        return std::vector<keur::scan::Finding>{f};
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].source == "keur-rules");
+    CHECK(out[0].rule == "SEC-041");
+}
+
+SCENARIO("[feature:dispatch] dispatch — disabled scanner is skipped") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    keur::config::Scanner gl; gl.name = "gitleaks"; gl.enabled = false; gl.on_path = true;
+    ctx.scanners = {gl};
+    bool spawned = false;
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+    CHECK(keur::scan::dispatch_scanners(ctx).empty());
+    CHECK_FALSE(spawned);
+}
+
+SCENARIO("[feature:dispatch] map_shellcheck_json — error level blocks, warning warns") {
+    const std::string sample = R"({
+      "comments": [
+        {"file":"x.sh","line":3,"level":"warning","code":2034,"message":"unused var"},
+        {"file":"y.sh","line":9,"level":"error","code":1009,"message":"parse error"}
+      ]
+    })";
+    auto out = keur::scan::map_shellcheck_json(sample);
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].source == "shellcheck");
+    CHECK(out[0].rule == "SC2034");
+    CHECK(out[0].action == "warn");    // a lint warning must not block
+    CHECK(out[1].rule == "SC1009");
+    CHECK(out[1].action == "block");   // a hard error blocks
+    CHECK(out[1].file == "y.sh");
+    CHECK(out[1].line == 9);
+}
+
+SCENARIO("[feature:dispatch] dispatch — shellcheck only runs on shell files") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"README.md", "app.py"};  // no shell files
+    keur::config::Scanner sc; sc.name = "shellcheck"; sc.bin = "shellcheck";
+    sc.enabled = true; sc.on_path = true;
+    ctx.scanners = {sc};
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+    bool spawned = false;
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    CHECK(keur::scan::dispatch_scanners(ctx).empty());
+    CHECK_FALSE(spawned);  // no shell files → not spawned
+}
+
+SCENARIO("[feature:dispatch] parse_finding_jsonl — caps confidence") {
+    // A script claiming confidence 1.0 must be clamped to the cap (0.80).
+    const std::string jsonl =
+        R"({"rule":"MY-001","action":"block","confidence":"1.0","file":"a","line":2,"message":"m"})";
+    auto out = keur::scan::parse_finding_jsonl(jsonl, 0.80);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].source == "project-local");
+    CHECK(out[0].rule == "MY-001");
+    CHECK(out[0].action == "block");
+    CHECK(out[0].confidence == "0.80");  // capped
+}
+
+SCENARIO("[feature:dispatch] parse_finding_jsonl — numeric confidence under cap kept") {
+    const std::string jsonl = R"({"rule":"MY-002","action":"warn","confidence":0.4})";
+    auto out = keur::scan::parse_finding_jsonl(jsonl, 0.80);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].confidence == "0.40");
+}
+
+SCENARIO("[feature:dispatch] project-local — untracked script is NOT run") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    ctx.repo_root = "/repo";
+    ctx.exists = [](const std::string& p) { return p == "/repo/.keur/check.sh"; };
+    ctx.is_tracked = [](const std::string&) { return false; };  // present but untracked
+    bool spawned = false;
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    CHECK(keur::scan::dispatch_scanners(ctx).empty());
+    CHECK_FALSE(spawned);  // trust boundary: dropped script ignored
+}
+
+SCENARIO("[feature:dispatch] project-local — tracked script, non-zero exit blocks") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    ctx.repo_root = "/repo";
+    ctx.exists = [](const std::string& p) { return p == "/repo/.keur/check.sh"; };
+    ctx.is_tracked = [](const std::string& rel) { return rel == ".keur/check.sh"; };
+    ctx.proc.capture_argv = [](const std::vector<std::string>&) {
+        keur::adapters::ProcResult r; r.exit_code = 2; r.stdout_text = "";
+        return r;
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].source == "project-local");
+    CHECK(out[0].action == "block");
+    CHECK(out[0].confidence == "0.80");  // capped
+}
+
+SCENARIO("[feature:dispatch] project-local — .config/keur/check.sh fallback") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {};
+    ctx.repo_root = "/repo";
+    // Only the .config/ copy exists and is tracked.
+    ctx.exists = [](const std::string& p) { return p == "/repo/.config/keur/check.sh"; };
+    ctx.is_tracked = [](const std::string& rel) { return rel == ".config/keur/check.sh"; };
+    ctx.proc.capture_argv = [](const std::vector<std::string>&) {
+        keur::adapters::ProcResult r; r.exit_code = 0;
+        r.stdout_text = R"({"rule":"DEAD-LINK","action":"warn","message":"broken link"})";
+        return r;
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    REQUIRE(out.size() == 1);
+    CHECK(out[0].rule == "DEAD-LINK");
+    CHECK(out[0].action == "warn");
+}
+
+SCENARIO("[feature:dispatch] project-local — disabled skips entirely") {
+    keur::scan::DispatchContext ctx;
+    ctx.files = {};
+    ctx.repo_root = "/repo";
+    ctx.project_local_enabled = false;
+    ctx.exists = [](const std::string& p) { return p == "/repo/.keur/check.sh"; };
+    ctx.is_tracked = [](const std::string&) { return true; };
+    bool spawned = false;
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    CHECK(keur::scan::dispatch_scanners(ctx).empty());
+    CHECK_FALSE(spawned);
+}
+
+// --- [feature:scan] ---------------------------------------------------------
 SCENARIO("[feature:scan] cmd_scan_parse defaults to current dir") {
     auto o = keur::cmd::scan_parse({});
     CHECK(o.target == ".");
@@ -806,8 +1121,50 @@ SCENARIO("[feature:config] resolve_scanners fills PATH availability and config-f
     CHECK(sc[0].config_files[1].present == true);
 }
 
-// --- [feature:rules] disable-list (KEUR-DISABLED) ---------------------------
+SCENARIO("[feature:config] tier_scanners reads the scanners array for a tier") {  // @proves KEUR-TIER-SCANNERS
+    const std::string toml =
+        "[tiers.pre-commit]\n"
+        "budget-ms = 3000\n"
+        "scanners = [\"gitleaks\", \"pii\", \"keur-rules\"]\n"
+        "\n"
+        "[tiers.pre-push]\n"
+        "scanners = [\"gitleaks\", \"semgrep\", \"trivy\", \"keur-rules\"]\n";
+    auto pc = keur::config::tier_scanners(toml, "pre-commit");
+    REQUIRE(pc.size() == 3);
+    CHECK(pc[0] == "gitleaks");
+    CHECK(pc[1] == "pii");
+    CHECK(pc[2] == "keur-rules");
+    // The pre-push tier is a superset including the heavy tools.
+    auto pp = keur::config::tier_scanners(toml, "pre-push");
+    REQUIRE(pp.size() == 4);
+    CHECK(pp[1] == "semgrep");
+}
 
+SCENARIO("[feature:config] tier_scanners returns empty for an absent tier") {  // @proves KEUR-TIER-SCANNERS
+    CHECK(keur::config::tier_scanners("[tiers.ci]\nscanners = [\"x\"]\n", "pre-commit").empty());
+    CHECK(keur::config::tier_scanners("", "pre-commit").empty());
+}
+
+SCENARIO("[feature:dispatch] dispatch — tier filter keeps a tool out") {
+    // semgrep is enabled + on PATH, but the tier only allows gitleaks → semgrep
+    // must not be spawned (the pre-commit budget guard).
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js"};
+    keur::config::Scanner sg; sg.name = "semgrep"; sg.bin = "semgrep";
+    sg.enabled = true; sg.on_path = true;
+    ctx.scanners = {sg};
+    ctx.tier_allowed = {"gitleaks"};  // semgrep not listed
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+    bool spawned = false;
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
+        spawned = true; return keur::adapters::ProcResult{};
+    };
+    CHECK(keur::scan::dispatch_scanners(ctx).empty());
+    CHECK_FALSE(spawned);
+}
+
+// --- [feature:rules] disable-list (KEUR-DISABLED) ---------------------------
 SCENARIO("[feature:rules] parse_disabled reads inline and multi-line arrays") {  // @proves KEUR-DISABLED
     auto a = keur::config::parse_disabled("[rules]\ndisabled = [\"KEUR-SEC-001\", \"KEUR-QUAL-002\"]\n");
     CHECK(a.count("KEUR-SEC-001"));
@@ -833,6 +1190,216 @@ SCENARIO("[feature:rules] filter_disabled drops exactly the listed ids") {  // @
     CHECK(kept[1].id == "KEEP-3");
     // empty disable-set keeps everything
     CHECK(keur::config::filter_disabled(rules, {}).size() == 3);
+}
+
+SCENARIO("[feature:rules] filter_by_maturity keeps rules at or below the level") {  // @proves KEUR-MATURITY.filter
+    std::vector<keur::Rule> rules;
+    keur::Rule s;  s.id = "SECRET"; s.maturity = 1; rules.push_back(s);
+    keur::Rule q;  q.id = "QUAL";   q.maturity = 3; rules.push_back(q);
+    keur::Rule i;  i.id = "IDIOM";  i.maturity = 5; rules.push_back(i);
+    keur::Rule d;  d.id = "DEFAULT"; /* maturity 0 -> treated as 3 */ rules.push_back(d);
+
+    // Level 1 (I'm Too Young to KEUR): only the maturity-1 rule.
+    auto l1 = keur::config::filter_by_maturity(rules, 1);
+    REQUIRE(l1.size() == 1);
+    CHECK(l1[0].id == "SECRET");
+
+    // Level 3 (KEUR Me Plenty): maturity<=3 → SECRET, QUAL, and the default(3).
+    auto l3 = keur::config::filter_by_maturity(rules, 3);
+    CHECK(l3.size() == 3);
+
+    // Level 5 (H4x0r c0d3fl3x): everything.
+    CHECK(keur::config::filter_by_maturity(rules, 5).size() == 4);
+
+    // Level 0/unset: no filter (backwards compatible).
+    CHECK(keur::config::filter_by_maturity(rules, 0).size() == 4);
+}
+
+SCENARIO("[feature:rules] rule parses maturity: N into rule.maturity") {  // @proves KEUR-MATURITY.parse
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/MAT.rule",
+        "id: MAT-EVAL\n"
+        "title: eval usage\n"
+        "category: sast\n"
+        "severity: warning\n"
+        "engine: pattern\n"
+        "maturity: 4\n"
+        "patterns:\n"
+        "  - regex: \\beval\\s*\\(\n"
+        "    message: eval usage\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    CHECK(rules[0].maturity == 4);   // maturity: 4 parsed into the int field
+
+    // An unset maturity stays 0 (the filter treats 0 as the default band).
+    write_file(dir + "/NOMAT.rule",
+        "id: NOMAT-EVAL\n"
+        "title: eval usage\n"
+        "category: sast\n"
+        "severity: warning\n"
+        "engine: pattern\n"
+        "patterns:\n"
+        "  - regex: \\beval\\s*\\(\n"
+        "    message: eval usage\n");
+    auto rules2 = keur::rules_load(dir);
+    bool saw_nomat = false;
+    for (const auto& r : rules2) if (r.id == "NOMAT-EVAL") { saw_nomat = true; CHECK(r.maturity == 0); }
+    CHECK(saw_nomat);
+    cleanup_dir(dir);
+}
+
+// --- ADR-039: ility-alignment + OR/max difficulty resolution ----------------
+
+SCENARIO("[feature:rules] rule parses ilities: array and scalar") {  // @proves ADR-039.parse
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/MULTI.rule",
+        "id: MULTI\n"
+        "ilities: [security, hardening]\n"
+        "maturity: 1\n"
+        "category: iac\n"
+        "severity: error\n"
+        "engine: pattern\n"
+        "patterns:\n"
+        "  - regex: x\n    message: m\n");
+    write_file(dir + "/SCALAR.rule",
+        "id: SCALAR\n"
+        "ilities: security\n"
+        "maturity: 2\n"
+        "category: security\n"
+        "severity: error\n"
+        "engine: pattern\n"
+        "patterns:\n"
+        "  - regex: x\n    message: m\n");
+    auto rules = keur::rules_load(dir);
+    const keur::Rule* multi = nullptr; const keur::Rule* scalar = nullptr;
+    for (const auto& r : rules) {
+        if (r.id == "MULTI") multi = &r;
+        if (r.id == "SCALAR") scalar = &r;
+    }
+    REQUIRE(multi); REQUIRE(scalar);
+    REQUIRE(multi->ilities.size() == 2);
+    CHECK(multi->ilities[0] == "security");    // primary first
+    CHECK(multi->ilities[1] == "hardening");
+    REQUIRE(scalar->ilities.size() == 1);
+    CHECK(scalar->ilities[0] == "security");
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rules] rule_ilities falls back to category when ilities empty") {  // @proves ADR-039.fallback
+    keur::Rule r; r.category = "sqli";          // no explicit ilities
+    auto ils = keur::rule_ilities(r);
+    REQUIRE(ils.size() == 1);
+    CHECK(ils[0] == "integrity");                // sqli -> Security/integrity (ISO 25010)
+    keur::Rule a; a.category = "a11y";
+    CHECK(keur::rule_ilities(a)[0] == "accessibility");   // a11y -> Usability/accessibility
+    keur::Rule u; u.category = "totally-unknown";
+    CHECK(keur::rule_ilities(u)[0] == "analysability");   // unknown -> Maintainability/analysability
+}
+
+SCENARIO("[feature:rules] rule_active resolves OR/max over ilities") {  // @proves ADR-039.resolve
+    keur::Rule r; r.id = "R"; r.maturity = 4; r.ilities = {"security", "hardening"};
+
+    // The collaborator's case: security=4, hardening=2 -> max(4,2)=4 >= 4 -> active.
+    keur::DifficultyVector v1; v1.default_level = 1;
+    v1.levels = {{"security", 4}, {"hardening", 2}};
+    CHECK(keur::rule_active(r, v1));
+
+    // security=3, hardening=2 -> max(3,2)=3 < 4 -> inactive.
+    keur::DifficultyVector v2; v2.default_level = 1;
+    v2.levels = {{"security", 3}, {"hardening", 2}};
+    CHECK_FALSE(keur::rule_active(r, v2));
+
+    // A secondary ility alone cannot activate below the bar, and lowering it
+    // never disables while the primary is high (guard safety).
+    keur::DifficultyVector v3; v3.default_level = 1;
+    v3.levels = {{"security", 5}, {"hardening", 0}};  // hardening OFF
+    CHECK(keur::rule_active(r, v3));                   // security carries it
+}
+
+SCENARIO("[feature:rules] rule_active: all ilities OFF -> inactive") {  // @proves ADR-039.off
+    keur::Rule r; r.maturity = 1; r.ilities = {"quality"};
+    keur::DifficultyVector v; v.default_level = 1;
+    v.levels = {{"quality", 0}};                       // OFF
+    CHECK_FALSE(keur::rule_active(r, v));
+}
+
+SCENARIO("[feature:rules] rule_active: default_level steers unset ilities (CMMI-1)") {  // @proves ADR-039.default
+    // Fresh keur: default vector = 1. Only maturity-1 rules are active.
+    keur::DifficultyVector fresh; fresh.default_level = 1;  // no explicit levels
+
+    keur::Rule deadly;  deadly.maturity = 1; deadly.ilities = {"security"};
+    keur::Rule mid;     mid.maturity = 3;    mid.ilities = {"quality"};
+    keur::Rule unset;   unset.maturity = 0;  unset.ilities = {"security"}; // 0 -> 3
+
+    CHECK(keur::rule_active(deadly, fresh));        // maturity 1 <= level 1
+    CHECK_FALSE(keur::rule_active(mid, fresh));     // maturity 3 > level 1 -> sleeps
+    CHECK_FALSE(keur::rule_active(unset, fresh));   // default maturity 3 > 1 -> sleeps
+}
+
+// --- DESIGN-DIFFRES: difficulty vector loader + merge + filter -------------
+
+SCENARIO("[feature:rules] parse_difficulty reads [difficulty] + [difficulty.rules]") {  // @proves DESIGN-DIFFRES.schema
+    keur::DifficultyVector v; v.default_level = 1;
+    std::map<std::string, bool> ov;
+    keur::config::parse_difficulty(
+        "[policy]\nlevel = 3\n"
+        "[difficulty]\nintegrity = 4\naccessibility = \"off\"\n"
+        "[difficulty.rules]\nKEUR-SQLI-003 = off\nFOO = on\n", v, ov);
+    CHECK(v.level_of("integrity") == 4);
+    CHECK(v.level_of("accessibility") == 0);      // "off" -> 0
+    CHECK(v.level_of("confidentiality") == 1);    // unset -> default_level
+    CHECK(ov["KEUR-SQLI-003"] == false);
+    CHECK(ov["FOO"] == true);
+}
+
+SCENARIO("[feature:rules] merge_difficulty folds global->repo cascade") {  // @proves DESIGN-DIFFRES.merge
+    std::map<std::string, std::string> files;
+    files["global"] = "[policy]\nlevel = 2\n";          // all-equal shorthand
+    files["repo"]   = "[difficulty]\nintegrity = 5\n";  // per-ility override
+    std::map<std::string, bool> ov;
+    auto vec = keur::config::merge_difficulty(
+        {"global", "repo"},
+        [&files](const std::string& p) { return files.count(p) ? files[p] : std::string(); },
+        ov, /*default_level=*/1);
+    CHECK(vec.default_level == 2);                 // global [policy] raised it
+    CHECK(vec.level_of("integrity") == 5);         // repo override wins
+    CHECK(vec.level_of("confidentiality") == 2);   // inherits global level
+}
+
+SCENARIO("[feature:rules] filter_by_vector OR/max + per-rule override") {  // @proves DESIGN-DIFFRES.step.wire
+    keur::DifficultyVector vec; vec.default_level = 2;
+    vec.levels = {{"integrity", 5}};
+    std::vector<keur::Rule> rules;
+    keur::Rule a; a.id = "A"; a.maturity = 2; a.ilities = {"integrity"};       rules.push_back(a);
+    keur::Rule b; b.id = "B"; b.maturity = 5; b.ilities = {"confidentiality"}; rules.push_back(b);
+    keur::Rule c; c.id = "C"; c.maturity = 1; c.ilities = {"confidentiality"}; rules.push_back(c);
+    std::map<std::string, bool> ov; ov["C"] = false;  // force C off
+    auto kept = keur::config::filter_by_vector(rules, vec, ov);
+    bool hasA = false, hasB = false, hasC = false;
+    for (const auto& r : kept) { if (r.id=="A") hasA=true; if (r.id=="B") hasB=true; if (r.id=="C") hasC=true; }
+    CHECK(hasA); CHECK_FALSE(hasB); CHECK_FALSE(hasC);
+}
+
+SCENARIO("[feature:rules] filter_by_maturity is the all-equal vector (back-compat)") {  // @proves DESIGN-DIFFRES.compat
+    std::vector<keur::Rule> rules;
+    keur::Rule a; a.id = "A"; a.maturity = 2; a.ilities = {"integrity"};       rules.push_back(a);
+    keur::Rule c; c.id = "C"; c.maturity = 1; c.ilities = {"confidentiality"}; rules.push_back(c);
+    auto k1 = keur::config::filter_by_maturity(rules, 1);
+    REQUIRE(k1.size() == 1);
+    CHECK(k1[0].id == "C");
+    CHECK(keur::config::filter_by_maturity(rules, 0).size() == 2);  // 0 = no filter
+}
+
+SCENARIO("[feature:rules] policy_level reads [policy] level from keur.toml") {  // @proves KEUR-MATURITY.level
+    CHECK(keur::config::policy_level("[policy]\nlevel = 2\n") == 2);
+    CHECK(keur::config::policy_level("version=\"1\"\n[policy]\nblock-at=0.85\nlevel = 5\n") == 5);
+    // absent -> 0 (no filter)
+    CHECK(keur::config::policy_level("[policy]\nblock-at = 0.85\n") == 0);
+    CHECK(keur::config::policy_level("") == 0);
+    // a level key outside [policy] must not count
+    CHECK(keur::config::policy_level("[other]\nlevel = 4\n") == 0);
 }
 
 SCENARIO("[feature:rules] upsert_disabled_section round-trips and preserves other config") {  // @proves KEUR-DISABLED
@@ -1382,6 +1949,35 @@ SCENARIO("[feature:rule-engine] custom pattern rule fires on trigger file") {  /
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] KEUR-QUAL-011 fires on a bash script without strict mode") {  // @proves KEUR-QUAL-011
+    auto rules = keur::rules_load(keur_rules_dir() + "/quality");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    // No `set -euo pipefail` → absence rule fires.
+    write_file(dir + "/no_strict.sh", "#!/usr/bin/env bash\necho hi\n");
+    auto miss = keur::rules_scan_files(rules, {dir + "/no_strict.sh"});
+    CHECK(has_rule(miss, "KEUR-QUAL-011"));
+    // Strict mode present → no finding.
+    write_file(dir + "/has_strict.sh", "#!/usr/bin/env bash\nset -euo pipefail\necho hi\n");
+    auto ok = keur::rules_scan_files(rules, {dir + "/has_strict.sh"});
+    CHECK(!has_rule(ok, "KEUR-QUAL-011"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] KEUR-QUAL-012 fires on curl without a timeout") {  // @proves KEUR-QUAL-012
+    auto rules = keur::rules_load(keur_rules_dir() + "/quality");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    write_file(dir + "/no_timeout.sh", "#!/usr/bin/env bash\ncurl https://example.com/x\n");
+    auto miss = keur::rules_scan_files(rules, {dir + "/no_timeout.sh"});
+    CHECK(has_rule(miss, "KEUR-QUAL-012"));
+    // A timeout flag on the same line suppresses via exclude:.
+    write_file(dir + "/has_timeout.sh", "#!/usr/bin/env bash\ncurl --max-time 30 https://example.com/x\n");
+    auto ok = keur::rules_scan_files(rules, {dir + "/has_timeout.sh"});
+    CHECK(!has_rule(ok, "KEUR-QUAL-012"));
+    cleanup_dir(dir);
+}
+
 // --- path-derived engine (ADR-020) ------------------------------------------
 // The expected string (namespace keur::<dir>) is COMPUTED from the file path,
 // so ONE rule covers every layer. We exercise the real KEUR-ARCH-002 rule from
@@ -1477,7 +2073,7 @@ SCENARIO("[feature:check] cmd_check BLOCKs on staged private key") {
     std::string dir;
     auto path = stage_fixture("secrets/rsa_key.pem", "id_rsa.pem", dir);
     keur::cmd::CheckOptions opts;
-    auto rc = keur::cmd::check(opts, [&]() {
+    auto rc = keur::cmd::check(opts, [&path]() {
         return std::vector<std::string>{path};
     });
     CHECK(rc == 1);
@@ -1491,7 +2087,7 @@ SCENARIO("[feature:check] cmd_check PASSes on staged clean file") {
     std::string dir;
     auto path = stage_fixture("clean/clean.yml", "config.yml", dir);
     keur::cmd::CheckOptions opts;
-    auto rc = keur::cmd::check(opts, [&]() {
+    auto rc = keur::cmd::check(opts, [&path]() {
         return std::vector<std::string>{path};
     });
     CHECK(rc == 0);
@@ -2603,7 +3199,7 @@ SCENARIO("[feature:manager-tree] Fs backup pattern keeps the previous version") 
     std::string bak  = path + ".bak";
 
     // Simulate two saves via the same read→backup→write sequence.
-    auto save = [&](const std::string& content) {
+    auto save = [&fs, &path, &bak](const std::string& content) {
         if (fs.exists(path)) { auto rr = fs.read_file(path); if (rr.ok) fs.write_file(bak, rr.content); }
         fs.write_file(path, content);
     };
@@ -2861,18 +3457,43 @@ SCENARIO("[feature:version] version resolves from keur.toml, empty when absent")
     CHECK(keur::cmd::policy_load(tmp + "/keur_missing.toml").version.empty());
 }
 
-SCENARIO("[feature:learn] learn_parse reads flags and source with sane defaults") {
-    using keur::cmd::learn_parse;
+SCENARIO("[feature:train] train_parse reads flags and source with sane defaults") {
+    using keur::cmd::train_parse;
     // Defaults: no flags set, source defaults to "corpus".
-    auto def = learn_parse({});
+    auto def = train_parse({});
     CHECK(def.stop == false);
     CHECK(def.status == false);
     CHECK(def.source == "corpus");
     // Flags and options are parsed.
-    auto opt = learn_parse({"--status", "--source", "keureval", "--model", "qwen"});
+    auto opt = train_parse({"--status", "--source", "keureval", "--model", "qwen"});
     CHECK(opt.status == true);
     CHECK(opt.source == "keureval");
     CHECK(opt.model == "qwen");
+}
+
+SCENARIO("[feature:learn] is_valid_rule_id accepts rule ids, rejects path-escapes") {
+    using keur::cmd::is_valid_rule_id;
+    // Accepts canonical rule ids.
+    CHECK(is_valid_rule_id("KEUR-CMDI-003"));
+    CHECK(is_valid_rule_id("SEC-038"));
+    CHECK(is_valid_rule_id("KEUR-NEXT-001"));
+    // Rejects anything that could escape docs/rules/ or is not a rule id:
+    // path separators, dots, traversal, lowercase, spaces, empty, edge hyphens.
+    CHECK_FALSE(is_valid_rule_id(""));
+    CHECK_FALSE(is_valid_rule_id("../etc/passwd"));
+    CHECK_FALSE(is_valid_rule_id("KEUR/CMDI"));
+    CHECK_FALSE(is_valid_rule_id("KEUR-CMDI-003.md"));
+    CHECK_FALSE(is_valid_rule_id("keur-cmdi-003"));
+    CHECK_FALSE(is_valid_rule_id("KEUR CMDI"));
+    CHECK_FALSE(is_valid_rule_id("-LEAD"));
+    CHECK_FALSE(is_valid_rule_id("TRAIL-"));
+    CHECK_FALSE(is_valid_rule_id("DOUBLE--HYPHEN"));
+}
+
+SCENARIO("[feature:learn] explainer_path joins base dir and id as <base>/<ID>.md") {
+    using keur::cmd::explainer_path;
+    CHECK(explainer_path("/k/docs/rules", "KEUR-CMDI-003") == "/k/docs/rules/KEUR-CMDI-003.md");
+    CHECK(explainer_path("cache/keur/rules", "SEC-038") == "cache/keur/rules/SEC-038.md");
 }
 
 SCENARIO("[feature:help] help/version are dispatch aliases (behaviour proven e2e)") {
@@ -2882,6 +3503,184 @@ SCENARIO("[feature:help] help/version are dispatch aliases (behaviour proven e2e
     // that contract so [feature:help] is traceable. The parse-level surface the
     // unit tier can reach is covered by the version/learn scenarios above.
     CHECK(true);
+}
+
+// --- [feature:level] DOOM difficulty picker (logo bucket + level select) ----
+
+SCENARIO("[feature:level] bucket_for_width maps terminal cols to a size band") {  // @proves KEUR-LOGO.bucket
+    using keur::render::bucket_for_width;
+    using keur::render::Bucket;
+    // Boundaries: <=60 Sm, 61..100 Md, 101..140 Lg, >140 Xl.
+    CHECK(bucket_for_width(1)   == Bucket::Sm);
+    CHECK(bucket_for_width(60)  == Bucket::Sm);
+    CHECK(bucket_for_width(61)  == Bucket::Md);
+    CHECK(bucket_for_width(100) == Bucket::Md);
+    CHECK(bucket_for_width(101) == Bucket::Lg);
+    CHECK(bucket_for_width(140) == Bucket::Lg);
+    CHECK(bucket_for_width(141) == Bucket::Xl);
+    CHECK(bucket_for_width(9999) == Bucket::Xl);
+}
+
+SCENARIO("[feature:level] bucket_for_size fits BOTH width and height") {  // @proves KEUR-LOGO.fit
+    using keur::render::bucket_for_size;
+    using keur::render::logo_height;
+    using keur::render::Bucket;
+    // Wide but short terminal: width allows Xl, but only ~14 rows are free →
+    // must drop to Sm (13 rows) so the logo top does not scroll off ("neuk").
+    CHECK(bucket_for_size(200, 14) == Bucket::Sm);
+    // Plenty of both → the biggest that fits its own width.
+    CHECK(bucket_for_size(200, 40) == Bucket::Xl);
+    // Narrow terminal caps on width: 70 cols can't fit Md (needs 72) → Sm (48).
+    CHECK(bucket_for_size(70, 100) == Bucket::Sm);
+    // 72 cols + tall enough fits Md exactly.
+    CHECK(bucket_for_size(72, 40) == Bucket::Md);
+    // Enough rows for Md (20) and width for Lg, but only 20 rows → Md, not Lg(27).
+    CHECK(bucket_for_size(120, 20) == Bucket::Md);
+    // Never returns something taller than the space given.
+    for (int rows = 5; rows <= 40; ++rows) {
+        auto b = bucket_for_size(200, rows);
+        CHECK(logo_height(b) <= (rows < 13 ? 13 : rows));  // Sm floor may exceed a tiny space
+    }
+}
+
+SCENARIO("[feature:level] logo_height is positive and ordered") {  // @proves KEUR-LOGO.height
+    using keur::render::logo_height;
+    using keur::render::Bucket;
+    CHECK(logo_height(Bucket::Sm) > 0);
+    CHECK(logo_height(Bucket::Sm) < logo_height(Bucket::Md));
+    CHECK(logo_height(Bucket::Md) < logo_height(Bucket::Lg));
+    CHECK(logo_height(Bucket::Lg) < logo_height(Bucket::Xl));
+}
+
+SCENARIO("[feature:level] fits_logo hides the logo on short terminals") {  // @proves KEUR-LEVEL.fits-logo
+    // Below Sm-logo (13) + UI chrome (~12) the logo must be hidden, so a clipped
+    // "KEUR" never shows as "neuk".
+    CHECK_FALSE(keur::cmd::fits_logo(10));
+    CHECK_FALSE(keur::cmd::fits_logo(24));
+    CHECK(keur::cmd::fits_logo(25));
+    CHECK(keur::cmd::fits_logo(50));
+    // And render honours it: no braille glyphs when show_logo=false.
+    auto no_logo = keur::cmd::render_level_screen(keur::render::Bucket::Sm, false, 3, false);
+    CHECK(no_logo.find("Choose your Difficulty:") != std::string::npos);
+    CHECK(no_logo.find("⠀") == std::string::npos);   // no braille blank
+    CHECK(no_logo.find("KEUR Me Plenty") != std::string::npos);
+}
+
+SCENARIO("[feature:level] keur_logo is never null and is multi-line") {  // @proves KEUR-LOGO
+    using keur::render::keur_logo;
+    using keur::render::Bucket;
+    for (Bucket b : {Bucket::Sm, Bucket::Md, Bucket::Lg, Bucket::Xl}) {
+        for (bool color : {false, true}) {
+            const char* s = keur_logo(b, color);
+            REQUIRE(s != nullptr);
+            std::string logo = s;
+            CHECK(!logo.empty());
+            CHECK(logo.find('\n') != std::string::npos);   // multiple rows
+        }
+    }
+}
+
+SCENARIO("[feature:level] level_parse reads --print / --bucket / --no-color / --config") {  // @proves KEUR-LEVEL.parse
+    using keur::cmd::level_parse;
+    using keur::render::Bucket;
+    auto def = level_parse({});
+    CHECK(def.print_only == false);
+    CHECK(def.no_color == false);
+    CHECK(def.bucket_set == false);
+    CHECK(def.global == false);
+
+    auto g = level_parse({"--global"});
+    CHECK(g.global == true);
+
+    auto p = level_parse({"--print", "3", "--no-color"});
+    CHECK(p.print_only == true);
+    CHECK(p.print_level == 3);
+    CHECK(p.no_color == true);
+
+    auto b = level_parse({"--bucket", "lg"});
+    CHECK(b.print_only == true);
+    CHECK(b.bucket_set == true);
+    CHECK(b.bucket == Bucket::Lg);
+
+    auto c = level_parse({"--config", "/x/keur.toml"});
+    CHECK(c.config == "/x/keur.toml");
+
+    // A garbage --print value must not flip into print mode.
+    auto bad = level_parse({"--print", "notanumber"});
+    CHECK(bad.print_only == false);
+}
+
+SCENARIO("[feature:level] bucket_from_name maps names, rejects unknown") {  // @proves KEUR-LEVEL.bucket_name
+    using keur::cmd::bucket_from_name;
+    using keur::render::Bucket;
+    Bucket out = Bucket::Md;
+    CHECK(bucket_from_name("sm", out)); CHECK(out == Bucket::Sm);
+    CHECK(bucket_from_name("md", out)); CHECK(out == Bucket::Md);
+    CHECK(bucket_from_name("lg", out)); CHECK(out == Bucket::Lg);
+    CHECK(bucket_from_name("xl", out)); CHECK(out == Bucket::Xl);
+    Bucket keep = Bucket::Lg;
+    CHECK(bucket_from_name("huge", keep) == false);
+    CHECK(keep == Bucket::Lg);   // untouched on failure
+}
+
+SCENARIO("[feature:level] level_table has the five DOOM->CMMI levels in order") {  // @proves KEUR-LEVEL.table
+    const auto& t = keur::cmd::level_table();
+    REQUIRE(t.size() == 5);
+    CHECK(t.size() == static_cast<std::size_t>(keur::cmd::k_level_count));  // constant in sync
+    for (std::size_t i = 0; i < t.size(); ++i)
+        CHECK(t[i].cmmi == static_cast<int>(i) + 1);   // index 0..4 == CMMI 1..5
+    CHECK(std::string(t[0].name) == "I'm Too Young to KEUR");
+    CHECK(std::string(t[2].name) == "KEUR Me Plenty");
+    CHECK(std::string(t[4].name) == "H4x0r c0d3fl3x");
+}
+
+SCENARIO("[feature:level] render_level_screen marks the selection and shows the blurb") {  // @proves KEUR-LEVEL.render
+    // Mono (no colour): the selected row carries the '>' marker, the level's
+    // CMMI line and description appear, and the logo braille is present.
+    std::string s = keur::cmd::render_level_screen(keur::render::Bucket::Md, false, 3);
+    CHECK(s.find("Choose your Difficulty:") != std::string::npos);
+    CHECK(s.find("> KEUR Me Plenty") != std::string::npos);       // selected row
+    CHECK(s.find("  I'm Too Young to KEUR") != std::string::npos); // unselected row
+    CHECK(s.find("Level 3 \xE2\x80\x94 Defined.") != std::string::npos);  // em-dash blurb head
+    CHECK(s.find("\xE2\xA0") != std::string::npos);               // braille (U+28xx) logo bytes
+    // Colour on: the same screen carries ANSI SGR sequences.
+    std::string c = keur::cmd::render_level_screen(keur::render::Bucket::Md, true, 1);
+    CHECK(c.find("\033[38;5;") != std::string::npos);
+    CHECK(c.find("> I'm Too Young to KEUR") != std::string::npos); // L1 selected
+}
+
+SCENARIO("[feature:level] render_level_screen clamps out-of-range selection") {  // @proves KEUR-LEVEL.render
+    // Selection below 1 clamps to 1; above 5 clamps to 5. No crash, valid blurb.
+    std::string lo = keur::cmd::render_level_screen(keur::render::Bucket::Sm, false, -3);
+    CHECK(lo.find("> I'm Too Young to KEUR") != std::string::npos);
+    std::string hi = keur::cmd::render_level_screen(keur::render::Bucket::Sm, false, 99);
+    CHECK(hi.find("> H4x0r c0d3fl3x") != std::string::npos);
+}
+
+SCENARIO("[feature:level] upsert_policy_level adds, replaces, and preserves other lines") {  // @proves KEUR-LEVEL.persist
+    using keur::cmd::upsert_policy_level;
+    // Empty body → a fresh [policy] section with the level.
+    std::string a = upsert_policy_level("", 4);
+    CHECK(a.find("[policy]") != std::string::npos);
+    CHECK(a.find("level = 4") != std::string::npos);
+
+    // Existing [policy] with a level → the value is replaced, section kept once.
+    std::string body = "[project]\nname = \"x\"\n\n[policy]\nblock-at = 0.9\nlevel = 2\n";
+    std::string r = upsert_policy_level(body, 5);
+    CHECK(r.find("level = 5") != std::string::npos);
+    CHECK(r.find("level = 2") == std::string::npos);   // old value gone
+    CHECK(r.find("block-at = 0.9") != std::string::npos); // sibling preserved
+    CHECK(r.find("name = \"x\"") != std::string::npos);   // other section preserved
+    // Exactly one [policy] section.
+    std::size_t first = r.find("[policy]");
+    CHECK(first != std::string::npos);
+    CHECK(r.find("[policy]", first + 1) == std::string::npos);
+
+    // [policy] present without a level line → level appended inside the section.
+    std::string body2 = "[policy]\nblock-at = 0.8\n";
+    std::string r2 = upsert_policy_level(body2, 1);
+    CHECK(r2.find("level = 1") != std::string::npos);
+    CHECK(r2.find("block-at = 0.8") != std::string::npos);
 }
 
 } // TEST_SUITE("unit") — Layer 4/5 pure tests

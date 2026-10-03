@@ -1,0 +1,16 @@
+id: QUAL-055
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Catch-log-ignore anti-pattern
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: catch\s*\([^)]*\)\s*\{\s*(console\.(log|error)|logger\.(error|warn|info)|log\.(error|warn|info)|System\.out\.print|e\.printStackTrace)
+    message: "Catch-log-ignore — logging then continuing silently hides the failure from callers"
+fix: Rethrow the error (with context), return an error result, or handle it properly. Don't just log and continue.

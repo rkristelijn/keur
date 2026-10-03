@@ -1,0 +1,26 @@
+id: SH-QUAL-012
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: BusyBox/Alpine incompatible shell patterns
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/
+patterns:
+  - regex: grep\s+--include
+    message: "grep --include is not supported in BusyBox/Alpine — use find + grep instead"
+  - regex: grep\s+-P\b
+    message: "grep -P (Perl regex) is not available in BusyBox — use grep -E for extended regex"
+  - regex: \bmapfile\b
+    message: "mapfile/readarray is bash 4+ only, not available in BusyBox ash — use 'while IFS= read -r'"
+  - regex: \breadarray\b
+    message: "readarray is bash 4+ only, not available in BusyBox ash — use 'while IFS= read -r'"
+  - regex: grep\s+-c\b
+    message: "grep -c may not be available in all BusyBox builds — use 'grep | wc -l' as fallback"
+  - regex: \[\[\s+.*\s+=~\s+
+    message: "[[ =~ ]] regex match is bash-only — not available in sh/ash/dash"
+fix: "Use POSIX-compatible alternatives for CI/Docker Alpine environments"

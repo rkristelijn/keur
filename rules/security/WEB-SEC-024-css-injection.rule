@@ -1,0 +1,20 @@
+id: WEB-SEC-024
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: CSS injection / exfiltration vectors
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .html .htm .vue .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \.style\.\w+\s*=\s*.*(?:req|param|input|user|query|search)
+    message: "User input in inline style assignment — CSS injection risk. Use CSS classes instead"
+  - regex: <style>.*\$\{
+    message: "Template literal in <style> tag — CSS injection / exfiltration risk"
+  - regex: cssText\s*=\s*.*(?:req|param|input|user|query)
+    message: "User input in cssText — CSS injection risk. Validate against allowlist of CSS properties"
+fix: "Never inject user input into CSS. Use CSS custom properties (variables) or className toggling. CWE-79"

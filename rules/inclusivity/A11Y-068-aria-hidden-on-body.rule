@@ -1,0 +1,17 @@
+id: A11Y-068
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Aria-hidden on body
+category: a11y
+severity: error
+engine: pattern
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: aria-hidden
+patterns:
+  - regex: <body[^>]*aria-hidden=["']true["']
+    message: "aria-hidden=true on <body> hides entire page from screen readers"
+fix: Remove aria-hidden from <body>.

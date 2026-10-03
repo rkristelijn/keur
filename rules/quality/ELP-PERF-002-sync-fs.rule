@@ -1,0 +1,17 @@
+id: ELP-PERF-002
+ilities: [time-behaviour]
+source: cpm
+maturity: 3
+action: advisory
+title: Synchronous fs call can block the Electron main/UI thread
+category: performance
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ out/ scripts/ *.config.*
+  content_contains: fs.
+patterns:
+  - regex: fs\.(readFileSync|writeFileSync|readdirSync|statSync|existsSync|mkdirSync|appendFileSync)\s*\(
+    message: "Synchronous fs call — blocking I/O on the main process freezes the entire app until it completes. Use the async fs.promises equivalent off the UI thread."
+fix: "Use fs.promises.<op>() (or the callback form) so disk I/O does not block the UI thread. Reserve *Sync only for one-off startup/CLI code. See https://www.electronjs.org/docs/latest/tutorial/performance#3-blocking-the-main-process"

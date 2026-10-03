@@ -1,0 +1,17 @@
+id: RS-QUAL-021
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Clone derived on struct
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: clone
+patterns:
+  - regex: #\[derive\([^)]*Clone[^)]*\)\]
+    message: Deriving Clone — ensure large structs are not cloned unnecessarily in hot paths
+fix: Consider using references, Rc, or Arc instead of cloning large structs in performance-sensitive code

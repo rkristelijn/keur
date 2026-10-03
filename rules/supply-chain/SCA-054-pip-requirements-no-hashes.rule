@@ -1,4 +1,6 @@
 id: SCA-054
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Missing pip requirements.txt without hash verification
 category: supply-chain

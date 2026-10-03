@@ -1,0 +1,17 @@
+id: A11Y-017
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Area element possibly missing alt
+category: a11y
+severity: error
+engine: presence
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <area
+patterns:
+  - regex: <area\s[^>]*>
+    message: "<area> found in image map — ensure alt attribute is present"
+fix: "Add alt attribute to <area> element"

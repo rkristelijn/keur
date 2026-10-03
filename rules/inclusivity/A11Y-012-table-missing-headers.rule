@@ -1,0 +1,17 @@
+id: A11Y-012
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Data table missing header cells
+category: a11y
+severity: error
+engine: absence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <table
+patterns:
+  - regex: <th[\s>]
+    message: "Data table has no <th> header cells"
+fix: "Add <th> elements to identify table column/row headers"

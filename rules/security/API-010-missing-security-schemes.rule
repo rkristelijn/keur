@@ -1,0 +1,17 @@
+id: API-010
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: OpenAPI spec missing security schemes
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .yaml .yml .json
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: openapi
+patterns:
+  - regex: securitySchemes|securityDefinitions
+    message: "OpenAPI spec without security schemes — API has no authentication defined"
+fix: Add securitySchemes under components (OpenAPI 3) or securityDefinitions (Swagger 2) to define authentication methods.

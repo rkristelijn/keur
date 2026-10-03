@@ -1,4 +1,6 @@
 id: SEC-011b
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Hardcoded GitHub Token
 category: security

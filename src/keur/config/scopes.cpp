@@ -70,14 +70,14 @@ std::vector<Layer> resolve_layers(
     std::vector<Layer> layers;
 
     // Defaults: always present, no file backs it (built into the binary).
-    layers.emplace_back(Scope::Defaults, "", true);
+    layers.push_back({Scope::Defaults, "", true});
 
     // Each optional file layer is added when its path is resolvable; `exists`
     // records whether the file is actually on disk (a layer can be "known but
     // absent", which the UI shows as a place a config *could* live).
-    auto add = [&](Scope scope, const std::string& path) {
+    auto add = [&layers, &file_exists](Scope scope, const std::string& path) {
         if (path.empty()) return;
-        layers.emplace_back(scope, path, file_exists(path));
+        layers.push_back({scope, path, file_exists(path)});
     };
 
     add(Scope::Global, global_config_path(env));
@@ -86,7 +86,7 @@ std::vector<Layer> resolve_layers(
 
     // Explicit --config always wins; it is the last (most specific) layer.
     if (!env.explicit_path.empty())
-        layers.emplace_back(Scope::Explicit, env.explicit_path, file_exists(env.explicit_path));
+        layers.push_back({Scope::Explicit, env.explicit_path, file_exists(env.explicit_path)});
 
     return layers;
 }

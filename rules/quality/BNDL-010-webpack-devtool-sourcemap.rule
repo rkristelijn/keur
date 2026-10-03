@@ -1,0 +1,17 @@
+id: BNDL-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Webpack devtool source-map in production
+category: quality
+severity: warning
+engine: pattern
+target:
+  filenames: webpack.config.js webpack.config.ts webpack.prod.js webpack.prod.ts
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: devtool
+patterns:
+  - regex: devtool:\s*["'](source-map|eval|eval-source-map|cheap-module-source-map)["']
+    message: "Full source maps in production expose original source code — use hidden-source-map or nosources-source-map"
+fix: Change devtool to 'hidden-source-map' or 'nosources-source-map' for production builds.

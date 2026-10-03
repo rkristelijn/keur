@@ -1,0 +1,17 @@
+id: RS-QUAL-029
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Collect then iterate
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: collect
+patterns:
+  - regex: \.collect::<Vec<.*>>\(\)\.iter\(
+    message: collect then iterate — use iterator chaining directly to avoid allocation
+fix: Remove the .collect::<Vec<_>>() and chain iterator operations directly

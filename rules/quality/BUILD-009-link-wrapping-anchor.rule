@@ -1,0 +1,17 @@
+id: BUILD-009
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Next.js Link wrapping anchor tag (legacy pattern)
+category: build
+severity: warning
+engine: pattern
+target:
+  extensions: .tsx .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <Link
+patterns:
+  - regex: <Link[^>]*>\s*<a
+    message: "<Link> wrapping <a> tag — in Next.js 13+ Link renders its own anchor element, nesting causes invalid HTML"
+fix: Remove the inner <a> tag. Use Link directly with className and style props.

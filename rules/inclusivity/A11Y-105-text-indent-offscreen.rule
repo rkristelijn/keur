@@ -1,0 +1,17 @@
+id: A11Y-105
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Text-indent-offscreen
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: text-indent
+patterns:
+  - regex: text-indent:\s*-[0-9]{4,}
+    message: Large negative text-indent used for hiding — use modern screen-reader-only technique
+fix: Use .sr-only class (clip-rect) instead of text-indent for hiding text

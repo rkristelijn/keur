@@ -1,4 +1,6 @@
 id: KEUR-SEC-003
+ilities: [integrity]
+maturity: 2
 title: Command execution with request-derived input
 category: cmdi
 severity: critical

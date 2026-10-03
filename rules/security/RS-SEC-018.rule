@@ -1,0 +1,17 @@
+id: RS-SEC-018
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Filesystem permissions 0o777
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: 0o777
+patterns:
+  - regex: 0o777|Permissions::from_mode\(0o7
+    message: World-writable file permissions — any user can read, write, and execute
+fix: Use restrictive permissions (e.g., 0o644 for files, 0o755 for executables)

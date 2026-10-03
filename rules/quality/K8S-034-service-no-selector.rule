@@ -1,0 +1,17 @@
+id: K8S-034
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Service without selector
+category: quality
+severity: warning
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: kind: Service
+patterns:
+  - regex: selector:
+    message: "Service without selector — no pods will receive traffic"
+fix: Add a selector that matches your pod labels, or use an ExternalName/headless service if intentional.

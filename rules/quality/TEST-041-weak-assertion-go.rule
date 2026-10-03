@@ -1,0 +1,28 @@
+# @see ADR-167
+id: TEST-041
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Weak assertion in Go test
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: _test.go
+  exclude_paths: vendor/ .git/
+  content_contains: t.Fatal
+patterns:
+  - regex: if\s+err\s*!=\s*nil\s*\{\s*\n\s*t\.Fatal\(err\)\s*\n\s*\}\s*$
+    message: "Error-only check — verifies no error but doesn't assert on the actual result value"
+  - regex: if\s+err\s*!=\s*nil\s*\{\s*\n\s*t\.Fatalf\(
+    message: "Error-only check — also verify the returned value, not just absence of error"
+  - regex: if\s+\w+\s*==\s*nil\s*\{\s*\n\s*t\.Fatal
+    message: "Nil-only check — verify the actual value content, not just non-nil"
+  - regex: if\s+len\(\w+\)\s*==\s*0\s*\{\s*\n\s*t\.Fatal
+    message: "Length-only check — verify actual elements, not just non-empty"
+  - regex: if\s+\w+\s*!=\s*true\s*\{\s*\n\s*t\.Error
+    message: "Boolean check — verify the semantic meaning, not just true/false"
+  - regex: t\.Log\(\s*\w+\s*\)\s*$
+    message: "t.Log is not an assertion — it only prints, use t.Error/t.Fatal with conditions"
+fix: "After checking err != nil, also verify the result: assert.Equal(t, expected, result) or use testify/require. A passing error check with unchecked result gives false confidence."

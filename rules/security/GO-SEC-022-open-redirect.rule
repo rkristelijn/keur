@@ -1,0 +1,18 @@
+id: GO-SEC-022
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Open redirect
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: http\.Redirect\(.*r\.(URL|Form|Query)
+    message: "HTTP redirect with user-controlled URL — risk of open redirect"
+  - regex: w\.Header\(\)\.Set\("Location".*r\.(URL|Form|Query)
+    message: "Location header set from user input — validate against allowlist"
+fix: Validate redirect URLs against an allowlist of trusted domains

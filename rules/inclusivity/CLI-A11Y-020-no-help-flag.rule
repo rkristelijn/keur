@@ -1,0 +1,16 @@
+id: CLI-A11Y-020
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: CLI entry point without --help flag handling
+category: a11y
+severity: info
+engine: absence
+target:
+  filenames: main.cpp main.c main.go main.rs main.py cli.py cli.ts cli.js index.ts index.js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/
+patterns:
+  - regex: --help|-h["\s')\]]
+    message: "CLI entry point does not handle --help — discoverable usage information is essential for all users, especially those using assistive technology"
+fix: "Add --help / -h flag that prints usage, available commands, and options. Include accessibility options (NO_COLOR, --json, --plain) in the help text."

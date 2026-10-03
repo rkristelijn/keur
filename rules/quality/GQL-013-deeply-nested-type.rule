@@ -1,0 +1,17 @@
+id: GQL-013
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Deeply nested array type
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .graphql .gql
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: type
+patterns:
+  - regex: \w+:\s*\[\[\[
+    message: "Triple-nested array in GraphQL schema — deep nesting indicates schema design issue"
+fix: Flatten the structure using named types. Example — instead of [[[String]]] use a dedicated type with meaningful fields.

@@ -1,4 +1,6 @@
 id: KEUR-ARCH-002
+ilities: [analysability]
+maturity: 3
 title: Layer directory must match its C++ namespace
 category: architecture
 severity: error

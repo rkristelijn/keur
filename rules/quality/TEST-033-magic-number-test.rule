@@ -1,0 +1,30 @@
+# @see ADR-167
+id: TEST-033
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Magic number in test assertion
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx _test.go _test.py .java .cpp .h
+  exclude_paths: vendor/ node_modules/ .git/ build/ dist/
+  content_contains: expect
+patterns:
+  - regex: \.toBe\(\s*\d{2,}\s*\)
+    message: "Magic number in assertion — extract to a named constant for readability"
+  - regex: \.toEqual\(\s*\d{2,}\s*\)
+    message: "Magic number in assertion — use a named constant like EXPECTED_COUNT"
+  - regex: assertEqual\(\s*\w+\s*,\s*\d{2,}\s*\)
+    message: "Magic number in assertEqual — extract to a named constant"
+  - regex: assertEquals\(\s*\d{2,}\s*,
+    message: "Magic number in assertEquals — use a named constant for clarity"
+  - regex: assert\.Equal\(t,\s*\d{2,}\s*,
+    message: "Magic number in Go assertion — extract to a named constant"
+  - regex: CHECK\(\s*\w+\s*==\s*\d{3,}\s*\)
+    message: "Magic number in CHECK — use a named constant for readability"
+  - regex: assert\s+\w+\s*==\s*\d{3,}
+    message: "Magic number in Python assert — extract to a named constant"
+fix: Extract magic numbers to named constants. 'const EXPECTED_USERS = 42' is clearer than a bare '42'. Numbers like 0, 1, -1 are usually fine — this targets unexplained multi-digit literals.

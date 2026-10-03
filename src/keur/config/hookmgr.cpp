@@ -67,14 +67,14 @@ HookSituation detect_hook_situation(const HookProbe& probe) {
                               ? std::string(km.signature)
                               : platform::path_join(probe.repo_root, km.signature);
         bool present = probe.exists(sig);
-        s.managers.emplace_back(km.name, km.signature, km.kind, present);
+        s.managers.push_back({km.name, km.signature, km.kind, present});
     }
 
     // Decide the effective owner. A repo-local core.hooksPath pointing into a
     // manager's dir means that manager owns hooks now (this is the Husky case:
     // core.hooksPath = .husky/_). Otherwise, a detected manager owns them; else
     // an effective path (keur's global) makes keur the owner; else nobody.
-    auto path_points_into = [&](const char* frag) {
+    auto path_points_into = [&s](const char* frag) {
         return !s.effective_path.empty() &&
                s.effective_path.find(frag) != std::string::npos;
     };

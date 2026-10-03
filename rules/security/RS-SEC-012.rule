@@ -1,0 +1,17 @@
+id: RS-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Hardcoded secret or password
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: password
+patterns:
+  - regex: (password|secret|api_key|token)\s*[:=]\s*"[^"]{8,}"
+    message: Hardcoded secret or password in source — secrets must come from environment or vault
+fix: Move secrets to environment variables, a .env file (gitignored), or a secrets manager

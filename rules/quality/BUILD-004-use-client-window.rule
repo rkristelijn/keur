@@ -1,0 +1,17 @@
+id: BUILD-004
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: Browser API usage without SSR guard
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: window.
+patterns:
+  - regex: \bwindow\.(location|localStorage|sessionStorage|navigator|document|innerWidth|scrollTo|addEventListener)
+    message: "Browser API (window.*) usage — will throw ReferenceError during SSR. Ensure file has 'use client' directive or SSR guard"
+fix: Add 'use client' at top of file, or wrap in useEffect or typeof window !== 'undefined' check.

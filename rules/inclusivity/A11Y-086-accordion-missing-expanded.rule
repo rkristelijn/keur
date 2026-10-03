@@ -1,0 +1,17 @@
+id: A11Y-086
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Accordion missing expanded state
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: accordion
+patterns:
+  - regex: (accordion|collapse|expandable)
+    message: "Accordion/collapsible pattern found — ensure triggers have aria-expanded"
+fix: Add aria-expanded=true/false to accordion trigger buttons.

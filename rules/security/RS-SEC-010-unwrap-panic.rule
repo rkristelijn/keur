@@ -1,0 +1,19 @@
+id: RS-SEC-010
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Avoid unwrap()/expect() in production code (Cloudflare outage 2025)
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ .git/ target/ build/
+  content_contains: unwrap
+patterns:
+  - regex: \.unwrap\(\)
+    message: "unwrap() panics on None/Err — can crash the entire service (caused Cloudflare cascading outage)"
+  - regex: \.expect\(
+    message: "expect() panics on None/Err — use proper error handling in production code"
+fix: Use match, if let, unwrap_or_default(), or the ? operator instead. Reserve unwrap() for tests only.

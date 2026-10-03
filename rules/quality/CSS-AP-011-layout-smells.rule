@@ -1,0 +1,26 @@
+id: CSS-AP-011
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: Layout antipatterns
+category: antipattern
+severity: info
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: float\s*:\s*(left|right)
+    message: Float-based layout is fragile — use flexbox or grid for layout
+  - regex: \.clearfix|clear\s*:\s*both
+    message: Clearfix hack is a float-layout artifact — use modern layout (flexbox/grid)
+  - regex: display\s*:\s*table(-cell|-row)?
+    message: display: table for layout is a legacy workaround — use flexbox or grid
+  - regex: margin[^:]*:\s*-[0-9]
+    message: Negative margins are a layout hack — indicates misaligned structure
+  - regex: \{\s*\}
+    message: Empty ruleset — dead code that adds weight and confuses intent
+  - regex: position\s*:\s*fixed\s*;[^}]*\}
+    message: position: fixed without z-index risks stacking context issues — define a z-index
+fix: Use flexbox or grid for layout — remove float and clearfix hacks

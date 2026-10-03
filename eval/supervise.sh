@@ -59,7 +59,7 @@ supervise_run() {
     local phase_no=0
 
     # "loop" mode: run indefinitely in fixed-length phases until STOP is set
-    # (for overnight runs — `keur learn` until you stop it). Otherwise walk the
+    # (for overnight runs — `keur train` until you stop it). Otherwise walk the
     # explicit minute-budget ladder.
     local phase_list="$PHASES"
     local loop_mode=0 loop_mins="${KEUR_LOOP_MINS:-30}"

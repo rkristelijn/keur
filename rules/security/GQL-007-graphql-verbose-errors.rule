@@ -1,0 +1,17 @@
+id: GQL-007
+ilities: [authenticity]
+source: cpm
+maturity: 3
+action: warn
+title: GraphQL error formatting may leak stack traces
+category: graphql
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .py .rb .go .java
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: error
+patterns:
+  - regex: formatError.*stack|includeStacktraceInErrorResponses
+    message: "GraphQL error formatting may leak stack traces to clients"
+fix: Sanitize errors in formatError; only return message and code. Never expose stack traces, originalError, or internal details to clients in production.

@@ -1,0 +1,18 @@
+id: WEB-SEC-015
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Insecure postMessage usage
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .vue
+  exclude_paths: test/ tests/
+patterns:
+  - regex: \.postMessage\(.*,\s*["']\*["']\s*\)
+    message: "postMessage with wildcard origin '*' — any window can receive the message. Specify exact origin"
+  - regex: addEventListener\(\s*["']message["']
+    message: "Message event listener — ensure event.origin is validated before processing event.data"
+fix: "Always specify target origin in postMessage(). Always check event.origin in message handlers. CWE-345"

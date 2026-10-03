@@ -1,4 +1,6 @@
 id: SCA-074
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: GitHub Actions GITHUB_TOKEN exposed to workflows
 category: supply-chain

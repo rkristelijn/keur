@@ -1,0 +1,17 @@
+id: MIG-021
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: DROP COLUMN in migration
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sql .rb .py
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/ seed/
+  content_contains: DROP
+patterns:
+  - regex: (DROP\s+COLUMN|remove_column|RemoveField|DropColumn)
+    message: "Dropping column — ensure application code no longer references it (deploy code first)"
+fix: Use expand-contract pattern. Deploy code that stops using the column first, then drop it in a later migration.

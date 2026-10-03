@@ -1,0 +1,28 @@
+id: CSS-A11Y-011
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Interaction accessibility
+category: accessibility
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: user-select\s*:\s*none
+    message: user-select: none prevents text selection — blocks copy/paste for users with motor disabilities
+  - regex: pointer-events\s*:\s*none
+    message: pointer-events: none makes element unclickable — ensure it is still accessible via keyboard
+  - regex: body\s*\{[^}]*overflow\s*:\s*hidden
+    message: overflow: hidden on body prevents scrolling — traps users who rely on scroll navigation
+  - regex: cursor\s*:\s*none
+    message: cursor: none hides the mouse cursor — disorienting for users with motor disabilities
+  - regex: (min-width|min-height|width|height)\s*:\s*(([0-9]|[12][0-9]|3[0-9]|4[0-3])px)\s*[;}]
+    message: Touch target smaller than 44px may be too small for motor-impaired users — WCAG 2.5.8 recommends 44x44px minimum
+  - regex: visibility\s*:\s*hidden
+    message: visibility: hidden hides from screen readers — use opacity: 0 with aria attributes if content should remain accessible
+  - regex: animation-duration\s*:\s*0\.[0-2][0-9]*s
+    message: Animation duration under 0.3s may be imperceptible — ensure animation serves its purpose
+fix: Preserve user selection, ensure touch targets are 44px+, and respect accessibility needs for interaction

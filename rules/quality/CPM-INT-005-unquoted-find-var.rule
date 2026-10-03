@@ -1,0 +1,21 @@
+# @see R-030 synthesis: MIDDEN-2
+id: CPM-INT-005
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Unquoted variable in find command
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh
+  exclude_paths: node_modules/ vendor/ .git/ build/ dist/
+patterns:
+  - regex: find \$REPO[/ ]
+    message: "Unquoted $REPO in find — breaks on paths with spaces. Use find \"$REPO\""
+  - regex: find \$DIR[/ ]
+    message: "Unquoted $DIR in find — breaks on paths with spaces. Use find \"$DIR\""
+  - regex: find \$SRC[/ ]
+    message: "Unquoted $SRC in find — breaks on paths with spaces. Use find \"$SRC\""
+fix: Quote all variables in find commands, e.g., find "$REPO" instead of find $REPO.

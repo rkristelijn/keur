@@ -1,4 +1,6 @@
 id: SEC-021
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: ECB block cipher mode (preserves plaintext patterns)
 category: security

@@ -1,0 +1,18 @@
+id: WEB-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Tabnabbing via target=_blank without rel=noopener
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .tsx .jsx .vue .erb .cshtml .php .ejs .hbs
+  exclude_paths: test/ tests/
+patterns:
+  - regex: target\s*=\s*["']_blank["']
+    message: "target='_blank' found — ensure rel='noopener noreferrer' is also set to prevent reverse tabnabbing"
+  - regex: window\.open\(
+    message: "window.open() — ensure 'noopener' feature is specified to prevent opener reference leak"
+fix: "Add rel='noopener noreferrer' to links with target=_blank. Use window.open(url, '_blank', 'noopener'). CWE-1022"

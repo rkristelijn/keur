@@ -1,0 +1,23 @@
+# @see R-030 (Design Patterns vs Native Platform Features)
+id: PATTERN-010
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Strategy interface with only one implementation
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .js .java .kt .cs .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: interface\s+\w*Strategy\s*\{
+    message: "Strategy interface — verify multiple implementations exist. A single strategy implementation is a premature abstraction"
+  - regex: class\s+\w*Strategy\s+(implements|extends)
+    message: "Strategy implementation — if this is the only one, the pattern adds indirection without runtime polymorphism benefit"
+  - regex: interface\s+\w*Policy\s*\{
+    message: "Policy interface (Strategy variant) — justified only with multiple policy implementations. Otherwise simplify to a direct function"
+  - regex: interface\s+\w*Handler\s*\{[^}]*handle\s*\(
+    message: "Handler interface with single handle() — if only one handler implements this, use a plain function. Add the interface when a second handler is needed"
+fix: If only one implementation exists, remove the Strategy interface and use the concrete class or a plain function directly. In TypeScript/Python, pass functions instead of strategy objects. Add the interface when a second strategy is actually needed.

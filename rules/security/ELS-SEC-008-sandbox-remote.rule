@@ -1,0 +1,20 @@
+id: ELS-SEC-008
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Electron sandbox disabled or remote module enabled
+category: security
+severity: error
+engine: pattern
+skip_comments: true
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ tests/ __tests__/ .spec. .test. lib/ vendor/ node_modules/ .git/ build/ dist/ out/
+  content_contains: webPreferences
+patterns:
+  - regex: enableRemoteModule\s*:\s*true
+    message: "enableRemoteModule: true re-exposes the dangerous @electron/remote bridge to the renderer — a broad RCE surface. Remove it; use contextBridge wrappers."
+  - regex: sandbox\s*:\s*false
+    message: "sandbox: false removes Chromium's renderer sandbox — untrusted content processed in that renderer has far more reach. Keep the sandbox on unless a preload genuinely requires Node."
+fix: "Remove enableRemoteModule/sandbox:false (both secure by default). Expose only what's needed via a preload + contextBridge. Reviewed exception: `// cpm:ignore ELS-SEC-008 — <reason>`."

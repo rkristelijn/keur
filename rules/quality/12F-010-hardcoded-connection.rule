@@ -1,0 +1,23 @@
+id: 12F-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Hardcoded connection string (12-Factor III: Config)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .rs .rb .cs .cpp .h
+  exclude_paths: test/ spec/ __tests__/ vendor/ node_modules/ _test.go mock
+  content_contains: ://
+patterns:
+  - regex: ['"`](postgres(ql)?|mysql|mongodb(\+srv)?|redis|amqp|amqps|nats|kafka)://[^'"`\s]+
+    message: Hardcoded database/service connection string — use environment variable
+  - regex: ['"`](smtp|smtps|imap)://[^'"`\s]+
+    message: Hardcoded mail service URL — use environment variable
+  - regex: ['"`]https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:[0-9]+)?[/'"`]
+    message: Hardcoded localhost URL — use environment variable
+  - regex: jdbc:[a-z]+://[^'"`\s]+
+    message: Hardcoded JDBC connection string — use environment variable
+fix: Store connection strings in environment variables (12-Factor III)

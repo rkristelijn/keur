@@ -1,4 +1,6 @@
 id: SCA-031
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: CMake execute_process with network command
 category: supply-chain

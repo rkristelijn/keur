@@ -1,0 +1,17 @@
+id: NJS-MIS-023
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Next.js deprecated legacy image import
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: next
+patterns:
+  - regex: import\s.*from\s+["']next/legacy/image["']
+    message: "next/legacy/image is deprecated — use next/image (default since Next.js 13)"
+fix: "import Image from 'next/image' — the modern Image component has better defaults."

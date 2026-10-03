@@ -1,0 +1,17 @@
+id: STATE-MIS-011
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Redux deprecated extraReducers object syntax
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: extraReducers
+patterns:
+  - regex: extraReducers\s*:\s*\{
+    message: "Object syntax for extraReducers is deprecated in RTK 2.0 — use builder callback pattern"
+fix: "extraReducers: (builder) => { builder.addCase(fetchUsers.fulfilled, (state, action) => { ... }) }"

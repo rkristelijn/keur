@@ -1,0 +1,17 @@
+id: RS-SEC-019
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Shell expansion via format in Command
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: format!
+patterns:
+  - regex: \.arg\(format!
+    message: format! in Command arg may allow injection if input is untrusted
+fix: Pass arguments directly as &str or OsStr, validate and sanitize any user-controlled input

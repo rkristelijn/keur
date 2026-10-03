@@ -1,4 +1,6 @@
 id: SEC-022
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Non-cryptographic PRNG for security values (CVE-2025-66565)
 category: security

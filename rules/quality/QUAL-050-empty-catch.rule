@@ -1,0 +1,18 @@
+id: QUAL-050
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Empty catch block (swallowed exception)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .java .kt .cs .py .go
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: catch\s*\([^)]*\)\s*\{\s*\}
+    message: "Empty catch block — exception is silently swallowed. At minimum, log the error."
+  - regex: except:\s*$
+    message: "Bare except with no handling (Python) — exception is silently swallowed"
+fix: Log the error, rethrow it, or handle it explicitly. Never swallow exceptions silently.

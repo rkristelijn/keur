@@ -1,0 +1,17 @@
+id: A11Y-027
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Object element without text alternative
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <object
+patterns:
+  - regex: <object[^>]*>\s*</object>
+    message: "<object> without text alternative or aria-label"
+fix: "Add fallback content inside <object> or use aria-label"

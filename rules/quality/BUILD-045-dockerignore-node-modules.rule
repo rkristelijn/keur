@@ -1,0 +1,17 @@
+id: BUILD-045
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: .dockerignore missing node_modules exclusion
+category: build
+severity: error
+engine: absence
+target:
+  filenames: .dockerignore
+  exclude_paths: .git/
+  content_contains: node_modules
+patterns:
+  - regex: node_modules
+    message: ".dockerignore doesn't exclude node_modules — local platform-specific binaries will be copied into container, causing build failures"
+fix: Add 'node_modules' to .dockerignore to ensure a clean npm install inside the container.

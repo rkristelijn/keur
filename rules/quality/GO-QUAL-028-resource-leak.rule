@@ -1,0 +1,27 @@
+id: GO-QUAL-028
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Opened resource never closed (possible leak)
+category: quality
+severity: warning
+engine: block-absence
+skip_comments: true
+skip_strings: true
+target:
+  extensions: .go
+  exclude_paths: vendor/ .git/ build/ dist/ _test.go
+  content_contains: os.
+# A function that opens a file/resource but whose body never closes it leaks a
+# handle. block_trigger gates the check to functions that actually open
+# something (os.Open/os.Create/os.OpenFile); block_inner is the required
+# cleanup (a .Close() call or a defer). Blocks with the trigger but no cleanup
+# are flagged. Sourced from CodeRabbit review mining: "resource not closed"
+# recurred across 5 repos.
+patterns:
+  - regex: ^func\b
+    message: "Function opens a resource (os.Open/Create) but never closes it — file handle leak. Add `defer f.Close()` right after a successful open."
+block_trigger: \bos\.(Open|Create|OpenFile)\s*\(
+block_inner: \.Close\s*\(|defer\s
+fix: "After a successful open, defer the close: `f, err := os.Open(p); if err != nil { return err }; defer f.Close()`. Reviewed exception: add `// cpm:ignore GO-QUAL-028` on the func line."

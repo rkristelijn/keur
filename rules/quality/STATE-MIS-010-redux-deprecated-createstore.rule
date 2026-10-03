@@ -1,0 +1,17 @@
+id: STATE-MIS-010
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Redux deprecated createStore
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: createStore
+patterns:
+  - regex: import\s.*\bcreateStore\b.*from\s+["']redux["']
+    message: "createStore from 'redux' is deprecated — use configureStore from @reduxjs/toolkit"
+fix: "import { configureStore } from '@reduxjs/toolkit' — includes Redux DevTools, thunk middleware, and Immer by default."

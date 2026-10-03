@@ -1,0 +1,21 @@
+id: K8S-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Kubernetes dangerous hostPath volume mount (CVE-2021-25741)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml
+  exclude_paths: .git/ node_modules/
+  content_contains: hostPath
+patterns:
+  - regex: path:\s*"/var/run/docker\.sock"
+    message: "docker.sock mount — grants full control over Docker daemon = full cluster compromise"
+  - regex: path:\s*"/$"
+    message: "Host root filesystem mounted — complete host access from container"
+  - regex: path:\s*"/etc$"
+    message: "Host /etc mounted — can read/modify host configs, shadow file, etc."
+fix: Avoid hostPath mounts. Use PersistentVolumeClaims or emptyDir. If required, use readOnly: true and minimal paths.

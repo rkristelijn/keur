@@ -309,7 +309,7 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
         findings.emplace_back(r.id, r.title, r.category, r.severity,
                             default_action(r), default_conf(r),
                             r.target.filenames.empty() ? std::string(".") : r.target.filenames[0],
-                            0, finding_msg(r, ""));
+                            0, finding_msg(r, ""), r.fix);
       }
     }
   }
@@ -345,7 +345,7 @@ void walk(const std::string& dir, const std::string& prefix,
     if (S_ISDIR(st.st_mode) && (rel == "eval/corpus" || rel == "eval/history"))
       continue;
     if (S_ISDIR(st.st_mode)) walk(full, rel, out);
-    else if (S_ISREG(st.st_mode) && st.st_size < 1024 * 1024) out.emplace_back(rel, full);
+    else if (S_ISREG(st.st_mode) && st.st_size < 1024 * 1024) out.emplace_back(rel, full);  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
   }
   closedir(d);
 }
@@ -355,7 +355,7 @@ void walk(const std::string& dir, const std::string& prefix,
 std::vector<RuleFinding> rules_scan_files(const std::vector<Rule>& rules,
                                           const std::vector<std::string>& files) {
   std::vector<std::pair<std::string, std::string>> pairs;
-  for (auto& f : files) pairs.emplace_back(f, f);  // rel == abs for an explicit list
+  for (auto& f : files) pairs.emplace_back(f, f);  // rel == abs for an explicit list  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
   // Derive facts from the parent directory of the first file (best-effort for an
   // explicit list; the hook passes staged paths under the repo root).
   std::string root = ".";

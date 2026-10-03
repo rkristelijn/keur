@@ -1,0 +1,17 @@
+id: AIML-020
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 3
+action: warn
+title: Using pip install in notebook or script
+category: ai-ml
+severity: warning
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: pip install
+patterns:
+  - regex: !pip install|%pip install|subprocess.*pip.*install
+    message: pip install in notebook/script — supply chain risk from unverified packages
+fix: Use pinned requirements.txt and verified package hashes

@@ -1,0 +1,17 @@
+id: A11Y-053
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Required without aria-required
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: required
+patterns:
+  - regex: \brequired[^>]*>
+    message: required attribute found — consider also adding aria-required for older assistive tech
+fix: Add aria-required="true" alongside the required attribute.

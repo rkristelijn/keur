@@ -1,0 +1,31 @@
+# @see ADR-167
+id: SLOP-003
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: AI hedge/caveat phrases
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .md .txt .rst .adoc
+  exclude_paths: vendor/ node_modules/ SLOP-003
+patterns:
+  - regex: Note that this
+    message: "AI hedge phrase — state the fact directly"
+  - regex: Keep in mind that
+    message: "AI hedge phrase — be direct"
+  - regex: It's worth (noting|mentioning) that
+    message: "AI hedge phrase — just say it"
+  - regex: Please note that
+    message: "AI hedge phrase — state facts directly"
+  - regex: It should be noted that
+    message: "AI passive hedge — be direct"
+  - regex: As (mentioned|noted|discussed) (above|earlier|previously)
+    message: "AI back-reference filler — use a link or remove"
+  - regex: In (this|the following) (section|document|guide), we will
+    message: "AI narration — the reader can see what follows"
+  - regex: Let's (dive into|explore|take a look at|walk through)
+    message: "AI conversational filler in documentation — be direct"
+fix: Technical writing should be direct. State facts, don't narrate or hedge.

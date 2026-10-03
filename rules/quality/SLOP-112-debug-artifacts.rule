@@ -1,0 +1,29 @@
+# @see R-028 (AI development quality research)
+id: SLOP-112
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Debug artifact left in production code
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .rs .cpp .h .rb .cs
+  exclude_paths: test/ tests/ spec/ __tests__/ _test.go _test.py .test.ts .test.js .spec.ts .spec.js vendor/ node_modules/ checks/
+patterns:
+  - regex: console\.log\(
+    message: "console.log left in production code — remove or replace with proper logging"
+  - regex: console\.debug\(
+    message: "console.debug left in production code"
+  - regex: ^\s*debugger\s*;?\s*$
+    message: "debugger statement left in production code"
+  - regex: print\(f?['\"]DEBUG
+    message: "Debug print statement left in production code"
+  - regex: System\.out\.println
+    message: "System.out.println in production code — use a logging framework"
+  - regex: fmt\.Println\(.*[Dd]ebug
+    message: "Debug println left in production code — use structured logging"
+  - regex: ^(\s*)binding\.pry
+    message: "Ruby debug statement (binding.pry) left in production code"
+fix: Remove debug artifacts before committing. Use a proper logging framework with configurable levels.

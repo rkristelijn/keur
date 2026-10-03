@@ -1,0 +1,16 @@
+id: STYLE-034
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Generic/meaningless variable names (data, temp, result, stuff)
+category: style
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: (const|let|var)\s+(data|temp|tmp|result|res|stuff|thing|obj|item|value|val|ret|output|input|info|payload)\s*=
+    message: "Generic variable name — 'data', 'temp', 'result' tell nothing about what this represents"
+fix: Name by what it contains. 'users' not 'data', 'formattedPrice' not 'result', 'httpResponse' not 'res'.

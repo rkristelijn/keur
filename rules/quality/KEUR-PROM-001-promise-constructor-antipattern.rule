@@ -1,0 +1,49 @@
+# Promise-constructor antipattern (jsts#36): wrapping an already
+# promise-returning call inside `new Promise((resolve) => ...)`. This is
+# redundant (the inner call is already a thenable) and dangerous: the wrapping
+# executor almost always forgets to wire `reject`, so inner rejections are
+# swallowed. MDN calls this out explicitly under "avoid the Promise
+# constructor antipattern".
+#
+# On jsts#34 (floating promise — `this.doWork();` with no await/void/.catch):
+# NOT covered here, deliberate false-negative. Deciding whether a bare
+# `this.method();` statement is a floating promise requires knowing the method
+# RETURNS a promise, which needs type information — precisely why
+# typescript-eslint's `no-floating-promises` is type-checker-based and the
+# research doc marks #34 "partial". A regex either misses it (if scoped to
+# `.then`/`async` textual hints) or over-fires on every void-returning
+# `this.x();` call. Left as a documented FN rather than shipping a noisy rule.
+#
+# Why a NEW rule (verified false-negative on mestjs slop.service.ts,
+# 2026-09-26): `new Promise((resolve) => {` wrapping `fetch(...).then(resolve)`
+# was flagged by no existing rule. The swallowed-catch rule (KEUR-SLOP-001)
+# only matches empty `.catch(() => {})`.
+#
+# HOW: match `new Promise(` whose executor body (within a small window)
+# contains a `.then(` or `fetch(` — i.e. an inner thenable being re-wrapped.
+#
+# RE2-safe: bounded `[^)]*` and a lazily-bounded `[^}]*?` scoped to the
+# executor braces; no backreferences, no nested unbounded quantifiers -> no
+# catastrophic backtracking. WARN, not block: correctness/robustness smell.
+#
+# @see docs/research/javascript-typescript.md #36 (and #34 as FN);
+#      typescript-eslint no-floating-promises; MDN Using_promises.
+id: KEUR-PROM-001
+ilities: [analysability]
+maturity: 1
+title: Promise-constructor antipattern — new Promise wrapping a thenable
+category: quality
+severity: warning
+engine: multiline
+window: 4
+action: warn
+skip_comments: true
+target:
+  extensions: .js .ts .jsx .tsx
+  exclude_paths: node_modules/ dist/ build/ vendor/
+patterns:
+  # new Promise(...) whose executor wraps an inner thenable (.then/fetch).
+  - regex: (?s)new\s+Promise\s*\([^)]*\)\s*=>\s*\{[^}]*?(?:\.then\s*\(|\bfetch\s*\()
+    message: "`new Promise` wrapping an already promise-returning call (jsts#36) — redundant and drops inner rejections (no reject wiring). Return the existing promise or use async/await. @see KEUR-PROM-001"
+confidence: 0.7
+fix: "Return the inner promise directly (`return fetch(url);`) or use an async function — never re-wrap a thenable in `new Promise`. If you truly need a Promise from a callback API, wire BOTH resolve and reject."

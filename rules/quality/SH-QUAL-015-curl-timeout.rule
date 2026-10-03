@@ -1,0 +1,18 @@
+id: SH-QUAL-015
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Using curl/wget without timeout
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/
+patterns:
+  - regex: curl\s+-[a-zA-Z]*s[a-zA-Z]*\s
+    message: "curl with -s (silent) — ensure --max-time is also set to prevent hangs"
+  - regex: wget\s+(?:--quiet|--no-verbose)\s
+    message: "wget in quiet mode — ensure --timeout is set to prevent hangs"
+fix: "Add --max-time 30 to curl calls, --timeout=30 to wget calls"

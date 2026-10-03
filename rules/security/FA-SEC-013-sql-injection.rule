@@ -1,0 +1,23 @@
+id: FA-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: FastAPI SQL injection via f-string or format()
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: execute
+patterns:
+  - regex: \.execute\(f["']
+    message: "SQL query built with f-string — use parameterized queries to prevent SQL injection"
+  - regex: \.execute\(["'][^"']*%s.*%\s
+    message: "SQL query built with % formatting — use parameterized queries to prevent SQL injection"
+  - regex: \.execute\(["'][^"']*\.format\(
+    message: "SQL query built with .format() — use parameterized queries to prevent SQL injection"
+  - regex: text\(f["']
+    message: "SQLAlchemy text() with f-string — use text() with bindparams for parameterized queries"
+fix: "Use parameterized queries: db.execute(text('SELECT * FROM users WHERE id = :id'), {'id': user_id})"

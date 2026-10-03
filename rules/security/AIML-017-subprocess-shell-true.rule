@@ -1,0 +1,17 @@
+id: AIML-017
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Subprocess shell injection in ML pipeline
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: subprocess
+patterns:
+  - regex: subprocess\.(call|run|Popen|check_output)\(.*shell\s*=\s*True
+    message: subprocess with shell=True in ML pipeline — command injection risk
+fix: Use shell=False and pass args as list

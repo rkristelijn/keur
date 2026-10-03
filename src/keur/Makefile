@@ -50,17 +50,24 @@ BIN    = $(BINDIR)/keur
 
 REPO_ROOT := $(shell cd ../.. && pwd -P)
 
+# UTF-8 locale for codegen (gen-catalog bakes rule titles into C++ strings; a
+# non-UTF-8 locale like CI's LC_ALL=C splits multibyte chars — e.g. em-dashes —
+# mid-byte and emits broken string literals). Pick one the host actually has:
+# C.UTF-8 on Linux/CI, en_US.UTF-8 on macOS.
+UTF8_LOCALE := $(shell locale -a 2>/dev/null | grep -iqE '^C\.utf-?8$$' && echo C.UTF-8 || echo en_US.UTF-8)
+
 # Rule engine (shared, lower layer)
-RULES_OBJ = $(BINDIR)/rule_parse.o $(BINDIR)/rule_match.o $(BINDIR)/rule_scan.o $(BINDIR)/rule_block.o $(BINDIR)/rule_engines.o $(BINDIR)/rule_facts.o $(BINDIR)/rule_semver.o $(BINDIR)/rule_composite.o
+RULES_OBJ = $(BINDIR)/rule_parse.o $(BINDIR)/rule_match.o $(BINDIR)/rule_scan.o $(BINDIR)/rule_block.o $(BINDIR)/rule_engines.o $(BINDIR)/rule_facts.o $(BINDIR)/rule_semver.o $(BINDIR)/rule_composite.o $(BINDIR)/rule_resolve.o
 TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
-IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp \
-             config/scopes.cpp config/hookmgr.cpp config/scanners.cpp config/disabled.cpp config/ruleset.cpp \
+IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/train.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp cmd/level.cpp cmd/difficulty.cpp \
+             config/scopes.cpp config/hookmgr.cpp config/scanners.cpp config/disabled.cpp config/keurignore.cpp config/ruleset.cpp \
+             scan/dispatch.cpp scan/mappers.cpp scan/json_util.cpp \
              learn/history.cpp learn/sysinfo.cpp learn/monitor.cpp \
              adapters/git.cpp adapters/fs.cpp adapters/proc.cpp adapters/sysinfo.cpp report/report.cpp \
-             render/display_width.cpp render/box.cpp common/keyinput.cpp \
+             render/display_width.cpp render/box.cpp render/logo.cpp render/logo_generated.cpp common/keyinput.cpp \
              manager/model.cpp manager/view.cpp manager/catalog_generated.cpp
 # Object files: flatten path (cmd/check.cpp -> keur_cmd_check.o) via subst
 IMPL_OBJS  = $(patsubst %.cpp,$(BINDIR)/keur_%.o,$(subst /,_,$(IMPL_SRCS)))
@@ -113,15 +120,18 @@ $(BINDIR)/rule_semver.o: ../rules/rule/semver.cpp ../rules/rule/semver.h | $(BIN
 $(BINDIR)/rule_composite.o: ../rules/rule/composite.cpp ../rules/rule/internal.h ../rules/rule_engine.h ../rules/rule/semver.h ../rules/rule/facts.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
+$(BINDIR)/rule_resolve.o: ../rules/rule/resolve.cpp ../rules/rule/internal.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
 $(TOKENIZER_OBJ): ../rules/tokenizer.cpp ../rules/tokenizer.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
 # Generic pattern: compile any keur source to a flattened object name.
 # $* is the stem with slashes turned to underscores by the explicit rules below.
-$(MAIN_OBJ): main.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/learn.h | $(BINDIR)
+$(MAIN_OBJ): main.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/train.h cmd/learn.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_check.o: cmd/check.cpp cmd/check.h cmd/policy.h adapters/git.h config/ruleset.h util/keur_utils.h | $(BINDIR)
+$(BINDIR)/keur_cmd_check.o: cmd/check.cpp cmd/check.h cmd/policy.h adapters/git.h adapters/fs.h adapters/proc.h config/ruleset.h config/scanners.h scan/dispatch.h util/keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_cmd_hook.o: cmd/hook.cpp cmd/hook.h adapters/git.h adapters/fs.h adapters/proc.h config/hookmgr.h | $(BINDIR)
@@ -133,8 +143,11 @@ $(BINDIR)/keur_cmd_scan.o: cmd/scan.cpp cmd/scan.h report/report.h config/rulese
 $(BINDIR)/keur_cmd_policy.o: cmd/policy.cpp cmd/policy.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_learn.o: cmd/learn.cpp cmd/learn.h learn/monitor.h adapters/proc.h | $(BINDIR)
+$(BINDIR)/keur_cmd_train.o: cmd/train.cpp cmd/train.h learn/monitor.h adapters/proc.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_cmd_learn.o: cmd/learn.cpp cmd/learn.h cmd/train.h config/ruleset.h adapters/fs.h adapters/proc.h common/platform.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_learn_history.o: learn/history.cpp learn/history.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
@@ -154,6 +167,12 @@ $(BINDIR)/keur_cmd_config.o: cmd/config.cpp cmd/config.h config/scopes.h adapter
 $(BINDIR)/keur_cmd_manager.o: cmd/manager.cpp cmd/manager.h cmd/config.h cmd/policy.h cmd/rules.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h manager/model.h manager/view.h manager/catalog.h common/platform.h adapters/git.h adapters/fs.h ../rules/rule_engine.h util/keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
+$(BINDIR)/keur_cmd_level.o: cmd/level.cpp cmd/level.h cmd/policy.h render/logo.h adapters/fs.h adapters/git.h config/scopes.h common/platform.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_cmd_difficulty.o: cmd/difficulty.cpp cmd/difficulty.h config/ruleset.h config/scopes.h adapters/fs.h adapters/git.h util/keur_utils.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
 $(BINDIR)/keur_config_scopes.o: config/scopes.cpp config/scopes.h common/platform.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
@@ -166,6 +185,18 @@ $(BINDIR)/keur_config_scanners.o: config/scanners.cpp config/scanners.h common/p
 $(BINDIR)/keur_config_disabled.o: config/disabled.cpp config/disabled.h config/scopes.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
+$(BINDIR)/keur_config_keurignore.o: config/keurignore.cpp config/keurignore.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_scan_dispatch.o: scan/dispatch.cpp scan/dispatch.h adapters/git.h adapters/proc.h config/scanners.h common/platform.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_scan_mappers.o: scan/mappers.cpp scan/dispatch.h scan/json_util.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_scan_json_util.o: scan/json_util.cpp scan/json_util.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
 $(BINDIR)/keur_config_ruleset.o: config/ruleset.cpp config/ruleset.h config/disabled.h config/scopes.h adapters/git.h adapters/fs.h ../rules/rule_engine.h util/keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
@@ -173,6 +204,14 @@ $(BINDIR)/keur_render_display_width.o: render/display_width.cpp render/display_w
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_render_box.o: render/box.cpp render/box.h render/display_width.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+# Logo: pure width->bucket mapping (logo.cpp) + the baked braille blobs
+# (logo_generated.cpp, produced by scripts/gen-logo.sh — see the `logo` target).
+$(BINDIR)/keur_render_logo.o: render/logo.cpp render/logo.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_render_logo_generated.o: render/logo_generated.cpp render/logo.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_util_tokenizer.o: util/tokenizer.cpp util/tokenizer.h | $(BINDIR)
@@ -211,13 +250,25 @@ $(BINDIR)/keur_manager_view.o: manager/view.cpp manager/view.h manager/model.h r
 # .rule under rules/ changes. @implements KEUR-MANAGER-CATALOG
 RULE_FILES := $(shell find $(REPO_ROOT)/rules -name '*.rule' 2>/dev/null)
 manager/catalog_generated.cpp: $(REPO_ROOT)/scripts/gen-catalog.sh $(RULE_FILES)
-	$(REPO_ROOT)/scripts/gen-catalog.sh $@ $(REPO_ROOT)/rules
+	LC_ALL=$(UTF8_LOCALE) $(REPO_ROOT)/scripts/gen-catalog.sh $@ $(REPO_ROOT)/rules
 
 .PHONY: catalog
 catalog: manager/catalog_generated.cpp ## Regenerate the baked rule catalogue
 
 $(BINDIR)/keur_manager_catalog_generated.o: manager/catalog_generated.cpp manager/catalog.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
+
+# Compile-time logo assets: baked from the logo PNG by scripts/gen-logo.sh into
+# render/logo_generated.cpp (committed, like the rule catalogue). Regenerated
+# on demand via `make logo`; the build does NOT run ffmpeg/node (ADR-002).
+# @implements KEUR-LOGO
+LOGO_PNG    ?= $(REPO_ROOT)/docs/design/assets/keur-logo-source.png
+LOGO_CONV   ?= $(REPO_ROOT)/scripts/img2braille.js
+render/logo_generated.cpp: $(REPO_ROOT)/scripts/gen-logo.sh $(LOGO_PNG) $(LOGO_CONV)
+	$(REPO_ROOT)/scripts/gen-logo.sh $@ $(LOGO_PNG) $(LOGO_CONV)
+
+.PHONY: logo
+logo: render/logo_generated.cpp ## Regenerate the baked braille logo (needs ffmpeg+node)
 
 $(BINDIR)/keur_report_report.o: report/report.cpp report/report.h util/keur_utils.h ../rules/rule_engine.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
@@ -228,7 +279,7 @@ $(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
 
 ## ---- Test binary ----------------------------------------------------------
 
-$(TEST_OBJ): keur_test.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/config.h cmd/manager.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h \
+$(TEST_OBJ): keur_test.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/config.h cmd/manager.h cmd/level.h render/logo.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h \
              adapters/git.h adapters/fs.h adapters/proc.h adapters/sysinfo.h learn/sysinfo.h report/report.h util/keur_utils.h \
              ../rules/tokenizer.h ../../vendor/doctest.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
@@ -260,7 +311,7 @@ e2e: build ## Run end-to-end tests (binary + git repos)
 
 # Coverage sources (flat list for the single-command coverage build).
 COV_SRCS = keur_test.cpp cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp \
-           adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp $(PLATFORM_SRC) ../rules/rule/parse.cpp ../rules/rule/match.cpp ../rules/rule/scan.cpp ../rules/rule/block.cpp ../rules/rule/engines.cpp ../rules/tokenizer.cpp
+           adapters/git.cpp adapters/fs.cpp adapters/proc.cpp report/report.cpp $(PLATFORM_SRC) ../rules/rule/parse.cpp ../rules/rule/match.cpp ../rules/rule/scan.cpp ../rules/rule/block.cpp ../rules/rule/engines.cpp ../rules/rule/resolve.cpp ../rules/tokenizer.cpp
 
 coverage: ## Build test binary with coverage and report (gcov)
 	@mkdir -p ../../.tmp/cov

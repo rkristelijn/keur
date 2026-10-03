@@ -1,0 +1,17 @@
+# @see R-030 synthesis: LAAG-4
+id: CPM-INT-010
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Rule title starts with lowercase letter
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .rule
+  exclude_paths: .git/
+patterns:
+  - regex: ^title:\s+[a-z]
+    message: "Rule title starts with lowercase — use sentence case (capitalize first letter) for consistency"
+fix: Capitalize the first letter of the title field in the rule file.

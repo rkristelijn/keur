@@ -1,0 +1,17 @@
+id: A11Y-064
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Nav missing aria-label
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <nav
+patterns:
+  - regex: <nav\s*>|<nav\s+class=[^>]*>
+    message: "<nav> without aria-label — add label to describe navigation purpose"
+fix: Add aria-label="Primary navigation" or similar to <nav>.

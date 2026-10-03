@@ -1,0 +1,18 @@
+id: IAC-SEC-017
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Missing RDS encryption
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .tf .hcl
+  exclude_paths: test/
+patterns:
+  - regex: storage_encrypted\s*=\s*false
+    message: "RDS storage encryption disabled — data at rest is unprotected"
+  - regex: auto_minor_version_upgrade\s*=\s*false
+    message: "auto_minor_version_upgrade disabled — missing security patches"
+fix: "Set storage_encrypted = true and auto_minor_version_upgrade = true"

@@ -1,0 +1,18 @@
+id: QUAL-017
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Rule file syntax issues
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .rule
+  exclude_paths: test/ vendor/ .git/
+patterns:
+  - regex: regex: ['"].*['"]$
+    message: Rule regex should not be quoted — parser reads verbatim after 'regex: '
+  - regex: ^  - regex:.*\\\\[dswDSW]
+    message: Double-escaped regex shorthand — use single backslash (\d not \\d) in .rule files
+fix: Remove quotes from regex values; use single backslash for regex shorthands

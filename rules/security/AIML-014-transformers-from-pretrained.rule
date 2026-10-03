@@ -1,0 +1,17 @@
+id: AIML-014
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 3
+action: warn
+title: HuggingFace from_pretrained supply chain risk
+category: ai-ml
+severity: warning
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: from_pretrained
+patterns:
+  - regex: \.from_pretrained\(
+    message: HuggingFace from_pretrained() downloads and loads remote models — supply chain risk
+fix: Pin model revisions, use trust_remote_code=False, verify model checksums

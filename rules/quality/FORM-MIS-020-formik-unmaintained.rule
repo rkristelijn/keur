@@ -1,0 +1,17 @@
+id: FORM-MIS-020
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Formik is in maintenance mode
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: formik
+patterns:
+  - regex: import\s.*from\s+["']formik["']
+    message: "Formik is in maintenance mode (last release 2023) — consider React Hook Form or TanStack Form for new projects"
+fix: "React Hook Form: npm install react-hook-form — lighter, faster, uncontrolled-first approach."

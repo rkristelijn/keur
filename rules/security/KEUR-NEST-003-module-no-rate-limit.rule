@@ -1,0 +1,31 @@
+# NestJS root module that registers no rate limiting at all.
+# Without @nestjs/throttler wired in (ThrottlerModule.forRoot([{ ttl, limit }])
+# plus a global APP_GUARD: ThrottlerGuard, or a per-handler @Throttle), every
+# route — including login/auth — accepts unbounded requests, leaving the API
+# open to credential brute-forcing and request-flood DoS (CWE-770 uncontrolled
+# resource consumption). Sourced from docs/research/nestjs.md antipattern #20 /
+# best-practice #18 (NestJS Rate limiting: https://docs.nestjs.com/security/rate-limiting;
+# eslint-plugin-nestjs-security require-throttler).
+#
+# HOW (absence engine): fires when the root module file contains NONE of the
+# rate-limiting registration markers (the module import, the guard, or the
+# per-handler decorator). Targeted at the NestJS root module by filename so it
+# judges the composition root, not every file. absence engine => satisfying
+# pattern absent means "fire".
+id: KEUR-NEST-003
+ilities: [integrity]
+maturity: 1
+title: NestJS root module registers no rate limiting
+category: security
+severity: warning
+engine: absence
+action: warn
+target:
+  filenames: app.module.ts
+patterns:
+  # satisfied (no finding) if rate limiting is wired in by any recognised means.
+  # Absent => fire.
+  - regex: Throttler(Module|Guard)|@Throttle\b|require-throttler|nestjs/throttler
+    message: "NestJS antipattern #20 — the root module registers no rate limiting. With no ThrottlerModule.forRoot([{ttl,limit}]) + global ThrottlerGuard (or per-handler @Throttle), every route including login accepts unbounded requests — open to credential brute-forcing and request-flood DoS (CWE-770). Register the throttler module and a global guard."
+confidence: 0.6
+fix: "Import @nestjs/throttler and add ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]) to the root module's imports, plus a global { provide: APP_GUARD, useClass: ThrottlerGuard } provider. Add a stricter @Throttle({ default: { limit: 5, ttl: 60000 } }) on login/auth handlers."

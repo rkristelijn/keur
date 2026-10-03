@@ -1,0 +1,22 @@
+# @see docs/audits/ai-slop-audit.md F-004
+id: SLOP-118
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Non-portable sed -i usage
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .cpp .c .h .sh .bash
+  exclude_paths: vendor/ node_modules/ .git/
+  content_contains: sed
+patterns:
+  - regex: sed\s+-i\s+''
+    message: "macOS-only sed — GNU/Linux sed requires 'sed -i' without empty string argument"
+  - regex: sed\s+-i\s+""
+    message: "macOS-only sed — GNU/Linux sed requires 'sed -i' without empty string argument"
+  - regex: sed\s+-i\s+'s/
+    message: "macOS-only sed — this form works on GNU but fails on BSD/macOS (needs -i '')"
+fix: "Use a portable alternative: read file → modify in memory → write to tmpfile → rename (or use perl -pi -e which is portable)"

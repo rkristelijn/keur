@@ -1,0 +1,17 @@
+id: A11Y-023
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Canvas element without fallback content
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <canvas
+patterns:
+  - regex: <canvas[^>]*>\s*</canvas>
+    message: "<canvas> without fallback content or aria-label"
+fix: "Add fallback content inside <canvas> or use aria-label"

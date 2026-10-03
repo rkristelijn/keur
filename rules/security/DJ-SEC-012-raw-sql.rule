@@ -1,0 +1,21 @@
+id: DJ-SEC-012
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Django raw SQL query with string formatting
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/ vendor/ .git/ build/ venv/ .venv/
+  content_contains: raw
+patterns:
+  - regex: \.raw\(\s*["'].*%s.*["']\s*%
+    message: "Django raw() with string formatting — SQL injection vulnerability. Use parameterized queries."
+  - regex: \.raw\(\s*f['"].*\{
+    message: "Django raw() with f-string — SQL injection vulnerability. Use %s parameters instead."
+  - regex: cursor\.execute\(\s*f['"].*\{
+    message: "Django cursor.execute with f-string — SQL injection. Use cursor.execute('SELECT ... WHERE id=%s', [param])."
+fix: Use Django ORM. For raw SQL, use parameterized queries: Model.objects.raw('SELECT * WHERE id=%s', [user_id]).

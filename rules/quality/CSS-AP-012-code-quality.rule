@@ -1,0 +1,30 @@
+id: CSS-AP-012
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Code quality antipatterns
+category: antipattern
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: -(webkit|moz|ms|o)-[a-zA-Z-]+\s*:
+    message: Vendor prefix may be redundant — use autoprefixer instead of manual prefixes
+  - regex: @extend\s
+    message: "@extend in SCSS creates implicit coupling and selector explosion — use mixins or composition"
+  - regex: transition\s*:\s*all
+    message: transition: all animates every property change — specify exact properties for performance
+  - regex: calc\([^)]*[+\-][^ )][^)]*\)
+    message: calc() operators need spaces (e.g., calc(100% - 20px)) — missing spaces cause silent failures
+  - regex: ^(\s{16,})\S
+    message: Deep nesting (4+ levels) — increases specificity and reduces readability
+  - regex: opacity\s*:\s*0\s*;
+    message: opacity: 0 hides visually but element remains interactive — add pointer-events: none if intended
+  - regex: :\s*[0-9]{3,}px
+    message: Large magic-number pixel values are hard to maintain — use variables or a spacing scale
+  - regex: [a-zA-Z.#\[][^\{]*\s[a-zA-Z.#\[][^\{]*\s[a-zA-Z.#\[][^\{]*\s[a-zA-Z.#\[][^\{]*\s[a-zA-Z.#\[][^\{]*\{
+    message: Selector with 5+ parts is overly specific and fragile — simplify to 3 or fewer
+fix: Use autoprefixer for vendor prefixes, specify transition properties, and flatten deep nesting

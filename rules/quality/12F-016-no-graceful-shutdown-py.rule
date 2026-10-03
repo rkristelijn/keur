@@ -1,0 +1,17 @@
+id: 12F-016
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: No graceful shutdown handler — Python (12-Factor IX: Disposability)
+category: quality
+severity: info
+engine: absence
+target:
+  extensions: .py
+  exclude_paths: test/ vendor/ __pycache__/
+  content_contains: app.run(
+patterns:
+  - regex: signal\.signal\(signal\.SIG(TERM|INT)
+    message: Python server without signal handler — may lose in-flight requests on shutdown
+fix: Add signal.signal(signal.SIGTERM, handler) for graceful shutdown (12-Factor IX)

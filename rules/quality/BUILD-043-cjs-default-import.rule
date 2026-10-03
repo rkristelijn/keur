@@ -1,0 +1,17 @@
+id: BUILD-043
+ilities: [modularity]
+source: cpm
+maturity: 3
+action: advisory
+title: CJS .default import interop issue
+category: build
+severity: warning
+engine: presence
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: require(
+patterns:
+  - regex: require\(\s*['"][^'"]+['"]\s*\)\.default
+    message: ".default after require() — indicates ESM/CJS interop mismatch, module may not have a default export"
+fix: Use import syntax for ESM modules, or check the module's actual export format. Configure esModuleInterop in tsconfig.

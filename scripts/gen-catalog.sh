@@ -24,105 +24,94 @@
 # Portable: POSIX tools only (no grep -P, no realpath) — macOS + Linux/WSL.
 set -euo pipefail
 
+# Rule titles may contain multibyte UTF-8 (em-dashes, backticks-with-accents).
+# Under a non-UTF-8 locale (CI's LC_ALL=C) sed/tr split them mid-byte and emit
+# broken C++ string literals. Force a UTF-8 locale the host actually has.
+if ! locale 2>/dev/null | grep -qiE 'UTF-?8'; then
+  if locale -a 2>/dev/null | grep -qiE '^C\.utf-?8$'; then export LC_ALL=C.UTF-8
+  else export LC_ALL=en_US.UTF-8; fi
+fi
+
 out="${1:?usage: gen-catalog.sh <output.cpp> <rule-dir>...}"
 shift
 dirs=("$@")
 
-tmp="$(mktemp)"
-trap 'rm -f "$tmp"' EXIT
-
-trim() { printf '%s' "$1" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
-
-# Normalize the raw category into (category, subcategory). Security sub-kinds
-# (sast/cmdi/sqli/cbi/iac/cicd) roll up under "security" with themselves as the
-# subcategory; the "secret" typo folds into "secrets". Everything else keeps its
-# category and gets a "generic" subcategory.
-normalize_cat() {  # $1 raw category → prints "category\tsubcategory"
-  case "$1" in
-    secret|secrets)                     printf 'secrets\tgeneric' ;;
-    sast|cmdi|sqli|cbi)                  printf 'security\t%s' "$1" ;;
-    iac|cicd)                           printf 'security\t%s' "$1" ;;
-    security)                           printf 'security\tgeneric' ;;
-    supply-chain)                       printf 'supply-chain\tgeneric' ;;
-    quality)                            printf 'quality\tgeneric' ;;
-    inclusivity)                        printf 'inclusivity\tgeneric' ;;
-    architecture)                       printf 'architecture\tgeneric' ;;
-    ""|"(uncategorised)")               printf 'other\tgeneric' ;;
-    *)                                  printf '%s\tgeneric' "$1" ;;
-  esac
-}
-
-# Derive a single language from the target extensions. If the rule targets many
-# unrelated languages (typical for secrets/supply-chain rules that scan every
-# file type) or none, it is language-agnostic → "any". Only a rule scoped to one
-# language family gets that language.
-derive_language() {  # $1 = space-separated extensions → prints a language
-  local exts="$1" langs="" e l
-  [[ -n "$exts" ]] || { printf 'any'; return; }
-  for e in $exts; do
-    case "$e" in
-      .cpp|.cc|.c|.h|.hpp)  l=cpp ;;
-      .ts|.tsx)             l=typescript ;;
-      .js|.jsx)             l=javascript ;;
-      .py)                  l=python ;;
-      .go)                  l=go ;;
-      .rb)                  l=ruby ;;
-      .java)                l=java ;;
-      .kt)                  l=kotlin ;;
-      .cs)                  l=csharp ;;
-      .php)                 l=php ;;
-      .rs)                  l=rust ;;
-      .sh)                  l=shell ;;
-      .tf|.hcl)             l=terraform ;;
-      .yaml|.yml|.json|.toml|.ini|.conf|.cfg|.xml|.properties|.env) l=config ;;
-      *)                    l=other ;;
-    esac
-    case " $langs " in *" $l "*) : ;; *) langs="$langs $l" ;; esac
-  done
-  langs="$(trim "$langs")"
-  # exactly one language family → that language; otherwise agnostic.
-  if [[ "$(printf '%s\n' $langs | wc -l | tr -d ' ')" = "1" ]] && [[ "$langs" != "config" ]] && [[ "$langs" != "other" ]]; then
-    printf '%s' "$langs"
-  else
-    printf 'any'
-  fi
-}
-
+# Collect every .rule path once (sorted, deterministic).
+tmp_list="$(mktemp)"; tmp_tsv="$(mktemp)"
+trap 'rm -f "$tmp_list" "$tmp_tsv"' EXIT
 for dir in "${dirs[@]}"; do
   [[ -d "$dir" ]] || continue
-  while IFS= read -r f; do
-    id=""; title=""; rawcat=""; status="active"; exts=""; in_target=0
-    while IFS= read -r line; do
-      case "$line" in
-        id:\ *)        id="${line#id: }" ;;
-        title:\ *)     title="${line#title: }" ;;
-        category:\ *)  rawcat="${line#category: }" ;;
-        status:\ *)    status="${line#status: }" ;;
-        target:*)      in_target=1 ;;
-        patterns:*)    in_target=0 ;;
-        *extensions:*) [ "$in_target" = 1 ] && exts="${line#*extensions:}" ;;
-      esac
-    done < "$f"
-    [[ -n "$id" ]] || continue
-    id="$(trim "$id")"; title="$(trim "$title")"; rawcat="$(trim "$rawcat")"; status="$(trim "$status")"; exts="$(trim "$exts")"
+  find "$dir" -type f -name '*.rule'
+done | sort > "$tmp_list"
 
-    IFS=$'\t' read -r category subcategory <<EOF
-$(normalize_cat "$rawcat")
-EOF
-    language="$(derive_language "$exts")"
-    framework="any"
+rule_total="$(grep -c . "$tmp_list" || true)"
 
-    # category \t subcategory \t language \t framework \t id \t title \t status
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-      "$category" "$subcategory" "$language" "$framework" "$id" "$title" "$status" >> "$tmp"
-  done < <(find "$dir" -type f -name '*.rule' | sort)
-done
+# ---------------------------------------------------------------------------
+# ONE awk pass over all rule files (was a bash loop spawning tr+sed per field
+# per rule — tens of thousands of subprocesses, minutes at 1000+ rules). awk
+# parses each file, normalizes category->subcategory, derives a language from
+# the target extensions, and prints one TSV row per rule. No subprocesses.
+# Emits: category \t subcategory \t language \t framework \t id \t title \t status
+# ---------------------------------------------------------------------------
+awk '
+  function trim(s){ sub(/^[ \t\r]+/,"",s); sub(/[ \t\r]+$/,"",s); return s }
+  function norm_cat(c,   sub_) {
+    if (c=="secret"||c=="secrets")                 { CAT="secrets"; SUB="generic"; return }
+    if (c=="sast"||c=="cmdi"||c=="sqli"||c=="cbi") { CAT="security"; SUB=c; return }
+    if (c=="iac"||c=="cicd")                       { CAT="security"; SUB=c; return }
+    if (c=="security")                             { CAT="security"; SUB="generic"; return }
+    if (c=="supply-chain")                         { CAT="supply-chain"; SUB="generic"; return }
+    if (c=="quality")                              { CAT="quality"; SUB="generic"; return }
+    if (c=="inclusivity")                          { CAT="inclusivity"; SUB="generic"; return }
+    if (c=="architecture")                         { CAT="architecture"; SUB="generic"; return }
+    if (c==""||c=="(uncategorised)")               { CAT="other"; SUB="generic"; return }
+    CAT=c; SUB="generic"
+  }
+  function lang_of(ext,   l) {
+    if (ext==".cpp"||ext==".cc"||ext==".c"||ext==".h"||ext==".hpp") return "cpp"
+    if (ext==".ts"||ext==".tsx") return "typescript"
+    if (ext==".js"||ext==".jsx") return "javascript"
+    if (ext==".py") return "python";   if (ext==".go") return "go"
+    if (ext==".rb") return "ruby";     if (ext==".java") return "java"
+    if (ext==".kt") return "kotlin";   if (ext==".cs") return "csharp"
+    if (ext==".php") return "php";     if (ext==".rs") return "rust"
+    if (ext==".sh") return "shell";    if (ext==".tf"||ext==".hcl") return "terraform"
+    if (ext==".yaml"||ext==".yml"||ext==".json"||ext==".toml"||ext==".ini"||ext==".conf"||ext==".cfg"||ext==".xml"||ext==".properties"||ext==".env") return "config"
+    return "other"
+  }
+  function derive_language(exts,   n,i,arr,l,langs,cnt,only) {
+    if (exts=="") return "any"
+    n=split(exts, arr, /[ \t]+/); langs=""; cnt=0
+    for (i=1;i<=n;i++){ if(arr[i]=="")continue; l=lang_of(arr[i])
+      if (index(" " langs " ", " " l " ")==0){ langs=langs " " l; cnt++; only=l } }
+    if (cnt==1 && only!="config" && only!="other") return only
+    return "any"
+  }
+  function flush(   dep) {
+    if (id=="") return
+    norm_cat(rawcat)
+    lang=derive_language(exts)
+    dep=(status=="deprecated")?"true":"false"
+    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", CAT, SUB, lang, "any", id, title, dep
+  }
+  FNR==1 { flush(); id="";title="";rawcat="";status="active";exts="";in_target=0 }
+  {
+    line=$0
+    if (line ~ /^id:[ \t]/)          { id=trim(substr(line,4)) }
+    else if (line ~ /^title:[ \t]/)  { title=trim(substr(line,7)) }
+    else if (line ~ /^category:[ \t]/){ rawcat=trim(substr(line,10)) }
+    else if (line ~ /^status:[ \t]/) { status=trim(substr(line,8)) }
+    else if (line ~ /^target:/)      { in_target=1 }
+    else if (line ~ /^patterns:/)    { in_target=0 }
+    else if (in_target && line ~ /extensions:/) { sub(/.*extensions:/,"",line); exts=trim(line) }
+  }
+  END { flush() }
+' $(cat "$tmp_list") > "$tmp_tsv"
 
 # Dedup by id (5th field), then sort by category, subcategory, id.
-sorted="$(sort -t$'\t' -k1,1 -k2,2 -k5,5 "$tmp" | awk -F'\t' '!seen[$5]++')"
+sorted="$(sort -t$'\t' -k1,1 -k2,2 -k5,5 "$tmp_tsv" | awk -F'\t' '!seen[$5]++')"
 
-cpp_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-
+# Emit the C++ via awk too (one pass; escapes backslash + double-quote).
 {
   echo '// GENERATED by scripts/gen-catalog.sh — DO NOT EDIT.'
   echo '// Compile-time rule catalogue for `keur manager`: 4 facets + id/desc/status.'
@@ -133,19 +122,10 @@ cpp_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
   echo
   echo 'const std::vector<CatalogEntry>& catalog() {'
   echo '    static const std::vector<CatalogEntry> k = {'
-  if [[ -n "$sorted" ]]; then
-    while IFS=$'\t' read -r category subcategory language framework id title status; do
-      dep="false"; [[ "$status" = "deprecated" ]] && dep="true"
-      printf '        {"%s", "%s", "%s", "%s", "%s", "%s", %s},\n' \
-        "$(cpp_escape "$id")" \
-        "$(cpp_escape "$category")" \
-        "$(cpp_escape "$subcategory")" \
-        "$(cpp_escape "$language")" \
-        "$(cpp_escape "$framework")" \
-        "$(cpp_escape "$title")" \
-        "$dep"
-    done <<< "$sorted"
-  fi
+  printf '%s\n' "$sorted" | awk -F'\t' 'NF>=7 {
+    for (i=1;i<=NF;i++){ gsub(/\\/,"\\\\",$i); gsub(/"/,"\\\"",$i) }
+    printf "        {\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", %s},\n", $5,$1,$2,$3,$4,$6,$7
+  }'
   echo '    };'
   echo '    return k;'
   echo '}'
@@ -154,4 +134,10 @@ cpp_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 } > "$out"
 
 count="$(printf '%s\n' "$sorted" | grep -c . || true)"
-echo "gen-catalog: wrote $count rules to $out" >&2
+echo "gen-catalog: wrote $count rules (from $rule_total files) to $out" >&2
+
+# Completion check: a partial write is a failure, not a silent half-catalogue.
+if [[ "$count" -lt 1 ]]; then
+  echo "gen-catalog: ERROR wrote 0 rules — refusing a broken catalogue" >&2
+  exit 1
+fi

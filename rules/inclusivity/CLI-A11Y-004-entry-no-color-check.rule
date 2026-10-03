@@ -1,0 +1,16 @@
+id: CLI-A11Y-004
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: CLI entry point without NO_COLOR check
+category: a11y
+severity: info
+engine: absence
+target:
+  filenames: main.cpp main.c main.go main.rs main.py cli.py cli.ts cli.js index.ts index.js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/
+patterns:
+  - regex: NO_COLOR
+    message: "CLI entry point does not check NO_COLOR — adopt the no-color.org standard to support accessible terminal output"
+fix: "Check getenv(\"NO_COLOR\") (C/C++), os.Getenv(\"NO_COLOR\") (Go), std::env::var(\"NO_COLOR\") (Rust), os.environ.get(\"NO_COLOR\") (Python), or process.env.NO_COLOR (Node.js) and suppress ANSI codes when set."

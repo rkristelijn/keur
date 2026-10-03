@@ -43,6 +43,7 @@ eval/corpus/repos/
 compile_commands.json
 eval/.run/
 eval/corpus/groundtruth.jsonl
+eval/corpus/groundtruth.jsonl.bak-*
 eval/corpus/measure.json
 rules/learned/
 eval/history/optimiser.jsonl
@@ -50,3 +51,7 @@ eval/composite-candidates/*.rule
 !eval/composite-candidates/README.md
 eval/corpus/split.txt
 eval/.awssec.tmp
+
+# local agent coordination channel (not project history)
+.agent-mailbox/
+eval/__pycache__/

@@ -1,0 +1,18 @@
+id: 12F-018
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Dev/prod backing service mismatch (12-Factor X: Dev/prod parity)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx .py .java .go .rb
+  exclude_paths: test/ spec/ __tests__/ vendor/ node_modules/ _test.go mock
+patterns:
+  - regex: if\s*\(.*NODE_ENV.*===?.*development.*\).*require\(
+    message: Different module loaded per environment — keep dev/prod identical
+  - regex: sqlite.*#.*dev|#.*sqlite.*dev
+    message: SQLite for development — use same database as production
+fix: Use the same backing services in development and production (12-Factor X)

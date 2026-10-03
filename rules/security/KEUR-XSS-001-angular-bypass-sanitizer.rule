@@ -1,0 +1,28 @@
+# Angular XSS: DomSanitizer.bypassSecurityTrust*() disables Angular's built-in
+# output sanitisation. Passing anything user-influenced through it re-opens the
+# XSS hole Angular closes by default (CWE-79).
+#
+# Found via OWASP Juice Shop's own author markers (2026-09-26):
+#   frontend/src/app/last-login-ip/last-login-ip.component.ts:40
+#   this.sanitizer.bypassSecurityTrustHtml(`<small>${payload.data.lastLoginIp}</small>`)
+#   (+ search-result.component, data-export.component — all vuln-line tagged)
+# keur had no Angular XSS rule (SEC-041 is generic server injection).
+#
+# Match any bypassSecurityTrust{Html,Script,Style,Url,ResourceUrl} call. Exclude
+# test/spec files (they mock the sanitiser) so the rule fires on real components.
+id: KEUR-XSS-001
+ilities: [integrity]
+maturity: 2
+title: Angular XSS — DomSanitizer.bypassSecurityTrust* disables output sanitisation
+category: xss
+severity: error
+engine: pattern
+action: warn
+target:
+  extensions: .ts .js
+  exclude_paths: .spec. .test. __tests__/ /test/ node_modules/
+patterns:
+  - regex: \bbypassSecurityTrust(?:Html|Script|Style|Url|ResourceUrl)\s*\(
+    message: DomSanitizer.bypassSecurityTrust*() disables Angular's built-in XSS sanitisation (CWE-79). If any part of the value is user-influenced this re-opens the XSS hole Angular closes by default. Bind trusted values only, or sanitise explicitly.
+confidence: 0.7
+fix: Do not bypass the sanitiser for user-influenced data. Bind the raw value (Angular escapes it), or if HTML is genuinely required, sanitise it first (DOMPurify) and bypass only the sanitised result.

@@ -1,0 +1,26 @@
+id: CSS-A11Y-010
+ilities: [accessibility]
+source: cpm
+maturity: 2
+action: advisory
+title: Focus and keyboard accessibility
+category: accessibility
+severity: error
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: outline\s*:\s*(none|0)\s*[;}]
+    message: outline: none/0 removes keyboard focus indicator — WCAG 2.4.7 requires visible focus
+  - regex: \*\s*\{[^}]*outline\s*:\s*(none|0)
+    message: Global outline removal (* { outline: none }) breaks keyboard navigation for all elements
+  - regex: :focus\s*\{[^}]*outline\s*:\s*(none|0)
+    message: Removing outline on :focus hides keyboard focus — use :focus-visible or provide custom focus style
+  - regex: text-indent\s*:\s*-[0-9]{4,}
+    message: text-indent -9999px is an outdated hiding technique — use clip-path or sr-only pattern
+  - regex: clip\s*:\s*rect\s*\(
+    message: clip: rect() is deprecated — use clip-path for accessible hiding
+  - regex: display\s*:\s*none
+    message: display: none hides content from all users including screen readers — use sr-only if content should be accessible
+fix: Never remove focus outline without providing an alternative — use :focus-visible for keyboard-only focus styles

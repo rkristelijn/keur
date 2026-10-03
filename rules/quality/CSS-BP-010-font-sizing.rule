@@ -1,0 +1,22 @@
+id: CSS-BP-010
+ilities: [modifiability]
+source: cpm
+maturity: 3
+action: advisory
+title: Font sizing best practices
+category: best-practice
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: node_modules/ vendor/ dist/ build/
+patterns:
+  - regex: font-size\s*:\s*[0-9]+px
+    message: font-size in px does not respect user browser settings — use rem or em
+  - regex: line-height\s*:\s*[0-9]+(\.[0-9]+)?\s*(px|em|rem|%)
+    message: line-height with units can cause unexpected inheritance — use unitless values (e.g., 1.5)
+  - regex: font-family\s*:\s*['"][^'"]+['"]\s*;
+    message: font-family without generic fallback (serif, sans-serif, monospace) — add one as last resort
+  - regex: font-size\s*:\s*([0-9]|1[01])px
+    message: font-size below 12px is difficult to read — WCAG recommends minimum 12px equivalent
+fix: Use rem for font-size, unitless line-height, and always include a generic font-family fallback

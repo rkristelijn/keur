@@ -1,0 +1,19 @@
+id: A11Y-094
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Focus-outline-removed
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: outline
+patterns:
+  - regex: outline:\s*none
+    message: outline:none removes focus indicator — provide alternative (WCAG 2.4.7)
+  - regex: outline:\s*0[^.]
+    message: outline:0 removes focus indicator — provide alternative
+fix: Replace outline:none with visible focus style (box-shadow, border, etc.)

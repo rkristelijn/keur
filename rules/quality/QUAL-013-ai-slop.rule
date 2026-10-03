@@ -1,0 +1,28 @@
+id: QUAL-013
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: AI slop detection
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .cpp .h .ts .js .py .md .txt
+  exclude_paths: test/ tests/
+patterns:
+  - regex: Certainly!
+    message: "AI filler phrase — remove or rewrite in your own voice"
+  - regex: I'd be happy to
+    message: "AI filler phrase — remove or rewrite"
+  - regex: As an AI
+    message: "AI self-reference — remove"
+  - regex: It's important to note
+    message: "AI filler phrase — be direct"
+  - regex: Let me know if
+    message: "AI filler phrase in code — remove"
+  - regex: \bstraightforward\b
+    message: "AI overused word — use specific description instead"
+  - regex: I cannot and will not
+    message: "AI refusal pattern in code — remove"
+fix: Remove AI-generated filler and rewrite in your own voice

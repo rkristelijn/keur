@@ -1,0 +1,22 @@
+# @see ADR-167
+id: SLOP-101
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Size-only test assertion (JS/TS)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx
+  exclude_paths: vendor/ node_modules/
+  content_contains: expect
+patterns:
+  - regex: expect\(.*\)\.toHaveLength\(\d+\)\s*;?\s*$
+    message: "Size-only assertion — verify content, not just length"
+  - regex: expect\(.*\.length\)\.toBe\(\d+\)\s*;?\s*$
+    message: "Size-only assertion — verify what's in the array, not just count"
+  - regex: assert\.equal\(.*\.length,\s*\d+\)
+    message: "Size-only assertion — verify content, not just length"
+fix: "Add content assertions: expect(results[0]).toMatchObject({ id: 'expected', status: 'active' });"

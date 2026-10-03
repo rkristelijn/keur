@@ -1,0 +1,17 @@
+id: A11Y-031
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Mousedown without keydown
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .jsx .tsx
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: onMouseDown
+patterns:
+  - regex: onMouseDown=
+    message: onMouseDown without keyboard equivalent — add onKeyDown
+fix: Add onKeyDown handler alongside onMouseDown.

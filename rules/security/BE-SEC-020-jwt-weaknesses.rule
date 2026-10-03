@@ -1,0 +1,26 @@
+id: BE-SEC-020
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: JWT security weaknesses
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .ts .js .py .java .cs .go .rb .php
+  exclude_paths: test/ tests/
+patterns:
+  - regex: algorithm.*["'](?:none|None|NONE)["']
+    message: "JWT 'none' algorithm — signature verification bypassed entirely. Always enforce RS256 or HS256"
+  - regex: (?:verify|verif).*(?:false|False|FALSE)
+    message: "JWT signature verification disabled — tokens can be forged. Always verify signatures"
+  - regex: jwt\.decode\(.*verify\s*=\s*False
+    message: "PyJWT decode without verification — token can be tampered. Use jwt.decode(token, key, algorithms=[...])"
+  - regex: \.sign\(\s*\{.*\}\s*,\s*["'][^"']{1,8}["']
+    message: "JWT signed with short secret (<8 chars) — brute-forceable. Use 256+ bit secret or RS256"
+  - regex: expiresIn.*(?:["']\d+d["']|86400000|2592000)
+    message: "JWT with long expiration (days+) — use short-lived tokens with refresh token rotation"
+  - regex: HS256.*(?:secret|password|key)\s*[:=]\s*["'][^"']{1,20}["']
+    message: "Weak HS256 secret — use at least 256-bit (32+ char) random secret"
+fix: "Use RS256 with key pairs, or HS256 with 256-bit random secret. Always verify. Set short expiration. CWE-347"

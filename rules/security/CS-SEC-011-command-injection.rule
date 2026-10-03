@@ -1,0 +1,24 @@
+id: CS-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Command injection via Process.Start
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .cs
+  exclude_paths: test/ tests/ Test/ Tests/
+patterns:
+  - regex: Process\.Start\(\s*\$"
+    message: "Interpolated string in Process.Start() — command injection risk. Validate and sanitize input"
+  - regex: Process\.Start\(\s*".*"\s*\+
+    message: "String concat in Process.Start() — command injection risk. Use ProcessStartInfo with separate Arguments"
+  - regex: ProcessStartInfo\s*\{[^}]*Arguments\s*=\s*\$"
+    message: "Interpolated string in ProcessStartInfo.Arguments — sanitize user input before use"
+  - regex: ProcessStartInfo\s*\{[^}]*FileName\s*=\s*\$"
+    message: "Interpolated string in ProcessStartInfo.FileName — validate against allowlist"
+  - regex: ProcessStartInfo.*Arguments.*\+.*(?:request|Request|input|user|param)
+    message: "User input in process arguments — command injection risk"
+fix: "Validate input against an allowlist. Use ProcessStartInfo with hardcoded FileName and sanitized Arguments"

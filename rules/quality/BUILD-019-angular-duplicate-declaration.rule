@@ -1,0 +1,17 @@
+id: BUILD-019
+ilities: [modularity]
+source: cpm
+maturity: 4
+action: advisory
+title: Angular NgModule declarations audit
+category: build
+severity: info
+engine: presence
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: declarations
+patterns:
+  - regex: declarations:\s*\[
+    message: "NgModule declarations found — verify components aren't declared in multiple modules (causes 'is part of the declarations of 2 modules' error)"
+fix: Declare each component in exactly one NgModule, or migrate to standalone components.

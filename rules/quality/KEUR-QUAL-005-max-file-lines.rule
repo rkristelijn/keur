@@ -18,6 +18,8 @@
 #
 # @see docs/rules-authoring.md (`max-lines`), AGENTS.md ("Files small").
 id: KEUR-QUAL-005
+ilities: [analysability]
+maturity: 3
 title: Source file over ~300 net lines (split by responsibility)
 category: quality
 severity: warning

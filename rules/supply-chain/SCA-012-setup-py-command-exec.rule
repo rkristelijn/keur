@@ -1,4 +1,6 @@
 id: SCA-012
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Suspicious setup.py with os.system or subprocess
 category: supply-chain

@@ -1,0 +1,17 @@
+id: API-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Server URL uses HTTP (unencrypted)
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .yaml .yml .json
+  exclude_paths: test/ tests/ .git/ vendor/
+  content_contains: openapi
+patterns:
+  - regex: url:\s*["']?http://
+    message: "Server URL uses HTTP — API traffic is unencrypted"
+fix: Change server URL to https://. All production APIs must use TLS encryption.

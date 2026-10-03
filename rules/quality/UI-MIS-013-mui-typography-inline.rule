@@ -1,0 +1,19 @@
+id: UI-MIS-013
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: MUI Typography with inline font styling
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .tsx .jsx .ts .js
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: Typography
+patterns:
+  - regex: <Typography[^>]*sx=\{\{[^}]*(fontSize|fontWeight|fontFamily|lineHeight)\s*:
+    message: "Typography with inline font override — use the variant prop ('h1'..'body2') which maps to the theme's typography scale"
+  - regex: <(p|span|h[1-6]|div)\s[^>]*(className|style)[^>]*(font-size|font-weight)
+    message: "HTML element with manual font styling in an MUI project — use <Typography variant='...'> for consistent text styles"
+fix: "Use <Typography variant='h4'> or <Typography variant='body1'>. Customize variants in createTheme({ typography: { ... } })."

@@ -1,0 +1,20 @@
+id: CLI-A11Y-010
+ilities: [accessibility]
+source: cpm
+maturity: 4
+action: advisory
+title: Animated terminal output without TTY detection
+category: a11y
+severity: info
+engine: pattern
+target:
+  extensions: .cpp .c .h .go .rs .py .ts .js .rb .sh .bash
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ venv/
+patterns:
+  - regex: \\033\[\d*[ABCD]
+    message: "Cursor movement escape (up/down/forward/back) — screen readers read the character matrix and will see garbled output"
+  - regex: \\033\[2K
+    message: "Line-erase escape — overwrites previous output which screen readers have already read aloud"
+  - regex: \\r[^\\n]
+    message: "Carriage return without newline (spinner/progress pattern) — screen readers cannot track rewritten content"
+fix: "Detect if stdout is a TTY (isatty(), process.stdout.isTTY, [ -t 1 ]) and fall back to static progress output when it is not."

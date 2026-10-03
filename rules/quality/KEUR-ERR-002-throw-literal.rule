@@ -1,0 +1,40 @@
+# Throwing a non-Error value — a string, number, or object literal — instead
+# of `throw new Error(...)` (jsts#37, CWE-397 style). A thrown string carries
+# no stack trace, breaks `instanceof Error` handling, and produces useless
+# "Uncaught negative not allowed" messages with no origin. ESLint's
+# `no-throw-literal` / `@typescript-eslint/only-throw-error` flag exactly this.
+#
+# Why a NEW rule (verified false-negative on mestjs slop.service.ts,
+# 2026-09-26): `if (n < 0) throw 'negative not allowed';` was not detected by
+# any existing rule. SEC-040 matches some `throw` lines for verbose-error
+# reasons but does not target the literal-vs-Error distinction.
+#
+# HOW: match `throw` immediately followed by a string literal (single, double,
+# or backtick quote) or a bare numeric literal. It deliberately does NOT match
+# `throw new ...`, `throw Error(...)`, `throw err`, or `throw { code: ... }`
+# style objects — the discriminator is a quote/digit right after `throw`.
+#
+# RE2-safe: a single character class after a bounded `\s*`; no backreferences
+# or nested unbounded quantifiers. WARN, not block: throwing a literal is a
+# quality/robustness smell, not an exploitable defect.
+#
+# @see docs/research/javascript-typescript.md #37, ESLint no-throw-literal.
+id: KEUR-ERR-002
+ilities: [analysability]
+maturity: 1
+title: Throw of a string/number literal instead of an Error object
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .js .ts .jsx .tsx
+  exclude_paths: node_modules/ dist/ build/ vendor/
+patterns:
+  # `throw` followed by a quote (', ", `) or a leading digit — a literal value
+  # with no stack trace. `new`/identifier/`{` after throw are not matched.
+  - regex: \bthrow\s+(?:['"`]|[0-9])
+    message: "Throwing a string/number literal — no stack trace and breaks `instanceof Error` handling (jsts#37). Use `throw new Error(...)` (or a subclass). @see KEUR-ERR-002"
+confidence: 0.8
+fix: "Replace `throw 'message'` with `throw new Error('message')`, or a domain-specific `Error` subclass. This preserves the stack trace and keeps `catch (e) { e instanceof Error }` working for callers."

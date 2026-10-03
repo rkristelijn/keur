@@ -1,0 +1,17 @@
+id: A11Y-055
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Reset button present
+category: a11y
+severity: warning
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: reset
+patterns:
+  - regex: type=["']reset["']
+    message: Reset button found — can cause accidental data loss (UX anti-pattern)
+fix: Consider removing reset button or adding confirmation dialog.

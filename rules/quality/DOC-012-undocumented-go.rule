@@ -1,0 +1,21 @@
+# @see ADR-169 (smart init)
+id: DOC-012
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Exported Go symbol without doc comment
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: ^func\s+[A-Z]\w+\s*\(
+    message: "Exported function without doc comment — Go convention: // FuncName does X"
+  - regex: ^type\s+[A-Z]\w+\s+struct
+    message: "Exported struct without doc comment — add // TypeName describes X"
+  - regex: ^type\s+[A-Z]\w+\s+interface
+    message: "Exported interface without doc comment"
+fix: "Add comment directly above: // FuncName does X. Go requires the comment to start with the symbol name."

@@ -1,0 +1,18 @@
+id: STYLE-047
+ilities: [modifiability]
+source: cpm
+maturity: 4
+action: advisory
+title: Attribution/byline comments in code
+category: style
+severity: info
+engine: pattern
+target:
+  extensions: .ts .js .jsx .tsx .py .java .kt .cs .go .rb .c .cpp .h
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: //\s*(@author|Author|Created by|Written by|Maintained by|Copyright \d{4})\s
+    message: "Attribution comment — use git blame instead. Bylines become stale and misleading."
+  - regex: #\s*(@author|Author|Created by|Written by)\s
+    message: "Attribution comment (Python/Ruby) — use git blame for accurate ownership."
+fix: Delete author/byline comments. 'git blame' shows the real, current ownership.

@@ -1,0 +1,17 @@
+id: AIML-003
+ilities: [modifiability, confidentiality]
+source: cpm
+maturity: 2
+action: block
+title: Unsafe numpy.load with allow_pickle
+category: ai-ml
+severity: error
+engine: pattern
+target:
+  extensions: .py .ipynb
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/ __pycache__/ .venv/
+  content_contains: .load(
+patterns:
+  - regex: (numpy|np)\.load\(
+    message: numpy.load() can execute code via pickle when allow_pickle=True
+fix: Use numpy.load(path, allow_pickle=False) or save as .npy/.npz

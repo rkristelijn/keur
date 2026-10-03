@@ -1,0 +1,16 @@
+id: QUAL-040
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Promise constructor anti-pattern (async in new Promise)
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .ts .js .tsx .jsx
+  exclude_paths: test/ tests/
+patterns:
+  - regex: new\s+Promise\s*\(\s*async
+    message: "async function in Promise constructor — errors can be swallowed. Use async/await directly."
+fix: Remove the Promise wrapper. async functions already return Promises. Use: async function() { await ... } directly.

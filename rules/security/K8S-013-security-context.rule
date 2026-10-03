@@ -1,0 +1,17 @@
+id: K8S-013
+ilities: [integrity]
+source: cpm
+maturity: 3
+action: warn
+title: Kubernetes pod missing security context
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .yaml .yml
+  exclude_paths: .git/ node_modules/
+  content_contains: containers:
+patterns:
+  - regex: runAsNonRoot:\s*true
+    message: "Pod missing runAsNonRoot: true — containers default to running as root"
+fix: Add securityContext with runAsNonRoot: true, readOnlyRootFilesystem: true, allowPrivilegeEscalation: false.

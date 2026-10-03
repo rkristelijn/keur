@@ -1,4 +1,6 @@
 id: SCA-070
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Hardcoded IP address with port in script (C2 beacon)
 category: supply-chain

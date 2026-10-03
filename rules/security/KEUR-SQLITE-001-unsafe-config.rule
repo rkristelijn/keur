@@ -1,0 +1,26 @@
+# SQLite durability/safety disabled, or every SQL statement logged. Two related
+# better-sqlite3 antipatterns found via mestjs authored ground truth
+# (MEST-SQLITE-002, 2026-09-26):
+#   - pragma journal_mode=OFF / synchronous=OFF: a crash mid-write corrupts the
+#     database — never acceptable for real data (durability traded for "speed").
+#   - new Database(..., { verbose: console.log }): logs every SQL statement and
+#     its bound parameters to the console/logs — leaks data (CWE-532).
+# Both were a false negative: keur had no SQLite-configuration rule.
+id: KEUR-SQLITE-001
+ilities: [integrity]
+maturity: 1
+title: Unsafe SQLite configuration (durability disabled or SQL logging)
+category: security
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .js .ts
+patterns:
+  - regex: (?i)\.pragma\s*\(\s*['"](?:journal_mode|synchronous)\s*=\s*off['"]
+    message: SQLite journal_mode/synchronous set to OFF — durability disabled, a crash mid-write can corrupt the database. Keep the default WAL/NORMAL for real data.
+  - regex: new\s+Database\s*\([^)]*verbose\s*:\s*console\.(?:log|info|debug)
+    message: SQLite opened with verbose logging to the console — every SQL statement and its bound parameters are logged, leaking data to logs (CWE-532). Remove verbose in production.
+confidence: 0.7
+fix: Do not disable journal_mode/synchronous for persistent data. Remove the verbose logger, or gate it behind a dev-only check.

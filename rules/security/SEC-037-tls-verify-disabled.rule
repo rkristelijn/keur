@@ -1,4 +1,6 @@
 id: SEC-037
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: TLS certificate verification disabled (MitM risk)
 category: security

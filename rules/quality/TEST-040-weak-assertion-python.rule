@@ -1,0 +1,32 @@
+# @see ADR-167
+id: TEST-040
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Weak assertion in Python test
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: _test.py .test.py
+  exclude_paths: vendor/ .git/ build/ .venv/ venv/
+  content_contains: assert
+patterns:
+  - regex: "^\\ +assert\\s+\\w+\\s*$"
+    message: "Weak assertion — 'assert result' only checks truthiness, verify the actual value"
+  - regex: assert\s+\w+\s+is\s+not\s+None\s*$
+    message: "Weak assertion — 'assert x is not None' doesn't verify the value, use assertEqual"
+  - regex: self\.assertTrue\(\s*\w+\s*\)\s*$
+    message: "Weak assertion — assertTrue(result) only checks truthiness, use assertEqual for value"
+  - regex: self\.assertFalse\(\s*not\s+
+    message: "Confusing assertion — assertFalse(not x) is a double negative, use assertTrue(x)"
+  - regex: self\.assertTrue\(\s*\w+\s*is\s+not\s+None\s*\)
+    message: "Weak assertion — assertTrue(x is not None) should be assertIsNotNone(x) + value check"
+  - regex: self\.assertTrue\(\s*len\(\w+\)\s*>\s*0\s*\)
+    message: "Weak assertion — assertTrue(len(x) > 0) should be assertGreater(len(x), 0) or check content"
+  - regex: assert\s+len\(\w+\)\s*==\s*\d+\s*$
+    message: "Size-only assertion — also verify the content, not just the count"
+  - regex: self\.assertTrue\(\s*\w+\s*==\s*
+    message: "Weak assertion — assertTrue(x == y) should be assertEqual(x, y) for better failure messages"
+fix: "Use specific assertions: assertEqual(result, expected), assertIn(item, collection), assertIsInstance(obj, cls). Bare 'assert x' gives no context on failure. Consider pytest's plain assert with rewrite for best messages."

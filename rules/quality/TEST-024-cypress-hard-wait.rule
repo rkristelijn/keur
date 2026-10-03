@@ -1,0 +1,17 @@
+id: TEST-024
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Cypress hard wait with milliseconds
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .cy.ts .cy.js .spec.ts .spec.js
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: cy.
+patterns:
+  - regex: cy\.wait\(\d{4,}\)
+    message: "cy.wait with milliseconds — use cy.intercept() aliases instead of hard timeouts"
+fix: Use cy.intercept() to create route aliases and cy.wait('@alias') for deterministic waiting. Hard waits cause flaky tests.

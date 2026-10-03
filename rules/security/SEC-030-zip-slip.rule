@@ -1,4 +1,6 @@
 id: SEC-030
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Archive extraction path traversal (CVE-2018-1002200 Zip Slip)
 category: security

@@ -1,0 +1,17 @@
+id: GRPC-013
+ilities: [analysability]
+source: cpm
+maturity: 3
+action: advisory
+title: Service without rpc methods
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .proto
+  exclude_paths: test/ tests/ .git/ vendor/ node_modules/
+  content_contains: service
+patterns:
+  - regex: service\s+\w+\s*\{\s*\}
+    message: "Empty gRPC service — define rpc methods or remove the service"
+fix: Add rpc methods to the service or remove the empty service definition.

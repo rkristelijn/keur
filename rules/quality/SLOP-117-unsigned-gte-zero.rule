@@ -1,0 +1,28 @@
+# @see docs/audits/ai-slop-audit.md F-002
+id: SLOP-117
+ilities: [analysability]
+source: cpm
+maturity: 2
+action: advisory
+title: Always-true assertion on unsigned type (size() >= 0)
+category: quality
+severity: error
+engine: pattern
+target:
+  extensions: .cpp .h .cc .hpp
+  exclude_paths: vendor/ node_modules/ .git/
+  content_contains: CHECK
+patterns:
+  - regex: CHECK\(.*\.size\(\)\s*>=\s*0\)
+    message: "Always-true assertion — size() returns size_t (unsigned), always >= 0"
+  - regex: REQUIRE\(.*\.size\(\)\s*>=\s*0\)
+    message: "Always-true assertion — size() returns size_t (unsigned), always >= 0"
+  - regex: CHECK\(.*\.length\(\)\s*>=\s*0\)
+    message: "Always-true assertion — length() returns size_t (unsigned), always >= 0"
+  - regex: REQUIRE\(.*\.length\(\)\s*>=\s*0\)
+    message: "Always-true assertion — length() returns size_t (unsigned), always >= 0"
+  - regex: CHECK\(.*\.count\(\)\s*>=\s*0\)
+    message: "Always-true assertion — count() returns unsigned type, always >= 0"
+  - regex: EXPECT_GE\(.*\.size\(\),\s*0\s*[u]?\)
+    message: "Always-true assertion — size() is unsigned, always >= 0"
+fix: "Assert on exact expected count: CHECK(v.size() == N) or test specific elements: CHECK(v[0].rule == \"expected\")"

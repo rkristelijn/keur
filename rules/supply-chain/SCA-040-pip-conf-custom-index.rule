@@ -1,4 +1,6 @@
 id: SCA-040
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Custom pip.conf with non-PyPI index
 category: supply-chain

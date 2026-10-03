@@ -1,0 +1,17 @@
+id: A11Y-035
+ilities: [accessibility]
+source: cpm
+maturity: 3
+action: advisory
+title: Non-interactive element with tabindex
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: tabindex
+patterns:
+  - regex: <(p|div|span|section|article|header|footer)\s[^>]*tabindex=["']0["']
+    message: Non-interactive element with tabindex="0" — adds to tab order without purpose
+fix: Remove tabindex or add an interactive role.

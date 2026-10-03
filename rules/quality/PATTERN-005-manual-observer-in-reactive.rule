@@ -1,0 +1,23 @@
+# @see R-030 (Design Patterns vs Native Platform Features)
+id: PATTERN-005
+ilities: [analysability]
+source: cpm
+maturity: 4
+action: advisory
+title: Manual Observer pattern in reactive framework
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .ts .tsx .js .jsx
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: class\s+\w*EventBus|class\s+\w*EventEmitter|class\s+\w*PubSub
+    message: "Hand-rolled event bus — Angular has RxJS Subject/BehaviorSubject, React has useEffect/useSyncExternalStore, Vue has reactive refs. Use framework primitives"
+  - regex: subscribe\s*\(\s*\w+\s*:\s*\w*Observer
+    message: "Manual Observer subscription — use framework-native reactivity (RxJS, Signals, Vue reactivity, React hooks) instead of hand-rolled observer pattern"
+  - regex: private\s+\w*[Ll]isteners\s*[=:]\s*\[\]|private\s+\w*[Oo]bservers\s*[=:]\s*\[\]
+    message: "Manual listener/observer list — frameworks provide reactive primitives (Subject, signal(), ref()) that handle subscriptions, cleanup, and memory management"
+  - regex: removeEventListener|removeListener|unsubscribe.*forEach
+    message: "Manual listener cleanup — Angular's takeUntilDestroyed(), React's useEffect cleanup, and Vue's onUnmounted() handle this natively"
+fix: Replace hand-rolled Observer with framework-native reactivity. Angular — RxJS Subject or Signals. React — useState/useReducer + Context or state libraries. Vue — ref/reactive + watch. NestJS — @nestjs/event-emitter.

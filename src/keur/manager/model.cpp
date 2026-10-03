@@ -253,7 +253,7 @@ Node build_defaults_scope(const DefaultsInfo& d, const std::vector<Facet>& order
 
 // Depth-first collection of visible rows, honouring `expanded`.
 void collect_visible(const Node& n, std::vector<Row>& out) {
-    out.emplace_back(&n);
+    out.push_back(Row(&n));
     if ((n.kind != NodeKind::RuleNode && n.kind != NodeKind::ScannerNode && n.kind != NodeKind::ActionNode) && n.expanded)
         for (const auto& c : n.children) collect_visible(c, out);
 }
@@ -486,7 +486,7 @@ ScopeState desired_state(const Model& m, Scope scope) {
                     out->disabled_rules.push_back(n.rule_id);
             } else if (n.kind == NodeKind::ScannerNode) {
                 if (n.scope == scope && !n.inherited)
-                    out->scanner_enabled.emplace_back(n.rule_id, n.enabled);
+                    out->scanner_enabled.emplace_back(n.rule_id, n.enabled);  // keur:ignore KEUR-PORT-007 — std::pair<string,bool> has a constructor — safe
             } else {
                 for (const auto& c : n.children) walk(c);
             }

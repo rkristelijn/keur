@@ -1,0 +1,20 @@
+id: GO-SEC-017
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Potential path traversal
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: os\.Open\(.*(fmt\.Sprintf|\+\s*\w+|filepath\.Join\()
+    message: File open with variable path — validate against path traversal
+  - regex: os\.ReadFile\(.*(fmt\.Sprintf|\+\s*\w+)
+    message: ReadFile with variable path — sanitize input
+  - regex: ioutil\.ReadFile\(.*(fmt\.Sprintf|\+\s*\w+)
+    message: ReadFile with variable path — sanitize input
+fix: Use filepath.Clean() and validate the path stays within expected directory

@@ -61,6 +61,13 @@ the engine parser expects:
   severity: <critical|error|warning|info>
   engine: pattern            # see ENGINES below (default pattern)
   action: <block|warn|advisory>     # optional; else derived from severity
+  maturity: <1..5>                  # optional (ADR-026): lowest CMMI project
+                                    # level at which this rule gates; keur
+                                    # activates it when maturity <= the project
+                                    # level. Omitted or 0 = default band 3
+                                    # (defined). Set LOW (1-2) for hygiene/secret
+                                    # rules, HIGH (4-5) for idiomatic/style rules;
+                                    # when in doubt leave it out (= 3).
   message: <default message>        # optional rule-level fallback message
   skip_comments: true               # optional: ignore matches inside comments
   skip_strings: false               # optional: ignore matches inside strings

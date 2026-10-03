@@ -1,0 +1,30 @@
+id: PY-SEC-011
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Command injection via shell execution
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .py
+  exclude_paths: test/ tests/
+patterns:
+  - regex: os\.system\(\s*f"
+    message: "f-string in os.system() — command injection risk. Use subprocess.run() with argument list"
+  - regex: os\.system\(\s*".*"\s*\+
+    message: "String concat in os.system() — command injection risk. Use subprocess.run() with argument list"
+  - regex: os\.system\(\s*".*"\.format\(
+    message: ".format() in os.system() — command injection risk. Use subprocess.run() with argument list"
+  - regex: os\.system\(\s*".*"\s*%
+    message: "%-formatting in os.system() — command injection risk. Use subprocess.run() with argument list"
+  - regex: os\.popen\(\s*f"
+    message: "f-string in os.popen() — command injection risk. Use subprocess.run()"
+  - regex: subprocess\.call\(.*shell\s*=\s*True
+    message: "subprocess.call() with shell=True — command injection risk. Use argument list without shell=True"
+  - regex: subprocess\.run\(.*shell\s*=\s*True
+    message: "subprocess.run() with shell=True — avoid unless absolutely necessary. Use argument list"
+  - regex: subprocess\.Popen\(.*shell\s*=\s*True
+    message: "subprocess.Popen() with shell=True — command injection risk. Use argument list"
+fix: "Use subprocess.run(['cmd', 'arg1', 'arg2'], check=True) — never pass user input to shell=True"

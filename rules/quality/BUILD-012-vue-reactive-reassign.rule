@@ -1,0 +1,17 @@
+id: BUILD-012
+ilities: [modularity]
+source: cpm
+maturity: 2
+action: advisory
+title: Vue reactive() assigned to let/var — reassignment breaks proxy
+category: build
+severity: error
+engine: pattern
+target:
+  extensions: .vue .ts .js
+  exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: reactive
+patterns:
+  - regex: (let|var)\s+\w+\s*=\s*reactive\(
+    message: "reactive() assigned to let/var — reassigning the variable replaces the proxy, breaking all reactive bindings"
+fix: Use const for reactive objects. Mutate properties instead of reassigning — Object.assign(state, newValues).

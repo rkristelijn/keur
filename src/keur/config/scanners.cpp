@@ -145,7 +145,7 @@ std::vector<Scanner> parse_scanners(const std::string& toml_body) {
     std::string line;
     size_t pos = 0;
 
-    auto next_line = [&](std::string& out) -> bool {
+    auto next_line = [&pos, &toml_body](std::string& out) -> bool {
         if (pos >= toml_body.size()) return false;
         size_t nl = toml_body.find('\n', pos);
         if (nl == std::string::npos) { out = toml_body.substr(pos); pos = toml_body.size(); }
@@ -185,6 +185,40 @@ std::vector<Scanner> parse_scanners(const std::string& toml_body) {
     return scanners;
 }
 
+std::vector<std::string> tier_scanners(const std::string& toml_body,
+                                       const std::string& tier) {
+    // Find the [tiers.<tier>] section, then its `scanners = [ ... ]` array. The
+    // array may span lines; we accumulate until the closing ']'. Keeps this a
+    // small line scanner rather than a full TOML parser — the same approach as
+    // parse_scanners above (keur's config is deliberately simple).
+    const std::string header = "[tiers." + tier + "]";
+    size_t sec = toml_body.find(header);
+    if (sec == std::string::npos) return {};
+    size_t key = toml_body.find("scanners", sec);
+    if (key == std::string::npos) return {};
+    // Guard: the scanners key must belong to THIS tier, not a later section.
+    size_t next_sec = toml_body.find("\n[", sec + header.size());
+    if (next_sec != std::string::npos && key > next_sec) return {};
+    size_t lb = toml_body.find('[', key);
+    size_t rb = toml_body.find(']', key);
+    if (lb == std::string::npos || rb == std::string::npos || rb < lb) return {};
+    std::string body = toml_body.substr(lb + 1, rb - lb - 1);
+    // Split on commas, strip quotes/whitespace.
+    std::vector<std::string> out;
+    std::string cur;
+    auto flush = [&cur, &out]() {
+        std::string v = trim(cur);
+        if (v.size() >= 2 && (v.front() == '"' || v.front() == '\'') && v.back() == v.front())
+            v = v.substr(1, v.size() - 2);
+        v = trim(v);
+        if (!v.empty()) out.push_back(v);
+        cur.clear();
+    };
+    for (char c : body) { if (c == ',') flush(); else cur += c; }
+    flush();
+    return out;
+}
+
 std::vector<Scanner> resolve_scanners(const std::vector<Scanner>& declared,
                                       const ScannerProbe& probe) {
     std::vector<Scanner> out = declared;
@@ -198,7 +232,7 @@ std::vector<Scanner> resolve_scanners(const std::vector<Scanner>& declared,
                                    ? rel
                                    : platform::path_join(probe.repo_root, rel);
             bool present = probe.exists ? probe.exists(full) : false;
-            s.config_files.emplace_back(rel, present);
+            s.config_files.push_back({rel, present});
         }
     }
     return out;

@@ -1,0 +1,18 @@
+id: GO-SEC-013
+ilities: [integrity]
+source: cpm
+maturity: 2
+action: block
+title: Insecure TLS configuration
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: InsecureSkipVerify\s*:\s*true
+    message: TLS certificate verification disabled — vulnerable to MITM attacks
+  - regex: MinVersion\s*:\s*tls\.(VersionTLS10|VersionSSL30|VersionTLS11)
+    message: TLS version below 1.2 — use tls.VersionTLS12 or higher
+fix: Never disable certificate verification in production. Set MinVersion to tls.VersionTLS12.

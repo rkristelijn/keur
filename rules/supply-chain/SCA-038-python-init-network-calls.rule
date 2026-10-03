@@ -1,4 +1,6 @@
 id: SCA-038
+ilities: [integrity]
+maturity: 2
 source: cpm
 title: Python conftest.py or __init__.py with network calls
 category: supply-chain

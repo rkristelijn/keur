@@ -14,6 +14,8 @@
 #
 # @see the "never commit" guides (.DS_Store, Thumbs.db, editor state).
 id: KEUR-QUAL-008
+ilities: [analysability]
+maturity: 3
 title: OS / editor junk file committed
 category: quality
 severity: warning
