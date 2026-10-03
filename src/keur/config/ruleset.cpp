@@ -92,7 +92,7 @@ void parse_difficulty(const std::string& toml_body, DifficultyVector& out_vec,
             // upsert into the vector's level map
             bool found = false;
             for (auto& kv : out_vec.levels) if (kv.first == key) { kv.second = lvl; found = true; break; }
-            if (!found) out_vec.levels.emplace_back(key, lvl);
+            if (!found) out_vec.levels.push_back({key, lvl});
         } else if (section == "[difficulty.rules]") {
             if (val == "on") out_overrides[key] = true;
             else if (val == "off") out_overrides[key] = false;
@@ -155,13 +155,13 @@ DifficultyResolved resolve_difficulty_explained(
         for (const auto& kv : out.vector.levels) {
             int prev = -999;
             for (const auto& b : before.levels) if (b.first == kv.first) { prev = b.second; break; }
-            if (prev != kv.second) layer.ilities.emplace_back(kv.first, kv.second);
+            if (prev != kv.second) layer.ilities.push_back({kv.first, kv.second});
         }
         // Rule overrides present in this body.
         DifficultyVector dummy;
         std::map<std::string, bool> this_ov;
         parse_difficulty(body, dummy, this_ov);
-        for (const auto& kv : this_ov) layer.rules.emplace_back(kv.first, kv.second);
+        for (const auto& kv : this_ov) layer.rules.push_back({kv.first, kv.second});
         out.layers.push_back(std::move(layer));
     }
     return out;
@@ -227,10 +227,19 @@ std::vector<Rule> load_active_rules(std::set<std::string>* out_disabled) {
     for (const auto& ly : layers)
         if (ly.exists && !ly.path.empty()) layer_paths.push_back(ly.path);
     std::map<std::string, bool> overrides;
+    // Start from default_level 0 = "no filter". A [policy] level or [difficulty]
+    // key in any layer raises it; only THEN does the maturity/ility filter apply.
+    // Rationale (backward-compat): a repo with no difficulty config keeps the old
+    // behaviour (all rules active). CMMI-1 is a deliberate choice (keur level 1),
+    // not a silent default that would make a fresh repo suddenly detect almost
+    // nothing. @see DESIGN-DIFFRES.compat
     auto vec = merge_difficulty(
         layer_paths,
         [&fs](const std::string& p) { auto rr = fs.read_file(p); return rr.ok ? rr.content : std::string(); },
-        overrides, /*default_level=*/1);
+        overrides, /*default_level=*/0);
+    // No difficulty signal anywhere -> skip the filter entirely (keep all).
+    if (vec.default_level == 0 && vec.levels.empty() && overrides.empty())
+        return kept;
     kept = filter_by_vector(std::move(kept), vec, overrides);
     return kept;
 }
