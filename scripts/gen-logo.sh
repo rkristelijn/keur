@@ -41,12 +41,15 @@ trim() {
 
 # C++ string-escape a line (backslash, quote, and \x1b -> \033).
 cpp_escape() {
-  sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e $'s/\x1b/\\\\033/g'
+  # Escape backslash and quote. Emit ESC as the bounded hex form \x1b wrapped so
+  # a following hex digit cannot extend the escape: "\x1b" "..." (string break).
+  # Sonar flags octal \033 and open-ended \x1b<hexdigit> as unbounded escapes.
+  sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e $'s/\x1b/\\\\x1b""/g'
 }
 
 emit_asset() {
   local var="$1" file="$2"
-  printf 'const char* %s =\n' "$var" >> "$OUT"
+  printf 'const char* const %s =\n' "$var" >> "$OUT"
   while IFS= read -r line; do
     printf '    "%s\\n"\n' "$(printf '%s' "$line" | cpp_escape)" >> "$OUT"
   done < "$file"
