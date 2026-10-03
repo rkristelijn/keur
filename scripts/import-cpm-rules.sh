@@ -30,7 +30,7 @@ for arg in "$@"; do
 done
 
 CPM="${CPM_RULES:-$HOME/git/hub/cpm/rules}"
-[ -d "$CPM" ] || { echo "cpm rules dir not found: $CPM" >&2; exit 1; }
+[[ -d "$CPM" ]] || { echo "cpm rules dir not found: $CPM" >&2; exit 1; }
 
 # category -> ilities (primary first), ISO/IEC 25010 sub-characteristics.
 # Mirrors scripts/backfill-ilities.sh (ADR-039 §1).
@@ -114,7 +114,7 @@ while IFS= read -r f; do
   id="$(grep -E '^id:' "$f" | head -1 | sed -E 's/^id:[[:space:]]*//' | awk '{print $1}')"
   cat_val="$(grep -E '^category:' "$f" | head -1 | sed -E 's/^category:[[:space:]]*//' | awk '{print $1}')"
   sev="$(grep -E '^severity:' "$f" | head -1 | sed -E 's/^severity:[[:space:]]*//' | awk '{print $1}')"
-  [ -z "$id" ] && continue
+  [[ -z "$id" ]] && continue
 
   if id_exists "$id"; then
     skipped_dup=$((skipped_dup + 1))
@@ -129,7 +129,7 @@ while IFS= read -r f; do
   arr="[$(echo "$ils" | sed 's/ /, /g')]"
 
   imported=$((imported + 1))
-  if [ "$APPLY" -eq 1 ]; then
+  if [[ "$APPLY" -eq 1 ]]; then
     dest="rules/$subdir/$(basename "$f")"
     # Copy, then ensure source/ilities/maturity are present (inserted after id:).
     # action: only add if the rule has none (don't override an explicit action).
@@ -153,4 +153,4 @@ echo ""
 echo "cpm scanned:     $total"
 echo "skipped (dup):   $skipped_dup   (id already in keur — keur wins)"
 echo "to import:       $imported"
-if [ "$APPLY" -eq 1 ]; then echo "APPLIED."; else echo "(dry-run — re-run with --apply)"; fi
+if [[ "$APPLY" -eq 1 ]]; then echo "APPLIED."; else echo "(dry-run — re-run with --apply)"; fi
