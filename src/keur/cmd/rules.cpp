@@ -270,8 +270,8 @@ int rules(const RulesOptions& opts) {
     adapters::Fs fs{};
     std::string repo_root = git.run("rev-parse --show-toplevel");
     config::ScopeEnv env = config::capture_scope_env("", repo_root);
-    auto clayers = config::resolve_layers(env, [&](const std::string& p) { return fs.exists(p); });
-    disabled = config::resolve_disabled(clayers, [&](const std::string& p) {
+    auto clayers = config::resolve_layers(env, [&fs](const std::string& p) { return fs.exists(p); });
+    disabled = config::resolve_disabled(clayers, [&fs](const std::string& p) {
       auto rr = fs.read_file(p); return rr.ok ? rr.content : std::string();
     });
   }

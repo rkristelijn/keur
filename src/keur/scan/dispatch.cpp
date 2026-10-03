@@ -19,7 +19,7 @@ std::string resolve_tool_config(
     const std::string& repo_root,
     const std::function<bool(const std::string&)>& exists) {
     if (!exists) return "";
-    auto full = [&](const std::string& rel) {
+    auto full = [&repo_root](const std::string& rel) {
         return repo_root.empty() ? rel : platform::path_join(repo_root, rel);
     };
     // Root first (the tool's documented default location), then .config/.
@@ -191,7 +191,7 @@ bool adapter_runs(const config::Scanner& s, const DispatchContext& ctx) {
 
 std::vector<Finding> dispatch_scanners(const DispatchContext& ctx) {
     std::vector<Finding> all;
-    auto add = [&](std::vector<Finding> fs) {
+    auto add = [&all](std::vector<Finding> fs) {
         for (auto& f : fs) all.push_back(std::move(f));
     };
 

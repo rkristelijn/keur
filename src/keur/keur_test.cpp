@@ -457,7 +457,7 @@ SCENARIO("[feature:dispatch] dispatch — skips scanner not on PATH") {
     keur::config::Scanner gl; gl.name = "gitleaks"; gl.enabled = true; gl.on_path = false;
     ctx.scanners = {gl};
     bool spawned = false;
-    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
         spawned = true; return keur::adapters::ProcResult{};
     };
     ctx.exists = [](const std::string&) { return false; };
@@ -476,7 +476,7 @@ SCENARIO("[feature:dispatch] dispatch — runs gitleaks and passes repo-local co
     // .gitleaks.toml present in repo root.
     ctx.exists = [](const std::string& p) { return p == "/repo/.gitleaks.toml"; };
     std::vector<std::string> seen_argv;
-    ctx.proc.capture_argv = [&](const std::vector<std::string>& argv) {
+    ctx.proc.capture_argv = [&seen_argv](const std::vector<std::string>& argv) {
         seen_argv = argv;
         keur::adapters::ProcResult r;
         r.stdout_text = R"([{"RuleID":"aws-key","Description":"AWS key","File":"a.js","StartLine":1}])";
@@ -502,7 +502,7 @@ SCENARIO("[feature:dispatch] dispatch — no repo config → no --config flag fo
     ctx.scanners = {gl};
     ctx.exists = [](const std::string&) { return false; };  // no tool config
     std::vector<std::string> seen_argv;
-    ctx.proc.capture_argv = [&](const std::vector<std::string>& argv) {
+    ctx.proc.capture_argv = [&seen_argv](const std::vector<std::string>& argv) {
         seen_argv = argv; return keur::adapters::ProcResult{};
     };
     keur::scan::dispatch_scanners(ctx);
@@ -531,7 +531,7 @@ SCENARIO("[feature:dispatch] dispatch — disabled scanner is skipped") {
     keur::config::Scanner gl; gl.name = "gitleaks"; gl.enabled = false; gl.on_path = true;
     ctx.scanners = {gl};
     bool spawned = false;
-    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
         spawned = true; return keur::adapters::ProcResult{};
     };
     ctx.exists = [](const std::string&) { return false; };
@@ -567,7 +567,7 @@ SCENARIO("[feature:dispatch] dispatch — shellcheck only runs on shell files") 
     ctx.exists = [](const std::string&) { return false; };
     ctx.project_local_enabled = false;
     bool spawned = false;
-    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
         spawned = true; return keur::adapters::ProcResult{};
     };
     CHECK(keur::scan::dispatch_scanners(ctx).empty());
@@ -600,7 +600,7 @@ SCENARIO("[feature:dispatch] project-local — untracked script is NOT run") {
     ctx.exists = [](const std::string& p) { return p == "/repo/.keur/check.sh"; };
     ctx.is_tracked = [](const std::string&) { return false; };  // present but untracked
     bool spawned = false;
-    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
         spawned = true; return keur::adapters::ProcResult{};
     };
     CHECK(keur::scan::dispatch_scanners(ctx).empty());
@@ -613,7 +613,7 @@ SCENARIO("[feature:dispatch] project-local — tracked script, non-zero exit blo
     ctx.repo_root = "/repo";
     ctx.exists = [](const std::string& p) { return p == "/repo/.keur/check.sh"; };
     ctx.is_tracked = [](const std::string& rel) { return rel == ".keur/check.sh"; };
-    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+    ctx.proc.capture_argv = [](const std::vector<std::string>&) {
         keur::adapters::ProcResult r; r.exit_code = 2; r.stdout_text = "";
         return r;
     };
@@ -631,7 +631,7 @@ SCENARIO("[feature:dispatch] project-local — .config/keur/check.sh fallback") 
     // Only the .config/ copy exists and is tracked.
     ctx.exists = [](const std::string& p) { return p == "/repo/.config/keur/check.sh"; };
     ctx.is_tracked = [](const std::string& rel) { return rel == ".config/keur/check.sh"; };
-    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+    ctx.proc.capture_argv = [](const std::vector<std::string>&) {
         keur::adapters::ProcResult r; r.exit_code = 0;
         r.stdout_text = R"({"rule":"DEAD-LINK","action":"warn","message":"broken link"})";
         return r;
@@ -650,7 +650,7 @@ SCENARIO("[feature:dispatch] project-local — disabled skips entirely") {
     ctx.exists = [](const std::string& p) { return p == "/repo/.keur/check.sh"; };
     ctx.is_tracked = [](const std::string&) { return true; };
     bool spawned = false;
-    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
         spawned = true; return keur::adapters::ProcResult{};
     };
     CHECK(keur::scan::dispatch_scanners(ctx).empty());
@@ -1157,7 +1157,7 @@ SCENARIO("[feature:dispatch] dispatch — tier filter keeps a tool out") {
     ctx.exists = [](const std::string&) { return false; };
     ctx.project_local_enabled = false;
     bool spawned = false;
-    ctx.proc.capture_argv = [&](const std::vector<std::string>&) {
+    ctx.proc.capture_argv = [&spawned](const std::vector<std::string>&) {
         spawned = true; return keur::adapters::ProcResult{};
     };
     CHECK(keur::scan::dispatch_scanners(ctx).empty());
@@ -1274,7 +1274,10 @@ SCENARIO("[feature:rules] rule parses ilities: array and scalar") {  // @proves 
         "  - regex: x\n    message: m\n");
     auto rules = keur::rules_load(dir);
     const keur::Rule* multi = nullptr; const keur::Rule* scalar = nullptr;
-    for (const auto& r : rules) { if (r.id == "MULTI") multi = &r; if (r.id == "SCALAR") scalar = &r; }
+    for (const auto& r : rules) {
+        if (r.id == "MULTI") multi = &r;
+        if (r.id == "SCALAR") scalar = &r;
+    }
     REQUIRE(multi); REQUIRE(scalar);
     REQUIRE(multi->ilities.size() == 2);
     CHECK(multi->ilities[0] == "security");    // primary first
@@ -1358,7 +1361,7 @@ SCENARIO("[feature:rules] merge_difficulty folds global->repo cascade") {  // @p
     std::map<std::string, bool> ov;
     auto vec = keur::config::merge_difficulty(
         {"global", "repo"},
-        [&](const std::string& p) { return files.count(p) ? files[p] : std::string(); },
+        [&files](const std::string& p) { return files.count(p) ? files[p] : std::string(); },
         ov, /*default_level=*/1);
     CHECK(vec.default_level == 2);                 // global [policy] raised it
     CHECK(vec.level_of("integrity") == 5);         // repo override wins
@@ -2070,7 +2073,7 @@ SCENARIO("[feature:check] cmd_check BLOCKs on staged private key") {
     std::string dir;
     auto path = stage_fixture("secrets/rsa_key.pem", "id_rsa.pem", dir);
     keur::cmd::CheckOptions opts;
-    auto rc = keur::cmd::check(opts, [&]() {
+    auto rc = keur::cmd::check(opts, [&path]() {
         return std::vector<std::string>{path};
     });
     CHECK(rc == 1);
@@ -2084,7 +2087,7 @@ SCENARIO("[feature:check] cmd_check PASSes on staged clean file") {
     std::string dir;
     auto path = stage_fixture("clean/clean.yml", "config.yml", dir);
     keur::cmd::CheckOptions opts;
-    auto rc = keur::cmd::check(opts, [&]() {
+    auto rc = keur::cmd::check(opts, [&path]() {
         return std::vector<std::string>{path};
     });
     CHECK(rc == 0);
@@ -3196,7 +3199,7 @@ SCENARIO("[feature:manager-tree] Fs backup pattern keeps the previous version") 
     std::string bak  = path + ".bak";
 
     // Simulate two saves via the same read→backup→write sequence.
-    auto save = [&](const std::string& content) {
+    auto save = [&fs, &path, &bak](const std::string& content) {
         if (fs.exists(path)) { auto rr = fs.read_file(path); if (rr.ok) fs.write_file(bak, rr.content); }
         fs.write_file(path, content);
     };

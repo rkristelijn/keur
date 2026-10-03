@@ -154,8 +154,8 @@ int check(const CheckOptions& opts, FileSource file_src) {
     }
     adapters::Proc proc;
     config::ScannerProbe probe;
-    probe.tool_on_path = [&](const std::string& t) { return proc.has(t); };
-    probe.exists = [&](const std::string& p) { return fs.exists(p); };
+    probe.tool_on_path = [&proc](const std::string& t) { return proc.has(t); };
+    probe.exists = [&fs](const std::string& p) { return fs.exists(p); };
     probe.repo_root = repo_root;
     auto scanners = config::resolve_scanners(declared, probe);
 
@@ -165,9 +165,9 @@ int check(const CheckOptions& opts, FileSource file_src) {
     ctx.tier_allowed = std::move(tier_allowed);
     ctx.repo_root = repo_root;
     ctx.proc = proc;
-    ctx.exists = [&](const std::string& p) { return fs.exists(p); };
+    ctx.exists = [&fs](const std::string& p) { return fs.exists(p); };
     // keur-rules layer: run the in-process engine, mapped to canonical Findings.
-    ctx.keur_rules = [&](const std::vector<std::string>& fs_in) {
+    ctx.keur_rules = [&rules](const std::vector<std::string>& fs_in) {
         std::vector<scan::Finding> out;
         if (rules.empty()) return out;
         for (const auto& rf : rules_scan_files(rules, fs_in)) {
@@ -189,7 +189,7 @@ int check(const CheckOptions& opts, FileSource file_src) {
     };
     // Project-local trust boundary: git ls-files --error-unmatch on the repo-
     // relative path; a tracked file returns non-empty (git prints the path).
-    ctx.is_tracked = [&](const std::string& rel) {
+    ctx.is_tracked = [&git](const std::string& rel) {
         return !git.run("ls-files --error-unmatch " + rel).empty();
     };
 
