@@ -16,14 +16,11 @@ out="$("$BINARY" level --print 3 --no-color --bucket md 2>/dev/null)"
 rc=$?
 [[ "$rc" -eq 0 ]] && ok "level --print exits 0" || fail "level --print exit $rc"
 
-# The logo is braille (U+28xx block: ⠀..⣿). Look for a filled glyph like ⠿/⣿.
-# The character-class range is multibyte, so it only matches under a UTF-8
-# locale: GNU grep (Linux CI) treats the bytes literally under LC_ALL=C and the
-# range silently fails, while BSD grep (macOS) matches regardless. Pin a UTF-8
-# locale here so the check behaves identically on every runner.
-braille_locale="C.UTF-8"
-locale -a 2>/dev/null | grep -qiE '^C\.utf-?8$' || braille_locale="en_US.UTF-8"
-if echo "$out" | LC_ALL="$braille_locale" grep -qE '[⠀-⣿]'; then
+# The logo is braille (U+28xx block). In UTF-8 every braille glyph starts with
+# the lead byte 0xE2 followed by 0xA0..0xA3. Checking those raw bytes under
+# LC_ALL=C is locale-INDEPENDENT: it works on a bare Ubuntu CI container that
+# lacks C.UTF-8/en_US.UTF-8 (where a multibyte [⠀-⣿] range silently fails).
+if printf '%s' "$out" | LC_ALL=C grep -qE $'\xe2[\xa0-\xa3]'; then
   ok "output contains braille logo glyphs"
 else
   fail "no braille logo glyphs in output"
