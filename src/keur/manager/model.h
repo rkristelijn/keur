@@ -81,6 +81,11 @@ struct Edit {
 /// Model's tree (valid until the tree is mutated).
 struct Row {
     const Node* node;
+
+    // Explicit constructor so vector::emplace_back works on every toolchain:
+    // libc++ (macOS Xcode CI) cannot emplace a constructor-less aggregate.
+    // @see KEUR-PORT-007
+    explicit Row(const Node* node_) : node(node_) {}
 };
 
 // --- Build ------------------------------------------------------------------
@@ -121,6 +126,15 @@ struct HookInfoItem {
     std::string value;   ///< e.g. "husky", "shadowed by husky", "yes"
     bool        warn = false;  ///< problem state → red ⚠ so it stands out
     std::string action;  ///< non-empty → an ActionNode: "augment" | "unaugment"
+
+    HookInfoItem() = default;
+    // Explicit constructor so vector::emplace_back works on every toolchain:
+    // libc++ (macOS Xcode CI) cannot emplace a constructor-less aggregate.
+    // @see KEUR-PORT-007
+    HookInfoItem(std::string label_, std::string value_, bool warn_ = false,
+                 std::string action_ = {})
+        : label(std::move(label_)), value(std::move(value_)),
+          warn(warn_), action(std::move(action_)) {}
 };
 
 /// An external scanner (gitleaks/semgrep/…) as a toggleable tree leaf, with its
@@ -140,6 +154,13 @@ struct SettingItem {
     std::string group;   ///< sub-group under Defaults ("Scanners", "Policy")
     std::string label;   ///< the setting name
     std::string value;   ///< its value, shown dimmed
+
+    SettingItem() = default;
+    // Explicit constructor so vector::emplace_back works on every toolchain:
+    // libc++ (macOS Xcode CI) cannot emplace a constructor-less aggregate.
+    // @see KEUR-PORT-007
+    SettingItem(std::string group_, std::string label_, std::string value_)
+        : group(std::move(group_)), label(std::move(label_)), value(std::move(value_)) {}
 };
 
 /// The read-only Defaults branch: the shipped template's settings + the full

@@ -2289,6 +2289,39 @@ SCENARIO("[feature:rule-engine] skip_comments suppresses comment-only matches") 
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] skip_comments rule keeps string matches when a skip_strings rule is also loaded") {
+    // Regression: the scan used to strip ONE shared variant per file. If any
+    // loaded rule wanted skip_strings, every skip_comments rule was matched
+    // against the comments+strings-stripped text — so a skip_comments rule whose
+    // pattern targets text INSIDE a string literal silently matched nothing.
+    // The fix strips comments-only and comments+strings separately and picks the
+    // variant per rule. Here: a skip_comments rule (pattern inside a string) must
+    // still fire even though a skip_strings rule is loaded alongside it.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    // Rule A: skip_comments only, pattern matches a token that lives in a string.
+    write_file(dir + "/A_GLYPH.rule",
+        "id: SC-GLYPH\ntitle: glyph escape\ncategory: quality\nseverity: warning\n"
+        "engine: pattern\nskip_comments: true\ntarget:\n  extensions: .cpp\n"
+        "patterns:\n  - regex: \\\\u[0-9A-Fa-f]{4}\n    message: glyph escape\n");
+    // Rule B: skip_strings, forces the comments+strings strip to be computed too.
+    write_file(dir + "/B_STR.rule",
+        "id: SS-TODO\ntitle: todo\ncategory: quality\nseverity: warning\n"
+        "engine: pattern\nskip_strings: true\ntarget:\n  extensions: .cpp\n"
+        "patterns:\n  - regex: \\bTODO\\b\n    message: todo\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(rules.size() == 2);
+
+    std::string cpp = dir + "/glyph.cpp";
+    // The \u2713 lives inside a string literal, on a line that also has a comment.
+    write_file(cpp, "const char* ok = \"\\u2713\";  // check glyph\n");
+    auto fs = keur::rules_scan_files(rules, {cpp});
+    int glyph_hits = 0;
+    for (auto& f : fs) if (f.rule_id == "SC-GLYPH") glyph_hits++;
+    CHECK(glyph_hits == 1);   // was 0 before the fix (string content wrongly stripped)
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] without skip_comments the comment match is kept") {
     std::string dir = create_temp_dir();
     REQUIRE(!dir.empty());

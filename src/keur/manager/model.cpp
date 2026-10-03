@@ -253,7 +253,7 @@ Node build_defaults_scope(const DefaultsInfo& d, const std::vector<Facet>& order
 
 // Depth-first collection of visible rows, honouring `expanded`.
 void collect_visible(const Node& n, std::vector<Row>& out) {
-    out.push_back({&n});
+    out.push_back(Row(&n));
     if ((n.kind != NodeKind::RuleNode && n.kind != NodeKind::ScannerNode && n.kind != NodeKind::ActionNode) && n.expanded)
         for (const auto& c : n.children) collect_visible(c, out);
 }
