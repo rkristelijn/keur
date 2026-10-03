@@ -19,16 +19,35 @@ Metrics per tool:
 import json, os, sys, collections
 
 WINDOW = 3
-bench, gt_path, timings_path = sys.argv[1], sys.argv[2], sys.argv[3]
+
+def safe_path(p, *, must_exist=True):
+    """Resolve and validate a user-supplied path before any file I/O.
+
+    Normalises to an absolute real path (collapsing any '..' traversal) and,
+    when required, asserts the target exists and is a regular file. This breaks
+    the raw argv -> open() taint flow: downstream opens receive a vetted path.
+    """
+    rp = os.path.realpath(p)
+    if must_exist and not os.path.isfile(rp):
+        sys.exit(f"benchmark-score: not a readable file: {p}")
+    return rp
+
+bench         = safe_path(sys.argv[1], must_exist=False)  # a directory
+gt_path       = safe_path(sys.argv[2])
+timings_path  = safe_path(sys.argv[3])
+if not os.path.isdir(bench):
+    sys.exit(f"benchmark-score: not a directory: {sys.argv[1]}")
 
 def load(p):
     out=[]
-    if os.path.exists(p):
-        for l in open(p):
-            l=l.strip()
-            if l:
-                try: out.append(json.loads(l))
-                except: pass
+    rp = safe_path(p, must_exist=False)
+    if os.path.isfile(rp):
+        with open(rp, encoding="utf-8") as fh:
+            for l in fh:
+                l=l.strip()
+                if l:
+                    try: out.append(json.loads(l))
+                    except json.JSONDecodeError: pass
     return out
 
 # authored GT: reviewed positives (with a locus) + safe labels
@@ -41,11 +60,12 @@ safe_keys = {(r["repo"], r["locator"].get("file",""), r.get("category","")) for 
 
 # timings
 secs={}
-for l in open(timings_path):
-    parts=l.rstrip("\n").split("\t")
-    if len(parts)>=2 and parts[0] not in ("tool",):
-        try: secs[parts[0]]=float(parts[1])
-        except: pass
+with open(timings_path, encoding="utf-8") as fh:
+    for l in fh:
+        parts=l.rstrip("\n").split("\t")
+        if len(parts)>=2 and parts[0] not in ("tool",):
+            try: secs[parts[0]]=float(parts[1])
+            except ValueError: pass
 
 def norm(fp):
     fp=fp or ""
@@ -95,5 +115,6 @@ out={"loci":len(pos),"safe":len(safe),"window":WINDOW,
      "tools":[{"tool":t,"tp":tp,"fn":fn,"fp":fpr,"raw":raw,
                "recall":round(rec,4),"seconds":round(sec,2),"loci_per_sec":round(ls,2)}
               for tp,t,fn,fpr,raw,rec,sec,ls in rows]}
-json.dump(out, open(os.path.join(bench,"benchmark.json"),"w"), indent=2)
+with open(os.path.join(bench, "benchmark.json"), "w", encoding="utf-8") as fh:
+    json.dump(out, fh, indent=2)
 print(f"\n  -> {os.path.join(bench,'benchmark.json')}")
