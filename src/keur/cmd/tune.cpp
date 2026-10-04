@@ -120,6 +120,12 @@ std::string render_lens(TuneView v, bool color, int level_sel,
         case TuneView::Level:
             os << render_level_screen(render::Bucket::Sm, color, level_sel,
                                       /*show_logo=*/false);
+            // A `*` means the on-disk vector is NOT all-equal (an ility was
+            // tuned in settings or a per-rule override exists), so "you are on
+            // level N, but with deviations below". Mirrors the design doc.
+            if (model_has_star(smodel))
+                os << "\n" << paint("  * tuned below this level \xE2\x80\x94 see settings (Tab)",
+                                    k_red_dim, color) << "\n";
             os << "\n" << paint("  \xE2\x86\x91\xE2\x86\x93/\xE2\x86\x90\xE2\x86\x92 pick level \xC2\xB7 Enter save \xC2\xB7 Tab \xE2\x86\x92 settings",
                                 k_dim, color) << "\n";
             break;
@@ -167,8 +173,21 @@ bool settings_on_slider(const SettingsModel& m) {
     return cur < rows.size() && !rows[cur].is_group();
 }
 
+// The coarse level derived from the slider model: rounded average of non-OFF
+// ilities (empty → 3), clamped 1..5. Pure. @id KEUR-TUNE.overall
+int overall_level(const SettingsModel& m) {
+    int sum = 0, n = 0;
+    for (const auto& g : m.groups)
+        for (const auto& s : g.sliders) if (s.level > 0) { sum += s.level; ++n; }
+    int v = (n == 0) ? 3 : (sum + n / 2) / n;  // round-half-up
+    if (v < 1) v = 1;
+    if (v > 5) v = 5;
+    return v;
+}
+
 // The coarse chooser is 1-D: up/left step down a level, down/right step up.
-void handle_level_key(const platform::KeyEvent& ev, const TuneOptions& opts,
+// Returns true when Enter triggered a save.
+bool handle_level_key(const platform::KeyEvent& ev, const TuneOptions& opts,
                       int& level_sel, std::string& status) {
     const bool dec = ev.key == platform::Key::Up || ev.key == platform::Key::Left ||
                      (ev.key == platform::Key::Char && (ev.ch == 'k' || ev.ch == 'h'));
@@ -176,15 +195,16 @@ void handle_level_key(const platform::KeyEvent& ev, const TuneOptions& opts,
                      (ev.key == platform::Key::Char && (ev.ch == 'j' || ev.ch == 'l'));
     if (dec && level_sel > 1) --level_sel;
     else if (inc && level_sel < 5) ++level_sel;
-    else if (ev.key == platform::Key::Enter) save_level(opts, level_sel, &status);
+    else if (ev.key == platform::Key::Enter) { save_level(opts, level_sel, &status); return true; }
+    return false;
 }
 
 // Sliders: delegates the edit logic to the shared settings_apply_key (one
 // source of truth with standalone `keur settings`); only the save side differs
 // (the router reports via a status line instead of printing + exiting).
-void handle_settings_key(const platform::KeyEvent& ev, const TuneOptions& opts,
+bool handle_settings_key(const platform::KeyEvent& ev, const TuneOptions& opts,
                          SettingsModel& smodel, std::string& status) {
-    if (settings_apply_key(smodel, ev) != SettingsKeyResult::SaveRequested) return;
+    if (settings_apply_key(smodel, ev) != SettingsKeyResult::SaveRequested) return false;
     SettingsOptions so;
     so.config   = opts.config;
     so.no_color = opts.no_color;
@@ -192,22 +212,16 @@ void handle_settings_key(const platform::KeyEvent& ev, const TuneOptions& opts,
     bool ok = save_settings_model(so, smodel, &cfg);
     smodel.dirty = !ok;
     status = ok ? ("saved difficulty to " + cfg) : ("could not write " + cfg);
+    return true;
 }
 
 int tune(const TuneOptions& opts) {
     bool color_print = !opts.no_color && std::getenv("NO_COLOR") == nullptr;
 
-    // The live state behind the lenses: the real slider model + a coarse level.
+    // The live state behind the lenses: the real slider model + a coarse level
+    // derived from it (both refreshed from disk after a save, see below).
     SettingsModel smodel = load_settings_model();
-    // Seed the coarse level from the resolved vector's default (its overall).
-    int level_sel = smodel.groups.empty() ? 3 : [&]{
-        int sum = 0, n = 0;
-        for (const auto& g : smodel.groups)
-            for (const auto& s : g.sliders) if (s.level > 0) { sum += s.level; ++n; }
-        int v = (n == 0) ? 3 : (sum + n / 2) / n;  // rounded average
-        if (v < 1) v = 1; if (v > 5) v = 5;
-        return v;
-    }();
+    int level_sel = overall_level(smodel);
 
     if (opts.print_only) {
         std::cout << render_lens(opts.start, color_print, level_sel, smodel);
@@ -225,6 +239,7 @@ int tune(const TuneOptions& opts) {
     TuneView view = opts.start;
     bool running = true;
     bool open_manager = false;
+    bool saved = false;  // a save happened → refresh shared state on lens switch
     std::string status;  // last action feedback (save result)
 
     while (running) {
@@ -235,17 +250,26 @@ int tune(const TuneOptions& opts) {
         std::cout << std::flush;
 
         platform::KeyEvent ev = platform::read_key();
-        // Global keys: Tab/Shift-Tab switch lens; q/Esc quit. Arrows stay with
-        // the active lens (handled below).
-        if (ev.key == platform::Key::Tab)     { view = tune_next(view); status.clear(); continue; }
-        if (ev.key == platform::Key::BackTab) { view = tune_prev(view); status.clear(); continue; }
+        // Switching lens: refresh from disk after a save so the next lens shows
+        // the just-written state (one canonical source, no stale view).
+        auto switch_to = [&](TuneView next) {
+            if (saved) {
+                smodel = load_settings_model();
+                level_sel = overall_level(smodel);
+                saved = false;
+            }
+            view = next;
+            status.clear();
+        };
+        if (ev.key == platform::Key::Tab)     { switch_to(tune_next(view)); continue; }
+        if (ev.key == platform::Key::BackTab) { switch_to(tune_prev(view)); continue; }
         if (ev.key == platform::Key::Escape)  { running = false; continue; }
         if (ev.key == platform::Key::Char && ev.ch == 'q') { running = false; continue; }
 
-        // Delegate the rest to the active lens's handler.
+        // Delegate the rest to the active lens's handler; note any save.
         switch (view) {
-            case TuneView::Level:    handle_level_key(ev, opts, level_sel, status); break;
-            case TuneView::Settings: handle_settings_key(ev, opts, smodel, status); break;
+            case TuneView::Level:    saved |= handle_level_key(ev, opts, level_sel, status); break;
+            case TuneView::Settings: saved |= handle_settings_key(ev, opts, smodel, status); break;
             case TuneView::Manager:  if (ev.key == platform::Key::Enter) { open_manager = true; running = false; } break;
         }
     }
