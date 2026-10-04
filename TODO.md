@@ -4,6 +4,15 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ## Done (this cycle)
 
+- [x] Sonar config validation rules (SONAR-001..008): nothing else validates
+      `sonar-project.properties` (Sonar silently ignores unknown/missing keys),
+      so keur does. SONAR-001 missing projectKey, 002 missing organization
+      (SonarCloud), 003 token/login committed (secret-in-config), 004 misspelled
+      keys (exclusion/projectkey/reportPath), 005-008 per-language coverage path
+      MISSING via `requires: lang` + `absence` (java→jacoco, js/ts→lcov,
+      python→coverage.xml, go→coverage profile). Validated by
+      tests/e2e/test_sonar.sh (8 asserts: true positives, 0 FP, requires: gating).
+
 - [x] difficulty TUI (ADR-038/039, docs/design/difficulty-chooser-ui.md): the
       three lenses over one keur.toml state. `keur tune` router switches lenses
       with Tab/Shift-Tab; `keur level` (coarse) steps in on Tab; `keur settings`
@@ -46,6 +55,17 @@ Status legend: [x] done · [~] partially done · [ ] open
 ## Open
 
 ### Features
+
+- [ ] config-in-root hygiene rule: flag a config file sitting in the repo root
+      when the tool supports a non-root location (e.g. keur.toml → .config/
+      .keur.toml, which keur already resolves). Must be DATA-driven (a list of
+      tools that support .config/) so it never flags root-only files that CANNOT
+      move (sonar-project.properties, mull.yml, compile_commands.json, .gitignore
+      are tool-hardcoded to root). Needs a design decision on which tools to
+      include. (raised 2026-10-04 alongside the SONAR-* rules.)
+- [ ] SONAR-* findings double-count per file (each fires 2× in a scan) — looks
+      like findings are not deduped per (rule,file,line) for these; confirm
+      whether it is a reporting quirk or affects other rules too, then dedupe.
 
 - [ ] extract-duplicates engine (last of cpm's 7 engines; ADR-004 stage 2). Per
       file, extract a capture group via `extract:` regex + `capture:` index and

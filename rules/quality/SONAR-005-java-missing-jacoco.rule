@@ -1,0 +1,37 @@
+# keur quality control — a Java repo whose sonar-project.properties configures
+# no JaCoCo coverage report path (SonarQube/SonarCloud then shows 0% coverage).
+#
+# Why this exists: coverage only appears in Sonar when a LANGUAGE-SPECIFIC report
+# path points at a report your test run produced. For Java/Kotlin that key is
+# `sonar.coverage.jacoco.xmlReportPaths`. Miss it and the dashboard reads 0%, and
+# any coverage-based quality gate fails silently — nothing else warns you.
+#
+# HOW (requires + absence): `requires: lang: java` gates the rule to repos that
+# actually contain Java (facts from .java files / pom.xml, ADR-009) — so a JS or
+# Go repo never pays for it. Within those, the absence engine fires when the
+# JaCoCo key appears NOWHERE in the file. `content_contains: sonar.sources`
+# skips a properties file that configures no analysis at all.
+#
+# This is the per-language refinement of the generic "no coverage path" idea:
+# because keur knows the repo is Java (facts), it can demand the RIGHT key.
+#
+# WARN, low confidence: a repo may pass the path via CI (-Dsonar.coverage...) or
+# deliberately skip coverage; the fix shows the exact key. @see docs/rules-authoring.md
+id: SONAR-005
+ilities: [testability]
+maturity: 3
+title: Java repo — Sonar config has no JaCoCo coverage report path
+category: quality
+severity: warning
+engine: absence
+action: warn
+confidence: 0.5
+requires:
+  lang: java
+target:
+  filenames: sonar-project.properties
+  content_contains: sonar.sources
+patterns:
+  - regex: (?mi)^\s*sonar\.coverage\.jacoco\.xmlReportPaths\s*=\s*\S
+    message: "Java repo: sonar-project.properties sets sonar.sources but no sonar.coverage.jacoco.xmlReportPaths — Sonar will show 0% coverage. Point it at your JaCoCo XML report."
+fix: "Add `sonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml` (Maven) or `build/reports/jacoco/test/jacocoTestReport.xml` (Gradle), and ensure the JaCoCo report is generated before the scan."
