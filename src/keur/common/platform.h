@@ -121,7 +121,7 @@ bool process_alive(long pid);
 /// business code never parses `\033[` or termios/console specifics itself.
 enum class Key {
     Up, Down, Left, Right,   ///< arrows (and their hjkl aliases resolve to Char)
-    Enter, Space, Tab,
+    Enter, Space, Tab, BackTab,
     Backspace, Escape,
     Char,                    ///< a printable char; the byte is in KeyEvent::ch
     Unknown,                 ///< anything we don't map

@@ -31,6 +31,7 @@ KeyEvent decode_key(const std::string& buf) {
                 case 'B': return {Key::Down, '\0'};
                 case 'C': return {Key::Right, '\0'};
                 case 'D': return {Key::Left, '\0'};
+                case 'Z': return {Key::BackTab, '\0'};  // Shift-Tab (CSI Z)
                 default:  return {Key::Unknown, '\0'};
             }
         }

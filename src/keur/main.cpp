@@ -29,7 +29,9 @@
 #include "cmd/policy.h"
 #include "cmd/rules.h"
 #include "cmd/scan.h"
+#include "cmd/settings.h"
 #include "cmd/train.h"
+#include "cmd/tune.h"
 
 // ---------------------------------------------------------------------------
 // Type alias for a subcommand handler
@@ -68,6 +70,16 @@ static void usage() {
         "        [--bucket sm|md|lg|xl] Interactive by default; --print/--bucket\n"
         "        [--no-color] [--global]  render deterministically. Persists to\n"
         "        keur.toml (--global: the machine-wide ~/.config/keur/keur.toml).\n"
+        "  settings [--print]         Per-ility sliders grouped by ISO 25010\n"
+        "        [--no-color] [--global]  characteristic (the MEDIOR view between\n"
+        "        [--config PATH]      level and manager). Arrows move, right/left\n"
+        "                             expand/collapse, -/+ adjust, s saves to the\n"
+        "                             [difficulty] vector in keur.toml.\n"
+        "  tune  [--print]            One screen, three lenses switched with left/\n"
+        "        [--view V]           right arrows: level (coarse) <-> settings\n"
+        "        [--no-color]         (medior) <-> manager (expert). V picks the\n"
+        "                             starting lens. The medior lens is a stub for\n"
+        "                             now; the expert lens opens keur manager.\n"
         "  difficulty --explain       Explain the resolved difficulty vector + which\n"
         "        [--why RULE]         rules it activates; --why/--why-not RULE shows\n"
         "        [--why-not RULE]     why a rule is (in)active and what to change.\n"
@@ -100,6 +112,8 @@ static const std::unordered_map<std::string, Handler> k_commands = {
     {"config", [](const Args& a) { return keur::cmd::config(keur::cmd::config_parse(a)); }},
     {"manager", [](const Args& a) { return keur::cmd::manager(keur::cmd::manager_parse(a)); }},
     {"level",  [](const Args& a) { return keur::cmd::level(keur::cmd::level_parse(a)); }},
+    {"settings", [](const Args& a) { return keur::cmd::settings(keur::cmd::settings_parse(a)); }},
+    {"tune",   [](const Args& a) { return keur::cmd::tune(keur::cmd::tune_parse(a)); }},
     {"difficulty", [](const Args& a) { return keur::cmd::difficulty(keur::cmd::difficulty_parse(a)); }},
     {"train",  [](const Args& a) { return keur::cmd::train(keur::cmd::train_parse(a)); }},
     {"learn",  [](const Args& a) { return keur::cmd::learn(a); }},
