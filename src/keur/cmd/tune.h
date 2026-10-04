@@ -25,6 +25,9 @@
 #include <string>
 #include <vector>
 
+#include "cmd/settings.h"      // SettingsModel (the medior lens state)
+#include "common/platform.h"   // platform::KeyEvent
+
 namespace keur::cmd {
 
 /// Which lens is active. Order is the ←/→ axis: coarse → medior → expert.
@@ -42,10 +45,6 @@ enum class TuneView { Level, Settings, Manager };
 /// @id KEUR-TUNE.header
 [[nodiscard]] std::string render_tune_header(TuneView active, bool color);
 
-/// The DUMMY medior screen — a placeholder until the real sliders are wired in.
-/// Pure. @id KEUR-TUNE.medior-dummy
-[[nodiscard]] std::string render_medior_dummy(bool color);
-
 /// Parsed `keur tune` invocation.
 struct TuneOptions {
     std::string config;              ///< --config path (empty = auto-resolve)
@@ -56,6 +55,26 @@ struct TuneOptions {
 
 /// Parse argv into TuneOptions. Pure, never fails. @id KEUR-TUNE.parse
 [[nodiscard]] TuneOptions tune_parse(const std::vector<std::string>& args);
+
+// --- Per-lens key handlers (pure state transitions, unit-testable) ----------
+// Navigation ACROSS lenses (Tab/Shift-Tab/q/Esc) is handled by tune() before
+// these run; each handler only applies its lens's within-view keys.
+
+/// True when the settings cursor is on a slider row (vs a group header). Pure.
+/// @id KEUR-TUNE.on-slider
+[[nodiscard]] bool settings_on_slider(const SettingsModel& m);
+
+/// Apply one key to the coarse LEVEL lens: up/left step down, down/right step
+/// up (clamped 1..5), Enter saves to keur.toml. `level_sel`/`status` mutate.
+/// @id KEUR-TUNE.key.level
+void handle_level_key(const platform::KeyEvent& ev, const TuneOptions& opts,
+                      int& level_sel, std::string& status);
+
+/// Apply one key to the SETTINGS (medior) lens: move/expand/collapse/adjust the
+/// slider model, `s` saves. Mirrors standalone `keur settings`. Mutates `smodel`
+/// (+ `status` on save). @id KEUR-TUNE.key.settings
+void handle_settings_key(const platform::KeyEvent& ev, const TuneOptions& opts,
+                         SettingsModel& smodel, std::string& status);
 
 /// Run `keur tune`. Interactive: ←/→ switch lens, the active lens handles the
 /// rest; `q`/Esc quits. --print renders the start lens once. Returns 0 on

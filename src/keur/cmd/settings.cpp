@@ -237,6 +237,44 @@ std::vector<std::pair<std::string, int>> settings_vector(const SettingsModel& m)
     return out;
 }
 
+// settings_apply_key — the ONE key→model transition for the medior view, shared
+// by standalone `settings()` and the `tune` router. No I/O: it mutates the
+// model and reports whether a save was asked for. @id KEUR-SETTINGS.apply-key
+SettingsKeyResult settings_apply_key(SettingsModel& m, const platform::KeyEvent& ev) {
+    auto on_slider = [&m]() {
+        auto rows = settings_visible_rows(m);
+        const std::size_t cur = m.cursor < 0 ? rows.size()
+                                             : static_cast<std::size_t>(m.cursor);
+        return cur < rows.size() && !rows[cur].is_group();
+    };
+    switch (ev.key) {
+        case platform::Key::Up:    settings_move(m, -1); return SettingsKeyResult::Changed;
+        case platform::Key::Down:  settings_move(m, +1); return SettingsKeyResult::Changed;
+        case platform::Key::Right:
+            // On a group: expand; on a slider: raise one step.
+            if (!settings_expand(m)) settings_adjust(m, +1);
+            return SettingsKeyResult::Changed;
+        case platform::Key::Left:
+            // On a slider: lower one step; on a group: collapse.
+            if (on_slider()) settings_adjust(m, -1);
+            else settings_collapse(m);
+            return SettingsKeyResult::Changed;
+        case platform::Key::Enter:
+            if (!settings_expand(m)) settings_collapse(m);
+            return SettingsKeyResult::Changed;
+        case platform::Key::Char:
+            switch (ev.ch) {
+                case 'k': settings_move(m, -1); return SettingsKeyResult::Changed;
+                case 'j': settings_move(m, +1); return SettingsKeyResult::Changed;
+                case '+': case '=': settings_adjust(m, +1); return SettingsKeyResult::Changed;
+                case '-': case '_': settings_adjust(m, -1); return SettingsKeyResult::Changed;
+                case 's': return SettingsKeyResult::SaveRequested;
+                default:  return SettingsKeyResult::None;
+            }
+        default: return SettingsKeyResult::None;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // render_settings_screen — pure. @id KEUR-SETTINGS.render
 // Layout per the design doc:
@@ -552,52 +590,23 @@ int settings(const SettingsOptions& opts) {
         std::cout << render_settings_screen(model, color) << std::flush;
 
         platform::KeyEvent ev = platform::read_key();
-        switch (ev.key) {
-            case platform::Key::Up:    settings_move(model, -1); break;
-            case platform::Key::Down:  settings_move(model, +1); break;
-            case platform::Key::Right: {
-                // On a group header expand; on a slider, nudge up.
-                if (!settings_expand(model)) settings_adjust(model, +1);
-                break;
+        // Quit keys are owned by this loop; everything else is the shared
+        // slider key-reducer (one source of truth with the tune router).
+        if (ev.key == platform::Key::Escape ||
+            (ev.key == platform::Key::Char && ev.ch == 'q')) {
+            running = false;
+            continue;
+        }
+        if (settings_apply_key(model, ev) == SettingsKeyResult::SaveRequested) {
+            std::string cfg;
+            if (save_settings_model(opts, model, &cfg)) {
+                model.dirty = false;
+                std::cout << "\nSaved difficulty to " << cfg << "\n";
+            } else {
+                std::cerr << "\nkeur settings: could not write " << cfg << "\n";
+                exit_code = 1;
             }
-            case platform::Key::Left: {
-                // On a slider, nudge down; on a group header collapse.
-                auto rows = settings_visible_rows(model);
-                bool on_slider = model.cursor >= 0 &&
-                                 model.cursor < isize(rows) &&
-                                 !rows[static_cast<std::size_t>(model.cursor)].is_group();
-                if (on_slider) settings_adjust(model, -1);
-                else settings_collapse(model);
-                break;
-            }
-            case platform::Key::Enter:
-                // Enter toggles expand/collapse on a group (quick disclosure).
-                if (!settings_expand(model)) settings_collapse(model);
-                break;
-            case platform::Key::Char:
-                if (ev.ch == 'k') settings_move(model, -1);
-                else if (ev.ch == 'j') settings_move(model, +1);
-                else if (ev.ch == '+' || ev.ch == '=') settings_adjust(model, +1);
-                else if (ev.ch == '-' || ev.ch == '_') settings_adjust(model, -1);
-                else if (ev.ch == 's') {
-                    std::string cfg;
-                    if (save_settings_model(opts, model, &cfg)) {
-                        model.dirty = false;
-                        std::cout << "\nSaved difficulty to " << cfg << "\n";
-                    } else {
-                        std::cerr << "\nkeur settings: could not write " << cfg << "\n";
-                        exit_code = 1;
-                    }
-                    running = false;
-                } else if (ev.ch == 'q') {
-                    running = false;
-                }
-                break;
-            case platform::Key::Escape:
-                running = false;
-                break;
-            default:
-                break;
+            running = false;
         }
     }
     return exit_code;
