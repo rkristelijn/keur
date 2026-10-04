@@ -128,6 +128,28 @@ static bool group_all_inherited(const Node& n) {
     return total > 0 && inherited == total;
 }
 
+// The SGR colour for a row, as ONE ordered decision (highest priority first):
+//   scope header → by reach (global cyan / repo yellow / defaults dim)
+//   warn         → red (shadowed / not chained)
+//   read-only / setting / inherited → dim (baseline or cascaded-away)
+//   rule/scanner enabled  → green;  disabled → dim
+//   whole group off or fully overruled → dim
+//   otherwise → no colour ("")
+// Returns a static ANSI string ("" = leave uncoloured). Pure + unit-testable,
+// so the priority order is pinned by tests rather than buried in render().
+const char* style_for(const Node& n) {
+    if (n.kind == NodeKind::ScopeNode)
+        return (n.scope == Scope::Global) ? kCyan
+             : (n.scope == Scope::Repo)   ? kYellow
+                                          : kDim;
+    if (n.warn) return kRed;
+    if (n.read_only || n.kind == NodeKind::SettingNode || n.inherited) return kDim;
+    const bool togglable = (n.kind == NodeKind::RuleNode || n.kind == NodeKind::ScannerNode);
+    if (togglable) return n.enabled ? kGreen : kDim;
+    if (group_all_off(n) || group_all_inherited(n)) return kDim;
+    return "";
+}
+
 std::vector<std::string> render(const Model& m, const ViewOpts& opts) {
     std::vector<std::string> out;
     auto rows = visible_rows(m);
@@ -156,8 +178,21 @@ std::vector<std::string> render(const Model& m, const ViewOpts& opts) {
     }
     out.push_back(std::string(static_cast<std::size_t>(std::min(width, 60)), '-'));
 
-    // Body height = total rows minus header(3) and footer(1).
-    int body_h = std::max(1, opts.rows - 4);
+    // Search line: show the live `/` filter so you see what you're typing and
+    // whether a filter is currently narrowing the tree.
+    if (m.search_active || !m.search_query.empty()) {
+        std::string sl = "/" + m.search_query + (m.search_active ? "\u2588" : "");  // █ caret while typing
+        std::string label = m.search_active ? "search (Enter keep · Esc clear): "
+                                             : "filter (Esc clear): ";
+        std::string line = render::truncate_to("  " + label + sl, width);
+        if (opts.color) line = std::string(kYellow) + line + kReset;
+        out.push_back(line);
+    }
+
+    // Body height = total rows minus header(3) and footer(1), and one more when
+    // the search line is shown.
+    const int search_rows = (m.search_active || !m.search_query.empty()) ? 1 : 0;
+    int body_h = std::max(1, opts.rows - 4 - search_rows);
     const std::size_t row_count = rows.size();
     int total  = static_cast<int>(row_count);
     int cursor = std::clamp(m.cursor, 0, std::max(0, total - 1));
@@ -176,25 +211,9 @@ std::vector<std::string> render(const Model& m, const ViewOpts& opts) {
         if (!opts.color) {
             line = (focused_row ? "❯ " : "  ") + text;  // ❯ marker, no SGR
         } else {
-            std::string body = text;
-            if (n.kind == NodeKind::ScopeNode) {
-                // Scope headers coloured by reach: Global=cyan (system-wide),
-                // This repo=blue (repo-level), Defaults=dim (read-only baseline).
-                const char* sc = (n.scope == Scope::Global) ? kCyan
-                               : (n.scope == Scope::Repo)   ? kYellow
-                                                            : kDim;
-                body = std::string(sc) + text + kReset;
-            }
-            else if (n.warn)
-                body = std::string(kRed) + text + kReset;   // shadowed / not chained: red ⚠
-            else if (n.read_only || n.kind == NodeKind::SettingNode || n.inherited)
-                body = std::string(kDim) + text + kReset;   // baseline / cascaded: dimmed
-            else if ((n.kind == NodeKind::RuleNode || n.kind == NodeKind::ScannerNode) && n.enabled)
-                body = std::string(kGreen) + text + kReset;
-            else if ((n.kind == NodeKind::RuleNode || n.kind == NodeKind::ScannerNode) && !n.enabled)
-                body = std::string(kDim) + text + kReset;
-            else if (group_all_off(n) || group_all_inherited(n))
-                body = std::string(kDim) + text + kReset;   // whole group off / fully overruled: greyed
+            // One pure decision for the row's colour; see style_for().
+            const char* sgr = style_for(n);
+            std::string body = sgr[0] ? std::string(sgr) + text + kReset : text;
             if (focused_row)
                 line = std::string(kReverse) + "❯ " + body + kReset;
             else
@@ -208,7 +227,7 @@ std::vector<std::string> render(const Model& m, const ViewOpts& opts) {
 
     // Footer: keybinding hint.
     std::string foot = "↑↓/jk move  ←→/hl fold  "
-                       "Space toggle  o reorder  s save  q quit  ? help";
+                       "Space toggle  / search  o reorder  s save  q quit  ? help";
     if (opts.color) foot = std::string(kDim) + foot + kReset;
     out.push_back(foot);
 

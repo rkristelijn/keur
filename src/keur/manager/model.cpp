@@ -6,6 +6,7 @@
 #include "manager/model.h"
 
 #include <algorithm>
+#include <cctype>
 #include <map>
 #include <set>
 
@@ -81,17 +82,21 @@ Node make_leaf(const RuleItem& item, Scope scope, bool read_only, int depth) {
 std::vector<Node> group_by_facets(const std::vector<RuleItem>& items, Scope scope,
                                   bool read_only, const std::vector<Facet>& order,
                                   std::size_t level, int depth) {
-    // No more facets to group by → emit rule leaves (sorted by id already).
+    // No more facets to group by → emit rule leaves, sorted a-z by id.
     if (level >= order.size()) {
+        std::vector<RuleItem> sorted = items;
+        std::sort(sorted.begin(), sorted.end(),
+                  [](const RuleItem& a, const RuleItem& b) { return a.id < b.id; });
         std::vector<Node> leaves;
-        for (const auto& it : items) leaves.push_back(make_leaf(it, scope, read_only, depth));
+        for (const auto& it : sorted) leaves.push_back(make_leaf(it, scope, read_only, depth));
         return leaves;
     }
 
     Facet f = order[level];
-    // Partition items by this facet's value, preserving first-seen order. Items
-    // whose value is "any" for this facet skip the level (grouped one deeper).
-    std::vector<std::string> keys;                 // ordered distinct values
+    // Partition items by this facet's value. Items whose value is "any" for this
+    // facet skip the level (grouped one deeper). Group keys are sorted a-z so the
+    // tree reads alphabetically at every level.
+    std::vector<std::string> keys;                 // distinct values, sorted a-z
     std::map<std::string, std::vector<RuleItem>> buckets;
     std::vector<RuleItem> passthrough;             // value == "any"
     for (const auto& it : items) {
@@ -100,6 +105,7 @@ std::vector<Node> group_by_facets(const std::vector<RuleItem>& items, Scope scop
         if (!buckets.count(v)) keys.push_back(v);
         buckets[v].push_back(it);
     }
+    std::sort(keys.begin(), keys.end());
 
     std::vector<Node> out;
     for (const auto& key : keys) {
@@ -252,12 +258,49 @@ Node build_defaults_scope(const DefaultsInfo& d, const std::vector<Facet>& order
     return s;
 }
 
-// Depth-first collection of visible rows, honouring `expanded`.
-void collect_visible(const Node& n, std::vector<Row>& out) {
-    out.push_back(Row(&n));
-    if ((n.kind != NodeKind::RuleNode && n.kind != NodeKind::ScannerNode && n.kind != NodeKind::ActionNode) && n.expanded)
-        for (const auto& c : n.children) collect_visible(c, out);
+// --- Search / filter --------------------------------------------------------
+
+namespace {
+std::string to_lower(std::string s) {
+    for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return s;
 }
+
+// A node is a toggleable leaf (rule / scanner / action) — never a group.
+bool is_leaf_node(const Node& n) {
+    return n.kind == NodeKind::RuleNode ||
+           n.kind == NodeKind::ScannerNode ||
+           n.kind == NodeKind::ActionNode;
+}
+
+// The TWO visibility rules shared by every tree walk (collect + mutable lookup
+// + navigation), so they can never drift:
+//   - a node is PRUNED when searching and nothing in its subtree matches;
+//   - a node is DESCENDED INTO when it is a group that is expanded.
+// `expanded` is honoured even while searching (expand_matches opens matching
+// branches once, so a big result stays collapsible — no flood).
+// subtree_has_match is the public API (declared in model.h), defined after the
+// anonymous block; the declaration there is enough for these predicates.
+bool node_pruned(const Node& n, const std::string& query) {
+    return !query.empty() && !subtree_has_match(n, query);
+}
+bool node_descends(const Node& n) {
+    return !is_leaf_node(n) && n.expanded;
+}
+}  // namespace
+// Depth-first collection of visible rows. A branch is pruned when it has no
+// match under the active filter; a group is descended into when expanded. Both
+// decisions use the shared node_pruned/node_descends predicates (one source of
+// truth, mirrored by the mutable Walker below).
+void collect_visible(const Node& n, std::vector<Row>& out, const std::string& query) {
+    if (node_pruned(n, query)) return;
+    out.push_back(Row(&n));
+    if (node_descends(n))
+        for (const auto& c : n.children) collect_visible(c, out, query);
+}
+
+// Back-compat overload removed: the only caller (visible_rows) passes the
+// query. Keeping a no-arg overload would be dead code (-Wunused-function).
 
 // The visible index of the parent of the row at `idx`: the nearest preceding
 // row with a smaller depth (-1 for a top-level scope node).
@@ -269,14 +312,18 @@ int parent_index(const std::vector<Row>& rows, int idx) {
     return -1;
 }
 
-// Mutable lookup of the node at a visible index (mirrors collect_visible).
+// Mutable lookup of the node at a visible index — mirrors collect_visible via
+// the SAME node_pruned/node_descends predicates so the cursor maps correctly
+// (including while a filter is active).
 struct Walker {
     int target;
+    std::string query;
     int counter = 0;
     Node* find(Node& n) {
+        if (node_pruned(n, query)) return nullptr;
         if (counter == target) return &n;
         ++counter;
-        if ((n.kind != NodeKind::RuleNode && n.kind != NodeKind::ScannerNode && n.kind != NodeKind::ActionNode) && n.expanded)
+        if (node_descends(n))
             for (auto& c : n.children)
                 if (Node* r = find(c)) return r;
         return nullptr;
@@ -284,7 +331,7 @@ struct Walker {
 };
 
 Node* visible_node_mut(Model& m, int idx) {
-    Walker w{idx};
+    Walker w{idx, m.search_query};
     for (auto& root : m.roots)
         if (Node* r = w.find(root)) return r;
     return nullptr;
@@ -318,8 +365,58 @@ Model build_model(const DefaultsInfo& defaults,
 
 std::vector<Row> visible_rows(const Model& m) {
     std::vector<Row> out;
-    for (const auto& root : m.roots) collect_visible(root, out);
+    for (const auto& root : m.roots) collect_visible(root, out, m.search_query);
     return out;
+}
+
+// --- Search / filter: match predicates (public API) -------------------------
+bool node_matches_query(const Node& n, const std::string& query) {
+    if (query.empty()) return true;
+    const std::string q = to_lower(query);
+    // Match the human-visible text: label (id/category/scanner), detail, id.
+    return to_lower(n.label).find(q) != std::string::npos
+        || to_lower(n.detail).find(q) != std::string::npos
+        || to_lower(n.rule_id).find(q) != std::string::npos;
+}
+
+bool subtree_has_match(const Node& n, const std::string& query) {
+    if (query.empty()) return true;
+    if (node_matches_query(n, query)) return true;
+    for (const auto& c : n.children)
+        if (subtree_has_match(c, query)) return true;
+    return false;
+}
+
+// --- Search / filter: reducers (match predicates are defined above) ---------
+void search_begin(Model& m)         { m.search_active = true; m.search_query.clear(); m.cursor = 0; }
+void search_input(Model& m, char c) {
+    if (m.search_active) m.search_query.push_back(c);
+    expand_matches(m);   // reveal branches containing matches as the query grows
+    m.cursor = 0;
+}
+void search_backspace(Model& m)     {
+    if (m.search_active && !m.search_query.empty()) m.search_query.pop_back();
+    expand_matches(m);
+    m.cursor = 0;
+}
+void search_commit(Model& m)        { m.search_active = false; }  // keep the filter
+void search_clear(Model& m)         { m.search_active = false; m.search_query.clear(); m.cursor = 0; }
+
+void expand_matches(Model& m) {
+    if (m.search_query.empty()) return;
+    const std::string& q = m.search_query;
+    struct E {
+        const std::string* q;
+        void walk(Node& n) {
+            if (is_leaf_node(n)) return;
+            if (subtree_has_match(n, *q)) {
+                n.expanded = true;
+                for (auto& c : n.children) walk(c);
+            }
+        }
+    };
+    E e{&q};
+    for (auto& root : m.roots) e.walk(root);
 }
 
 const Node* focused(const Model& m) {
