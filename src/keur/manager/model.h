@@ -238,6 +238,14 @@ bool toggle_focused_group(Model& m);
 /// the tree — the expand-state and cursor are preserved. Pure over the model.
 void rebaseline(Model& m);
 
+/// Recompute the `inherited` (overruled-by-repo) flag on every GLOBAL rule leaf
+/// from the live model: a global rule is `inherited` when the SAME id is OFF in
+/// the repo scope (the more specific scope governs, ADR-039 §6). Pure, derived
+/// from current state — call after any toggle so the global row greys out live,
+/// not only after a disk round-trip. No-op when the repo scope is unavailable.
+/// @id KEUR-MANAGER-MODEL.refresh-inherited
+void refresh_inherited(Model& m);
+
 /// The complete DESIRED state of one scope's editable items — the "plan" the
 /// atomic apply writes in a single transaction (not many per-item edits):
 ///   - `disabled_rules`: rule ids that are OFF in this scope.

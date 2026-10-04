@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 
 namespace keur::manager {
 
@@ -397,6 +398,9 @@ bool toggle_focused_rule(Model& m) {
     if (n->read_only) return false;  // Defaults baseline is never editable
     if (n->scope == Scope::Repo && !m.repo_available) return false;
     n->enabled = !n->enabled;
+    // A repo toggle changes which global rows are overruled; recompute live so
+    // the global leaf greys out immediately (not only after save/rebuild).
+    refresh_inherited(m);
     m.dirty = !pending_edits(m).empty();
     return true;
 }
@@ -453,8 +457,43 @@ bool toggle_focused_group(Model& m) {
     for (const auto* l : leaves) if (!l->enabled) { all_on = false; break; }
     bool new_state = !all_on;
     for (auto* l : leaves) l->enabled = new_state;
+    refresh_inherited(m);  // repo group-toggle may overrule many global rows
     m.dirty = !pending_edits(m).empty();
     return true;
+}
+
+void refresh_inherited(Model& m) {
+    // 1. Collect the rule ids that are OFF in the repo scope (the governing,
+    //    more-specific scope). Only non-read-only RuleNodes under the Repo root.
+    std::set<std::string> repo_off;
+    struct Collect {
+        std::set<std::string>* off;
+        void walk(const Node& n) {
+            if (n.kind == NodeKind::RuleNode) {
+                if (!n.read_only && !n.enabled) off->insert(n.rule_id);
+                return;
+            }
+            for (const auto& c : n.children) walk(c);
+        }
+    };
+    Collect c{&repo_off};
+    for (const auto& root : m.roots)
+        if (root.scope == Scope::Repo) c.walk(root);
+
+    // 2. On every GLOBAL rule leaf, inherited = repo has this id OFF.
+    struct Mark {
+        const std::set<std::string>* off;
+        void walk(Node& n) {
+            if (n.kind == NodeKind::RuleNode) {
+                n.inherited = (off->count(n.rule_id) != 0);
+                return;
+            }
+            for (auto& ch : n.children) walk(ch);
+        }
+    };
+    Mark mk{&repo_off};
+    for (auto& root : m.roots)
+        if (root.scope == Scope::Global) mk.walk(root);
 }
 
 void rebaseline(Model& m) {
@@ -468,6 +507,9 @@ void rebaseline(Model& m) {
     RB rb;
     for (auto& root : m.roots) rb.walk(root);
     m.dirty = false;
+    // Keep the global greyed-out markers consistent with the just-saved repo
+    // state (rebaseline does not rebuild the tree, so recompute derived flags).
+    refresh_inherited(m);
 }
 
 ScopeState desired_state(const Model& m, Scope scope) {
