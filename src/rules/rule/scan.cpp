@@ -26,6 +26,110 @@ using namespace detail;
 
 namespace {
 
+// name_matches_case: does `name` conform to the required case `style`? Pure, no
+// I/O — the testable core of the filename-case engine (ADR-naming). Styles:
+//   lower        all lowercase, no separators      (page, index)
+//   upper         all uppercase, no separators      (README-less; rare)
+//   lower-snake   lowercase words joined by _       (my_module)
+//   upper-snake   uppercase words joined by _       (MY_CONST, CODE_OF_CONDUCT)
+//   kebab         lowercase words joined by -       (my-component, lucky13)
+//   pascal        each word capitalised, no sep      (MyComponent)
+//   camel         pascal but first word lowercase    (myComponent)
+// Digits are allowed in every style. An empty name never conforms.
+bool name_matches_case(const std::string& name, const std::string& style) {
+  if (name.empty()) return false;
+  auto is_lower = [](char c) { return (c >= 'a' && c <= 'z'); };
+  auto is_upper = [](char c) { return (c >= 'A' && c <= 'Z'); };
+  auto is_digit = [](char c) { return (c >= '0' && c <= '9'); };
+  auto alnum_lower = [&](char c) { return is_lower(c) || is_digit(c); };
+  auto alnum_upper = [&](char c) { return is_upper(c) || is_digit(c); };
+
+  if (style == "lower") {
+    for (char c : name) if (!alnum_lower(c)) return false;
+    return true;
+  }
+  if (style == "upper") {
+    for (char c : name) if (!alnum_upper(c)) return false;
+    return true;
+  }
+  if (style == "lower-snake" || style == "upper-snake" || style == "kebab") {
+    const char sep = (style == "kebab") ? '-' : '_';
+    bool upper = (style == "upper-snake");
+    bool prev_sep = true;  // leading separator not allowed
+    for (char c : name) {
+      if (c == sep) { if (prev_sep) return false; prev_sep = true; continue; }
+      bool ok = upper ? alnum_upper(c) : alnum_lower(c);
+      if (!ok) return false;
+      prev_sep = false;
+    }
+    return !prev_sep;  // no trailing separator
+  }
+  if (style == "pascal" || style == "camel") {
+    // No separators; must be alphanumeric; first letter case fixed by style.
+    size_t i = 0;
+    // find first alphabetic char
+    while (i < name.size() && is_digit(name[i])) i++;
+    if (i >= name.size()) return false;  // all digits is not Pascal/camel
+    if (style == "pascal" && !is_upper(name[i])) return false;
+    if (style == "camel" && !is_lower(name[i])) return false;
+    for (char c : name)
+      if (!(is_lower(c) || is_upper(c) || is_digit(c))) return false;  // no _ or -
+    return true;
+  }
+  return true;  // unknown style → do not flag (fail open)
+}
+
+// filename-case: file-level naming-convention engine (ADR-naming). For each file
+// matching the rule's target, check the basename (scope=filename) or each path
+// dir segment (scope=dirname) against `name_case`, skipping any name in
+// `name_allow`. The basename is checked WITHOUT its extension. @id engine-filename-case
+void eval_filename_case(const std::vector<const Rule*>& rules,
+                        const std::vector<std::pair<std::string, std::string>>& files,
+                        std::vector<RuleFinding>& findings) {
+  for (const auto* rule : rules) {
+    const std::string& style = rule->name_case;
+    const bool dir_scope = (rule->name_scope == "dirname");
+    std::unordered_set<std::string> allow(rule->name_allow.begin(), rule->name_allow.end());
+    std::unordered_set<std::string> flagged_dirs;  // dir-scope: report each dir once
+
+    for (const auto& [rel, abs] : files) {
+      if (!rule_matches_file(*rule, rel)) continue;
+
+      if (!dir_scope) {
+        // basename without extension
+        std::string base = basename_of(rel);
+        std::string stem = base;
+        if (auto dot = stem.find_last_of('.'); dot != std::string::npos && dot > 0)
+          stem = stem.substr(0, dot);
+        if (allow.count(stem) || allow.count(base)) continue;
+        if (!name_matches_case(stem, style))
+          findings.emplace_back(rule->id, rule->title, rule->category, rule->severity,
+                              default_action(*rule), default_conf(*rule), rel, 0,
+                              finding_msg(*rule, rule->message));
+      } else {
+        // each directory segment of the path (not the final basename)
+        std::string dir = rel;
+        if (auto slash = dir.find_last_of('/'); slash != std::string::npos) dir = dir.substr(0, slash);
+        else continue;  // no directory part
+        size_t start = 0;
+        while (start <= dir.size()) {
+          size_t slash = dir.find('/', start);
+          std::string seg = dir.substr(start, slash == std::string::npos ? std::string::npos : slash - start);
+          if (!seg.empty() && !allow.count(seg) && !name_matches_case(seg, style)) {
+            std::string key = dir.substr(0, slash == std::string::npos ? dir.size() : slash);
+            if (flagged_dirs.insert(key).second)
+              findings.emplace_back(rule->id, rule->title, rule->category, rule->severity,
+                                  default_action(*rule), default_conf(*rule), key, 0,
+                                  finding_msg(*rule, rule->message));
+          }
+          if (slash == std::string::npos) break;
+          start = slash + 1;
+        }
+      }
+    }
+  }
+}
+
 // file-absence: flag when NONE of the target's filenames/extensions exist in
 // the fileset. file-presence: flag EACH matching file. Once over the fileset.
 // These are file-level (not per-line) so they run here, not via the per-line
@@ -258,7 +362,7 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
         ScanContext cx{c, lines, rel};
         fn(cx, findings);
       } else if (engine != "file-absence" && engine != "file-presence" &&
-                 engine != "max-dir-files") {
+                 engine != "max-dir-files" && engine != "filename-case") {
         static std::unordered_set<std::string> warned;
         if (warned.insert(engine).second)
           std::cerr << "keur: unsupported engine '" << engine << "' (rule " << r->id << ")\n";
@@ -283,17 +387,20 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
   }
 
   // file-level engines run once over the whole fileset (respect requires: too).
-  std::vector<const Rule*> file_absence, file_presence, max_dir_files;
+  std::vector<const Rule*> file_absence, file_presence, max_dir_files, filename_case;
   for (const auto& r : rules) {
     if (!requires_satisfied(r, facts)) continue;
     if (r.engine == "file-absence") file_absence.push_back(&r);
     else if (r.engine == "file-presence") file_presence.push_back(&r);
     else if (r.engine == "max-dir-files") max_dir_files.push_back(&r);
+    else if (r.engine == "filename-case") filename_case.push_back(&r);
   }
   if (!file_absence.empty() || !file_presence.empty())
     eval_file_level_rules(file_absence, file_presence, files, findings);
   if (!max_dir_files.empty())
     eval_max_dir_files(max_dir_files, files, findings);
+  if (!filename_case.empty())
+    eval_filename_case(filename_case, files, findings);
 
   // ADR-009: composite pass. After the single-rule pass, collect the ids that
   // fired, then evaluate each composite's boolean tree over that set. A composite

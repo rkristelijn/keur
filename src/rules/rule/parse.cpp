@@ -142,6 +142,9 @@ Rule rule_parse(const std::string& path) {
     else if (key == "derived_template") rule.derived_template = val;
     else if (key == "extract") rule.extract = val;
     else if (key == "capture") rule.capture = std::atoi(val.c_str());
+    else if (key == "case") rule.name_case = val;                 // filename-case engine
+    else if (key == "scope") rule.name_scope = val;               // filename | dirname
+    else if (key == "allow") rule.name_allow = split_ws(val);     // exempt names
     else if (key == "skip_comments") rule.skip_comments = (val == "true" || val == "yes");
     else if (key == "skip_strings") rule.skip_strings = (val == "true" || val == "yes");
     else if (key == "extensions") rule.target.extensions = split_ws(val);
@@ -189,7 +192,10 @@ std::vector<Rule> rules_load(const std::string& dir) {
     const bool composite = (r.engine == "composite" || r.has_composite);
     const bool path_derived = (r.engine == "path-derived" &&
                                !r.path_capture.empty() && !r.derived_template.empty());
-    if (!r.id.empty() && (!r.patterns.empty() || file_level || composite || path_derived))
+    // filename-case (ADR-naming): a file-level naming-convention check; it needs
+    // no regex pattern, just a `case:` style.
+    const bool name_case = (r.engine == "filename-case" && !r.name_case.empty());
+    if (!r.id.empty() && (!r.patterns.empty() || file_level || composite || path_derived || name_case))
       rules.push_back(std::move(r));
   }
   return rules;

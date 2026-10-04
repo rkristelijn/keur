@@ -2799,6 +2799,40 @@ SCENARIO("[feature:rule-engine] multiline exclude (pattern-not) suppresses the s
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] filename-case enforces a naming convention with an allowlist") {  // @proves engine-filename-case
+    // The filename-case engine flags a file whose basename (scope=filename) does
+    // not match the required case style, skipping names in `allow`. A sibling
+    // rule with scope=dirname checks path directory segments the same way.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/NC.rule",
+        "id: NC-1\ntitle: md must be kebab\ncategory: quality\nseverity: warning\n"
+        "engine: filename-case\nscope: filename\ncase: kebab\n"
+        "allow: README TODO\n"
+        "target:\n  extensions: .md\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+
+    // kebab/lowercase names pass; an allowlisted ALL-CAPS name passes; a
+    // SHOUTING or TitleCase name is flagged.
+    write_file(dir + "/README.md", "x\n");         // allowed
+    write_file(dir + "/my-doc.md", "x\n");          // kebab → ok
+    write_file(dir + "/lucky13.md", "x\n");         // lowercase+digits → ok
+    write_file(dir + "/TODO.md", "x\n");            // allowed
+    write_file(dir + "/FOO.md", "x\n");             // ALL-CAPS → flagged
+    write_file(dir + "/MyDoc.md", "x\n");           // Pascal → flagged (not kebab)
+    auto f = keur::rules_scan_dir(rules, dir);
+    std::set<std::string> flagged;
+    for (auto& x : f) if (x.rule_id == "NC-1") flagged.insert(x.file);
+    CHECK(flagged.count("FOO.md") == 1);
+    CHECK(flagged.count("MyDoc.md") == 1);
+    CHECK(flagged.count("README.md") == 0);   // allowlisted
+    CHECK(flagged.count("TODO.md") == 0);      // allowlisted
+    CHECK(flagged.count("my-doc.md") == 0);    // conforms
+    CHECK(flagged.count("lucky13.md") == 0);   // conforms
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] requires: prunes a rule when facts don't satisfy it") {  // @proves ADR-009.requires
     // A rule requiring framework=express must NOT fire in a repo whose package.json
     // has no express; the same rule MUST fire when express is present.
