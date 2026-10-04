@@ -1,11 +1,41 @@
 # Design: the difficulty chooser — one state, three views (`level` · `settings` · `manager`)
 
-**Status:** design (2026-10-02). Underlying decisions: ADR-038 (per-dimension
+**Status:** design (2026-10-02); **implemented 2026-10-04** (see below). Underlying
+decisions: ADR-038 (per-dimension
 difficulty vector), ADR-039 (rule ility-alignment + OR/max resolution),
 ADR-026 (maturity levels), ADR-011 (global→repo cascade), ADR-009 (data not code).
 Existing view docs: `doom-level-select.md` (the `level` view),
 `keur-manager-tree-tui.md` (the `manager` view). This doc adds the middle view
 (`settings`) and specifies how all three compose over **one** canonical state.
+
+## Implementation status (2026-10-04)
+
+The three lenses are live over the one canonical state. What shipped, and where
+it refines this sketch:
+
+- **`keur tune`** is the one-screen router that composes the three lenses.
+  `keur level`, `keur settings` and `keur manager` also still run standalone;
+  `keur level` steps into the router on `Tab`.
+- **Lens switch = `Tab` / `Shift-Tab`** (not plain Tab). The arrow keys were
+  freed for *within-lens* use: in `level` ←/→ pick the level, in `settings` ←/→
+  adjust a slider or expand/collapse a group. This resolves the key clash the
+  original "Tab toggles the lens" idea had with slider editing.
+- **`settings` (medior)** renders the real ISO 25010 sliders (off · 1..5),
+  group average ignoring OFF, `*` deviation marker. One load/save path
+  (`load_settings_model` / `save_settings_model` + `upsert_difficulty`,
+  single `.bak` slot) shared by the standalone command and the router — no drift.
+- **`manager` (expert)** reuses the existing tree loop. On top of the design it
+  gained: **repo-overrules-global greying** (a global rule — and a wholly
+  overruled category/subcategory — renders dimmed), a **`/` fuzzy filter**
+  (keeps the ancestor path, stays collapsible), and **a-z sorting** of
+  categories/subcategories/rules (Scanners/Hooks stay pinned on top).
+- **Lens switch refreshes** the shared state from disk after a save, so a value
+  written in one lens shows up in the next (no stale view).
+- **Deferred:** the `*` marker inside `manager` (per-ility/per-rule override) —
+  the rule tree already shows "overruled by repo" + disabled, and an ility-level
+  `*` does not map cleanly onto per-rule rows; revisit if needed. Multi-step
+  undo stays the manager's planned Layer 2 (single `.bak` slot for now).
+
 
 ## The one-sentence model
 
@@ -106,6 +136,7 @@ not level 0, it means "not gated here", ADR-039 §3).
 ```
 
 Markers:
+
 - `*` on **Overall** / the `level` label: the vector is not all-equal, or a
   per-rule override exists.
 - `*` on an **ility**: at least one rule in that ility has a per-rule override
@@ -199,9 +230,15 @@ that mechanism** — they do not invent a second history system:
 
 ## Build order (tracked separately)
 
-1. ADR-039 backfill: every rule gets `ilities` + `maturity` (scripts/).
-2. Self-check rule for unaligned rules.
-3. `active(rule, vector)` OR/max in the ruleset layer + unit tests.
-4. `[difficulty]` + `[difficulty.rules]` parsing, global→repo merge.
-5. `keur settings` view (sliders, average, `*`), Tab-toggle wiring the three views.
-6. `*`-markers in `level` and `manager`; backup/restore reuse.
+1. [x] ADR-039 backfill: every rule gets `ilities` + `maturity` (scripts/).
+2. [x] Self-check rule for unaligned rules.
+3. [x] `active(rule, vector)` OR/max in the ruleset layer + unit tests.
+4. [x] `[difficulty]` + `[difficulty.rules]` parsing, global→repo merge.
+5. [x] `keur settings` view (sliders, average, `*`) + the three-lens router
+   (`keur tune`), switched with `Tab`/`Shift-Tab` (not plain Tab — see the
+   implementation-status note above).
+6. [~] `*`-marker in `level` (done); in `manager` **deferred** (does not map
+   cleanly onto per-rule rows). Backup/restore reuse: single `.bak` slot shared
+   by all lenses; multi-step undo stays the manager's planned Layer 2.
+7. [x] Beyond the original plan: repo-overrules-global greying (incl. fully
+   overruled parent groups), `/` fuzzy filter, a-z sorted tree.
