@@ -1,0 +1,33 @@
+# keur quality control — sonar-project.properties without sonar.projectKey.
+#
+# Why this exists: SonarQube/SonarCloud silently tolerate a malformed
+# sonar-project.properties — unknown keys are ignored and missing ones fall back
+# to defaults, so a typo or an omitted required key does not error, it just
+# makes the analysis land in the wrong project (or not at all). Nothing else in
+# the toolchain validates this file (Sonar itself does not pre-validate it, and
+# there is no linter for it), so a per-commit nudge is the only early signal.
+#
+# HOW (absence engine): the rule fires when NO line declares `sonar.projectKey`.
+# `content_contains: sonar` is a cheap pre-filter so only Sonar property files
+# are read. Targeted by exact filename so it never touches unrelated .properties.
+#
+# WARN, not block: a missing key is a config smell caught best early, but a repo
+# may legitimately pass the key via CI (-Dsonar.projectKey=...) instead of the
+# file; blocking would be wrong there. @see docs/rules-authoring.md
+id: SONAR-001
+ilities: [traceability]
+maturity: 3
+title: sonar-project.properties missing sonar.projectKey
+category: quality
+severity: warning
+engine: absence
+action: warn
+confidence: 0.6
+target:
+  filenames: sonar-project.properties
+  content_contains: sonar
+patterns:
+  # Fires when this appears NOWHERE: a `sonar.projectKey = <value>` assignment.
+  - regex: (?m)^\s*sonar\.projectKey\s*=\s*\S
+    message: "sonar-project.properties has no sonar.projectKey — the analysis has no target project and will mis-land or be skipped. Set sonar.projectKey (or pass -Dsonar.projectKey in CI)."
+fix: "Add `sonar.projectKey=<org>_<repo>` to sonar-project.properties, or pass it on the scanner CLI (`-Dsonar.projectKey=...`). The key must match the project configured in SonarQube/SonarCloud."

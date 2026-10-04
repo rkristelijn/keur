@@ -1,0 +1,34 @@
+# keur quality control — a common misspelled Sonar property key.
+#
+# Why this exists: SonarQube/SonarCloud silently IGNORE unknown keys. A typo
+# like `sonar.exclusion` (singular) or lowercase `sonar.projectkey` does not
+# error — the setting simply has no effect, so your exclusions do not apply or
+# the project key is unset, and you only notice when the dashboard looks wrong.
+# This rule catches the frequent misspellings directly.
+#
+# HOW (pattern engine): match the known-bad key spellings at the start of a
+# line. Each is a real spelling people hit (singular vs plural, wrong case,
+# reportPath vs reportPaths).
+#
+# WARN: a typo'd key is almost always a mistake, but a future Sonar key could
+# look similar, so it warns rather than blocks. @see docs/rules-authoring.md
+id: SONAR-004
+ilities: [analysability]
+maturity: 3
+title: Misspelled sonar property key (silently ignored by Sonar)
+category: quality
+severity: warning
+engine: pattern
+action: warn
+confidence: 0.7
+target:
+  filenames: sonar-project.properties
+  content_contains: sonar.
+patterns:
+  - regex: (?m)^\s*sonar\.exclusion\s*=
+    message: "`sonar.exclusion` is not a Sonar key (it is `sonar.exclusions`, plural) — this line is silently ignored and nothing is excluded."
+  - regex: (?m)^\s*sonar\.projectkey\s*=
+    message: "`sonar.projectkey` has the wrong case — the key is `sonar.projectKey` (camelCase). Sonar ignores the misspelled line, leaving the project key unset."
+  - regex: (?m)^\s*sonar\.(javascript|typescript|python|go|php|ruby)\.coverage\.reportPath\s*=
+    message: "Coverage key is `...reportPaths` (plural). The singular `reportPath` is ignored and coverage reads 0%."
+fix: "Correct the key spelling: `sonar.exclusions` (plural), `sonar.projectKey` (camelCase), `...coverage.reportPaths` (plural). Unknown keys are silently dropped by Sonar, so a typo has no effect and no error."
