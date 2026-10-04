@@ -4111,11 +4111,11 @@ SCENARIO("[feature:settings] upsert_difficulty writes off as string, preserves s
 }
 
 SCENARIO("[feature:settings] settings_parse flags") {  // @proves KEUR-SETTINGS.parse
-    auto o = keur::cmd::settings_parse({"--print", "--no-color", "--global", "--config", "/tmp/x"});
+    auto o = keur::cmd::settings_parse({"--print", "--no-color", "--global", "--config", "cfg/x.toml"});
     CHECK(o.print_only);
     CHECK(o.no_color);
     CHECK(o.global);
-    CHECK(o.config == "/tmp/x");
+    CHECK(o.config == "cfg/x.toml");
 }
 
 // --- KEUR-TUNE: the ←/→ lens router over level/settings/manager ------------
@@ -4229,11 +4229,11 @@ SCENARIO("[feature:tune] handle_settings_key drives the slider model") {  // @pr
 }
 
 SCENARIO("[feature:tune] tune_parse flags + starting lens") {  // @proves KEUR-TUNE.parse
-    auto o = keur::cmd::tune_parse({"--print", "--no-color", "--view", "manager", "--config", "/tmp/x"});
+    auto o = keur::cmd::tune_parse({"--print", "--no-color", "--view", "manager", "--config", "cfg/x.toml"});
     CHECK(o.print_only);
     CHECK(o.no_color);
     CHECK(o.start == keur::cmd::TuneView::Manager);
-    CHECK(o.config == "/tmp/x");
+    CHECK(o.config == "cfg/x.toml");
     // default start is level.
     CHECK(keur::cmd::tune_parse({}).start == keur::cmd::TuneView::Level);
 }
