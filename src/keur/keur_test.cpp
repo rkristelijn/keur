@@ -3244,6 +3244,81 @@ SCENARIO("[feature:manager-tree] global rule overruled by repo is marked inherit
     CHECK(keur::manager::render_row(rr).find("(overruled by repo)") != std::string::npos);
 }
 
+SCENARIO("[feature:manager-tree] toggling a repo rule off greys the global row live") {  // @proves KEUR-MANAGER-MODEL.refresh-inherited
+    // Both scopes start with R1 ON (nothing overruled yet).
+    std::vector<keur::manager::RuleItem> g = {ri("security", "R1", "", true)};
+    std::vector<keur::manager::RuleItem> r = {ri("security", "R1", "", true)};
+    keur::manager::DefaultsInfo d;
+    auto m = keur::manager::build_model(d, g, r, true);
+    for (auto& root : m.roots) expand_all(root);
+
+    auto find_leaf = [&](keur::manager::Scope sc) -> const keur::manager::Node* {
+        for (auto& row : keur::manager::visible_rows(m)) {
+            const auto* n = row.node;
+            if (n->rule_id == "R1" && n->scope == sc &&
+                n->kind == keur::manager::NodeKind::RuleNode) return n;
+        }
+        return nullptr;
+    };
+
+    // Precondition: global is NOT inherited while repo R1 is on.
+    const auto* gl = find_leaf(keur::manager::Scope::Global);
+    REQUIRE(gl != nullptr);
+    CHECK_FALSE(gl->inherited);
+
+    // Put the cursor on the REPO R1 leaf and toggle it OFF.
+    int repo_idx = -1;
+    auto rows = keur::manager::visible_rows(m);
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+        const auto* n = rows[static_cast<std::size_t>(i)].node;
+        if (n->rule_id == "R1" && n->scope == keur::manager::Scope::Repo &&
+            n->kind == keur::manager::NodeKind::RuleNode) { repo_idx = i; break; }
+    }
+    REQUIRE(repo_idx >= 0);
+    m.cursor = repo_idx;
+    REQUIRE(keur::manager::toggle_focused_rule(m));
+
+    // The GLOBAL row is now inherited (greyed) WITHOUT any save/rebuild.
+    const auto* gl2 = find_leaf(keur::manager::Scope::Global);
+    REQUIRE(gl2 != nullptr);
+    CHECK(gl2->inherited);
+
+    // Toggling the repo rule back ON clears the global grey-out again.
+    m.cursor = repo_idx;
+    REQUIRE(keur::manager::toggle_focused_rule(m));
+    const auto* gl3 = find_leaf(keur::manager::Scope::Global);
+    REQUIRE(gl3 != nullptr);
+    CHECK_FALSE(gl3->inherited);
+}
+
+SCENARIO("[feature:manager-tree] a fully-overruled global group renders greyed") {  // @proves KEUR-MANAGER-VIEW.group-overruled
+    // Global "compliance" group holds a single rule PROJ-004; the repo overrules
+    // it (off in repo). The group then has no live rule on global → greyed.
+    auto gi = ri("compliance", "PROJ-004", "", true); gi.inherited = true;
+    std::vector<keur::manager::RuleItem> g = {gi};
+    std::vector<keur::manager::RuleItem> r = {ri("compliance", "PROJ-004", "", false)};
+    keur::manager::DefaultsInfo d;
+    auto m = keur::manager::build_model(d, g, r, true);
+    for (auto& root : m.roots) expand_all(root);
+
+    keur::manager::ViewOpts opts; opts.rows = 40; opts.cols = 100; opts.color = true;
+    auto lines = keur::manager::render(m, opts);
+
+    // Find the GLOBAL "compliance" group line and assert it carries the dim SGR.
+    // (The global scope header is cyan; its child groups fall through to the
+    // group-overruled dim path.)
+    const std::string kDim = "\033[2m";
+    bool saw_dim_compliance = false, saw_dim_generic = false;
+    for (const auto& ln : lines) {
+        if (ln.find("compliance") != std::string::npos && ln.find(kDim) != std::string::npos)
+            saw_dim_compliance = true;
+        if (ln.find("generic") != std::string::npos && ln.find(kDim) != std::string::npos)
+            saw_dim_generic = true;
+    }
+    CHECK(saw_dim_compliance);   // the category parent greys out
+    CHECK(saw_dim_generic);      // the subcategory parent greys out too
+}
+
 SCENARIO("[feature:manager-tree] Hooks action row exposes an augment action") {  // @proves KEUR-MANAGER-MODEL
     keur::manager::DefaultsInfo d;
     std::vector<keur::manager::HookInfoItem> hi = {

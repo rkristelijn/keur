@@ -101,6 +101,33 @@ static bool group_all_off(const Node& n) {
     return gc.total > 0 && gc.enabled == 0;
 }
 
+// True when an editable group's rule leaves are ALL overruled by a more
+// specific scope (every leaf `inherited`). Such a group does nothing at this
+// scope, so it is greyed like its leaves. A PARTIALLY overruled group is left
+// un-greyed on purpose: dimming it would hide that rules are still live under
+// it; the [enabled/total] badge communicates the partial state instead.
+// Scanners are excluded (they do not carry the repo-override cascade here).
+// @id KEUR-MANAGER-VIEW.group-overruled
+static bool group_all_inherited(const Node& n) {
+    if (n.kind == NodeKind::RuleNode || n.kind == NodeKind::ScannerNode || n.read_only)
+        return false;
+    int total = 0, inherited = 0;
+    struct W {
+        int* total; int* inherited;
+        void walk(const Node& x) {
+            if (x.kind == NodeKind::RuleNode) {
+                if (!x.read_only) { ++*total; if (x.inherited) ++*inherited; }
+                return;
+            }
+            if (x.kind == NodeKind::ScannerNode) return;  // not part of this cascade
+            for (const auto& c : x.children) walk(c);
+        }
+    };
+    W w{&total, &inherited};
+    w.walk(n);
+    return total > 0 && inherited == total;
+}
+
 std::vector<std::string> render(const Model& m, const ViewOpts& opts) {
     std::vector<std::string> out;
     auto rows = visible_rows(m);
@@ -166,8 +193,8 @@ std::vector<std::string> render(const Model& m, const ViewOpts& opts) {
                 body = std::string(kGreen) + text + kReset;
             else if ((n.kind == NodeKind::RuleNode || n.kind == NodeKind::ScannerNode) && !n.enabled)
                 body = std::string(kDim) + text + kReset;
-            else if (group_all_off(n))
-                body = std::string(kDim) + text + kReset;   // whole group off: greyed
+            else if (group_all_off(n) || group_all_inherited(n))
+                body = std::string(kDim) + text + kReset;   // whole group off / fully overruled: greyed
             if (focused_row)
                 line = std::string(kReverse) + "❯ " + body + kReset;
             else
