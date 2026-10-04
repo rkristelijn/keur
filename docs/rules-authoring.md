@@ -92,15 +92,19 @@ constants) over a narrow one. Think about false positives before you answer.
 ## Engines
 
 ### `pattern` (default)
+
 Flags each line matching any `patterns[].regex`.
 
 ### `presence`
+
 Flags a file where a pattern DOES appear (often gated by `content_contains`).
 
 ### `absence`
+
 Flags a file where NO line matches the pattern (something required is missing).
 
 ### `file-absence` / `file-presence`
+
 Operate on the file tree, not content — no patterns needed.
 `file-absence` flags when no file matches `target.filenames`/`extensions`
 (e.g. "project has no SECURITY.md"). `file-presence` flags each matching file
@@ -117,6 +121,7 @@ target:
 ```
 
 ### `block-absence`
+
 Brace-scope analysis without a full parser: find the block opened by the first
 pattern, count `{`/`}` to its end, flag the block when a required inner regex
 never appears inside it.
@@ -145,6 +150,7 @@ block_inner: \b(expect|assert)\s*[.(]
 ```
 
 ### `count`
+
 Flag a file ONCE when the first pattern matches at least `min_count` times. A
 reusable "too many of X" primitive: long dispatch chains, too many imports, too
 many TODOs. The finding points at the line of the match that crosses the
@@ -170,6 +176,7 @@ patterns:
 ```
 
 ### `multiline`
+
 Match a pattern that SPANS lines, bounded to a sliding window. RE2 matches one
 line at a time; this engine joins a window of `window` lines with newlines and
 matches once over the join, so `[\s\S]*?` / `(?s).` can cross lines **without** a
@@ -185,6 +192,17 @@ string built over several `+=`, a config value split across lines.
 - `window` — window size in lines (default 2). The match never spans more than
   this many lines; after a hit the scan resumes past the window (one span, one
   finding).
+- `exclude` (per pattern) — pattern-not: if the window blob also matches this
+  regex, the match is treated as a negative case and skipped. Use it to suppress
+  the *secure* form of a shape (e.g. a `path.resolve` containment check, a
+  `.replace()` sanitiser, or a `@UseGuards` present in the window). Make the
+  `window` large enough that the exclusion signal is inside it from the match's
+  start line.
+
+> Gotcha: the `regex:` (and `exclude:`) value is read VERBATIM — do NOT wrap it
+> in quotes. `regex: '(?s)…'` compiles the surrounding quote characters into the
+> pattern and never matches. Write it bare: `regex: (?s)…`. Use the `(?s)`
+> inline flag (dotall) so `.` crosses the joined newlines.
 
 ```yaml
 # a secret assigned then passed to a client within 3 lines
@@ -203,6 +221,7 @@ patterns:
 ```
 
 ### `path-derived`
+
 Flag a file when a string **computed from its own path** is absent. The
 expectation is not a constant in the rule — it is derived per file, so ONE rule
 covers a whole family (every layer, every module) with no per-case edit. This is
@@ -244,6 +263,7 @@ Other uses of the same shape: filename must equal an exported symbol,
 beside its source.
 
 ### `max-nesting`
+
 Flag a function whose CONTROL-FLOW nesting depth exceeds `min_count` (default 3,
 matching SonarQube S134). It reuses the same string/regex-aware brace lexer as
 `block-absence`, so braces inside strings, char-literals and regex literals do
@@ -272,6 +292,7 @@ patterns:
 ```
 
 ### `max-lines`
+
 Flag a file whose NET line count exceeds `min_count` (default 300). With
 `skip_comments: true` the scanner strips comment lines to blanks first, so blank
 and comment lines are not counted — the same "net lines" notion as a
@@ -303,6 +324,7 @@ patterns:
 ```
 
 ### `max-dir-files`
+
 A FILE-LEVEL engine (like `file-absence`/`file-presence`): it runs once over the
 whole fileset, groups matched files by their parent directory, counts logical
 units — a `.h` + `.cpp` with the same stem is ONE unit — and flags a directory
@@ -330,6 +352,7 @@ patterns:
 ```
 
 ### `extract-duplicates`
+
 Per file, apply the `extract` regex (which must contain a capture group), collect
 the captured value from each line, and flag the SECOND and later occurrence of the
 same value — an in-file duplicate. A seen-set makes it O(n). Unique values never

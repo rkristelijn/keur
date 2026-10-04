@@ -1,0 +1,25 @@
+# Authorization decided on the raw request url string (CWE-551 code side). A
+# guard that branches on request.url / req.url to decide access is fragile:
+# with Fastify path-normalization the url is canonicalised AFTER the guard, so
+# non-canonical paths slip through. Pairs with KEUR-NEST-012 (the adapter
+# config). (promoted from the mestjs corpus).
+id: KEUR-NEST-013
+title: Authorization decision taken on the raw request url (NestJS guard)
+category: security
+severity: warning
+engine: multiline
+window: 20
+action: warn
+skip_comments: true
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ _spec/
+patterns:
+  # A url value from req.url/request.url is tested with a path method
+  # (startsWith/includes/indexOf/match) to decide access. Covers the direct
+  # req.url.startsWith('/admin') form and the "const url = req.url; …
+  # url.startsWith('/admin')" form within the window.
+  - regex: (?s)(?:req|request)\.url\b.{0,600}?\.(?:startsWith|includes|indexOf|match)\s*\(
+    message: "Authorization branches on the raw request url (url.startsWith('/admin') …). The url is attacker-shaped and, under Fastify path-normalization, canonicalised AFTER the guard — bypassable (CWE-551). Decide on an authenticated role/permission claim, not the url string; keep guards route-bound via @UseGuards."
+confidence: 0.6
+fix: "Authorize on request.user.role / a permission claim; bind the guard to the route with @UseGuards instead of inspecting the url."

@@ -2766,6 +2766,39 @@ SCENARIO("[feature:rule-engine] multiline window fires within N lines, not beyon
     cleanup_dir(dir);
 }
 
+SCENARIO("[feature:rule-engine] multiline exclude (pattern-not) suppresses the safe case") {  // @proves engine-multiline
+    // The multiline engine mirrors eng_pattern's exclude: if the window blob
+    // also matches the pattern's exclude regex, the match is a negative case
+    // (the mitigating call is present) and is skipped. This lets a multiline
+    // rule flag "read user path then fs read" but NOT when a path.resolve
+    // containment check is in the same window.
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/MLX.rule",
+        "id: MLX-1\ntitle: traversal without containment\ncategory: security\nseverity: error\n"
+        "engine: multiline\nwindow: 5\n"
+        "target:\n  extensions: .ts\n"
+        "patterns:\n  - regex: req\\.query[\\s\\S]*?fs\\.readFile\n"
+        "    exclude: path\\.resolve\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+
+    // vulnerable: user path flows to fs.readFile, no containment → one finding
+    std::string vuln = dir + "/vuln.ts";
+    write_file(vuln, "const p = req.query.file;\nconst t = base + p;\nfs.readFile(t);\n");
+    auto fv = keur::rules_scan_files(rules, {vuln});
+    int hv = 0; for (auto& f : fv) if (f.rule_id == "MLX-1") hv++;
+    CHECK(hv == 1);   // the vulnerable shape fires
+
+    // safe: a path.resolve containment check is in the window → excluded
+    std::string safe = dir + "/safe.ts";
+    write_file(safe, "const p = req.query.file;\nconst t = path.resolve(base, p);\nfs.readFile(t);\n");
+    auto fs2 = keur::rules_scan_files(rules, {safe});
+    int hsf = 0; for (auto& f : fs2) if (f.rule_id == "MLX-1") hsf++;
+    CHECK(hsf == 0);  // the safe shape is excluded (pattern-not)
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] requires: prunes a rule when facts don't satisfy it") {  // @proves ADR-009.requires
     // A rule requiring framework=express must NOT fire in a repo whose package.json
     // has no express; the same rule MUST fire when express is present.

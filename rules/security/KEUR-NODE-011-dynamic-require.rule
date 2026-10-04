@@ -1,0 +1,23 @@
+# Dynamic require()/import() of a non-literal (RFI-equivalent, CWE-98/CWE-706).
+# The Node analogue of PHP include($_GET['dir']): a module path built from a
+# variable / concatenation / template loads an attacker-chosen module.
+# (promoted from the mestjs corpus).
+id: KEUR-NODE-011
+title: Dynamic require()/import() of a non-literal module path
+category: security
+severity: error
+engine: pattern
+action: warn
+skip_comments: true
+target:
+  extensions: .ts .js .mjs .tsx .jsx
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ _spec/
+patterns:
+  # require('...' + x) or require(`...${x}`) — concatenation / interpolation in
+  # the module path. A plain string literal require('fs') does NOT match.
+  - regex: \brequire\s*\(\s*(?:[`''"][^`''"]*[`''"]\s*\+|[`''"][^`]*\$\{)
+    message: "require() with a concatenated / interpolated module path — dynamic module load (RFI-equivalent, CWE-98/706): a user-chosen name loads an arbitrary module. Use a fixed allowlist of module names, never build the path from input."
+  - regex: \bimport\s*\(\s*(?:[`''"][^`''"]*[`''"]\s*\+|[`''"][^`]*\$\{)
+    message: "Dynamic import() with a concatenated / interpolated path — a user-chosen name loads an arbitrary module (CWE-706). Resolve against a fixed allowlist."
+confidence: 0.6
+fix: "Map user input to a fixed set of known modules (const mods = { a: () => import('./a') }); never concatenate input into a require()/import() path."

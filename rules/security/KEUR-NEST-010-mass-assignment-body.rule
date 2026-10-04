@@ -1,0 +1,22 @@
+# Mass assignment, NestJS shape. SEC-014 only matches Express req.body /
+# Object.assign(_, req.body); in NestJS the body arrives via @Body() and is
+# spread into a persisted object. (promoted from the mestjs corpus).
+#
+# RE2 has no backreferences; anchor on the shape instead of "the same name":
+# a @Body() param appears, then within a few lines a spread/assign feeds a
+# persistence verb.
+id: KEUR-NEST-010
+title: Mass assignment — @Body() spread into a persisted object (NestJS)
+category: security
+severity: error
+engine: multiline
+window: 14
+skip_comments: true
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ _spec/
+patterns:
+  - regex: (?s)@Body\(\).{0,400}?(?:create|save|insert|update)\s*\(\s*\{.{0,200}?\.\.\.\s*\(?\s*\w+
+    message: "A @Body()-bound object is spread into a create/save/insert/update call — mass assignment (CWE-915): a client can set server-owned fields (role, status, total). Bind a typed DTO and copy allowlisted fields, or use ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })."
+confidence: 0.7
+fix: "Accept a DTO with explicit fields + ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }); never spread the raw body into the entity."
