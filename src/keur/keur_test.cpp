@@ -2981,16 +2981,20 @@ SCENARIO("[feature:manager-tree] build_model builds Scope->Category->Rule") {  /
     CHECK(m.roots[0].read_only == true);
     CHECK(m.roots[1].label.find("Global") == 0);
     CHECK(m.roots[2].label.find("This repo") == 0);
-    // Global has the editable security + secrets categories (each with a
-    // subcategory level below — 'generic' for this test data).
+    // Global has the editable secrets + security categories (a-z sorted), each
+    // with a subcategory level below ('generic' for this test data).
     const auto& global = m.roots[1];
     REQUIRE(global.children.size() == 2);
-    CHECK(global.children[0].label == "security");
-    // security → generic → 2 rules
-    REQUIRE(global.children[0].children.size() == 1);
-    CHECK(global.children[0].children[0].label == "generic");
-    const auto& sec_rules = global.children[0].children[0].children;
+    CHECK(global.children[0].label == "secrets");   // a-z: secrets before security
+    CHECK(global.children[1].label == "security");
+    // security → generic → 2 rules (SEC-001 on, SEC-002 off), leaves a-z by id.
+    const keur::manager::Node* security = &global.children[1];
+    REQUIRE(security->children.size() == 1);
+    CHECK(security->children[0].label == "generic");
+    const auto& sec_rules = security->children[0].children;
     REQUIRE(sec_rules.size() == 2);
+    CHECK(sec_rules[0].rule_id == "KEUR-SEC-001");  // a-z
+    CHECK(sec_rules[1].rule_id == "KEUR-SEC-002");
     CHECK(sec_rules[1].enabled == false);   // SEC-002 off
     CHECK(sec_rules[1].baseline == false);
     CHECK(sec_rules[1].read_only == false);
@@ -3289,6 +3293,137 @@ SCENARIO("[feature:manager-tree] toggling a repo rule off greys the global row l
     const auto* gl3 = find_leaf(keur::manager::Scope::Global);
     REQUIRE(gl3 != nullptr);
     CHECK_FALSE(gl3->inherited);
+}
+
+SCENARIO("[feature:manager-tree] search filters leaves but keeps the matching path") {  // @proves KEUR-MANAGER-MODEL.search
+    auto java = ri("web", "WEB-JAVA-1", "java servlet check", true); java.language = "java";
+    auto py   = ri("web", "WEB-PY-1", "flask check", true);         py.language = "python";
+    std::vector<keur::manager::RuleItem> g = {java, py};
+    keur::manager::DefaultsInfo d;
+    auto m = keur::manager::build_model(d, g, {}, false);
+    for (auto& root : m.roots) expand_all(root);
+
+    auto all_ids = [](const keur::manager::Model& mm) {
+        std::vector<std::string> ids;
+        for (auto& row : keur::manager::visible_rows(mm))
+            if (row.node->kind == keur::manager::NodeKind::RuleNode) ids.push_back(row.node->rule_id);
+        return ids;
+    };
+    {   // No filter: both leaves reachable.
+        auto ids = all_ids(m);
+        CHECK(std::find(ids.begin(), ids.end(), "WEB-JAVA-1") != ids.end());
+        CHECK(std::find(ids.begin(), ids.end(), "WEB-PY-1")   != ids.end());
+    }
+    // Filter "java": only the java leaf remains; python is gone.
+    keur::manager::search_begin(m);
+    for (char c : std::string("java")) keur::manager::search_input(m, c);
+    {
+        auto ids = all_ids(m);
+        CHECK(std::find(ids.begin(), ids.end(), "WEB-JAVA-1") != ids.end());
+        CHECK(std::find(ids.begin(), ids.end(), "WEB-PY-1")   == ids.end());
+    }
+    // The ancestor path stays visible (scope + category).
+    {
+        bool saw_scope = false, saw_cat = false;
+        for (auto& row : keur::manager::visible_rows(m)) {
+            if (row.node->kind == keur::manager::NodeKind::ScopeNode &&
+                row.node->scope == keur::manager::Scope::Global) saw_scope = true;
+            if (row.node->kind == keur::manager::NodeKind::CategoryNode &&
+                row.node->label == "web") saw_cat = true;
+        }
+        CHECK(saw_scope);
+        CHECK(saw_cat);
+    }
+    // Esc clears the filter: python reachable again.
+    keur::manager::search_clear(m);
+    for (auto& root : m.roots) expand_all(root);
+    {
+        auto ids = all_ids(m);
+        CHECK(std::find(ids.begin(), ids.end(), "WEB-PY-1") != ids.end());
+    }
+}
+
+SCENARIO("[feature:manager-tree] search keeps groups collapsible (no flood)") {  // @proves KEUR-MANAGER-MODEL.search.expand
+    std::vector<keur::manager::RuleItem> g;
+    for (int i = 0; i < 8; ++i) {
+        auto it = ri("web", "WEB-JAVA-" + std::to_string(i), "java check", true);
+        it.language = "java";
+        g.push_back(it);
+    }
+    keur::manager::DefaultsInfo d;
+    auto m = keur::manager::build_model(d, g, {}, false);
+
+    keur::manager::search_begin(m);
+    for (char c : std::string("java")) keur::manager::search_input(m, c);
+    auto count_leaves = [](const keur::manager::Model& mm) {
+        int n = 0;
+        for (auto& row : keur::manager::visible_rows(mm))
+            if (row.node->kind == keur::manager::NodeKind::RuleNode) ++n;
+        return n;
+    };
+    CHECK(count_leaves(m) == 8);   // revealed while searching
+
+    auto rows = keur::manager::visible_rows(m);
+    int web_idx = -1;
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i)
+        if (rows[static_cast<std::size_t>(i)].node->kind == keur::manager::NodeKind::CategoryNode &&
+            rows[static_cast<std::size_t>(i)].node->label == "web") { web_idx = i; break; }
+    REQUIRE(web_idx >= 0);
+    m.cursor = web_idx;
+    REQUIRE(keur::manager::collapse_focused(m));
+    CHECK(count_leaves(m) == 0);   // folded away — collapse still works in search
+
+    bool saw_web = false;
+    for (auto& row : keur::manager::visible_rows(m))
+        if (row.node->kind == keur::manager::NodeKind::CategoryNode && row.node->label == "web") saw_web = true;
+    CHECK(saw_web);   // the match path (category header) remains
+}
+
+SCENARIO("[feature:manager-tree] match helpers are case-insensitive over label/detail") {  // @proves KEUR-MANAGER-MODEL.search.match
+    keur::manager::Node leaf;
+    leaf.kind = keur::manager::NodeKind::RuleNode;
+    leaf.label = "WEB-JAVA-1";
+    leaf.detail = "Java Servlet";
+    CHECK(keur::manager::node_matches_query(leaf, "java"));
+    CHECK(keur::manager::node_matches_query(leaf, "SERVLET"));
+    CHECK_FALSE(keur::manager::node_matches_query(leaf, "python"));
+    CHECK(keur::manager::node_matches_query(leaf, ""));
+    keur::manager::Node grp;
+    grp.kind = keur::manager::NodeKind::CategoryNode;
+    grp.label = "web";
+    grp.children.push_back(leaf);
+    CHECK(keur::manager::subtree_has_match(grp, "java"));
+    CHECK_FALSE(keur::manager::subtree_has_match(grp, "zzz"));
+}
+
+SCENARIO("[feature:manager-tree] rule groups and leaves are sorted a-z") {  // @proves KEUR-MANAGER-MODEL
+    std::vector<keur::manager::RuleItem> g = {
+        ri("security", "SEC-ZeBRA", "", true),
+        ri("security", "SEC-apple", "", true),
+        ri("auth", "AUTH-1", "", true),
+    };
+    keur::manager::DefaultsInfo d;
+    auto m = keur::manager::build_model(d, g, {}, false);
+    for (auto& root : m.roots) expand_all(root);
+
+    const keur::manager::Node* global = nullptr;
+    for (auto& root : m.roots) if (root.scope == keur::manager::Scope::Global) global = &root;
+    REQUIRE(global != nullptr);
+    std::vector<std::string> cats;
+    for (auto& c : global->children)
+        if (c.kind == keur::manager::NodeKind::CategoryNode) cats.push_back(c.label);
+    auto ia = std::find(cats.begin(), cats.end(), "auth");
+    auto is = std::find(cats.begin(), cats.end(), "security");
+    REQUIRE(ia != cats.end()); REQUIRE(is != cats.end());
+    CHECK(ia < is);   // auth before security
+
+    std::vector<std::string> leaves;
+    for (auto& row : keur::manager::visible_rows(m))
+        if (row.node->kind == keur::manager::NodeKind::RuleNode &&
+            row.node->rule_id.rfind("SEC-", 0) == 0)
+            leaves.push_back(row.node->rule_id);
+    REQUIRE(leaves.size() == 2);
+    CHECK(leaves == std::vector<std::string>{"SEC-ZeBRA", "SEC-apple"});  // byte-order a-z
 }
 
 SCENARIO("[feature:manager-tree] a fully-overruled global group renders greyed") {  // @proves KEUR-MANAGER-VIEW.group-overruled
@@ -3942,10 +4077,74 @@ SCENARIO("[feature:tune] header marks the active lens") {  // @proves KEUR-TUNE.
     CHECK(h2.find("[ level ]") != std::string::npos);
 }
 
-SCENARIO("[feature:tune] medior dummy is a labelled placeholder") {  // @proves KEUR-TUNE.medior-dummy
-    std::string d = keur::cmd::render_medior_dummy(/*color=*/false);
-    CHECK(d.find("placeholder") != std::string::npos);
-    CHECK(d.find("medior") != std::string::npos);
+SCENARIO("[feature:manager-tree] style_for pins the colour priority order") {  // @proves KEUR-MANAGER-VIEW.style
+    const std::string kDim = "\033[2m", kGreen = "\033[32m", kRed = "\033[31m",
+                      kCyan = "\033[36m", kYellow = "\033[33m";
+    auto sgr = [](const keur::manager::Node& n) { return std::string(keur::manager::style_for(n)); };
+
+    keur::manager::Node scope;  scope.kind = keur::manager::NodeKind::ScopeNode;
+    scope.scope = keur::manager::Scope::Global;   CHECK(sgr(scope) == kCyan);
+    scope.scope = keur::manager::Scope::Repo;     CHECK(sgr(scope) == kYellow);
+    scope.scope = keur::manager::Scope::Defaults; CHECK(sgr(scope) == kDim);
+
+    keur::manager::Node warn; warn.kind = keur::manager::NodeKind::CategoryNode; warn.warn = true;
+    CHECK(sgr(warn) == kRed);   // warn beats everything below
+
+    keur::manager::Node inh; inh.kind = keur::manager::NodeKind::RuleNode;
+    inh.enabled = true; inh.inherited = true;
+    CHECK(sgr(inh) == kDim);    // inherited dims even though enabled
+
+    keur::manager::Node on;  on.kind  = keur::manager::NodeKind::RuleNode; on.enabled = true;
+    CHECK(sgr(on) == kGreen);
+    keur::manager::Node off; off.kind = keur::manager::NodeKind::RuleNode; off.enabled = false;
+    CHECK(sgr(off) == kDim);
+
+    keur::manager::Node grp; grp.kind = keur::manager::NodeKind::CategoryNode;  // empty group
+    CHECK(sgr(grp).empty());    // no rules, not off/overruled → uncoloured
+}
+
+SCENARIO("[feature:tune] handle_level_key picks + clamps the coarse level") {  // @proves KEUR-TUNE.key.level
+    using K = keur::platform::Key;
+    keur::cmd::TuneOptions opts;
+    auto key = [](K k, char c = '\0') { keur::platform::KeyEvent e; e.key = k; e.ch = c; return e; };
+    int level = 3;
+    std::string status;
+    // Up / Left / k / h step DOWN; Down / Right / j / l step UP (1-D chooser).
+    keur::cmd::handle_level_key(key(K::Up), opts, level, status);    CHECK(level == 2);
+    keur::cmd::handle_level_key(key(K::Left), opts, level, status);  CHECK(level == 1);
+    keur::cmd::handle_level_key(key(K::Up), opts, level, status);    CHECK(level == 1);  // clamp low
+    keur::cmd::handle_level_key(key(K::Down), opts, level, status);  CHECK(level == 2);
+    keur::cmd::handle_level_key(key(K::Char,'l'), opts, level, status); CHECK(level == 3);
+    for (int i = 0; i < 10; ++i) keur::cmd::handle_level_key(key(K::Right), opts, level, status);
+    CHECK(level == 5);  // clamp high
+}
+
+SCENARIO("[feature:tune] handle_settings_key drives the slider model") {  // @proves KEUR-TUNE.key.settings
+    using K = keur::platform::Key;
+    keur::cmd::TuneOptions opts;
+    auto key = [](K k, char c = '\0') { keur::platform::KeyEvent e; e.key = k; e.ch = c; return e; };
+    keur::DifficultyVector vec; vec.default_level = 3;
+    auto m = keur::cmd::build_settings_model(vec);
+    std::string status;
+
+    // Cursor starts on the first group header → not a slider.
+    m.cursor = 0;
+    CHECK_FALSE(keur::cmd::settings_on_slider(m));
+    // Right on a group expands it.
+    keur::cmd::handle_settings_key(key(K::Right), opts, m, status);
+    CHECK(m.groups[0].expanded);
+    // Move down onto the first slider → now on a slider.
+    keur::cmd::handle_settings_key(key(K::Down), opts, m, status);
+    CHECK(keur::cmd::settings_on_slider(m));
+    // '+' raises it, '-' lowers it.
+    int before = m.groups[0].sliders[0].level;
+    keur::cmd::handle_settings_key(key(K::Char,'+'), opts, m, status);
+    CHECK(m.groups[0].sliders[0].level == before + 1);
+    keur::cmd::handle_settings_key(key(K::Char,'-'), opts, m, status);
+    CHECK(m.groups[0].sliders[0].level == before);
+    // Left on a slider nudges down (adjust), not collapse.
+    keur::cmd::handle_settings_key(key(K::Left), opts, m, status);
+    CHECK(m.groups[0].sliders[0].level == before - 1);
 }
 
 SCENARIO("[feature:tune] tune_parse flags + starting lens") {  // @proves KEUR-TUNE.parse

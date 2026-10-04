@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "common/platform.h"
 #include "rules/rule_engine.h"
 
 namespace keur::cmd {
@@ -133,6 +134,17 @@ bool settings_adjust(SettingsModel& m, int delta);
 /// writer. Only emits ilities the model knows (the ISO map). Pure.
 /// @id KEUR-SETTINGS.collect
 [[nodiscard]] std::vector<std::pair<std::string, int>> settings_vector(const SettingsModel& m);
+
+/// What a key did to the slider model — lets each caller (standalone `settings`
+/// and the `tune` router) run its OWN save/quit while sharing the edit logic.
+enum class SettingsKeyResult { None, Changed, SaveRequested };
+
+/// Apply ONE key to the slider model: ↑↓/jk move, →/+ expand-or-raise, ←/-
+/// collapse-or-lower, Enter expand/collapse, `s` -> SaveRequested. Pure state
+/// transition (no I/O); the caller persists on SaveRequested. The single source
+/// of truth for medior-view key handling, shared by both entry points.
+/// @id KEUR-SETTINGS.apply-key
+SettingsKeyResult settings_apply_key(SettingsModel& m, const platform::KeyEvent& ev);
 
 // ---------------------------------------------------------------------------
 // Pure renderer: (model, opts) -> a screen string. Sliders as bars, OFF a

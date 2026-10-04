@@ -87,22 +87,6 @@ std::string render_tune_header(TuneView active, bool color) {
 }
 
 // ---------------------------------------------------------------------------
-// Dummy medior screen — placeholder until the real sliders are wired in.
-// @id KEUR-TUNE.medior-dummy
-// ---------------------------------------------------------------------------
-std::string render_medior_dummy(bool color) {
-    std::ostringstream os;
-    os << paint("  settings (medior) — per-ility sliders", k_red, color) << "\n\n";
-    os << paint("  [ placeholder ]", k_red_dim, color) << "\n\n";
-    os << "  This lens will show the ISO 25010 sliders (off \xC2\xB7 1..5),\n";
-    os << "  grouped by characteristic, over the same difficulty vector.\n";
-    os << paint("  (not wired yet — \xE2\x86\x90 back to level, \xE2\x86\x92 on to manager)",
-                k_dim, color)
-       << "\n";
-    return os.str();
-}
-
-// ---------------------------------------------------------------------------
 // tune_parse. @id KEUR-TUNE.parse
 // ---------------------------------------------------------------------------
 TuneOptions tune_parse(const std::vector<std::string>& args) {
@@ -169,7 +153,46 @@ void save_level(const TuneOptions& opts, int level, std::string* out_msg) {
                                : ("could not write " + cfg);
 }
 
-}  // namespace
+}  // namespace  (render helpers above are file-local)
+
+// --- Per-lens key handlers (public, unit-testable; see tune.h) --------------
+// Each handles ONLY its lens's within-view keys (navigation across lenses is
+// done by tune() before these run). Keeping them separate keeps the loop a
+// thin skeleton instead of one long branching switch.
+
+// Is the settings cursor on a slider row (vs a group header)?
+bool settings_on_slider(const SettingsModel& m) {
+    auto rows = settings_visible_rows(m);
+    const std::size_t cur = m.cursor < 0 ? rows.size() : static_cast<std::size_t>(m.cursor);
+    return cur < rows.size() && !rows[cur].is_group();
+}
+
+// The coarse chooser is 1-D: up/left step down a level, down/right step up.
+void handle_level_key(const platform::KeyEvent& ev, const TuneOptions& opts,
+                      int& level_sel, std::string& status) {
+    const bool dec = ev.key == platform::Key::Up || ev.key == platform::Key::Left ||
+                     (ev.key == platform::Key::Char && (ev.ch == 'k' || ev.ch == 'h'));
+    const bool inc = ev.key == platform::Key::Down || ev.key == platform::Key::Right ||
+                     (ev.key == platform::Key::Char && (ev.ch == 'j' || ev.ch == 'l'));
+    if (dec && level_sel > 1) --level_sel;
+    else if (inc && level_sel < 5) ++level_sel;
+    else if (ev.key == platform::Key::Enter) save_level(opts, level_sel, &status);
+}
+
+// Sliders: delegates the edit logic to the shared settings_apply_key (one
+// source of truth with standalone `keur settings`); only the save side differs
+// (the router reports via a status line instead of printing + exiting).
+void handle_settings_key(const platform::KeyEvent& ev, const TuneOptions& opts,
+                         SettingsModel& smodel, std::string& status) {
+    if (settings_apply_key(smodel, ev) != SettingsKeyResult::SaveRequested) return;
+    SettingsOptions so;
+    so.config   = opts.config;
+    so.no_color = opts.no_color;
+    std::string cfg;
+    bool ok = save_settings_model(so, smodel, &cfg);
+    smodel.dirty = !ok;
+    status = ok ? ("saved difficulty to " + cfg) : ("could not write " + cfg);
+}
 
 int tune(const TuneOptions& opts) {
     bool color_print = !opts.no_color && std::getenv("NO_COLOR") == nullptr;
@@ -212,65 +235,18 @@ int tune(const TuneOptions& opts) {
         std::cout << std::flush;
 
         platform::KeyEvent ev = platform::read_key();
-        // Tab / Shift-Tab switch the lens (the shared navigation axis); arrows
-        // are left free for the active lens to use (level pick, slider adjust).
+        // Global keys: Tab/Shift-Tab switch lens; q/Esc quit. Arrows stay with
+        // the active lens (handled below).
         if (ev.key == platform::Key::Tab)     { view = tune_next(view); status.clear(); continue; }
         if (ev.key == platform::Key::BackTab) { view = tune_prev(view); status.clear(); continue; }
         if (ev.key == platform::Key::Escape)  { running = false; continue; }
         if (ev.key == platform::Key::Char && ev.ch == 'q') { running = false; continue; }
 
-        // Within-lens keys.
+        // Delegate the rest to the active lens's handler.
         switch (view) {
-            case TuneView::Level:
-                // Up/Down or Left/Right both pick a level (the chooser is 1-D).
-                if (ev.key == platform::Key::Up || ev.key == platform::Key::Left ||
-                    (ev.key == platform::Key::Char && (ev.ch == 'k' || ev.ch == 'h'))) {
-                    if (level_sel > 1) --level_sel;
-                } else if (ev.key == platform::Key::Down || ev.key == platform::Key::Right ||
-                           (ev.key == platform::Key::Char && (ev.ch == 'j' || ev.ch == 'l'))) {
-                    if (level_sel < 5) ++level_sel;
-                } else if (ev.key == platform::Key::Enter) {
-                    save_level(opts, level_sel, &status);
-                }
-                break;
-
-            case TuneView::Settings:
-                if (ev.key == platform::Key::Up || (ev.key == platform::Key::Char && ev.ch == 'k')) {
-                    settings_move(smodel, -1);
-                } else if (ev.key == platform::Key::Down || (ev.key == platform::Key::Char && ev.ch == 'j')) {
-                    settings_move(smodel, +1);
-                } else if (ev.key == platform::Key::Right) {
-                    // On a group: expand; on a slider: nudge up (same as `keur settings`).
-                    if (!settings_expand(smodel)) settings_adjust(smodel, +1);
-                } else if (ev.key == platform::Key::Left) {
-                    // On a slider: nudge down; on a group: collapse.
-                    auto rows = settings_visible_rows(smodel);
-                    const std::size_t cur = smodel.cursor < 0 ? rows.size()
-                                            : static_cast<std::size_t>(smodel.cursor);
-                    bool slider = cur < rows.size() && !rows[cur].is_group();
-                    if (slider) settings_adjust(smodel, -1);
-                    else settings_collapse(smodel);
-                } else if (ev.key == platform::Key::Enter) {
-                    if (!settings_expand(smodel)) settings_collapse(smodel);
-                } else if (ev.key == platform::Key::Char) {
-                    if (ev.ch == '+' || ev.ch == '=') settings_adjust(smodel, +1);
-                    else if (ev.ch == '-' || ev.ch == '_') settings_adjust(smodel, -1);
-                    else if (ev.ch == 's') {
-                        std::string cfg;
-                        bool ok = save_settings_model(
-                            [&]{ SettingsOptions so; so.config = opts.config;
-                                 so.no_color = opts.no_color; return so; }(),
-                            smodel, &cfg);
-                        smodel.dirty = !ok;
-                        status = ok ? ("saved difficulty to " + cfg)
-                                    : ("could not write " + cfg);
-                    }
-                }
-                break;
-
-            case TuneView::Manager:
-                if (ev.key == platform::Key::Enter) { open_manager = true; running = false; }
-                break;
+            case TuneView::Level:    handle_level_key(ev, opts, level_sel, status); break;
+            case TuneView::Settings: handle_settings_key(ev, opts, smodel, status); break;
+            case TuneView::Manager:  if (ev.key == platform::Key::Enter) { open_manager = true; running = false; } break;
         }
     }
 
