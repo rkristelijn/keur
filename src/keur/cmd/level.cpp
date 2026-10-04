@@ -17,6 +17,7 @@
 #include "adapters/fs.h"
 #include "adapters/git.h"
 #include "cmd/policy.h"
+#include "cmd/tune.h"
 #include "common/platform.h"
 #include "config/scopes.h"
 
@@ -311,14 +312,20 @@ int level(const LevelOptions& opts) {
     int selected = 3;  // default to the standard KEUR experience (L3)
     bool running = true;
     int exit_code = 0;
+    bool goto_tune = false;  // Right/Tab: step into the deeper lenses (settings)
     while (running) {
         std::cout << "\x1b""[2J\x1b""[H";  // clear + home
-        std::cout << render_level_screen(bucket, color, selected, show_logo) << std::flush;
+        std::cout << render_level_screen(bucket, color, selected, show_logo) << "\n"
+                  << (color ? "\x1b""[2m" : "")
+                  << "  \xE2\x86\x91\xE2\x86\x93 pick   Enter save   Tab \xE2\x86\x92 settings / manager   q quit"
+                  << (color ? "\x1b""[0m" : "") << std::flush;
 
         platform::KeyEvent ev = platform::read_key();
         switch (ev.key) {
             case platform::Key::Up:   if (selected > 1)         --selected; break;
             case platform::Key::Down: if (selected < max_level) ++selected; break;
+            case platform::Key::Tab:
+                goto_tune = true; running = false; break;
             case platform::Key::Enter: {
                 auto cfg = target_config(opts);
                 keur::adapters::Fs fs;
@@ -339,6 +346,19 @@ int level(const LevelOptions& opts) {
                 break;
             default: break;
         }
+    }
+
+    // Right/Tab from the coarse chooser steps into the medior/expert lenses.
+    // Release raw mode first (the router installs its own guard); move the
+    // guard into a scope that destructs here, since RawModeGuard has no manual
+    // release. @id KEUR-LEVEL.into-tune
+    if (goto_tune) {
+        { platform::RawModeGuard released = std::move(guard); (void)released; }
+        TuneOptions topts;
+        topts.config   = opts.config;
+        topts.no_color = opts.no_color;
+        topts.start    = TuneView::Settings;
+        return tune(topts);
     }
     return exit_code;
 }

@@ -62,7 +62,7 @@ TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
-IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/train.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp cmd/level.cpp cmd/difficulty.cpp \
+IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/train.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/manager.cpp cmd/level.cpp cmd/difficulty.cpp cmd/settings.cpp cmd/tune.cpp \
              config/scopes.cpp config/hookmgr.cpp config/scanners.cpp config/disabled.cpp config/keurignore.cpp config/ruleset.cpp \
              scan/dispatch.cpp scan/mappers.cpp scan/json_util.cpp \
              learn/history.cpp learn/sysinfo.cpp learn/monitor.cpp \
@@ -167,10 +167,16 @@ $(BINDIR)/keur_cmd_config.o: cmd/config.cpp cmd/config.h config/scopes.h adapter
 $(BINDIR)/keur_cmd_manager.o: cmd/manager.cpp cmd/manager.h cmd/config.h cmd/policy.h cmd/rules.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h manager/model.h manager/view.h manager/catalog.h common/platform.h adapters/git.h adapters/fs.h ../rules/rule_engine.h util/keur_utils.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
-$(BINDIR)/keur_cmd_level.o: cmd/level.cpp cmd/level.h cmd/policy.h render/logo.h adapters/fs.h adapters/git.h config/scopes.h common/platform.h | $(BINDIR)
+$(BINDIR)/keur_cmd_level.o: cmd/level.cpp cmd/level.h cmd/policy.h cmd/tune.h render/logo.h adapters/fs.h adapters/git.h config/scopes.h common/platform.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_cmd_difficulty.o: cmd/difficulty.cpp cmd/difficulty.h config/ruleset.h config/scopes.h adapters/fs.h adapters/git.h util/keur_utils.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_cmd_settings.o: cmd/settings.cpp cmd/settings.h cmd/policy.h config/ruleset.h config/scopes.h adapters/fs.h adapters/git.h common/platform.h util/keur_utils.h ../rules/rule_engine.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
+$(BINDIR)/keur_cmd_tune.o: cmd/tune.cpp cmd/tune.h cmd/level.h cmd/manager.h cmd/policy.h cmd/settings.h config/scopes.h adapters/fs.h adapters/git.h common/platform.h render/logo.h ../rules/rule_engine.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
 $(BINDIR)/keur_config_scopes.o: config/scopes.cpp config/scopes.h common/platform.h | $(BINDIR)

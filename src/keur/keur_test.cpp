@@ -48,7 +48,9 @@
 #include "cmd/manager.h"
 #include "cmd/policy.h"
 #include "cmd/scan.h"
+#include "cmd/settings.h"
 #include "cmd/train.h"
+#include "cmd/tune.h"
 #include "config/hookmgr.h"
 #include "config/scanners.h"
 #include "config/disabled.h"
@@ -2892,7 +2894,7 @@ SCENARIO("[feature:keyinput] decode_key maps arrow CSI sequences") {  // @proves
     CHECK(decode_key("\033[C").key == Key::Right);
     CHECK(decode_key("\033[D").key == Key::Left);
     // Unknown CSI final byte → Unknown, not a misread arrow.
-    CHECK(decode_key("\033[Z").key == Key::Unknown);
+    CHECK(decode_key("\033[Z").key == Key::BackTab);  // Shift-Tab
 }
 
 SCENARIO("[feature:keyinput] decode_key maps named control keys") {  // @proves KEUR-KEYINPUT
@@ -3681,6 +3683,204 @@ SCENARIO("[feature:level] upsert_policy_level adds, replaces, and preserves othe
     std::string r2 = upsert_policy_level(body2, 1);
     CHECK(r2.find("level = 1") != std::string::npos);
     CHECK(r2.find("block-at = 0.8") != std::string::npos);
+}
+
+// --- KEUR-SETTINGS: the ISO 25010 slider model (keur settings) -------------
+
+SCENARIO("[feature:settings] build_settings_model maps the ISO 25010 groups") {  // @proves KEUR-SETTINGS.build
+    keur::DifficultyVector vec; vec.default_level = 3;
+    vec.levels = {{"integrity", 5}, {"accessibility", 0}};  // one raised, one OFF
+    auto m = keur::cmd::build_settings_model(vec);
+    // The tree shape is the fixed group map.
+    CHECK(m.groups.size() == keur::cmd::iso25010_groups().size());
+    CHECK(m.groups[0].name == "Security");
+    // Levels read from the vector (default_level for unset ilities).
+    const auto& sec = m.groups[0];
+    bool saw_integrity = false, saw_conf = false;
+    for (const auto& s : sec.sliders) {
+        if (s.ility == "integrity")      { CHECK(s.level == 5); saw_integrity = true; }
+        if (s.ility == "confidentiality"){ CHECK(s.level == 3); saw_conf = true; }  // default
+    }
+    CHECK(saw_integrity); CHECK(saw_conf);
+    // accessibility OFF (0) somewhere under Usability.
+    for (const auto& g : m.groups)
+        for (const auto& s : g.sliders)
+            if (s.ility == "accessibility") CHECK(s.level == 0);
+    // All groups start collapsed.
+    for (const auto& g : m.groups) CHECK_FALSE(g.expanded);
+}
+
+SCENARIO("[feature:settings] visible_rows reflect collapse state") {  // @proves KEUR-SETTINGS.rows
+    keur::DifficultyVector vec; vec.default_level = 3;
+    auto m = keur::cmd::build_settings_model(vec);
+    // Collapsed: one row per group.
+    CHECK(keur::cmd::settings_visible_rows(m).size() == m.groups.size());
+    // Expand the first group (Security has 3 ilities).
+    m.cursor = 0;
+    CHECK(keur::cmd::settings_expand(m));
+    auto rows = keur::cmd::settings_visible_rows(m);
+    // groups + the 3 Security sliders now visible.
+    CHECK(rows.size() == m.groups.size() + m.groups[0].sliders.size());
+    // Row 0 is the Security header, rows 1..3 are its sliders.
+    CHECK(rows[0].is_group());
+    CHECK_FALSE(rows[1].is_group());
+    CHECK(rows[1].group == 0);
+}
+
+SCENARIO("[feature:settings] expand/collapse are idempotent + jump to parent") {  // @proves KEUR-SETTINGS.collapse
+    keur::DifficultyVector vec; vec.default_level = 3;
+    auto m = keur::cmd::build_settings_model(vec);
+    m.cursor = 0;
+    CHECK(keur::cmd::settings_expand(m));
+    CHECK_FALSE(keur::cmd::settings_expand(m));   // already expanded -> no-op
+    // Move onto the first slider, then collapse: cursor jumps back to the group.
+    keur::cmd::settings_move(m, 1);
+    CHECK_FALSE(keur::cmd::settings_visible_rows(m)[static_cast<std::size_t>(m.cursor)].is_group());
+    CHECK(keur::cmd::settings_collapse(m));
+    CHECK(keur::cmd::settings_visible_rows(m)[static_cast<std::size_t>(m.cursor)].is_group());
+    CHECK_FALSE(m.groups[0].expanded);
+}
+
+SCENARIO("[feature:settings] group average ignores OFF ilities") {  // @proves KEUR-SETTINGS.average
+    keur::cmd::GroupNode g;
+    g.sliders = { {"a", 4, false}, {"b", 2, false}, {"c", 0, false} };  // c is OFF
+    // average over non-OFF {4,2} = 3.0, not (4+2+0)/3.
+    CHECK(keur::cmd::group_average(g) == doctest::Approx(3.0));
+    // all OFF -> 0.0
+    keur::cmd::GroupNode off;
+    off.sliders = { {"a", 0, false}, {"b", 0, false} };
+    CHECK(keur::cmd::group_average(off) == doctest::Approx(0.0));
+}
+
+SCENARIO("[feature:settings] star marks a non-uniform group or an override") {  // @proves KEUR-SETTINGS.star
+    keur::cmd::GroupNode uniform;
+    uniform.sliders = { {"a", 3, false}, {"b", 3, false} };
+    CHECK_FALSE(keur::cmd::group_has_star(uniform));   // all equal, no override
+    keur::cmd::GroupNode mixed;
+    mixed.sliders = { {"a", 3, false}, {"b", 4, false} };
+    CHECK(keur::cmd::group_has_star(mixed));           // not all equal
+    keur::cmd::GroupNode overridden;
+    overridden.sliders = { {"a", 3, false}, {"b", 3, true} };  // per-rule override
+    CHECK(keur::cmd::group_has_star(overridden));
+    // OFF ility does not count as "unequal".
+    keur::cmd::GroupNode with_off;
+    with_off.sliders = { {"a", 3, false}, {"b", 0, false} };
+    CHECK_FALSE(keur::cmd::group_has_star(with_off));
+}
+
+SCENARIO("[feature:settings] adjust a slider is clamped off..5 and sets dirty") {  // @proves KEUR-SETTINGS.adjust
+    keur::DifficultyVector vec; vec.default_level = 3;
+    auto m = keur::cmd::build_settings_model(vec);
+    m.cursor = 0;
+    keur::cmd::settings_expand(m);
+    keur::cmd::settings_move(m, 1);   // onto the first Security slider (level 3)
+    CHECK(keur::cmd::settings_adjust(m, +1));   // 3 -> 4
+    CHECK(m.groups[0].sliders[0].level == 4);
+    CHECK(m.dirty);
+    // Clamp high.
+    keur::cmd::settings_adjust(m, +5);
+    CHECK(m.groups[0].sliders[0].level == 5);
+    // Clamp low to OFF(0).
+    keur::cmd::settings_adjust(m, -9);
+    CHECK(m.groups[0].sliders[0].level == 0);
+    CHECK_FALSE(keur::cmd::settings_adjust(m, -1));  // already at 0 -> no change
+}
+
+SCENARIO("[feature:settings] dragging a group sets all its sliders equal") {  // @proves KEUR-SETTINGS.adjust
+    keur::DifficultyVector vec; vec.default_level = 3;
+    vec.levels = {{"integrity", 5}};   // Security becomes mixed (5,3,3)
+    auto m = keur::cmd::build_settings_model(vec);
+    m.cursor = 0;   // Security header
+    REQUIRE(keur::cmd::group_has_star(m.groups[0]));   // mixed -> star
+    // Drag down one from the rounded average (avg of 5,3,3 ≈ 3.7 -> 4 -> 3).
+    CHECK(keur::cmd::settings_adjust(m, -1));
+    for (const auto& s : m.groups[0].sliders) CHECK(s.level == 3);
+    CHECK_FALSE(keur::cmd::group_has_star(m.groups[0]));  // now uniform
+}
+
+SCENARIO("[feature:settings] render shows bars, OFF detached, and the star") {  // @proves KEUR-SETTINGS.render
+    keur::DifficultyVector vec; vec.default_level = 3;
+    vec.levels = {{"integrity", 5}};   // Security mixed -> star on that group
+    auto m = keur::cmd::build_settings_model(vec);
+    std::string out = keur::cmd::render_settings_screen(m, /*color=*/false);
+    CHECK(out.find("Difficulty settings:") != std::string::npos);
+    CHECK(out.find("Overall") != std::string::npos);
+    CHECK(out.find("Security") != std::string::npos);
+    CHECK(out.find("*") != std::string::npos);               // mixed Security
+    CHECK(out.find("\xE2\x96\x88") != std::string::npos);    // a full block in a bar
+}
+
+SCENARIO("[feature:settings] upsert_difficulty writes off as string, preserves siblings") {  // @proves KEUR-SETTINGS.persist
+    using keur::cmd::upsert_difficulty;
+    // Fresh file: section is created.
+    std::string r = upsert_difficulty("", { {"integrity", 4}, {"accessibility", 0} });
+    CHECK(r.find("[difficulty]") != std::string::npos);
+    CHECK(r.find("integrity = 4") != std::string::npos);
+    CHECK(r.find("accessibility = \"off\"") != std::string::npos);
+    // Existing section: replace in place, keep other lines + other sections.
+    std::string body =
+        "[policy]\nlevel = 3\n[difficulty]\nintegrity = 2\nconfidentiality = 3\n[other]\nx = 1\n";
+    std::string r2 = upsert_difficulty(body, { {"integrity", 5} });
+    CHECK(r2.find("integrity = 5") != std::string::npos);
+    CHECK(r2.find("integrity = 2") == std::string::npos);     // old value gone
+    CHECK(r2.find("confidentiality = 3") != std::string::npos); // sibling preserved
+    CHECK(r2.find("[other]") != std::string::npos);           // other section kept
+    CHECK(r2.find("level = 3") != std::string::npos);         // [policy] kept
+    // [difficulty.rules] must NOT be treated as [difficulty].
+    std::string body3 = "[difficulty.rules]\nKEUR-X = off\n";
+    std::string r3 = upsert_difficulty(body3, { {"integrity", 4} });
+    CHECK(r3.find("KEUR-X = off") != std::string::npos);      // rules untouched
+    CHECK(r3.find("integrity = 4") != std::string::npos);     // new [difficulty] added
+}
+
+SCENARIO("[feature:settings] settings_parse flags") {  // @proves KEUR-SETTINGS.parse
+    auto o = keur::cmd::settings_parse({"--print", "--no-color", "--global", "--config", "/tmp/x"});
+    CHECK(o.print_only);
+    CHECK(o.no_color);
+    CHECK(o.global);
+    CHECK(o.config == "/tmp/x");
+}
+
+// --- KEUR-TUNE: the ←/→ lens router over level/settings/manager ------------
+
+SCENARIO("[feature:tune] lens stepping is clamped at both ends") {  // @proves KEUR-TUNE.step
+    using V = keur::cmd::TuneView;
+    // Forward: level -> settings -> manager -> (wall) manager.
+    CHECK(keur::cmd::tune_next(V::Level)    == V::Settings);
+    CHECK(keur::cmd::tune_next(V::Settings) == V::Manager);
+    CHECK(keur::cmd::tune_next(V::Manager)  == V::Manager);   // wall
+    // Backward: manager -> settings -> level -> (wall) level.
+    CHECK(keur::cmd::tune_prev(V::Manager)  == V::Settings);
+    CHECK(keur::cmd::tune_prev(V::Settings) == V::Level);
+    CHECK(keur::cmd::tune_prev(V::Level)    == V::Level);     // wall
+}
+
+SCENARIO("[feature:tune] header marks the active lens") {  // @proves KEUR-TUNE.header
+    using V = keur::cmd::TuneView;
+    std::string h = keur::cmd::render_tune_header(V::Settings, /*color=*/false);
+    CHECK(h.find("[ settings ]") != std::string::npos);   // active, bracketed
+    CHECK(h.find("level") != std::string::npos);
+    CHECK(h.find("manager") != std::string::npos);
+    CHECK(h.find("[ level ]") == std::string::npos);      // not active
+    // Active bracket moves with the view.
+    std::string h2 = keur::cmd::render_tune_header(V::Level, false);
+    CHECK(h2.find("[ level ]") != std::string::npos);
+}
+
+SCENARIO("[feature:tune] medior dummy is a labelled placeholder") {  // @proves KEUR-TUNE.medior-dummy
+    std::string d = keur::cmd::render_medior_dummy(/*color=*/false);
+    CHECK(d.find("placeholder") != std::string::npos);
+    CHECK(d.find("medior") != std::string::npos);
+}
+
+SCENARIO("[feature:tune] tune_parse flags + starting lens") {  // @proves KEUR-TUNE.parse
+    auto o = keur::cmd::tune_parse({"--print", "--no-color", "--view", "manager", "--config", "/tmp/x"});
+    CHECK(o.print_only);
+    CHECK(o.no_color);
+    CHECK(o.start == keur::cmd::TuneView::Manager);
+    CHECK(o.config == "/tmp/x");
+    // default start is level.
+    CHECK(keur::cmd::tune_parse({}).start == keur::cmd::TuneView::Level);
 }
 
 } // TEST_SUITE("unit") — Layer 4/5 pure tests
