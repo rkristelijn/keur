@@ -4117,6 +4117,20 @@ SCENARIO("[feature:tune] handle_level_key picks + clamps the coarse level") {  /
     keur::cmd::handle_level_key(key(K::Char,'l'), opts, level, status); CHECK(level == 3);
     for (int i = 0; i < 10; ++i) keur::cmd::handle_level_key(key(K::Right), opts, level, status);
     CHECK(level == 5);  // clamp high
+    // A pick returns false (no save); Enter returns true (save requested).
+    CHECK_FALSE(keur::cmd::handle_level_key(key(K::Up), opts, level, status));
+}
+
+SCENARIO("[feature:tune] overall_level is the rounded non-off average, clamped") {  // @proves KEUR-TUNE.overall
+    keur::DifficultyVector vec; vec.default_level = 3;
+    auto m = keur::cmd::build_settings_model(vec);
+    CHECK(keur::cmd::overall_level(m) == 3);           // all 3
+    // Raise one slider; average rounds.
+    m.groups[0].sliders[0].level = 5;
+    CHECK(keur::cmd::overall_level(m) >= 3);
+    // All OFF → fallback 3 (never 0).
+    for (auto& g : m.groups) for (auto& s : g.sliders) s.level = 0;
+    CHECK(keur::cmd::overall_level(m) == 3);
 }
 
 SCENARIO("[feature:tune] handle_settings_key drives the slider model") {  // @proves KEUR-TUNE.key.settings

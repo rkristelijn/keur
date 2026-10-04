@@ -64,16 +64,22 @@ struct TuneOptions {
 /// @id KEUR-TUNE.on-slider
 [[nodiscard]] bool settings_on_slider(const SettingsModel& m);
 
+/// The coarse "overall" level (1..5) derived from a slider model: the rounded
+/// average of its non-OFF ilities (OFF excluded; empty → 3). Pure, so the level
+/// lens can seed/refresh from the same state the settings lens shows.
+/// @id KEUR-TUNE.overall
+[[nodiscard]] int overall_level(const SettingsModel& m);
+
 /// Apply one key to the coarse LEVEL lens: up/left step down, down/right step
-/// up (clamped 1..5), Enter saves to keur.toml. `level_sel`/`status` mutate.
-/// @id KEUR-TUNE.key.level
-void handle_level_key(const platform::KeyEvent& ev, const TuneOptions& opts,
+/// up (clamped 1..5), Enter saves to keur.toml. Returns true when a save
+/// occurred (so the router can refresh the shared state). @id KEUR-TUNE.key.level
+bool handle_level_key(const platform::KeyEvent& ev, const TuneOptions& opts,
                       int& level_sel, std::string& status);
 
 /// Apply one key to the SETTINGS (medior) lens: move/expand/collapse/adjust the
-/// slider model, `s` saves. Mirrors standalone `keur settings`. Mutates `smodel`
+/// slider model, `s` saves. Returns true when a save occurred. Mutates `smodel`
 /// (+ `status` on save). @id KEUR-TUNE.key.settings
-void handle_settings_key(const platform::KeyEvent& ev, const TuneOptions& opts,
+bool handle_settings_key(const platform::KeyEvent& ev, const TuneOptions& opts,
                          SettingsModel& smodel, std::string& status);
 
 /// Run `keur tune`. Interactive: ←/→ switch lens, the active lens handles the
