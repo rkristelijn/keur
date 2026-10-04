@@ -1,0 +1,24 @@
+# SSE injection (CVE-2026-35515, CWE-74). A value derived from request input
+# (a @Query/@Param param) interpolated into an @Sse() stream's data field
+# without stripping \r / \n lets an attacker inject extra SSE events / spoof
+# event types. (promoted from the mestjs corpus).
+id: KEUR-NEST-014
+title: SSE event injection — request input in an @Sse data field, no CRLF strip
+category: security
+severity: warning
+engine: multiline
+window: 24
+skip_comments: true
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ _spec/
+patterns:
+  # @Sse(...) handler binding a @Query/@Param param, then a `data:` TEMPLATE
+  # LITERAL field (backtick + ${...}) — the backtick+${ anchor skips the
+  # `data: string` return-type annotation. No sanitisation (replace/encode) in
+  # the window.
+  - regex: (?s)@Sse\([^)]*\).{0,700}?@(?:Query|Param)\([^)]*\).{0,500}?data:\s*`[^`]*\$\{
+    exclude: (?:\.replace\s*\(|replaceAll\s*\(|encodeURI|sanitiz)
+    message: "A request-derived value is placed into an @Sse() data field with no CRLF stripping — SSE event injection (CVE-2026-35515, CWE-74): a \\r\\n payload injects extra SSE events / spoofs event types. Strip or reject \\r and \\n before interpolating; upgrade @nestjs/core >= 11.1."
+confidence: 0.6
+fix: "Remove \\r and \\n from any value put into an SSE field (value.replace(/[\\r\\n]/g, '')), or reject them; upgrade @nestjs/core."

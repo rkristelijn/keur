@@ -1,0 +1,22 @@
+# Unguarded admin route (CWE-862). KEUR-NEST-001 only matches delete/remove/drop
+# substrings in the route path; an /admin* handler with no @UseGuards and no
+# global guard is reachable by anyone who knows the path. mestjs gap #7
+# (docs/KEUR-COVERAGE-GAPS.md).
+id: KEUR-NEST-015
+title: Admin route handler with no guard (NestJS)
+category: security
+severity: warning
+engine: multiline
+window: 4
+skip_comments: true
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ _spec/
+patterns:
+  # @Get/@Post/... on a path containing 'admin', with NO @UseGuards on the
+  # preceding/same lines in the window.
+  - regex: (?s)@(?:Get|Post|Put|Delete|Patch)\s*\(\s*[`''"][^`''"]*admin[^`''"]*[`''"]\s*\)\s*.{0,80}?\b\w+\s*\(
+    exclude: @UseGuards
+    message: "An @-route whose path contains 'admin' has no @UseGuards — direct-request to a privileged handler (CWE-862): anyone who knows the path reaches it. Add @UseGuards(AuthGuard/RolesGuard) or a global guard, and require an admin role."
+confidence: 0.55
+fix: "Protect admin handlers with @UseGuards(...) + a role check, or register a global guard that default-denies admin paths."

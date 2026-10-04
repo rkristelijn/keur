@@ -1,0 +1,22 @@
+# IDOR / BOLA, NestJS shape. SEC-017 matches findById(req.params.id); in NestJS
+# the id arrives via @Param() and is passed to a store/repo lookup with no
+# ownership check. (promoted from the mestjs corpus).
+#
+# RE2 has no backreferences; anchor on the shape: @Param() then a lookup verb
+# within a few lines, with NO ownership/role token in the window.
+id: KEUR-NEST-011
+title: Broken object level authorization — @Param() id lookup, no owner check (NestJS)
+category: security
+severity: warning
+engine: multiline
+window: 14
+skip_comments: true
+target:
+  extensions: .ts
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ _spec/
+patterns:
+  - regex: (?s)@Param\([^)]*\).{0,220}?(?:findOne|findById|find|get)\s*\(\s*(?:Number\s*\(\s*)?\w+\s*\)
+    exclude: (?:userId|ownerId|owner|req\.user|request\.user|currentUser|isAdmin|\brole\b|where\s*:)
+    message: "A resource is looked up by a @Param() id with no ownership/role check nearby — Broken Object Level Authorization (OWASP API1:2023, CWE-639): any caller can read another user's object. Verify the resource belongs to request.user (or an admin role) before returning; prefer 404 over 403."
+confidence: 0.6
+fix: "Scope the lookup to the authenticated principal (where userId = request.user.id) or assert ownership/role before returning."
