@@ -146,6 +146,7 @@ adversarial floor.** Concretely:
 ## Consequences
 
 **Positive**
+
 - Turns "I learn from Sonar/CodeRabbit" from a one-time sourcing pass into a
   standing independence control — the single most effective mitigation for a solo
   project's correlated-failure risk.
@@ -156,6 +157,7 @@ adversarial floor.** Concretely:
   `eval/perturb.sh`, the immutable eval slice) rather than building new subsystems.
 
 **Negative / cost**
+
 - Reference tools are PATH-dependent and slower; they belong in the `ci` tier / a
   background compare job, not pre-commit (consistent with ADR-028's CI tier).
 - Sourcing an external eval slice is real curation work — the deliberate, slow

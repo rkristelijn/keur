@@ -143,6 +143,7 @@ explicit), so "security level 3, traceability off" is defined once and reused.
 ## Consequences
 
 **Positive**
+
 - The missing middle exists: a medior sets a level per concern in a few lines —
   granular without the per-rule burden — while rookie (one knob) and expert
   (per rule) are unchanged and still valid.
@@ -157,6 +158,7 @@ explicit), so "security level 3, traceability off" is defined once and reused.
   "security 4 / traceability off" once and reuses it.
 
 **Negative / cost**
+
 - The policy/ruleset layer moves from one global level to a per-category lookup
   when deciding a rule's active state — a map keyed by category, evaluated the
   same `>=` way (ADR-014 dispatch: a lookup table, since the list grows + it is a

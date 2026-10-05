@@ -16,10 +16,22 @@ OUT="${1:?usage: gen-logo.sh <out.cpp> <logo.png> [converter.js]}"
 LOGO="${2:?need logo png}"
 CONV="${3:-$(cd "$(dirname "$0")/.." && pwd -P)/.tmp/img2braille.js}"
 
-command -v ffmpeg >/dev/null || { echo "gen-logo: ffmpeg not found" >&2; exit 1; }
-command -v node   >/dev/null || { echo "gen-logo: node not found" >&2; exit 1; }
-[[ -f "$LOGO" ]] || { echo "gen-logo: logo not found: $LOGO" >&2; exit 1; }
-[[ -f "$CONV" ]] || { echo "gen-logo: converter not found: $CONV" >&2; exit 1; }
+command -v ffmpeg >/dev/null || {
+  echo "gen-logo: ffmpeg not found" >&2
+  exit 1
+}
+command -v node >/dev/null || {
+  echo "gen-logo: node not found" >&2
+  exit 1
+}
+[[ -f "$LOGO" ]] || {
+  echo "gen-logo: logo not found: $LOGO" >&2
+  exit 1
+}
+[[ -f "$CONV" ]] || {
+  echo "gen-logo: converter not found: $CONV" >&2
+  exit 1
+}
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -31,7 +43,7 @@ BUCKETS=("sm 48 120" "md 72 135" "lg 96 140" "xl 128 150")
 # Render source: scale wide enough that the smallest bucket still samples detail.
 SRCW=384
 ffmpeg -y -loglevel error -i "$LOGO" -vf "scale=${SRCW}:-1" -pix_fmt rgba -f rawvideo "$TMP/logo.rgba"
-SRCH=$(( $(stat -f%z "$TMP/logo.rgba" 2>/dev/null || stat -c%s "$TMP/logo.rgba") / (SRCW * 4) ))
+SRCH=$(($(stat -f%z "$TMP/logo.rgba" 2>/dev/null || stat -c%s "$TMP/logo.rgba") / (SRCW * 4)))
 
 # Trim blank braille rows top/bottom (ANSI-aware).
 trim() {
@@ -49,11 +61,11 @@ cpp_escape() {
 
 emit_asset() {
   local var="$1" file="$2"
-  printf 'const char* const %s =\n' "$var" >> "$OUT"
+  printf 'const char* const %s =\n' "$var" >>"$OUT"
   while IFS= read -r line; do
-    printf '    "%s\\n"\n' "$(printf '%s' "$line" | cpp_escape)" >> "$OUT"
-  done < "$file"
-  printf '    ;\n\n' >> "$OUT"
+    printf '    "%s\\n"\n' "$(printf '%s' "$line" | cpp_escape)" >>"$OUT"
+  done <"$file"
+  printf '    ;\n\n' >>"$OUT"
 }
 
 {
@@ -63,14 +75,17 @@ emit_asset() {
   echo
   echo 'namespace keur::render {'
   echo
-} > "$OUT"
+} >"$OUT"
 
 for b in "${BUCKETS[@]}"; do
-  set -- $b; NAME=$1; COLS=$2; T=$3
-  node "$CONV" "$TMP/logo.rgba" "$SRCW" "$SRCH" --cols "$COLS" --invert --threshold "$T" --color | trim > "$TMP/$NAME.color"
-  node "$CONV" "$TMP/logo.rgba" "$SRCW" "$SRCH" --cols "$COLS" --invert --threshold "$T"         | trim > "$TMP/$NAME.mono"
+  set -- $b
+  NAME=$1
+  COLS=$2
+  T=$3
+  node "$CONV" "$TMP/logo.rgba" "$SRCW" "$SRCH" --cols "$COLS" --invert --threshold "$T" --color | trim >"$TMP/$NAME.color"
+  node "$CONV" "$TMP/logo.rgba" "$SRCW" "$SRCH" --cols "$COLS" --invert --threshold "$T" | trim >"$TMP/$NAME.mono"
   emit_asset "k_logo_${NAME}_color" "$TMP/$NAME.color"
-  emit_asset "k_logo_${NAME}_mono"  "$TMP/$NAME.mono"
+  emit_asset "k_logo_${NAME}_mono" "$TMP/$NAME.mono"
 done
 
 {
@@ -85,6 +100,6 @@ done
   echo '}'
   echo
   echo '}  // namespace keur::render'
-} >> "$OUT"
+} >>"$OUT"
 
 echo "gen-logo: wrote $(grep -c '"' "$OUT") lines to $OUT"

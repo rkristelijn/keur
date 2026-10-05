@@ -20,12 +20,14 @@ the corpus. That keeps it licence-clean and free of PII.
 ## Allowed sources
 
 ### 1. cpm rules — `knowledge-cpm.sh` ✅ implemented
+
 - **What:** cpm's own `category: security` rule corpus (in-house).
 - **Licence:** ours. No restriction.
 - **Mapping:** `id→concept_id`, `title`, first `message→hint`, `CWE-\d+→cwe`,
   `target.extensions→langs`.
 
 ### 2. CWE / MITRE — implemented (`knowledge-cwe.sh`)
+
 - **What:** the CWE weakness catalog (e.g. CWE-89 SQL Injection). MITRE
   publishes it as a downloadable XML/CSV dump.
 - **Licence:** CWE is free to use with attribution (MITRE terms). Cite the CWE
@@ -36,6 +38,7 @@ the corpus. That keeps it licence-clean and free of PII.
 - **Value:** authoritative taxonomy; anchors our `domain`/`cwe` fields.
 
 ### 3. OWASP — implemented (`knowledge-owasp.sh`)
+
 - **What:** OWASP Top 10 categories and Cheat Sheet Series topics.
 - **Licence:** OWASP content is Creative Commons (CC-BY-SA). Attribute; keep
   our derived cases as our own fictional code (CC covers the prose, not code we
@@ -46,6 +49,7 @@ the corpus. That keeps it licence-clean and free of PII.
   `domain` from the item, prose summary → `hint`.
 
 ### 4. Semgrep open registry — implemented (`knowledge-semgrep.sh`)
+
 - **What:** Semgrep's open-source rule registry (rule *metadata*: id, message,
   CWE/OWASP tags, languages).
 - **Licence:** the community registry is open-source (LGPL/Commons Clause varies
@@ -56,6 +60,7 @@ the corpus. That keeps it licence-clean and free of PII.
   `languages→langs`.
 
 ### 5. GitHub Security Advisories (GHSA) — implemented (`knowledge-ghsa.sh`)
+
 - **What:** the GitHub Advisory Database (CVE/GHSA entries: summary, CWE,
   affected ecosystem).
 - **Licence:** the advisory database is CC-BY-4.0 and there is an official

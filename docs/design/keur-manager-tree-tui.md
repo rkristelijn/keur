@@ -6,6 +6,7 @@
 read-only Defaults baseline branch, save-with-one-backup)
 
 Built so far:
+
 - **Layer 4 — platform input:** `platform::RawModeGuard` + `read_key()` +
   pure `decode_key()` (`common/keyinput.cpp`, @see KEUR-KEYINPUT). Arrows/hjkl,
   Space, Enter, `s`, `q`, `g`/`G`. POSIX termios (IXON off so `s` is a normal
@@ -78,7 +79,7 @@ The tree spans everything that governs a commit, grouped by **where it lives**
 external scanners). Nodes are shown even when *not installed / not present*, so
 the tree doubles as "what you could turn on", not just "what is on".
 
-```
+```text
 keur manager · /Users/remi/git/hub/keur                         [q] quit  [?] help
 
  ▼ Global  (~/.config)
@@ -258,7 +259,7 @@ editable**, not flatten it into one opaque view.
 So the tree gains a **scope dimension**. Each toggleable item shows which layer
 it comes from and which layer a change will write to:
 
-```
+```text
  ▼ Config scopes
    [global]  ~/.config/keur/keur.toml           (block-at 0.85 · 12 disabled)
    [repo]    ./keur.toml                          (overrides global · 2 disabled)
@@ -302,7 +303,7 @@ AI agent (or CI, or a script) has to manage keur headlessly — no terminal, no
 raw mode, no human. The TUI is a *view onto the same operations the CLI exposes*;
 it must never be the only way to do something. Concretely:
 
-```
+```text
 # Rules — enable/disable, per scope
 keur rules disable <id|category|glob> [--scope repo|global|--config <f>]
 keur rules enable  <id|category|glob> [--scope ...]
@@ -397,7 +398,7 @@ of edits `{scope, key, old_value, new_value, reason?}`. Because it carries
 `old_value`, **it is invertible** — undo is just applying the inverse ChangeSet.
 Every applied ChangeSet is appended to a per-scope journal:
 
-```
+```text
 ~/.config/keur/history/changes.jsonl        (global scope)
 <repo>/.keur/history/changes.jsonl          (repo scope)
 ```
@@ -425,7 +426,7 @@ Two layers, because not every keur.toml lives in a repo:
 2. **keur's own journal, always.** The global `~/.config/keur/keur.toml` is
    usually *not* in a repo, so keur keeps its own history (above). Commands:
 
-   ```
+   ```text
    keur config history [--scope ...] [--json]     # list changes, newest first
    keur config undo    [--scope ...]              # invert the last ChangeSet
    keur config revert  <change-id> [--scope ...]  # restore state as of a change
@@ -446,7 +447,7 @@ Distinguish **permanent** from **temporary** off:
   a required `reason`. On load, keur drops entries whose expiry has passed
   (re-enabling the rule automatically) and can warn that a temp-disable lapsed.
 
-  ```
+  ```text
   keur rules disable <id> --until 2026-10-01 --reason "flaky, tracking in TICKET-123"
   keur rules disable <id> --for 7d --reason "..."     # relative TTL
   ```
@@ -455,7 +456,6 @@ Distinguish **permanent** from **temporary** off:
   amber, so "temporarily off" never quietly becomes "off forever". This is the
   honest version of the `keur:ignore` inline suppression — but time-boxed and
   centrally visible.
-
 - **Session-only:** for a "just this run, don't persist" toggle, an env override
   `KEUR_DISABLE=<id,id>` (parsed like `KEUR_RULES_DIRS`) skips rules for one
   invocation without touching any file. Useful for a quick local experiment or
@@ -466,7 +466,7 @@ Distinguish **permanent** from **temporary** off:
 Park a set of changes without committing them to the active config, then restore
 later — leaning on the ChangeSet abstraction:
 
-```
+```text
 keur config stash [--scope ...] [--message "..."]   # snapshot current effective
                                                      #   config, revert to base
 keur config stash list [--json]
@@ -493,7 +493,7 @@ the safety net that makes handing config control to an AI acceptable.
 
 Reuse what `learn/monitor.cpp` already proves works; add only input handling.
 
-```
+```text
 cmd/manager.cpp        orchestrator: build model → loop(render, read key, apply)
 cmd/config.cpp         `keur config list/get/set` (+ --json) — CLI scope surface
 cmd/scanner.cpp        `keur scanner register/unregister/list` (ADR-019)
@@ -560,7 +560,7 @@ platform wall, matching how the ANSI clear-screen is used in `monitor.cpp`.
 
 ### Render loop (mirrors monitor.cpp)
 
-```
+```text
 enter_raw_mode()  (RAII guard)
 loop:
   draw_frame(model, cursor)        // "\033[2J\033[H" + view lines, like monitor
@@ -620,7 +620,7 @@ without a terminal), the TUI last as a view on top.
    unit-tested with spoofed state; reducers emit `ChangeSet`s (same type step 2
    consumes). No terminal needed for these tests.
 6. **`cmd/manager.cpp` loop** tying it together; one line in `main.cpp` dispatch
-   + a `usage()` entry. The loop delegates every write to the step-2 ops layer.
+   - a `usage()` entry. The loop delegates every write to the step-2 ops layer.
 7. **`manager --status [--json]`** non-interactive path (prints the tree; JSON
    for machines) — parity closed.
 
@@ -636,6 +636,7 @@ self-check clean, hands the user a command to try, user tests, we iterate on
 Add `read_file`/`write_file` to the `Fs` adapter (non-executable, via
 `platform::`). `config/scopes.*`: generalise `resolve_config` into the full
 layer stack (keep the existing one working — `check`/`version` use it).
+
 - Author tests: unit round-trip (write key → read back, comments/order
   preserved); stack resolution with a spoofed `Fs`/env.
 - User test: `keur config list` shows your real layers (global + repo).
@@ -644,6 +645,7 @@ layer stack (keep the existing one working — `check`/`version` use it).
 **Layer 1 — disable list in the engine + `rules enable/disable`.**
 Parse `[rules] disabled`; loader skips those ids. CLI: `keur rules disable <id>`
 / `enable`.
+
 - Author tests: unit (rule id in disabled set is skipped); e2e (`keur scan` a
   fixture, disable the rule, finding disappears).
 - User test: disable a real rule in this repo, stage something that would
@@ -651,27 +653,32 @@ Parse `[rules] disabled`; loader skips those ids. CLI: `keur rules disable <id>`
 
 **Layer 2 — change lifecycle (journal + undo).**
 `config/history.*` (journal ChangeSets), `keur config history` / `undo`.
+
 - Author tests: unit (apply → inverse → back to original; journal append).
 - User test: disable, `keur config undo`, rule is back.
 
 **Layer 3 — headless parity complete.**
 `keur config get/set`, `keur scanner register/list`, `--json` everywhere,
 `keur manager --status --json`.
+
 - Author tests: e2e (validate JSON output; `--scope` writes the right file).
 - User test: let an AI drive keur purely via flags.
 
 **Layer 4 — platform input.**
 `enter_raw_mode()` + `read_key()` in `platform_posix.cpp` / `platform_win32.cpp`.
+
 - Author tests: e2e smoke per OS (CI builds all three).
 - User test: a tiny throwaway keydump — arrows/hjkl map to the right enum.
 
 **Layer 5 — pure model + view + reducers.**
 `manager/model.*`, `manager/view.*`. No terminal.
+
 - Author tests: unit (`move`/`toggle`/`expand` reducers; view snapshot).
 - User test: n/a (no UI yet) — author dumps a rendered frame to stdout to review.
 
 **Layer 6 — `cmd/manager.cpp` loop.**
 Wire it together; one line in `main.cpp`.
+
 - Author tests: e2e (start, feed keys via a pipe, expect exit).
 - User test: run **`keur manager`** for real — navigate, toggle, save, `q`.
 
@@ -695,4 +702,5 @@ Wire it together; one line in `main.cpp`.
 7. **Stash vs git:** for repo-scoped config that's already in git, is keur's own
    `stash` redundant (just use `git stash`/branches), or do you want one uniform
    keur-native stash that works the same for global (non-git) and repo scopes?
-```
+
+```text
