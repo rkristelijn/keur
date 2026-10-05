@@ -67,7 +67,7 @@ actionable error surface, explicitly NOT interprocedural depth (ADR-004).
 
 Every BLOCK/WARN line now prints, in addition to rule/file/line/message:
 
-```
+```text
 BLOCK KEUR-CMDI-003 | block | conf 0.85 | vuln.py:3 | <message> (CWE-78)
         fix: <the rule's fix: field — the remediation>
         false positive? add on that line a comment: keur:ignore KEUR-CMDI-003
@@ -104,6 +104,7 @@ BLOCK KEUR-CMDI-003 | block | conf 0.85 | vuln.py:3 | <message> (CWE-78)
 ## Consequences
 
 **Positive**
+
 - The BLOCK surface now delivers keur's core promise (`vision.md`: "clear errors
   so a human OR an AI knows exactly what to fix — no reaching for --no-verify").
 - One suppression file (`.keurignore`), tool-conventional, with the correct
@@ -112,6 +113,7 @@ BLOCK KEUR-CMDI-003 | block | conf 0.85 | vuln.py:3 | <message> (CWE-78)
   complaint, matching the anti-slop / shift-left mission.
 
 **Negative / honest limits**
+
 - **Secret-by-value suppression needs the engine to EXPOSE the matched value**
   in the finding. Today findings carry `message`, not the raw matched secret, so
   `secret <value>` matches only when the value appears in the message. Exposing

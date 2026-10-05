@@ -43,8 +43,8 @@ A project's profile (ADR-011) names a maturity; keur activates every rule whose
 `maturity <=` the project's level. Ship a handful of ready-made templates so a
 team does not hand-pick from 1000 rules:
 
-- `prototype.toml`   — maturity 1 (secrets + build-breakers only)
-- `startup.toml`     — maturity 2
+- `prototype.toml` — maturity 1 (secrets + build-breakers only)
+- `startup.toml` — maturity 2
 - `standard.toml`    — maturity 3 (default)
 - `hardened.toml`    — maturity 4
 - `mission-critical.toml` — maturity 5

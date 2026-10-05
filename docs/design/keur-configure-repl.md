@@ -27,7 +27,7 @@ scripts never depend on the REPL.
 
 ### Status board (read-only, also available as `keur configure --status`)
 
-```
+```text
 keur configuration
   binary        /usr/local/bin/keur (version 0.1.0)
   global hook   installed -> ~/.config/git/hooks  (core.hooksPath set)

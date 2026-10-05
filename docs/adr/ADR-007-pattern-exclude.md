@@ -57,7 +57,7 @@ still one engine, still ReDoS-immune.
 
 ## Implementation
 
-- `RulePattern.exclude_str` (rule_engine.h), parsed from `    exclude:` (rule/parse.cpp).
+- `RulePattern.exclude_str` (rule_engine.h), parsed from `exclude:` (rule/parse.cpp).
 - `Compiled.exclude_res` compiled parallel to `res` (rule/internal.h, rule/scan.cpp).
 - In the `pattern` branch: `if (excl && RE2::PartialMatch(line, *excl)) continue;` (rule/scan.cpp).
 

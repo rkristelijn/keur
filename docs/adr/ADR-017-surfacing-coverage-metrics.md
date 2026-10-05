@@ -30,12 +30,14 @@ App) — there is NO `sonar-project.properties` and NO scanner step in
 Two routes, deliberately not yet chosen:
 
 ### Route A — own CI gate (small, fits "keur guards itself")
+
 Keep SonarCloud autoscan as-is. Add a CI job that runs `doc-coverage.sh --strict`
 and a coverage report, failing the PR on regression. The metrics become PR checks,
 enforced, no Sonar reconfiguration, no new secret. Downside: two dashboards
 (Sonar + the CI check), not one.
 
 ### Route B — Sonar external issues / measures (bigger, one dashboard)
+
 Replace autoscan with a `sonar-scanner` CI step (needs `SONAR_TOKEN`), and feed
 doc/coverage results in via `sonar.externalIssuesReportPaths` (generic issue JSON)
 and/or a coverage report path. Everything shows in Sonar. Downside: changes the

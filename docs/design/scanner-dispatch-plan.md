@@ -54,7 +54,7 @@ project-local adapter (shape B) is a **scanner-dispatch step** inside `check()`.
 Every layer produces the canonical Finding shape (already emitted by the rule
 engine and defined for adapters in ADR-019):
 
-```
+```text
 source, rule, title, category, severity, action, confidence, deterministic,
 file, line, message
 ```
@@ -71,7 +71,7 @@ adapter seams (`Proc`, `Git`), returns `std::vector<Finding>`. No I/O of its own
 it calls the injected `Proc`/`Git`, so it is table-testable with fakes (the
 established pattern: tests assign the `std::function` members).
 
-```
+```text
 Findings dispatch_scanners(files, scanners_cfg, Proc, Git)
   for each scanner in tier order:
     - proven-tool adapter (bin on PATH):

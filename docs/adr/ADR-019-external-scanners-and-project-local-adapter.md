@@ -129,6 +129,7 @@ flag people will forget to flip.
 ## Consequences
 
 **Positive**
+
 - Local verdict can match CI — closes the "passed locally, failed in CI" gap that
   motivated this ADR.
 - Reuses the existing scanner abstraction (ADR-003) and policy engine (ADR-014);
@@ -137,6 +138,7 @@ flag people will forget to flip.
   the long tail without bloating keur's rule corpus.
 
 **Negative / risks**
+
 - More PATH-dependent tooling (mitigated: missing tools skip gracefully, as today).
 - The project-local adapter is an execution surface. Mitigated by the *Trust
   model* above: tracked-only execution, shell-free spawn, confidence cap. Without
@@ -147,6 +149,7 @@ flag people will forget to flip.
   repo-specific → project-local.
 
 **Implementation note (state of the code, 2026-09-20)**
+
 - `config/keur.toml` already lists `[scanners.*]` (gitleaks, semgrep, pii, …),
   but `cmd/check.cpp` currently dispatches **only** the built-in RE2 rule engine
   (`keur-rules`); no external-tool or script scanner is invoked yet. So both A
@@ -159,6 +162,7 @@ flag people will forget to flip.
   prerequisite that does not exist today.
 
 **Neutral**
+
 - Aligns keur further with the "orchestrate proven tools, gap-fill with rules"
   posture already stated in `config/keur.toml` and ADR-018.
 

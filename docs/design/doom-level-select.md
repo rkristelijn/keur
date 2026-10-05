@@ -7,7 +7,7 @@ verified approach so it can be implemented without re-discovery.
 
 A `keur` skill-level chooser modelled on DOOM's "Choose Skill Level" screen:
 
-```
+```text
         <KEUR logo in coloured braille, scaled to terminal width>
 
                     Choose your Difficulty:
@@ -26,16 +26,17 @@ A `keur` skill-level chooser modelled on DOOM's "Choose Skill Level" screen:
   a marker on the selected row + a description block under it.
 - Maps DOOM's 5 skills onto 5 CMMI maturity levels (ties into ADR-026 rule
   maturity). Names (final, from the user):
-  1. I'm Too Young to KEUR  — Level 1 Initial      (essential checks only)
-  2. Hey, Not Too Sure      — Level 2 Managed       (practical baseline)
-  3. KEUR Me Plenty         — Level 3 Defined       (standard KEUR experience)
-  4. Ultra Compliance      — Level 4 Quantitatively Managed (stricter + measured)
-  5. H4x0r c0d3fl3x         — Level 5 Optimizing     (maximum guardrails)
+  1. I'm Too Young to KEUR — Level 1 Initial (essential checks only)
+  2. Hey, Not Too Sure — Level 2 Managed (practical baseline)
+  3. KEUR Me Plenty — Level 3 Defined (standard KEUR experience)
+  4. Ultra Compliance — Level 4 Quantitatively Managed (stricter + measured)
+  5. H4x0r c0d3fl3x — Level 5 Optimizing (maximum guardrails)
 
 ## Proven conversion pipeline (image -> coloured braille)
 
 Reproduction of rkristelijn/braille-ascii (its React canvas algorithm), headless
 via ffmpeg. Script: `.tmp/img2braille.js` (works, tested). Algorithm:
+
 - Braille 2x4 dot cell -> one U+28xx glyph; dot bit order
   `[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[0,3],[1,3]]`, bit i = 2^i added to 0x2800.
 - A dot is ON when the source pixel passes the brightness threshold
@@ -48,6 +49,7 @@ Source image: `keur-logo-chatgpt.png` (1672x941, black background — best of th
 three; black bg makes the letters the bright ON pixels).
 
 Raw pipeline (no browser, no canvas npm dep):
+
 ```bash
 W=360
 ffmpeg -y -loglevel error -i keur-logo-chatgpt.png -vf "scale=${W}:-1" \
@@ -73,6 +75,7 @@ high-threshold thin outline (which falls apart at small sizes). Prefer filled.
 `--cols` now maps 1:1 to output width (bug fixed: bw = cols exactly).
 
 Trim leading/trailing blank braille rows (ANSI-aware) after generating:
+
 ```bash
 awk 'BEGIN{s=0}{ln[NR]=$0;g=$0;gsub(/\033\[[0-9;]*m/,"",g);
   if(g ~ /[^ ⠀]/){if(!s){f=NR;s=1} l=NR}} END{for(i=f;i<=l;i++)print ln[i]}'
@@ -116,6 +119,7 @@ terminal width. Only the LOGO is braille. The user's 282b...png (red DOOM-font
 menu) is the visual reference for colour/attitude, not a braille source.
 
 ## Assets / scratch
+
 - `.tmp/img2braille.js` — the converter (keep; it is the generator's core).
 - `keur-logo-chatgpt.png` — chosen logo source (black bg).
 - Sibling repo: `~/git/hub/braille-ascii` (rkristelijn/braille-ascii) — original.

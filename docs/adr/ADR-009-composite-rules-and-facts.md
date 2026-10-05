@@ -57,7 +57,7 @@ Introduce two additive, data-first concepts. Both keep the engine dumb: they are
 Before matching, one light pass establishes per-target **facts**: a small, flat,
 language-neutral map the rules can join on.
 
-```
+```text
 facts = {
   langs:      [ts, go, ...]          # from file extensions present
   frameworks: [express, nestjs, ...] # from manifest deps + import markers

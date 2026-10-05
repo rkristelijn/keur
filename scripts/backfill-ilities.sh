@@ -28,10 +28,13 @@ APPLY=0
 ROOTS=()
 for arg in "$@"; do
   case "$arg" in
-    --apply) APPLY=1 ;;
-    --force) FORCE=1 ;;
-    -*) echo "unknown flag: $arg" >&2; exit 2 ;;
-    *) ROOTS+=("$arg") ;;
+  --apply) APPLY=1 ;;
+  --force) FORCE=1 ;;
+  -*)
+    echo "unknown flag: $arg" >&2
+    exit 2
+    ;;
+  *) ROOTS+=("$arg") ;;
   esac
 done
 [[ ${#ROOTS[@]} -eq 0 ]] && ROOTS=("rules")
@@ -41,30 +44,30 @@ done
 # sub-characteristics (ADR-039 §1). Covers keur's own + the full cpm corpus.
 ilities_for() {
   case "$1" in
-    # --- Security ---
-    secrets|secret|pii|data-exposure|cbi)       echo "confidentiality" ;;
-    sqli|cmdi|xss|sast|security|supply-chain)   echo "integrity" ;;
-    iac|k8s|docker|container|ansible|nginx|compliance) echo "integrity" ;;
-    oauth|session|api|transport|graphql)        echo "authenticity" ;;
-    ai-ml|slop)                                 echo "modifiability confidentiality" ;;
-    # --- Reliability ---
-    correctness|reliability)                    echo "reliability-maturity" ;;
-    resilience)                                 echo "fault-tolerance" ;;
-    observability|logging)                      echo "availability" ;;
-    test|tests)                                 echo "testability" ;;
-    # --- Maintainability ---
-    quality|architecture)                       echo "analysability" ;;
-    style|patterns|antipattern|best-practice|deprecated|migration) echo "modifiability" ;;
-    build|bundler)                              echo "modularity" ;;
-    # --- Performance Efficiency ---
-    performance|perf|animation)                 echo "time-behaviour" ;;
-    # --- Usability ---
-    a11y|accessibility|inclusivity|forms|ui-frameworks|web) echo "accessibility" ;;
-    # --- Portability ---
-    shell|portability)                          echo "adaptability" ;;
-    # --- Traceability (process, ADR-010) ---
-    docs|project|git)                           echo "traceability" ;;
-    *)                                          echo "" ;;  # unknown -> flagged
+  # --- Security ---
+  secrets | secret | pii | data-exposure | cbi) echo "confidentiality" ;;
+  sqli | cmdi | xss | sast | security | supply-chain) echo "integrity" ;;
+  iac | k8s | docker | container | ansible | nginx | compliance) echo "integrity" ;;
+  oauth | session | api | transport | graphql) echo "authenticity" ;;
+  ai-ml | slop) echo "modifiability confidentiality" ;;
+  # --- Reliability ---
+  correctness | reliability) echo "reliability-maturity" ;;
+  resilience) echo "fault-tolerance" ;;
+  observability | logging) echo "availability" ;;
+  test | tests) echo "testability" ;;
+  # --- Maintainability ---
+  quality | architecture) echo "analysability" ;;
+  style | patterns | antipattern | best-practice | deprecated | migration) echo "modifiability" ;;
+  build | bundler) echo "modularity" ;;
+  # --- Performance Efficiency ---
+  performance | perf | animation) echo "time-behaviour" ;;
+  # --- Usability ---
+  a11y | accessibility | inclusivity | forms | ui-frameworks | web) echo "accessibility" ;;
+  # --- Portability ---
+  shell | portability) echo "adaptability" ;;
+  # --- Traceability (process, ADR-010) ---
+  docs | project | git) echo "traceability" ;;
+  *) echo "" ;; # unknown -> flagged
   esac
 }
 
@@ -73,8 +76,8 @@ ilities_for() {
 # architecture — route them to adaptability regardless of category.
 ility_override_for_id() {
   case "$1" in
-    KEUR-PORT-*) echo "adaptability" ;;
-    *)           echo "" ;;
+  KEUR-PORT-*) echo "adaptability" ;;
+  *) echo "" ;;
   esac
 }
 
@@ -126,7 +129,7 @@ while IFS= read -r f; do
         if (addmat == "1") print "maturity: 3"
         done = 1
       }
-    ' "$f" > "$tmp"
+    ' "$f" >"$tmp"
     mv "$tmp" "$f"
     [[ "$need_mat" -eq 1 ]] && mat_added=$((mat_added + 1))
   else
