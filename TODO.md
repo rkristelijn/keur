@@ -86,9 +86,11 @@ Status legend: [x] done · [~] partially done · [ ] open
       move (sonar-project.properties, mull.yml, compile_commands.json, .gitignore
       are tool-hardcoded to root). Needs a design decision on which tools to
       include. (raised 2026-10-04 alongside the SONAR-* rules.)
-- [ ] SONAR-* findings double-count per file (each fires 2× in a scan) — looks
-      like findings are not deduped per (rule,file,line) for these; confirm
-      whether it is a reporting quirk or affects other rules too, then dedupe.
+- [ ] findings double-count per (rule,file,line) — each fires 2× in a scan.
+      CONFIRMED 2026-10-05 it is NOT SONAR-specific: a one-off pattern rule
+      (PII-vault 'flupke' probe) also fired twice on the same line:1. So it is a
+      general dedup gap in the scan/report path, not a per-rule quirk. Fix: dedupe
+      on (rule,file,line) before emitting findings. First seen on SONAR-* rules.
 
 - [ ] extract-duplicates engine (last of cpm's 7 engines; ADR-004 stage 2). Per
       file, extract a capture group via `extract:` regex + `capture:` index and
