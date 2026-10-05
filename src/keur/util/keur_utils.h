@@ -40,6 +40,8 @@ inline std::string jesc(const std::string& s) {
  *   1. $KEUR_HOME/rules                     built-in rules (shipped with keur)
  *   2. $XDG_CONFIG_HOME/keur/rules          global / company rules (per machine)
  *      (falls back to ~/.config/keur/rules)
+ *   2b. ~/.keur/rules                       personal cross-repo PRIVATE rules
+ *      (e.g. a BII/PII denylist; outside every repo, auto-loaded if present)
  *   3. <git-root-or-cwd>/.keur/rules        project rules (travel with the repo)
  *   4. each colon-separated entry in $KEUR_RULES_DIRS   explicit override
  *
@@ -75,6 +77,14 @@ inline std::vector<std::string> rule_dirs() {
         if (!global_base.empty())
             dirs.push_back(global_base + "/keur/rules");
     }
+    // 2b. personal: ~/.keur/rules — a fixed, convention-over-config home for
+    //     cross-repo PRIVATE rules (e.g. a BII/PII denylist of literal forbidden
+    //     terms you must never commit anywhere). It lives OUTSIDE every repo, so
+    //     git can never stage it and keur's scan-walker never sees it. Missing
+    //     dir → silently skipped (rules_load on a non-existent dir yields none),
+    //     so a machine without the file simply has no personal layer.
+    if (const char* h = std::getenv("HOME"))
+        dirs.push_back(std::string(h) + "/.keur/rules");
     // 3. project: nearest .keur/rules walking up from CWD
     {
         std::string proj = find_project_rules_dir();
