@@ -81,14 +81,59 @@ Engines:
 
 See `docs/rules-authoring.md` for the full reference.
 
-## Loading extra rules
+## Loading extra rules — the dir cascade
 
-The engine loads `$KEUR_HOME/rules` plus every colon-separated entry in
-`$KEUR_RULES_DIRS`. Point that at your own directory to add private rules:
+The engine loads rules from several directories, general → specific (later dirs
+augment earlier ones). A missing dir is silently skipped, so you only create the
+layers you need:
+
+1. `$KEUR_HOME/rules` — built-in rules shipped with keur (this directory).
+2. `$XDG_CONFIG_HOME/keur/rules` (falls back to `~/.config/keur/rules`) —
+   global / company rules, per machine.
+3. `~/.keur/rules` — **personal, cross-repo PRIVATE rules** (see below).
+4. `<git-root>/.keur/rules` — project rules that travel with the repo.
+5. each colon-separated entry in `$KEUR_RULES_DIRS` — explicit override.
 
 ```sh
-KEUR_RULES_DIRS="$HOME/my-keur-rules" keur scan .
+KEUR_RULES_DIRS="$HOME/my-keur-rules" keur scan .   # ad-hoc extra dir
 ```
+
+### Private BII/PII denylist (`~/.keur/rules`)
+
+Working cross-repo, you do not want **business-identifiable information** — your
+username, machine name, internal hostnames, a customer id — leaking into a rule,
+a fixture, or any commit. Put a denylist of literal forbidden terms in
+`~/.keur/rules/` and keur blocks them in **every** repo automatically:
+
+```yaml
+# ~/.keur/rules/BII-denylist.rule   (NEVER committed — lives outside every repo)
+id: BII-DENYLIST-001
+title: forbidden business-identifiable term
+category: pii
+severity: critical
+engine: pattern
+target:
+  exclude_paths: .git/
+patterns:
+  - regex: your-internal-hostname\.example\.local
+    message: internal hostname must not be committed — use a placeholder
+  - regex: ACME-CUSTOMER-\d+
+    message: customer id must not be committed
+action: block
+```
+
+Why `~/.keur/rules` and not a symlink inside the repo: it lives **outside every
+git tree**, so git can never stage it and keur's scan-walker never reads it —
+the forbidden terms themselves never risk being committed. If the file is absent
+(a fresh machine, CI), the layer is simply skipped — the gate never fails just
+because your private list is missing.
+
+> **Note:** for a shared, machine-wide BII/PII denylist, a central vault already
+> exists at `~/.local/share/pii/patterns.d/*.pii` (consumed by cpm and the global
+> git hook via `$PII_VAULT`). Native `$PII_VAULT` support in keur — so all three
+> consumers read one source — is planned separately (see TODO). `~/.keur/rules`
+> is the general-purpose personal-rules layer; a one-off private denylist here is
+> fine, but prefer the vault once keur reads it directly.
 
 Inline suppression on the offending line: `keur:ignore RULE-ID` (or a bare
 `keur:ignore` to suppress all rules on that line).

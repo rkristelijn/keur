@@ -59,6 +59,26 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ### Features
 
+- [x] personal cross-repo private-rules layer: `~/.keur/rules` added to the rule
+      dir cascade (keur_utils.h) — a fixed home for private rules outside every
+      git tree (git can't stage it, scan-walker never reads it), silently skipped
+      when absent. Unit-tested. Documented in rules/README.md. (2026-10-05)
+- [ ] native `$PII_VAULT` support — the REAL cross-repo BII/PII denylist path.
+      DESIGNED: see docs/adr/ADR-042-pii-vault-scanner.md (opt-in, self-explaining
+      scanner that reads the vault and tells you where it goes when you turn it on).
+      URGENT CONTEXT (2026-10-05): the PII gate SILENTLY VANISHED — the git hooks
+      now `exec keur check` only and no longer source ~/.config/git/hooks/lib/
+      no-pii.sh (it lies dead in lib/), so NOTHING blocks a BSN/plate/internal-
+      hostname from being committed in keur right now. A central vault already
+      exists at `~/.local/share/pii/patterns.d/*.pii` (cpm + the old hook read it
+      via $PII_VAULT). Manual proof done: 588 vault patterns → temp ~/.keur/rules
+      rule → scan keur = 0 matches AND the engine matches the format fine, so this
+      is wiring, not capability. Implement ADR-042's follow-ups 1-6.
+- [ ] remove the dead script-scanner shims: `scanners/pii.sh` + `scanners/rules.sh`
+      (no longer referenced by config after this session). `eval/evaluate.sh` still
+      calls them behind `[[ -x ]]` guards (won't break, but is a dead scaffold —
+      point it at bin/keur-rules or retire it). Small, separate cleanup.
+
 - [ ] config-in-root hygiene rule: flag a config file sitting in the repo root
       when the tool supports a non-root location (e.g. keur.toml → .config/
       .keur.toml, which keur already resolves). Must be DATA-driven (a list of
@@ -66,9 +86,11 @@ Status legend: [x] done · [~] partially done · [ ] open
       move (sonar-project.properties, mull.yml, compile_commands.json, .gitignore
       are tool-hardcoded to root). Needs a design decision on which tools to
       include. (raised 2026-10-04 alongside the SONAR-* rules.)
-- [ ] SONAR-* findings double-count per file (each fires 2× in a scan) — looks
-      like findings are not deduped per (rule,file,line) for these; confirm
-      whether it is a reporting quirk or affects other rules too, then dedupe.
+- [ ] findings double-count per (rule,file,line) — each fires 2× in a scan.
+      CONFIRMED 2026-10-05 it is NOT SONAR-specific: a one-off pattern rule
+      (PII-vault 'flupke' probe) also fired twice on the same line:1. So it is a
+      general dedup gap in the scan/report path, not a per-rule quirk. Fix: dedupe
+      on (rule,file,line) before emitting findings. First seen on SONAR-* rules.
 
 - [ ] extract-duplicates engine (last of cpm's 7 engines; ADR-004 stage 2). Per
       file, extract a capture group via `extract:` regex + `capture:` index and

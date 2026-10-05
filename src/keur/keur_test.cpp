@@ -889,6 +889,20 @@ SCENARIO("[feature:rule-engine] rule_dirs appends KEUR_RULES_DIRS overrides in o
     unsetenv("KEUR_RULES_DIRS");
 }
 
+SCENARIO("[feature:rule-engine] rule_dirs includes ~/.keur/rules as the personal layer") {
+    unsetenv("KEUR_HOME");
+    unsetenv("KEUR_RULES_DIRS");
+    setenv("HOME", "/home/tester", 1);
+    auto d = keur::rule_dirs();
+    // The personal cross-repo PRIVATE layer (BII/PII denylist home) is derived
+    // from $HOME and must appear whenever HOME is set. Missing dir is skipped at
+    // load time, not here — rule_dirs lists the candidate unconditionally.
+    bool has_personal = false;
+    for (const auto& p : d)
+        if (p == "/home/tester/.keur/rules") has_personal = true;
+    CHECK(has_personal);
+}
+
 // --- [feature:config] config layer stack (pure + spoofed adapters) ----------
 
 SCENARIO("[feature:config] config_parse reads list / --json / --config") {
