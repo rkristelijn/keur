@@ -48,9 +48,12 @@ Status legend: [x] done · [~] partially done · [ ] open
       supports all modes AND `keur scan` exposes `--format jsonl|compact|verbose`
       and `--color auto|always|never` (one shared parser). Still to wire: same
       flags on `keur check` if a human-readable gate report is wanted.
-- [~] cleanup root folders — src/keur is clean; still to remove: empty dirs
-  (test/ optimiser/ policy/), deprecated shell (lib/ scanners/ hooks/),
-  and decide on config/ -> .config/. Clarify rules/ (data) vs src/rules/ (engine).
+- [~] cleanup root folders — src/keur is clean. VERIFIED 2026-10-05: the dead
+  dirs are already gone (test/ optimiser/ policy/ lib/ hooks/ no longer exist).
+  scanners/ REMAINS and is NOT dead — pii.sh/rules.sh are still referenced by
+  config/keur.toml + src/rules/main.cpp (the script-scanner seam, see the
+  libmode item). rules/ (data) vs src/rules/ (engine) now CLARIFIED in
+  src/README.md. Still open: decide on config/ -> .config/.
 
 ## Open
 
@@ -382,8 +385,17 @@ Status legend: [x] done · [~] partially done · [ ] open
       Enforced by KEUR-PORT-001..005 (rules/keur-internal/) + test_portability.sh
       (0 findings on src/keur, fire-detection proven). CI builds+smoke-tests
       linux/macos/windows (.github/workflows/ci.yml). See ADR-005.
-- [ ] Why do we have multipe Makefiles
-- [ ] why is rules apart from keur in src? what isthe pupose?
+- [x] Why do we have multiple Makefiles — DOCUMENTED in src/README.md: two
+      layers, two artifacts. src/rules/Makefile builds bin/keur-rules (engine
+      standalone, for the eval harness); src/keur/Makefile builds bin/keur (the
+      product) and links the engine's translation units in directly (ADR-002,
+      single binary — keur does NOT shell out to keur-rules).
+- [x] why is rules apart from keur in src? what is the purpose? — DOCUMENTED in
+      src/README.md + src/keur/README.md + updated src/rules/README.md.
+      src/rules/ = the ENGINE (reusable lower layer, one-way dep: knows nothing
+      of git/hooks/config/tty, surface = rule_engine.h). src/keur/ = the APP
+      (cmd/adapters/config/report/render/manager/learn) built on top. Separate
+      axis from code-vs-data: src/rules/ (engine code) reads rules/ (rule data).
 - [ ] `keur learn` TUI: equalise the height of the two side-by-side source
       columns (corpus | keureval). `render::beside()` pads width but not height,
       so the shorter box (usually keureval) ends higher and leaves ragged
