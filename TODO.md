@@ -59,6 +59,29 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ### Features
 
+- [x] personal cross-repo private-rules layer: `~/.keur/rules` added to the rule
+      dir cascade (keur_utils.h) — a fixed home for private rules outside every
+      git tree (git can't stage it, scan-walker never reads it), silently skipped
+      when absent. Unit-tested. Documented in rules/README.md. (2026-10-05)
+- [ ] native `$PII_VAULT` support — the REAL cross-repo BII/PII denylist path.
+      A central vault already exists at `~/.local/share/pii/patterns.d/*.pii`
+      (5 lists incl. work-aps.pii ~593 lines, personal.pii, gdpr-nl/uk, generic),
+      consumed by cpm's check-pii.sh AND the global git hook
+      (~/.config/git/hooks/lib/no-pii.sh) via `$PII_VAULT`. keur should read the
+      SAME source so all three consumers share one list (no drift, nothing in any
+      repo). Format is trivial: one regex per line, `#` = comment, blank skipped.
+      Plan: a loader that reads `${PII_VAULT:-~/.local/share/pii}/patterns.d/*.pii`,
+      turns each line into a blocking PII pattern (category pii, action block),
+      honours the existing `.config/.pii-config` disable list + a `keur:ignore pii`
+      line-suppress (match cpm's hook UX). Needs an ADR (new engine-adjacent
+      source, trust: vault is 700/600, out-of-repo). This supersedes the shell
+      `scanners/pii.sh` brug that was removed from config this session — keur
+      stays one binary, no runtime dep on an external script in a sister repo.
+- [ ] remove the dead script-scanner shims: `scanners/pii.sh` + `scanners/rules.sh`
+      (no longer referenced by config after this session). `eval/evaluate.sh` still
+      calls them behind `[[ -x ]]` guards (won't break, but is a dead scaffold —
+      point it at bin/keur-rules or retire it). Small, separate cleanup.
+
 - [ ] config-in-root hygiene rule: flag a config file sitting in the repo root
       when the tool supports a non-root location (e.g. keur.toml → .config/
       .keur.toml, which keur already resolves). Must be DATA-driven (a list of

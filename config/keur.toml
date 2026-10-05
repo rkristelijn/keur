@@ -17,20 +17,20 @@ version = "0.1.0"
 # ─────────────────────────────────────────────────────────────────────────────
 [tiers.pre-commit]
 budget-ms = 3000
-# Fast, deterministic only. Secrets + PII + gap-filler rules over the staged diff.
-scanners = ["gitleaks", "pii", "keur-rules"]
+# Fast, deterministic only. Secrets + gap-filler rules over the staged diff.
+scanners = ["gitleaks", "keur-rules"]
 ai = false
 
 [tiers.pre-push]
 budget-ms = 30000
 # Add corroborating secrets (trufflehog), deps, SAST, IaC.
-scanners = ["gitleaks", "trufflehog", "pii", "trivy", "semgrep", "checkov", "keur-rules"]
+scanners = ["gitleaks", "trufflehog", "trivy", "semgrep", "checkov", "keur-rules"]
 ai = "optional"                                  # off | optional | on
 
 [tiers.ci]
 budget-ms = 0                                    # 0 = unlimited
 # Everything, incl. second-source corroboration (grype, osv-scanner, tfsec).
-scanners = ["gitleaks", "trufflehog", "pii", "presidio", "trivy", "grype", "osv-scanner", "semgrep", "checkov", "tfsec", "keur-rules"]
+scanners = ["gitleaks", "trufflehog", "presidio", "trivy", "grype", "osv-scanner", "semgrep", "checkov", "tfsec", "keur-rules"]
 ai = "on"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -108,17 +108,7 @@ base-confidence = 0.85
 deterministic = true
 default-action = "warn"
 
-# — PII / sensitive data (proven, reused verbatim — NOT reimplemented) —
-# Deterministic: BSN 11-proef, IBAN mod-97, validated email/phone, organisation
-# SENSITIVE patterns (internal hostnames, RFC1918, internal domains — kept private).
-# Source: resolved via KEUR_PII_SCAN or PATH (see scanners/pii.sh).
-[scanners.pii]
-bin = "pii-sensitive-scan.sh"
-group = "pii"
-base-confidence = 0.90          # validated identifiers, not dumb regex
-deterministic = true
-default-action = "warn"
-
+# — PII / sensitive data —
 [scanners.presidio]
 enabled = false                 # optional higher-fidelity PII (local venv)
 group = "pii"
