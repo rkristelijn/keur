@@ -29,6 +29,7 @@ precision, a validation gate. So keur does not "sync cpm's ruleset" — it puts
 candidate rules through its eval loop and keeps what measurably helps.
 
 The two tools also differ in **where they run**:
+
 - **keur**: built as a git pre-commit / pre-push hook — must be sub-second on the
   staged diff (README "More than a hook", ADR budgets).
 - **cpm**: built to be run ad hoc and **in the CI pipeline** over the whole tree.
@@ -55,20 +56,20 @@ The two tools also differ in **where they run**:
    the one capability keur must grow to fully replace it. Two concrete gaps:
 
    a. **A real `ci` tier in `keur check`.** `config/keur.toml` already declares
-      `[tiers.ci] budget-ms = 0` with the full scanner set (gitleaks, trufflehog,
-      trivy, grype, osv-scanner, semgrep, checkov, tfsec, keur-rules), but
-      `check_parse` only knows `pre-commit`/`pre-push` (anything else falls back
-      to pre-commit). Extend the tier enum + parser with `ci`: no time budget,
-      run the heavy corroborating tools, scan the **whole tree** (not just the
-      staged diff), emit a machine-readable report, and exit non-zero on a
-      blocking verdict so CI fails. Reuse the one policy engine (ADR-014) — the
-      tier only changes which scanners run and the scope, never the verdict math.
+   `[tiers.ci] budget-ms = 0` with the full scanner set (gitleaks, trufflehog,
+   trivy, grype, osv-scanner, semgrep, checkov, tfsec, keur-rules), but
+   `check_parse` only knows `pre-commit`/`pre-push` (anything else falls back
+   to pre-commit). Extend the tier enum + parser with `ci`: no time budget,
+   run the heavy corroborating tools, scan the **whole tree** (not just the
+   staged diff), emit a machine-readable report, and exit non-zero on a
+   blocking verdict so CI fails. Reuse the one policy engine (ADR-014) — the
+   tier only changes which scanners run and the scope, never the verdict math.
 
    b. **A gate mode for `keur scan`.** `keur scan` already walks the whole tree
-      (`rules_scan_dir`) but always exits 0 — it is a report, not a gate. Add a
-      `--gate` (or reuse `check --tier ci`) that applies the policy engine to the
-      whole-tree findings and returns the same PASS/WARN/BLOCK exit contract as
-      the hook. This is what a CI job invokes.
+   (`rules_scan_dir`) but always exits 0 — it is a report, not a gate. Add a
+   `--gate` (or reuse `check --tier ci`) that applies the policy engine to the
+   whole-tree findings and returns the same PASS/WARN/BLOCK exit contract as
+   the hook. This is what a CI job invokes.
 
 ## cpm's internal checks — where each one lands in keur
 
@@ -100,7 +101,9 @@ fail on → a metric, not a gate. Only `comment-ratio` clearly warrants new engi
 work; `complexity` is deliberately delegated to a tool to preserve ADR-001.
 
 ## Consequences
+
 **Positive**
+
 - One tool, one rule format, one policy engine across commit → push → CI. The
   "passed locally, failed in CI" gap (the miss that motivated ADR-019) closes:
   the CI tier is a superset of the hook tiers, same engine.
@@ -110,6 +113,7 @@ work; `complexity` is deliberately delegated to a tool to preserve ADR-001.
   hook it already is.
 
 **Negative / risks**
+
 - The eval-gated import is slower than a bulk copy. That is deliberate: it is the
   whole reason keur exists over cpm. Accept the slower, measured path.
 - Heavy CI-tier tools (semgrep/trivy/grype) are PATH-dependent; missing tools

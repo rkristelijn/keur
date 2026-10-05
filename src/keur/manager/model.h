@@ -65,6 +65,8 @@ struct Model {
     bool dirty = false;        ///< unsaved toggles since last save
     bool repo_available = true;///< false when not inside a git repo (repo scope inert)
     std::vector<Facet> order;  ///< current facet grouping order (for the header)
+    bool search_active = false;///< true while typing a `/` filter (input mode)
+    std::string search_query;  ///< the live filter; empty = no filter (show all)
 };
 
 /// One pending edit — a rule or scanner toggled in a scope. The list of these
@@ -237,6 +239,43 @@ bool toggle_focused_group(Model& m);
 /// in-place (so `pending_edits` empties and `dirty` clears) WITHOUT rebuilding
 /// the tree — the expand-state and cursor are preserved. Pure over the model.
 void rebaseline(Model& m);
+
+/// Recompute the `inherited` (overruled-by-repo) flag on every GLOBAL rule leaf
+/// from the live model: a global rule is `inherited` when the SAME id is OFF in
+/// the repo scope (the more specific scope governs, ADR-039 §6). Pure, derived
+/// from current state — call after any toggle so the global row greys out live,
+/// not only after a disk round-trip. No-op when the repo scope is unavailable.
+/// @id KEUR-MANAGER-MODEL.refresh-inherited
+void refresh_inherited(Model& m);
+
+// --- Search / filter (pure) -------------------------------------------------
+
+/// True when a node's own text (label / rule id / detail) matches `query`
+/// case-insensitively (substring). Empty query matches everything. Pure.
+/// @id KEUR-MANAGER-MODEL.search.match
+[[nodiscard]] bool node_matches_query(const Node& n, const std::string& query);
+
+/// True when the node matches, or any descendant matches — so an ancestor path
+/// to a match stays visible while non-matching siblings are filtered out. Pure.
+/// @id KEUR-MANAGER-MODEL.search.subtree
+[[nodiscard]] bool subtree_has_match(const Node& n, const std::string& query);
+
+/// Enter search mode (`/`): start an empty live filter. @id KEUR-MANAGER-MODEL.search
+void search_begin(Model& m);
+/// Append a character to the live query (typing in search mode).
+void search_input(Model& m, char c);
+/// Delete the last query character (Backspace in search mode).
+void search_backspace(Model& m);
+/// Leave input mode but KEEP the filter applied (Enter).
+void search_commit(Model& m);
+/// Clear the filter and leave search mode entirely (Esc).
+void search_clear(Model& m);
+
+/// Expand every group that contains a match for the current `search_query`, so
+/// results are revealed when the query changes. Groups stay collapsible after
+/// (collapse_focused still works during search). No-op when the query is empty.
+/// @id KEUR-MANAGER-MODEL.search.expand
+void expand_matches(Model& m);
 
 /// The complete DESIRED state of one scope's editable items — the "plan" the
 /// atomic apply writes in a single transaction (not many per-item edits):

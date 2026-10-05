@@ -38,4 +38,10 @@ struct ViewOpts {
 /// focused unit testing. Pure.
 [[nodiscard]] std::string render_row(const Row& row);
 
+/// The SGR colour escape for a row as ONE ordered decision (scope reach → warn
+/// → read-only/inherited → enabled/disabled → group off). Returns "" when the
+/// row stays uncoloured. Exposed so the colour PRIORITY is pinned by unit tests
+/// rather than buried in render(). Pure. @id KEUR-MANAGER-VIEW.style
+[[nodiscard]] const char* style_for(const Node& n);
+
 }  // namespace keur::manager

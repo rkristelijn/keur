@@ -140,6 +140,7 @@ vector under it is not all-equal, or a per-rule override exists".
 ## 8. Validation / failure behaviour @id DESIGN-DIFFRES.validate
 
 **DECISION C (proposed):** be lenient at resolve time, strict via self-check.
+
 - An unknown ility name in `[difficulty]` → ignored at resolve (does not match any
   rule) + a warning; the self-check rule (ADR-039 §4) flags it so it is visible.
 - A rule whose ility is in no group → still resolvable (its ility just is not in

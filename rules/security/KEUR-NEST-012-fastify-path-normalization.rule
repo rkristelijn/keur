@@ -1,0 +1,23 @@
+# Fastify path-normalization auth bypass (CVE-2025-69211 / CVE-2026-2293,
+# CWE-551). The pre-condition is a FastifyAdapter created with path-normalization
+# options (ignoreDuplicateSlashes / ignoreTrailingSlash) — these let Fastify
+# canonicalise the url AFTER NestJS guards ran against the raw path. mestjs gap
+# #5 (docs/KEUR-COVERAGE-GAPS.md).
+id: KEUR-NEST-012
+title: Fastify adapter with path-normalization options (auth-bypass surface)
+category: security
+severity: error
+engine: multiline
+window: 6
+action: warn
+skip_comments: true
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ node_modules/ dist/ build/
+patterns:
+  - regex: (?s)new\s+FastifyAdapter\s*\(\s*\{.{0,200}?ignoreDuplicateSlashes\s*:\s*true
+    message: "FastifyAdapter({ ignoreDuplicateSlashes: true }) — Fastify canonicalises the URL AFTER NestJS guards run on the raw path, so a non-canonical path (//orders/admin) bypasses auth (CVE-2026-2293, CWE-551). Upgrade @nestjs/platform-fastify >= 11.1.14 and decide authz on a role claim, not the url."
+  - regex: (?s)new\s+FastifyAdapter\s*\(\s*\{.{0,200}?ignoreTrailingSlash\s*:\s*true
+    message: "FastifyAdapter({ ignoreTrailingSlash: true }) — path-normalization-after-authorization surface (CVE-2025-69211 / CVE-2026-2293). Upgrade >= 11.1.14; do not authorize on raw url shape."
+confidence: 0.6
+fix: "Upgrade @nestjs/platform-fastify to >= 11.1.14; keep guards declarative and authorize on an authenticated role claim, never on the request url string."

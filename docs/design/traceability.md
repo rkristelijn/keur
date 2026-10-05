@@ -68,26 +68,32 @@ prose is just text, not a reference.
   (a duplicate is a bug — see `KEUR-DOC-002`).
 - **`@implements <token>`** — this code/rule realises that concept. First token
   after the verb; must resolve to a declared `@id`. Closes the concept→code loop.
+
   ```cpp
   /**
    * @file rule/composite.cpp
    * @implements ADR-009
    */
   ```
+
   ```yaml
   id: KEUR-SEC-006
   # @implements ADR-003 ADR-005
   ```
+
 - **`@proves <id>`** — a test *proves* that concept works. Closes the concept→test
   loop, and it is **how-independent**: the tag counts wherever it lives — a C++
   `SCENARIO`, a shell test, an integration test, or a `.rule` self-check. The
   meter counts the claim, never the mechanism. One or more IDs, space-separated.
+
   ```cpp
   SCENARIO("[feature:rule-engine] presence fires once per file") {  // @proves engine-presence
   ```
+
   ```bash
   # test/hooks.sh — @proves engine-file-presence
   ```
+
 - **`[feature:<name>]`** — a coarse test grouping tag (already used in
   `keur_test.cpp`). Useful for running/filtering suites; `@proves` is what the
   coverage meter reads, because it names the *concept* proven, not just the suite.

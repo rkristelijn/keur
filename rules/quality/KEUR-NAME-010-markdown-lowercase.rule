@@ -1,0 +1,22 @@
+# Markdown filenames should be lowercase (kebab for multi-word), so docs sort and
+# link predictably across platforms. ALL-CAPS is reserved for the recognised root
+# documents (README, LICENSE, …) — any other SHOUTING.md is a smell.
+#
+# This is the GLOBAL default. A project can OVERRIDE it by shipping a rule with
+# the same id lower in the cascade (built-in → global → .keur/rules → KEUR_RULES_DIRS,
+# later wins), e.g. to widen `allow` with project standards (ADR, RFC) or switch
+# `case`. @id engine-filename-case
+id: KEUR-NAME-010
+title: Markdown filename should be lowercase/kebab (ALL-CAPS reserved for root docs)
+category: quality
+severity: warning
+engine: filename-case
+scope: filename
+case: kebab
+# Recognised root/standard docs that are conventionally ALL-CAPS or TitleCase.
+allow: README CONTRIBUTING LICENSE CHANGELOG SECURITY CODE_OF_CONDUCT AUTHORS NOTICE TODO MAINTAINERS GOVERNANCE SUPPORT AGENTS
+target:
+  extensions: .md
+  exclude_paths: node_modules/ vendor/ dist/ build/ .git/
+message: "Markdown filename is not lowercase/kebab-case. Rename it (e.g. my-doc.md); ALL-CAPS .md is reserved for root docs (README, LICENSE, TODO, …). To allow a project-specific name, override KEUR-NAME-010 lower in the cascade and extend `allow`."
+fix: "Rename to lowercase kebab-case (coverage-gaps.md, not COVERAGE_GAPS.md). Keep ALL-CAPS only for the standard root documents."

@@ -48,11 +48,12 @@ The optimise-loop command becomes `keur train` (same flags: `--stop`, `--status`
 `keur learn KEUR-CMDI-003` fetches and prints the explainer markdown for that
 rule. The explainer lives in the keur repo under a predictable path:
 
-```
+```text
 docs/rules/<RULE-ID>.md        e.g. docs/rules/KEUR-CMDI-003.md
 ```
 
 Resolution order (offline-first, IP never forced online):
+
 1. **Local**: `$KEUR_HOME/docs/rules/<RULE-ID>.md` (shipped with the binary/repo).
 2. **Cache**: `$XDG_CACHE_HOME/keur/rules/<RULE-ID>.md` (previously fetched).
 3. **Remote (opt-in)**: fetch from the keur repo raw URL
@@ -82,19 +83,26 @@ category: cmdi · severity: critical · CWE-78
 ```py
 os.popen(cmd)            # variable arg → injection
 ```
+
 ## Safe (what does not)
+
 ```py
 subprocess.run(["ls","-la"])   # argv vector, no shell
 ```
+
 ## Fix
+
 <the remediation — same as the rule's fix: field, expanded>
 
 ## Suppress (if genuinely a false positive)
-`# keur:ignore KEUR-CMDI-003`  (or a `.keurignore` entry — ADR-035)
+
+`# keur:ignore KEUR-CMDI-003` (or a `.keurignore` entry — ADR-035)
 
 ## References
+
 - CWE-78, OWASP …
-```
+
+```text
 
 The BLOCK output (ADR-035) gains one line pointing here:
 `learn more: keur learn KEUR-CMDI-003`.

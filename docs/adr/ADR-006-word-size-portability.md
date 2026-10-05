@@ -3,7 +3,7 @@
 @id ADR-006
 **Status:** Accepted
 **Date:** 2026-09-18
-**Coverage**: none  <!-- proven by a CI build target, not a code site -->
+**Coverage**: none <!-- proven by a CI build target, not a code site -->
 **Builds on:** ADR-005 (platform abstraction layer)
 
 ---

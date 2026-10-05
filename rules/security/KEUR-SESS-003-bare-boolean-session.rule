@@ -1,0 +1,25 @@
+# Bare-boolean session with no bound identity (CWE-384/CWE-639 surface). A
+# session entry that stores only a truthy flag (loggedIn/authenticated: true)
+# and binds no subject/user id means any valid session id is full access — a
+# captured/guessed id is unrestricted. promoted from the mestjs corpus 
+#  Documented FN until now.
+#
+# Precision: we match a .set(..., { <flag>: true }) whose object literal has NO
+# user/subject key (exclude guards userId/sub/subject/user/ownerId). The secure
+# form binds an identity, so it is excluded.
+id: KEUR-SESS-003
+title: Session stored as a bare boolean with no bound user identity
+category: security
+severity: warning
+engine: multiline
+window: 3
+skip_comments: true
+target:
+  extensions: .ts .js
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ _spec/
+patterns:
+  - regex: (?s)\.set\s*\([^,]+,\s*\{[^}]*\b(?:loggedIn|authenticated|isAuth|auth)\b\s*:\s*true[^}]*\}
+    exclude: (?:userId|user_id|\bsub\b|subject|ownerId|\buser\b\s*:)
+    message: "A session entry is stored as a bare boolean (loggedIn/authenticated: true) with no bound user identity — any valid session id grants full access (session fixation / privilege surface, CWE-384). Bind the authenticated subject (userId) to the session and check it on every request."
+confidence: 0.6
+fix: "Store the authenticated principal in the session (e.g. { userId }) and authorize against it; never treat a bare 'logged in' flag as identity."

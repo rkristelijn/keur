@@ -1,0 +1,34 @@
+# keur security control — a SonarQube token/login committed in
+# sonar-project.properties.
+#
+# Why this exists: `sonar.login` / `sonar.token` is an authentication secret. It
+# belongs in a CI secret (passed as -Dsonar.token=$SONAR_TOKEN), never checked
+# into the repo. A committed token grants anyone with repo read access the
+# ability to push analyses / read project data, and it lingers in git history
+# even after removal (CWE-798 hardcoded credentials).
+#
+# HOW (pattern engine): match `sonar.login` / `sonar.token` assigned a non-empty
+# value on the line. The exclude suppresses the safe form where the value is a
+# shell/CI variable reference ($SONAR_TOKEN or ${env.SONAR_TOKEN}) rather than a
+# literal secret.
+#
+# WARN (not block) with high confidence: on a true literal this is a real leak,
+# but teams occasionally template the file; the exclude covers the common safe
+# case so the remaining hits are worth a human look. @see docs/rules-authoring.md
+id: SONAR-003
+ilities: [confidentiality]
+maturity: 2
+title: SonarQube token/login committed in sonar-project.properties
+category: security
+severity: warning
+engine: pattern
+action: warn
+confidence: 0.8
+target:
+  filenames: sonar-project.properties
+  content_contains: sonar.
+patterns:
+  - regex: (?m)^\s*sonar\.(login|token|password)\s*=\s*\S
+    exclude: \$\{?[A-Za-z_]
+    message: "SonarQube token/login committed in sonar-project.properties — this is a secret (CWE-798). Remove it and pass it from a CI secret: `-Dsonar.token=$SONAR_TOKEN`. Rotate the token; it stays in git history."
+fix: "Delete the sonar.login/sonar.token/sonar.password line from the file and supply the token from a CI secret at scan time (`-Dsonar.token=$SONAR_TOKEN`). Rotate the exposed token."

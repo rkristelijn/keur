@@ -1,0 +1,31 @@
+# keur quality control — sonar-project.properties without sonar.organization.
+#
+# Why this exists: SonarCloud (the SaaS, sonarcloud.io) requires
+# sonar.organization in addition to sonar.projectKey; without it the scanner
+# cannot resolve the project and the analysis fails or mis-lands. Self-hosted
+# SonarQube does NOT need it, so this is a warn, not a block (a SonarQube-only
+# repo legitimately omits it). Nothing else validates the file, so an early
+# nudge is the only signal that a SonarCloud setup is incomplete.
+#
+# HOW (absence engine): fires when NO line declares `sonar.organization`.
+# Pre-filtered to the sonar property file by exact name + a cheap `sonar`
+# content gate.
+#
+# WARN with low confidence: deliberately soft because SonarQube-only repos are a
+# valid case; the fix text spells out when it applies. @see docs/rules-authoring.md
+id: SONAR-002
+ilities: [traceability]
+maturity: 3
+title: sonar-project.properties missing sonar.organization (SonarCloud)
+category: quality
+severity: warning
+engine: absence
+action: warn
+confidence: 0.5
+target:
+  filenames: sonar-project.properties
+  content_contains: sonar
+patterns:
+  - regex: (?m)^\s*sonar\.organization\s*=\s*\S
+    message: "sonar-project.properties has no sonar.organization — SonarCloud requires it (self-hosted SonarQube does not). If this project targets sonarcloud.io, the scan will not resolve the project."
+fix: "For SonarCloud, add `sonar.organization=<your-org-key>`. For self-hosted SonarQube only, this key is not needed and the warning can be suppressed with `keur:ignore SONAR-002`."

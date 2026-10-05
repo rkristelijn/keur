@@ -39,7 +39,7 @@ reject.
 
 | Control | Rule shape | Verdict |
 |---------|-----------|---------|
-| **Negative boolean names** | `pattern`: `\b(is|has|can|should)Not[A-Z]` / `\b(isNo|hasNo)[A-Z]` | WARN — "name the positive: `isEligible`, not `isNotIneligible`" |
+| **Negative boolean names** | `pattern`: `\b(is|has|can|should)Not[A-Z]` / `\b[A-Z](isNo|hasNo)` | WARN — "name the positive: `isEligible`, not `isNotIneligible`" |
 | **Cryptic condition** | `count`/`pattern`: an `if`/`while` head with ≥3 boolean operators (`&&`/`||`) | WARN — "extract to a named condition; it reads better and is testable in isolation" |
 | **Query/command name mixing (CQS proxy)** | `pattern`: a `get/fetch/find/is/has`-named function whose name also carries a mutating verb (`save/write/send/delete/update`) | WARN — "a query name should not imply a command (CQS)" |
 

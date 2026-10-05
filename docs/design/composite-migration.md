@@ -27,11 +27,13 @@ version rule *in C++*, stop — it belongs in data.
 ## Phases
 
 ### Phase 0 — baseline lock (no code)
+
 - Snapshot current corpus metrics (`eval/report.sh`, `eval/measure.sh`) so every later
   phase is measured against a fixed baseline. A phase that doesn't hold or improve
   recall/precision on the corpus does not land.
 
 ### Phase 1 — facts pass (read-only, no behaviour change)
+
 - New `rule/facts.cpp` + `rule/facts.h`: derive the flat `facts` map (langs, frameworks,
   versions, runtimes) from **direct manifest pins + file presence** only.
 - Manifest readers behind an adapter: `package.json`, `go.mod`, `pom.xml`, Dockerfile
@@ -42,6 +44,7 @@ version rule *in C++*, stop — it belongs in data.
   with unit tests per reader. No change to any existing finding.
 
 ### Phase 2 — `requires:` prune (most-discriminating-first)
+
 - Parse `requires:` in `rule/parse.cpp` (new optional field; absent = always applies).
 - In `rule/scan.cpp` dispatch, drop rules whose `requires:` isn't satisfied by facts —
   extends the existing extension/filename index prune, doesn't replace it.
@@ -51,6 +54,7 @@ version rule *in C++*, stop — it belongs in data.
   corpus metrics unchanged for rules without `requires:`.
 
 ### Phase 3 — composite evaluator (`all/any/not`)
+
 - New `rule/composite.cpp` + `.h`: after the normal single-rule pass, resolve `ref`s and
   evaluate the boolean tree over the findings already produced.
 - Parse `engine: composite` + `all`/`any`/`not`/`ref` in `parse.cpp`. Each `ref` must
@@ -60,6 +64,7 @@ version rule *in C++*, stop — it belongs in data.
   still fire independently; unit tests cover `all`/`any`/`not` truth tables.
 
 ### Phase 4 — rule data + folders
+
 - New rule homes with short names: `rules/facts/` (fact-detection helpers if any need to be
   rules), `rules/composite/` (the `all/any/not` rules), grouped by stack under logical
   subfolders (`rules/composite/js/`, `.../java/`, ...).
@@ -69,17 +74,20 @@ version rule *in C++*, stop — it belongs in data.
   produces the same-or-better corpus metrics.
 
 ### Phase 5 — learn loop + CVE feed (grow the data, not the engine)
+
 - Point the learn loop at a CVE feed (NVD official API — no scraping, ADR/ SOURCES.md clean)
   scoped to **recent CVEs for the frameworks/versions the corpus pins**.
 - The loop proposes `requires:`+composite rules; the deterministic gate still decides.
 - **Done when:** at least one composite CVE rule is learned, gated, and promoted end-to-end.
 
 ## Self-check (keur guards itself)
+
 - Add a `KEUR-ARCH-*` self-check rule that **blocks** hardcoded framework/CVE/version tables
   in `src/` — the same way `KEUR-PORT-*` blocks platform drift. This makes the ADR-009
   invariant enforceable, not just documented: business logic in `src/` fails the build.
 
 ## Order of value (if time is scarce)
+
 1. Phase 1 (facts) + Phase 2 (`requires:` prune) — biggest correctness/perf win, smallest
    engine change, and immediately useful ("skip the Java meuk").
 2. Phase 3 (composite) — unlocks the conditional findings.

@@ -1,0 +1,31 @@
+# keur quality control — a Go repo whose sonar-project.properties configures no
+# coverage report path (Sonar then shows 0% coverage).
+#
+# Why this exists: for Go, Sonar reads coverage from a `go test -coverprofile`
+# report via `sonar.go.coverage.reportPaths`. Miss it and coverage reads 0% and
+# any coverage gate fails silently.
+#
+# HOW (requires + absence): `requires: lang: go` gates to repos containing Go
+# (facts, ADR-009). The absence engine fires when the key appears NOWHERE.
+# `content_contains: sonar.sources` skips files with no analysis.
+#
+# WARN, low confidence: coverage may be passed via CI or skipped on purpose.
+# @see docs/rules-authoring.md
+id: SONAR-008
+ilities: [testability]
+maturity: 3
+title: Go repo — Sonar config has no coverage report path
+category: quality
+severity: warning
+engine: absence
+action: warn
+confidence: 0.5
+requires:
+  lang: go
+target:
+  filenames: sonar-project.properties
+  content_contains: sonar.sources
+patterns:
+  - regex: (?mi)^\s*sonar\.go\.coverage\.reportPaths\s*=\s*\S
+    message: "Go repo: sonar-project.properties sets sonar.sources but no sonar.go.coverage.reportPaths — Sonar will show 0% coverage. Point it at your coverage profile."
+fix: "Add `sonar.go.coverage.reportPaths=coverage.out` and generate it with `go test ./... -coverprofile=coverage.out` before the scan."

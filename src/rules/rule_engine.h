@@ -111,6 +111,13 @@ struct Rule {
   // rule fires on the SECOND+ occurrence of the same value. @implements ADR-004.stage2
   std::string extract;
   int capture = 1;
+  // filename-case engine (ADR-naming): enforce a naming convention on a file's
+  // basename (scope=filename) or each path dir segment (scope=dirname). `name_case`
+  // is one of upper-snake|lower-snake|kebab|pascal|camel|upper|lower. `name_allow`
+  // lists exact basenames exempt from the check (e.g. README, LICENSE, TODO).
+  std::string name_case;                 // the required case style (empty = engine off)
+  std::string name_scope = "filename";   // filename | dirname
+  std::vector<std::string> name_allow;   // exempt exact names
   bool skip_comments = false;  // strip comments before matching (ADR-004 stage 1)
   bool skip_strings = false;   // strip string literals before matching
   RuleRequires requires_;      // ADR-009: facts guard (empty = always applies)

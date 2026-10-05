@@ -1,0 +1,16 @@
+# Composite (ADR-009): the real Fastify path-normalization auth bypass
+# (CVE-2025-69211 / CVE-2026-2293, CWE-551) needs BOTH preconditions together —
+# a FastifyAdapter configured with path-normalization options (KEUR-NEST-012)
+# AND a guard that authorizes on the raw request url (KEUR-NEST-013). Either
+# alone is a warn; both in the same codebase is the exploitable bypass, so this
+# composite raises it to an error. Each leaf rule still fires standalone.
+id: KEUR-NEST-016
+title: Fastify path-normalization auth bypass (adapter config + url-based guard)
+category: security
+severity: error
+engine: composite
+action: warn
+composite:
+  all: KEUR-NEST-012 KEUR-NEST-013
+message: "Both the vulnerable FastifyAdapter path-normalization config (KEUR-NEST-012) AND a guard that authorizes on the raw request url (KEUR-NEST-013) are present — this is the exploitable auth bypass (CVE-2026-2293, CWE-551): a non-canonical path (//orders/admin) is canonicalised AFTER the guard, reaching protected handlers unauthorized. Upgrade @nestjs/platform-fastify >= 11.1.14 and authorize on a role claim, not the url."
+fix: "Upgrade @nestjs/platform-fastify >= 11.1.14; remove url-string authorization; keep guards declarative (@UseGuards) and default-deny."

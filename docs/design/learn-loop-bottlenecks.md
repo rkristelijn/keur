@@ -26,7 +26,7 @@ a verdict. Snapshot taken at 5756 optimiser iterations.
 
 What keur misses vs. what it can learn from:
 
-```
+```text
 keur MISSES (FN clusters):     ground-truth HAS (learnable):
   PII    104x                    sast    391
   SECRET  88x                    secret  130

@@ -28,7 +28,8 @@ set -euo pipefail
 # Under a non-UTF-8 locale (CI's LC_ALL=C) sed/tr split them mid-byte and emit
 # broken C++ string literals. Force a UTF-8 locale the host actually has.
 if ! locale 2>/dev/null | grep -qiE 'UTF-?8'; then
-  if locale -a 2>/dev/null | grep -qiE '^C\.utf-?8$'; then export LC_ALL=C.UTF-8
+  if locale -a 2>/dev/null | grep -qiE '^C\.utf-?8$'; then
+    export LC_ALL=C.UTF-8
   else export LC_ALL=en_US.UTF-8; fi
 fi
 
@@ -37,12 +38,13 @@ shift
 dirs=("$@")
 
 # Collect every .rule path once (sorted, deterministic).
-tmp_list="$(mktemp)"; tmp_tsv="$(mktemp)"
+tmp_list="$(mktemp)"
+tmp_tsv="$(mktemp)"
 trap 'rm -f "$tmp_list" "$tmp_tsv"' EXIT
 for dir in "${dirs[@]}"; do
   [[ -d "$dir" ]] || continue
   find "$dir" -type f -name '*.rule'
-done | sort > "$tmp_list"
+done | sort >"$tmp_list"
 
 rule_total="$(grep -c . "$tmp_list" || true)"
 
@@ -106,7 +108,7 @@ awk '
     else if (in_target && line ~ /extensions:/) { sub(/.*extensions:/,"",line); exts=trim(line) }
   }
   END { flush() }
-' $(cat "$tmp_list") > "$tmp_tsv"
+' $(cat "$tmp_list") >"$tmp_tsv"
 
 # Dedup by id (5th field), then sort by category, subcategory, id.
 sorted="$(sort -t$'\t' -k1,1 -k2,2 -k5,5 "$tmp_tsv" | awk -F'\t' '!seen[$5]++')"
@@ -131,7 +133,7 @@ sorted="$(sort -t$'\t' -k1,1 -k2,2 -k5,5 "$tmp_tsv" | awk -F'\t' '!seen[$5]++')"
   echo '}'
   echo
   echo '}  // namespace keur::manager'
-} > "$out"
+} >"$out"
 
 count="$(printf '%s\n' "$sorted" | grep -c . || true)"
 echo "gen-catalog: wrote $count rules (from $rule_total files) to $out" >&2
