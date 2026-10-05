@@ -64,19 +64,16 @@ Status legend: [x] done · [~] partially done · [ ] open
       git tree (git can't stage it, scan-walker never reads it), silently skipped
       when absent. Unit-tested. Documented in rules/README.md. (2026-10-05)
 - [ ] native `$PII_VAULT` support — the REAL cross-repo BII/PII denylist path.
-      A central vault already exists at `~/.local/share/pii/patterns.d/*.pii`
-      (5 lists incl. work-aps.pii ~593 lines, personal.pii, gdpr-nl/uk, generic),
-      consumed by cpm's check-pii.sh AND the global git hook
-      (~/.config/git/hooks/lib/no-pii.sh) via `$PII_VAULT`. keur should read the
-      SAME source so all three consumers share one list (no drift, nothing in any
-      repo). Format is trivial: one regex per line, `#` = comment, blank skipped.
-      Plan: a loader that reads `${PII_VAULT:-~/.local/share/pii}/patterns.d/*.pii`,
-      turns each line into a blocking PII pattern (category pii, action block),
-      honours the existing `.config/.pii-config` disable list + a `keur:ignore pii`
-      line-suppress (match cpm's hook UX). Needs an ADR (new engine-adjacent
-      source, trust: vault is 700/600, out-of-repo). This supersedes the shell
-      `scanners/pii.sh` brug that was removed from config this session — keur
-      stays one binary, no runtime dep on an external script in a sister repo.
+      DESIGNED: see docs/adr/ADR-042-pii-vault-scanner.md (opt-in, self-explaining
+      scanner that reads the vault and tells you where it goes when you turn it on).
+      URGENT CONTEXT (2026-10-05): the PII gate SILENTLY VANISHED — the git hooks
+      now `exec keur check` only and no longer source ~/.config/git/hooks/lib/
+      no-pii.sh (it lies dead in lib/), so NOTHING blocks a BSN/plate/internal-
+      hostname from being committed in keur right now. A central vault already
+      exists at `~/.local/share/pii/patterns.d/*.pii` (cpm + the old hook read it
+      via $PII_VAULT). Manual proof done: 588 vault patterns → temp ~/.keur/rules
+      rule → scan keur = 0 matches AND the engine matches the format fine, so this
+      is wiring, not capability. Implement ADR-042's follow-ups 1-6.
 - [ ] remove the dead script-scanner shims: `scanners/pii.sh` + `scanners/rules.sh`
       (no longer referenced by config after this session). `eval/evaluate.sh` still
       calls them behind `[[ -x ]]` guards (won't break, but is a dead scaffold —
