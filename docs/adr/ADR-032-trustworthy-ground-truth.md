@@ -140,7 +140,8 @@ hand-authored markers give an author-independent truth: then each tool's
 `detected` vs the label yields a real per-tool precision/recall — and the
 "hundreds of FPs" become a measured FP-rate instead of an anecdote. That
 per-tool accuracy table is a direct output of adopting §2 (tools as annotators)
-+ the manifest harvester, and it is the number that tells you *which* tools to
+
+- the manifest harvester, and it is the number that tells you *which* tools to
 trust *how much* in corroboration (ADR-031, T-203).
 
 ## How other tools handle this (prior art)
@@ -333,6 +334,7 @@ new subsystem.
 ## Consequences
 
 **Positive**
+
 - The corpus measures *correctness* (does keur match the adjudicated label), not
   *mimicry* (does keur match semgrep). This is the difference between "consistent"
   and "correct" from ADR-030/031, finally closed at the source.
@@ -345,6 +347,7 @@ new subsystem.
   invention.
 
 **Negative / cost**
+
 - Adjudication is human work. It is the deliberate, slow, decisive work keur chose
   over cpm's bulk generation — accept it; it is the point.
 - Mutation families and marker discipline are ongoing curation effort.

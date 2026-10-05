@@ -24,35 +24,41 @@ set -euo pipefail
 APPLY=0
 for arg in "$@"; do
   case "$arg" in
-    --apply) APPLY=1 ;;
-    *) echo "unknown flag: $arg" >&2; exit 2 ;;
+  --apply) APPLY=1 ;;
+  *)
+    echo "unknown flag: $arg" >&2
+    exit 2
+    ;;
   esac
 done
 
 CPM="${CPM_RULES:-$HOME/git/hub/cpm/rules}"
-[[ -d "$CPM" ]] || { echo "cpm rules dir not found: $CPM" >&2; exit 1; }
+[[ -d "$CPM" ]] || {
+  echo "cpm rules dir not found: $CPM" >&2
+  exit 1
+}
 
 # category -> ilities (primary first), ISO/IEC 25010 sub-characteristics.
 # Mirrors scripts/backfill-ilities.sh (ADR-039 §1).
 ilities_for() {
   case "$1" in
-    secrets|secret|pii|data-exposure|cbi)       echo "confidentiality" ;;
-    sqli|cmdi|xss|sast|security|supply-chain)   echo "integrity" ;;
-    iac|k8s|docker|container|ansible|nginx|compliance) echo "integrity" ;;
-    oauth|session|api|transport|graphql)        echo "authenticity" ;;
-    ai-ml|slop)                                 echo "modifiability confidentiality" ;;
-    correctness|reliability)                    echo "reliability-maturity" ;;
-    resilience)                                 echo "fault-tolerance" ;;
-    observability|logging)                      echo "availability" ;;
-    test|tests)                                 echo "testability" ;;
-    quality|architecture)                       echo "analysability" ;;
-    style|patterns|antipattern|best-practice|deprecated|migration) echo "modifiability" ;;
-    build|bundler)                              echo "modularity" ;;
-    performance|perf|animation)                 echo "time-behaviour" ;;
-    a11y|accessibility|inclusivity|forms|ui-frameworks|web) echo "accessibility" ;;
-    shell|portability)                          echo "adaptability" ;;
-    docs|project|git)                           echo "traceability" ;;
-    *)                                          echo "analysability" ;;  # fallback
+  secrets | secret | pii | data-exposure | cbi) echo "confidentiality" ;;
+  sqli | cmdi | xss | sast | security | supply-chain) echo "integrity" ;;
+  iac | k8s | docker | container | ansible | nginx | compliance) echo "integrity" ;;
+  oauth | session | api | transport | graphql) echo "authenticity" ;;
+  ai-ml | slop) echo "modifiability confidentiality" ;;
+  correctness | reliability) echo "reliability-maturity" ;;
+  resilience) echo "fault-tolerance" ;;
+  observability | logging) echo "availability" ;;
+  test | tests) echo "testability" ;;
+  quality | architecture) echo "analysability" ;;
+  style | patterns | antipattern | best-practice | deprecated | migration) echo "modifiability" ;;
+  build | bundler) echo "modularity" ;;
+  performance | perf | animation) echo "time-behaviour" ;;
+  a11y | accessibility | inclusivity | forms | ui-frameworks | web) echo "accessibility" ;;
+  shell | portability) echo "adaptability" ;;
+  docs | project | git) echo "traceability" ;;
+  *) echo "analysability" ;; # fallback
   esac
 }
 
@@ -60,46 +66,50 @@ ilities_for() {
 # the target subdir.
 characteristic_of() {
   case "$1" in
-    confidentiality|integrity|authenticity) echo "security" ;;
-    reliability-maturity|fault-tolerance|availability) echo "reliability" ;;
-    analysability|modifiability|testability|modularity) echo "maintainability" ;;
-    time-behaviour) echo "performance" ;;
-    accessibility) echo "usability" ;;
-    adaptability|installability) echo "portability" ;;
-    traceability) echo "traceability" ;;
-    *) echo "maintainability" ;;
+  confidentiality | integrity | authenticity) echo "security" ;;
+  reliability-maturity | fault-tolerance | availability) echo "reliability" ;;
+  analysability | modifiability | testability | modularity) echo "maintainability" ;;
+  time-behaviour) echo "performance" ;;
+  accessibility) echo "usability" ;;
+  adaptability | installability) echo "portability" ;;
+  traceability) echo "traceability" ;;
+  *) echo "maintainability" ;;
   esac
 }
 
 # primary ility -> target subdir under rules/ (via its ISO characteristic).
 dir_for_ility() {
   case "$(characteristic_of "$1")" in
-    security)     echo "security" ;;
-    usability)    echo "inclusivity" ;;
-    *)            echo "quality" ;;   # reliability/maintainability/perf/portability/traceability
+  security) echo "security" ;;
+  usability) echo "inclusivity" ;;
+  *) echo "quality" ;; # reliability/maintainability/perf/portability/traceability
   esac
 }
 
 # severity -> maturity. deadly families override to 1.
-maturity_for() {  # $1=severity $2=category
+maturity_for() { # $1=severity $2=category
   case "$2" in
-    secrets|secret|sqli|cmdi|xss) echo 1; return ;;
+  secrets | secret | sqli | cmdi | xss)
+    echo 1
+    return
+    ;;
   esac
   case "$1" in
-    error|critical) echo 2 ;;
-    warning|warn)   echo 3 ;;
-    info|*)         echo 4 ;;
+  error | critical) echo 2 ;;
+  warning | warn) echo 3 ;;
+  info | *) echo 4 ;;
   esac
 }
 
 # primary ility -> GATE (keeps block/warn by severity) or ADVISORY. Only the
 # Security characteristic gates by default (scope.md); everything else is
 # advisory until a slider raises it.
-action_for() {  # $1=primary-ility $2=severity
+action_for() { # $1=primary-ility $2=severity
   case "$(characteristic_of "$1")" in
-    security)
-      case "$2" in error|critical) echo block ;; *) echo warn ;; esac ;;
-    *) echo advisory ;;
+  security)
+    case "$2" in error | critical) echo block ;; *) echo warn ;; esac
+    ;;
+  *) echo advisory ;;
   esac
 }
 
@@ -133,8 +143,9 @@ while IFS= read -r f; do
     dest="rules/$subdir/$(basename "$f")"
     # Copy, then ensure source/ilities/maturity are present (inserted after id:).
     # action: only add if the rule has none (don't override an explicit action).
-    has_action=0; grep -qE '^action:' "$f" && has_action=1
-    awk -v arr="$arr" -v mat="$mat" -v act="$act" -v addact="$((1-has_action))" '
+    has_action=0
+    grep -qE '^action:' "$f" && has_action=1
+    awk -v arr="$arr" -v mat="$mat" -v act="$act" -v addact="$((1 - has_action))" '
       { print }
       /^id:/ && !done {
         print "source: cpm"
@@ -143,7 +154,7 @@ while IFS= read -r f; do
         if (addact == "1") print "action: " act
         done = 1
       }
-    ' "$f" > "$dest"
+    ' "$f" >"$dest"
   else
     printf '%-14s %-24s mat:%s act:%-8s -> rules/%s/\n' "$id" "$arr" "$mat" "$act" "$subdir"
   fi

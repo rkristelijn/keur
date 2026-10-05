@@ -1,0 +1,33 @@
+# keur quality control — a JS/TS repo whose sonar-project.properties configures
+# no LCOV coverage report path (Sonar then shows 0% coverage).
+#
+# Why this exists: for JavaScript/TypeScript, Sonar reads coverage from an LCOV
+# report via `sonar.javascript.lcov.reportPaths` (the same key covers TS). Miss
+# it and coverage reads 0% and any coverage gate fails silently.
+#
+# HOW (requires + absence): `requires: lang: js ts` gates to repos containing JS
+# or TS (facts, ADR-009). The absence engine fires when the lcov key appears
+# NOWHERE. `content_contains: sonar.sources` skips files that configure no
+# analysis. The per-language refinement: keur knows it is JS/TS, so it demands
+# the lcov key specifically.
+#
+# WARN, low confidence: coverage may be passed via CI or deliberately skipped.
+# @see docs/rules-authoring.md
+id: SONAR-006
+ilities: [testability]
+maturity: 3
+title: JS/TS repo — Sonar config has no LCOV coverage report path
+category: quality
+severity: warning
+engine: absence
+action: warn
+confidence: 0.5
+requires:
+  lang: js ts
+target:
+  filenames: sonar-project.properties
+  content_contains: sonar.sources
+patterns:
+  - regex: (?mi)^\s*sonar\.(javascript|typescript)\.lcov\.reportPaths\s*=\s*\S
+    message: "JS/TS repo: sonar-project.properties sets sonar.sources but no sonar.javascript.lcov.reportPaths — Sonar will show 0% coverage. Point it at your lcov.info."
+fix: "Add `sonar.javascript.lcov.reportPaths=coverage/lcov.info` (the key also covers TypeScript), and make sure your test runner emits lcov (e.g. jest --coverage, vitest --coverage) before the scan."

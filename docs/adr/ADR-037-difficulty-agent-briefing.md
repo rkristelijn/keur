@@ -166,7 +166,6 @@ be regenerated (control). Scope it to commits that touch `keur.toml` (and the
 rule corpus) so it only fires when the briefing could actually have gone stale.
 CI runs the same `--check` as a backstop for pushes that bypass the local hook.
 
-
 ### 5. One canonical briefing: `AGENTS.md`; flavours REFERENCE it; CONTRIBUTING.md links the two
 
 Writing the full briefing into five+ files duplicates it, and copies drift — the
@@ -233,6 +232,7 @@ confirmed, not speculated.
 ## Consequences
 
 **Positive**
+
 - The difficulty a project picks now reaches the *author* (human or AI), not only
   the *gate* — prevention shifts left, so the hook fires less because less slop
   is generated in the first place.
@@ -247,6 +247,7 @@ confirmed, not speculated.
   cursor), so adoption is a single command, no bespoke integration.
 
 **Negative / cost**
+
 - A new `cmd/agents.*` subcommand + a pure renderer over the active rule set +
   target-flavour path table. Modest, and it reuses ADR-035/036 rule-field access.
 - Repos that hand-edit `AGENTS.md` must keep keur's edits inside the managed

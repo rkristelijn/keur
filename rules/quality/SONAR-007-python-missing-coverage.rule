@@ -1,0 +1,31 @@
+# keur quality control — a Python repo whose sonar-project.properties configures
+# no coverage report path (Sonar then shows 0% coverage).
+#
+# Why this exists: for Python, Sonar reads coverage from a coverage.xml report
+# via `sonar.python.coverage.reportPaths`. Miss it and coverage reads 0% and any
+# coverage gate fails silently.
+#
+# HOW (requires + absence): `requires: lang: python` gates to repos containing
+# Python (facts, ADR-009). The absence engine fires when the key appears
+# NOWHERE. `content_contains: sonar.sources` skips files with no analysis.
+#
+# WARN, low confidence: coverage may be passed via CI or skipped on purpose.
+# @see docs/rules-authoring.md
+id: SONAR-007
+ilities: [testability]
+maturity: 3
+title: Python repo — Sonar config has no coverage report path
+category: quality
+severity: warning
+engine: absence
+action: warn
+confidence: 0.5
+requires:
+  lang: python
+target:
+  filenames: sonar-project.properties
+  content_contains: sonar.sources
+patterns:
+  - regex: (?mi)^\s*sonar\.python\.coverage\.reportPaths\s*=\s*\S
+    message: "Python repo: sonar-project.properties sets sonar.sources but no sonar.python.coverage.reportPaths — Sonar will show 0% coverage. Point it at your coverage.xml."
+fix: "Add `sonar.python.coverage.reportPaths=coverage.xml`, and generate it with `coverage xml` (coverage.py) or `pytest --cov --cov-report=xml` before the scan."

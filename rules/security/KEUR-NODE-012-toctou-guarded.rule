@@ -1,0 +1,20 @@
+# TOCTOU, guarded form (CWE-367). BE-SEC-032 matches the bare
+# fs.existsSync()\n...fs.writeFile sequence but not the common guarded form
+# `if (!fs.existsSync(f)) { fs.writeFile(f, ...) }`. mestjs gap #8
+# (docs/KEUR-COVERAGE-GAPS.md).
+id: KEUR-NODE-012
+title: TOCTOU — if (!existsSync) { writeFile } check-then-act (Node)
+category: security
+severity: warning
+engine: multiline
+window: 4
+skip_comments: true
+target:
+  extensions: .ts .js .mjs
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ _spec/
+patterns:
+  # if ( ... existsSync(f) ... ) { ... fs.writeFile/readFile/unlink(f) }
+  - regex: (?s)if\s*\([^)]*\bfs\.existsSync\s*\([^)]*\).{0,120}?fs\.(?:writeFile|writeFileSync|readFile|readFileSync|unlink|unlinkSync|appendFile|appendFileSync)\s*\(
+    message: "Check-then-act on a file: fs.existsSync() guard then an fs write/read/unlink — TOCTOU race (CWE-367): the path can be swapped (e.g. for a symlink) in the window. Use atomic flags (fs.open with 'wx' / O_EXCL, O_NOFOLLOW) instead of an existence check."
+confidence: 0.6
+fix: "Open atomically: fs.open(path, 'wx') (fails if it exists) or O_EXCL/O_NOFOLLOW; never gate a write on a prior existsSync()."

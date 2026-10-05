@@ -112,6 +112,7 @@ void eng_multiline(const ScanContext& cx, std::vector<RuleFinding>& out) {
   const Rule& r = *c.rule;
   if (c.res.empty() || !c.res[0]) return;
   const RE2& re = *c.res[0];
+  const RE2* excl = c.exclude_res.empty() ? nullptr : c.exclude_res[0].get();
   const int win = r.window > 0 ? r.window : 2;  // sane default: two lines
   const size_t n = cx.lines.size();
   for (size_t li = 0; li < n; li++) {
@@ -124,6 +125,9 @@ void eng_multiline(const ScanContext& cx, std::vector<RuleFinding>& out) {
       blob.append(cx.lines[j].data(), cx.lines[j].size());
     }
     if (RE2::PartialMatch(blob, re)) {
+      // pattern-not (exclude): if the window also matches the exclude regex,
+      // this is a negative case (e.g. the sanitising call is present) — skip.
+      if (excl && RE2::PartialMatch(blob, *excl)) { li = hi - 1; continue; }
       emit(r, cx.rel, (int)(li + 1), finding_msg(r, r.patterns[0].message), out);
       li = hi - 1;  // advance past this window (loop's ++ moves to hi)
     }

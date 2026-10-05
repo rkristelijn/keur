@@ -490,6 +490,22 @@ int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps) {
         draw(manager::render(model, vo));
 
         platform::KeyEvent ev = platform::read_key();
+
+        // Search input mode: keystrokes build the live `/` filter until Enter
+        // (keep the filter) or Esc (clear it). Everything else is captured here
+        // so typing a query never triggers navigation/toggles.
+        if (model.search_active) {
+            switch (ev.key) {
+                case platform::Key::Enter:     manager::search_commit(model); break;
+                case platform::Key::Escape:    manager::search_clear(model); break;
+                case platform::Key::Backspace: manager::search_backspace(model); break;
+                case platform::Key::Space:     manager::search_input(model, ' '); break;
+                case platform::Key::Char:      manager::search_input(model, ev.ch); break;
+                default: break;
+            }
+            continue;
+        }
+
         switch (ev.key) {
             case platform::Key::Up:    manager::move_cursor(model, -1); break;
             case platform::Key::Down:  manager::move_cursor(model, +1); break;
@@ -507,8 +523,13 @@ int manager_interactive(const ManagerOptions& opts, const ManagerDeps& deps) {
                 else manager::toggle_focused_group(model);
                 break;
             }
+            case platform::Key::Escape:
+                // Clear a committed `/` filter (when not in input mode).
+                if (!model.search_query.empty()) manager::search_clear(model);
+                break;
             case platform::Key::Char:
                 switch (ev.ch) {
+                    case '/': manager::search_begin(model); break;
                     case 'k': manager::move_cursor(model, -1); break;
                     case 'j': manager::move_cursor(model, +1); break;
                     case 'h': manager::collapse_focused(model); break;

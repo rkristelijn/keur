@@ -15,7 +15,7 @@ as steering).
 On the first real run this worked for CPM seeds but failed pathologically for
 **rejected near-misses**. Observed on seed `SEED-REJ-1D920FC6`:
 
-```
+```text
 [seed 4] seed needs refinement: recall did not rise (0.215→0.215); precision
          too low (0.099); holdout precision 0.135 (fp=96) — generalises as noise
 [seed 4] refine attempt 1/4 (retry: <same reason>)

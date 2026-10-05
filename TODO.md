@@ -4,6 +4,28 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ## Done (this cycle)
 
+- [x] Sonar config validation rules (SONAR-001..008): nothing else validates
+      `sonar-project.properties` (Sonar silently ignores unknown/missing keys),
+      so keur does. SONAR-001 missing projectKey, 002 missing organization
+      (SonarCloud), 003 token/login committed (secret-in-config), 004 misspelled
+      keys (exclusion/projectkey/reportPath), 005-008 per-language coverage path
+      MISSING via `requires: lang` + `absence` (java→jacoco, js/ts→lcov,
+      python→coverage.xml, go→coverage profile). Validated by
+      tests/e2e/test_sonar.sh (8 asserts: true positives, 0 FP, requires: gating).
+
+- [x] difficulty TUI (ADR-038/039, docs/design/difficulty-chooser-ui.md): the
+      three lenses over one keur.toml state. `keur tune` router switches lenses
+      with Tab/Shift-Tab; `keur level` (coarse) steps in on Tab; `keur settings`
+      (medior ISO 25010 sliders) and `keur manager` (expert tree) also run
+      standalone. Shared load/save path (single `.bak`), `*` deviation marker on
+      level, lens-switch refresh after save.
+    - [x] `keur manager`: repo-overrules-global greying (incl. fully overruled
+          parent groups), `/` fuzzy filter (keeps ancestor path, collapsible),
+          a-z sorted tree (Scanners/Hooks pinned on top).
+    - [~] DEFERRED: `*` override marker inside `keur manager` (does not map
+          cleanly onto per-rule rows — the tree already shows "overruled by
+          repo" + disabled). Multi-step undo = manager Layer 2 (single `.bak` now).
+
 - [x] analyse the literals / duplicate stuff — centralised: git+fs+proc adapters,
       one report/output provider, one TOML reader. (ADR-003)
 - [x] see repeating patterns, workdir/git queried multiple times — one Git adapter
@@ -33,6 +55,17 @@ Status legend: [x] done · [~] partially done · [ ] open
 ## Open
 
 ### Features
+
+- [ ] config-in-root hygiene rule: flag a config file sitting in the repo root
+      when the tool supports a non-root location (e.g. keur.toml → .config/
+      .keur.toml, which keur already resolves). Must be DATA-driven (a list of
+      tools that support .config/) so it never flags root-only files that CANNOT
+      move (sonar-project.properties, mull.yml, compile_commands.json, .gitignore
+      are tool-hardcoded to root). Needs a design decision on which tools to
+      include. (raised 2026-10-04 alongside the SONAR-* rules.)
+- [ ] SONAR-* findings double-count per file (each fires 2× in a scan) — looks
+      like findings are not deduped per (rule,file,line) for these; confirm
+      whether it is a reporting quirk or affects other rules too, then dedupe.
 
 - [ ] extract-duplicates engine (last of cpm's 7 engines; ADR-004 stage 2). Per
       file, extract a capture group via `extract:` regex + `capture:` index and
@@ -65,16 +98,16 @@ Status legend: [x] done · [~] partially done · [ ] open
       enabled adapter over the staged files, normalise stdout → Finding, feed the
       one policy engine. Once that loop exists, both shapes below are thin.
       - [ ] shape A: proven-tool adapters (shellcheck first — covers the SC2034
-            class that slipped past keur locally but failed GitLab CI in
-            security-tooling; then semgrep/gitleaks/trivy/checkov). PATH-resolved,
-            missing → skip. Shared coverage across all repos.
+      class that slipped past keur locally but failed GitLab CI in
+      security-tooling; then semgrep/gitleaks/trivy/checkov). PATH-resolved,
+      missing → skip. Shared coverage across all repos.
       - [ ] shape B: project-local adapter — run a git-TRACKED `.keur/check.sh`
-            (fallback `.config/keur/check.sh`), staged files on argv, JSONL on
-            stdout → Finding. Trust model DECIDED (ADR-019): not config-opt-in;
-            tracked-only execution (untracked/dropped scripts ignored) + shell-
-            free spawn (run_argv) + confidence cap (~0.80) so a repo can't
-            self-BLOCK above calibrated tools. Config `enabled=false` still
-            disables entirely. Thin runner + JSONL parser over the dispatch loop.
+      (fallback `.config/keur/check.sh`), staged files on argv, JSONL on
+      stdout → Finding. Trust model DECIDED (ADR-019): not config-opt-in;
+      tracked-only execution (untracked/dropped scripts ignored) + shell-
+      free spawn (run_argv) + confidence cap (~0.80) so a repo can't
+      self-BLOCK above calibrated tools. Config `enabled=false` still
+      disables entirely. Thin runner + JSONL parser over the dispatch loop.
 - [ ] ollama learn/loop as designed (eval/ harness exists; optimiser missing).
 - [ ] surface traceability / doc-coverage + test-coverage metrics on the
       dashboard (ADR-017). Decide Route A (own CI gate: doc-coverage.sh --strict
@@ -82,7 +115,6 @@ Status legend: [x] done · [~] partially done · [ ] open
       + sonar.externalIssuesReportPaths — one dashboard, but migrates off
       autoscan, needs SONAR_TOKEN + plan-feature check). Parked pending the
       choice. See docs/adr/ADR-017-surfacing-coverage-metrics.md.
-
 - [ ] wire cpm in as a second quality gate over keur's own code (ADR-018).
       cpm's mature checks already find ZERO issues on keur's source (good
       regression gate), but cpm scans the corpus fixtures too. Prereq: solve the
@@ -163,8 +195,8 @@ Status legend: [x] done · [~] partially done · [ ] open
       env/config, `dangerouslySetInnerHTML` XSS, open redirect, missing authz on
       an API route, and a leaky `.env`/`next.config`. Keep it --depth-1-small
       (<100MB, well under the corpus cap). Two ways to use it:
-        (a) commit it as its own tiny repo and add its slug to repos.txt, or
-        (b) generate it under eval/corpus/repos/ as a local fixture (no clone).
+      (a) commit it as its own tiny repo and add its slug to repos.txt, or
+      (b) generate it under eval/corpus/repos/ as a local fixture (no clone).
       Because the ground truth is source-agnostic, we can either run the proven
       tools over it OR hand-label the planted issues (we know where we put them)
       — a rare case where we OWN the ground truth exactly. Pairs well with the

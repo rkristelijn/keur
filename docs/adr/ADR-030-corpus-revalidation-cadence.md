@@ -113,12 +113,14 @@ full re-run when nothing moved.
 ## Consequences
 
 **Positive**
+
 - The "every rule is gated" claim stays *true over time*, not just at insert-time.
 - Ground-truth rebuilds and gate changes become safe: their blast radius on the
   existing corpus is measured, not assumed.
 - Regressions become a tracked, re-seedable event, not a silent loss of precision.
 
 **Negative / cost**
+
 - Needs input fingerprinting (ground-truth hash + gate version) to make
   trigger-based cheap and deterministic.
 - A full revalidate over ~1000+ rules is not free; it belongs in the `ci` tier /

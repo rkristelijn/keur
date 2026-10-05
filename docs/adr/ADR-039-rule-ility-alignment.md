@@ -74,6 +74,7 @@ loaded corpus has controls under it.
 | **(process control, ADR-010)** | traceability | docs, project, git |
 
 Notes on placement (the "which controls belong to which ility" decisions):
+
 - **Hardening** is not a separate ISO sub-characteristic. IaC/k8s/docker hardening
   protects the **integrity** of the deployment, so it maps to Security →
   integrity.
@@ -189,6 +190,7 @@ per-rule override. This ADR defines the middle step; the other two are unchanged
 ## Consequences
 
 **Positive**
+
 - One runtime mapping (`active(rule, vector)`) is the single source the gate
   reads; the three views (ADR-038) all steer that one vector, so they cannot
   drift (the "one mapping, everything compatible" requirement).
@@ -200,6 +202,7 @@ per-rule override. This ADR defines the middle step; the other two are unchanged
   table keyed by ility (ADR-014).
 
 **Negative / cost**
+
 - A backfill pass over the corpus (272 rules now) + maintaining the closed ility
   set as new categories arrive (mitigated: the set is derived from the corpus and
   guarded by the self-check).

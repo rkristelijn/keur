@@ -1,0 +1,25 @@
+# Directory traversal, Node/TS shape (CWE-22). PY-SEC-013 is Python-only; there
+# is no rule for the fs.read*(path.join(base, userInput)) shape. A filename from
+# request input joined onto a base dir with no path.resolve containment check
+# escapes via ../../. (promoted from the mestjs corpus).
+#
+# RE2 has no backreferences, so instead of "the SAME var", we anchor on the
+# shape: a request source appears, then within a few lines path.join(...) feeds
+# an fs read, and no containment check (path.resolve/realpath/startsWith/
+# normalize) appears in the window.
+id: KEUR-NODE-010
+title: Path traversal — fs read on path.join(base, user input) (Node/TS)
+category: security
+severity: error
+engine: multiline
+window: 8
+skip_comments: true
+target:
+  extensions: .ts .js .mjs .tsx .jsx
+  exclude_paths: test/ tests/ node_modules/ dist/ build/ _spec/
+patterns:
+  - regex: (?s)(?:@Query\(|@Param\(|req\.query|req\.params|req\.body).{0,220}?path\.join\s*\([^)]*\).{0,100}?fs\.(?:readFile|readFileSync|createReadStream)\s*\(
+    exclude: (?:path\.resolve|realpath|\.startsWith\s*\(|path\.normalize\s*\()
+    message: "A request-derived path is path.join'd onto a base dir and read by fs with no containment check — path traversal (CWE-22): ?file=../../etc/passwd escapes the directory. Map the id to a stored key, path.resolve the result and assert it startsWith the base dir before reading."
+confidence: 0.65
+fix: "Resolve with path.resolve and verify the result stays under the intended base (resolved.startsWith(base + path.sep)); never read a user-supplied filename directly."
