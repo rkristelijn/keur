@@ -1,0 +1,9 @@
+# Repo-level suppression (ADR-035).
+#
+# VAULT-PERSONAL is a PERSONAL-vault rule from the global ~/.config/keur/rules/
+# layer. It is meant for personal notes, not for this public tool repo, where
+# the owner's handle legitimately appears in the repo slug / installer / docs
+# (authorship, not a leak — ADR-043). Scoping it off here is a scope correction,
+# not a bypass. A finer per-term allow ("allow <term>" in the scan layer) is
+# designed in ADR-046 and will replace this blunt rule-level suppression.
+VAULT-PERSONAL
