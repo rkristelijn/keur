@@ -1,0 +1,179 @@
+name: Release
+
+# One-click release (workflow_dispatch). Deterministic, so by design it is the
+# ONE automation allowed to commit straight to main (no release PR to merge):
+#
+#   1. compute the next version from Conventional Commits (scripts/release.sh)
+#   2. apply it (config/keur.toml + CHANGELOG.md) and commit it to main
+#   3. tag vX.Y.Z
+#   4. build every platform and run the e2e smoke on each
+#   5. publish a GitHub Release with generated notes + the built binaries
+#
+# dry_run=true computes the version and builds/tests everything, but does NOT
+# commit, tag, or publish — a safe preview.
+#
+# Requires: the release job's bot push is allowed past branch protection on main
+# (repo setting: allow github-actions[bot] to bypass, or a PAT). The release
+# logic itself lives in scripts/release.sh (ADR-044: workflow is a thin trigger).
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — compute + build + test, but do not commit/tag/publish"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # ── 1. Version + bump commit + tag ───────────────────────────────────────
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      tag: ${{ steps.v.outputs.tag }}
+      skipped: ${{ steps.v.outputs.skipped }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          fetch-depth: 0   # full history for semver + notes
+
+      - name: Compute next version
+        id: v
+        run: |
+          set -euo pipefail
+          if ! VERSION="$(bash scripts/release.sh bump)"; then
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Nothing to release (no releasable commits since last tag)."
+            exit 0
+          fi
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Next version: v${VERSION}"
+
+      - name: Preview (dry run)
+        if: steps.v.outputs.skipped == 'false' && inputs.dry_run == true
+        run: |
+          bash scripts/release.sh apply "${{ steps.v.outputs.version }}"
+          echo "=== config/keur.toml ==="; grep '^version' config/keur.toml
+          echo "=== CHANGELOG (head) ==="; sed -n '1,20p' CHANGELOG.md
+
+      - name: Commit bump + tag (real release)
+        if: steps.v.outputs.skipped == 'false' && inputs.dry_run != true
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.v.outputs.version }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          bash scripts/release.sh apply "$VERSION"
+          git add config/keur.toml CHANGELOG.md
+          git commit -m "chore(release): v${VERSION}"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin HEAD:main
+          git push origin "v${VERSION}"
+          echo "::notice::Committed + tagged v${VERSION} on main."
+
+  # ── 2. Build every platform at the tag, run e2e on each ──────────────────
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.skipped == 'false'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            name: linux-amd64
+          - os: macos-14
+            name: macos-arm64
+          - os: windows-latest
+            name: windows-amd64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      # On a real release, check out the tag we just pushed; on dry run, the ref.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          ref: ${{ inputs.dry_run == true && github.ref || needs.prepare.outputs.tag }}
+
+      - name: Install RE2 (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libre2-dev libabsl-dev
+      - name: Install RE2 (macOS)
+        if: runner.os == 'macOS'
+        run: brew install re2 abseil
+      - name: Setup MSYS2 (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e  # v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-re2 mingw-w64-ucrt-x86_64-abseil-cpp
+
+      - name: Build (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: make build
+        working-directory: src/keur
+      - name: e2e smoke (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: bash tests/e2e/smoke.sh bin/keur
+      - name: Build (Windows/MSYS2)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: make build
+        working-directory: src/keur
+      - name: e2e smoke (Windows/MSYS2)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: bash tests/e2e/smoke.sh bin/keur.exe
+
+      - name: Stage binary
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p dist
+          cp bin/keur "dist/keur-${{ matrix.name }}"
+      - name: Stage binary (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: mkdir -p dist && cp bin/keur.exe "dist/keur-${{ matrix.name }}.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: keur-${{ matrix.name }}
+          path: dist/*
+          retention-days: 7
+
+  # ── 3. Publish the GitHub Release with notes + binaries ──────────────────
+  publish:
+    needs: [prepare, build]
+    if: needs.prepare.outputs.skipped == 'false' && inputs.dry_run != true
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+          fetch-depth: 0
+      - name: Collect binaries
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Generate notes
+        run: bash scripts/release.sh notes "${{ needs.prepare.outputs.version }}" > /tmp/notes.md
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ needs.prepare.outputs.tag }}" \
+            --title "${{ needs.prepare.outputs.tag }}" \
+            --notes-file /tmp/notes.md \
+            dist/*
+          echo "::notice::Published ${{ needs.prepare.outputs.tag }}."

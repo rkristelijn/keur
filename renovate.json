@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard"
+  ],
+  "description": "Keep SHA-pinned GitHub Actions current without losing the supply-chain pin. Renovate is self-hostable and not GitHub-locked (preferred over Dependabot).",
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "packageRules": [
+    {
+      "description": "GitHub Actions: keep the full-SHA pin, bump it when the tracked version moves, and refresh the '# vX' comment alongside it.",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true,
+      "groupName": "github-actions"
+    }
+  ],
+  "github-actions": {
+    "enabled": true
+  }
+}
