@@ -1,0 +1,30 @@
+id: SCA-078
+ilities: [integrity]
+maturity: 2
+title: Install/shell script downloads a binary without checksum verification
+category: supply-chain
+severity: info
+engine: absence
+# Companion to SCA-030 (Makefiles) and SCA-063 (curl|sh): a shell script that
+# fetches a release artifact over the network should verify its integrity
+# (sha256) BEFORE trusting it. This rule targets scripts that clearly download
+# (curl/wget to an http(s) URL) but never mention a checksum tool/file. It is
+# `absence`-based: the finding fires when the download pattern is present but no
+# verification pattern is. info-level like SCA-030 — a nudge, not a blocker —
+# because static matching cannot prove the hash is actually compared, only that
+# the machinery is referenced.
+#
+# A correct installer (download → sha256sum -c → install) mentions sha256sum /
+# shasum / SHA256SUMS and so does NOT fire. keur's own install.sh is the worked
+# example. @see rules/supply-chain/SCA-030, SCA-063.
+target:
+  extensions: .sh .bash
+  filenames: install.sh install install.bash
+  exclude_paths: test/ tests/ node_modules/ .git/ vendor/
+  content_contains: "http"
+patterns:
+  # Require evidence of integrity checking somewhere in the file; its ABSENCE
+  # (when the file downloads) is the finding.
+  - regex: (sha256sum|shasum|SHA256SUMS|sha256:-c|gpg --verify|cosign verify|minisign)
+    message: "This script downloads over the network but shows no checksum/signature verification. A compromised server, CDN, or MITM can deliver a malicious binary. Download first, verify sha256 against a committed SHA256SUMS, then install."
+fix: "Fetch the artifact AND a SHA256SUMS file, compare with sha256sum/shasum before using it (download → verify → install). See keur's own install.sh for the pattern."

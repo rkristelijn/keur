@@ -110,6 +110,19 @@ awk '
   END { flush() }
 ' $(cat "$tmp_list") >"$tmp_tsv"
 
+# Control: a duplicate rule id is an authoring mistake (two .rule files claiming
+# the same id). The catalogue used to dedup it away silently (!seen below), so a
+# collision shipped unnoticed. Fail the build instead — this is the control that
+# stops the "reused id" mistake from recurring. @see ADR-009 (rules are data).
+dup_ids="$(awk -F'\t' '{print $5}' "$tmp_tsv" | sort | uniq -d)"
+if [[ -n "$dup_ids" ]]; then
+  echo "gen-catalog: ERROR duplicate rule id(s) — each id must be unique:" >&2
+  while IFS= read -r d; do
+    echo "  $d  →  $(grep -rl "^id: ${d}\$" "${dirs[@]}" | tr '\n' ' ')" >&2
+  done <<< "$dup_ids"
+  exit 1
+fi
+
 # Dedup by id (5th field), then sort by category, subcategory, id.
 sorted="$(sort -t$'\t' -k1,1 -k2,2 -k5,5 "$tmp_tsv" | awk -F'\t' '!seen[$5]++')"
 

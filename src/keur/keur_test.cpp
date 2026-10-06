@@ -1965,18 +1965,18 @@ SCENARIO("[feature:rule-engine] custom pattern rule fires on trigger file") {  /
     cleanup_dir(dir);
 }
 
-SCENARIO("[feature:rule-engine] KEUR-QUAL-011 fires on a bash script without strict mode") {  // @proves KEUR-QUAL-011
+SCENARIO("[feature:rule-engine] KEUR-QUAL-014 fires on a bash script without strict mode") {  // @proves KEUR-QUAL-014
     auto rules = keur::rules_load(keur_rules_dir() + "/quality");
     REQUIRE(!rules.empty());
     std::string dir = create_temp_dir();
     // No `set -euo pipefail` → absence rule fires.
     write_file(dir + "/no_strict.sh", "#!/usr/bin/env bash\necho hi\n");
     auto miss = keur::rules_scan_files(rules, {dir + "/no_strict.sh"});
-    CHECK(has_rule(miss, "KEUR-QUAL-011"));
+    CHECK(has_rule(miss, "KEUR-QUAL-014"));
     // Strict mode present → no finding.
     write_file(dir + "/has_strict.sh", "#!/usr/bin/env bash\nset -euo pipefail\necho hi\n");
     auto ok = keur::rules_scan_files(rules, {dir + "/has_strict.sh"});
-    CHECK(!has_rule(ok, "KEUR-QUAL-011"));
+    CHECK(!has_rule(ok, "KEUR-QUAL-014"));
     cleanup_dir(dir);
 }
 

@@ -17,7 +17,7 @@
 # WARN, not block: a missing strict-mode line is a robustness smell, not a bug,
 # and some scripts deliberately manage errors by hand. Scope: bash/sh scripts;
 # tests and vendored/build dirs excluded. @see AGENTS.md, docs/rules-authoring.md.
-id: KEUR-QUAL-011
+id: KEUR-QUAL-014
 ilities: [analysability]
 maturity: 3
 title: Bash script without strict mode (set -euo pipefail)

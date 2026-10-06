@@ -1,0 +1,21 @@
+id: SCA-079
+ilities: [integrity]
+maturity: 2
+title: Shell/install script downloads over plaintext http://
+category: supply-chain
+severity: warning
+engine: pattern
+# Companion to SCA-078 (no checksum) and SCA-063 (curl|sh). QUAL-065 flags
+# hardcoded URLs but only in code extensions (.ts/.js/.py/…), not shell scripts,
+# so an install.sh fetching over http:// slips through. A plaintext download is
+# trivially MITM-able — the attacker swaps the binary in flight, and no checksum
+# in the SHA256SUMS can save you if the SHA256SUMS itself came over http.
+# Downloads in installers must be https. @see SCA-078, SCA-063, QUAL-065.
+target:
+  extensions: .sh .bash
+  filenames: install.sh install install.bash
+  exclude_paths: test/ tests/ node_modules/ .git/ vendor/
+patterns:
+  - regex: (curl|wget)\s+[^|]*http://
+    message: "Installer downloads over plaintext http:// — trivially MITM-able (an attacker swaps the payload in transit). Use https:// for every download, including the checksum file."
+fix: "Change http:// to https:// for all curl/wget downloads in the installer. Fetch the SHA256SUMS over https too, or the checksum check is defeated."
