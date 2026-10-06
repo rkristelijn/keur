@@ -21,6 +21,7 @@
 
 #include "cmd/check.h"
 #include "cmd/config.h"
+#include "cmd/doctor.h"
 #include "cmd/hook.h"
 #include "cmd/learn.h"
 #include "cmd/level.h"
@@ -65,6 +66,8 @@ static void usage() {
         "  rules disable <id>         Turn a rule off (writes [rules] disabled to keur.toml)\n"
         "  rules enable  <id>         Turn a rule back on   [--scope repo|global]\n"
         "  config list [--json]       Show the resolved config layer stack (read-only)\n"
+        "  doctor [--json]            Scanner dependency health: which proven tools are\n"
+        "                             present/missing (+ install hints), with a verdict.\n"
         "  manager --status [--json]  One overview: config, hooks, scanners, rules\n"
         "  level [--print N]          DOOM-style difficulty picker (CMMI L1..L5).\n"
         "        [--bucket sm|md|lg|xl] Interactive by default; --print/--bucket\n"
@@ -110,6 +113,7 @@ static const std::unordered_map<std::string, Handler> k_commands = {
     {"policy", [](const Args& a) { return keur::cmd::policy(keur::cmd::policy_parse(a)); }},
     {"rules",  [](const Args& a) { return keur::cmd::rules(keur::cmd::rules_parse(a)); }},
     {"config", [](const Args& a) { return keur::cmd::config(keur::cmd::config_parse(a)); }},
+    {"doctor", [](const Args& a) { return keur::cmd::doctor(keur::cmd::doctor_parse(a)); }},
     {"manager", [](const Args& a) { return keur::cmd::manager(keur::cmd::manager_parse(a)); }},
     {"level",  [](const Args& a) { return keur::cmd::level(keur::cmd::level_parse(a)); }},
     {"settings", [](const Args& a) { return keur::cmd::settings(keur::cmd::settings_parse(a)); }},
