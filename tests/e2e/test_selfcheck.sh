@@ -16,13 +16,25 @@ export KEUR_RULES_DIRS="$ROOT/rules/keur-internal"
 
 echo "==> test_selfcheck ($BINARY)"
 
-# 1. The real source tree must be clean (all I/O lives in adapters/).
-findings="$("$BINARY" scan "$ROOT/src/keur" 2>/dev/null | grep -c 'KEUR-ARCH-001' || true)"
+# 1 + 3. The real (clean) source tree is scanned ONCE; both the io-via-adapter
+#    (KEUR-ARCH-001) and the namespace/layer (KEUR-ARCH-002) controls assert
+#    against that single scan. Scanning src/keur is the expensive step, so we do
+#    it once and grep the cached output twice instead of scanning twice.
+clean_scan="$("$BINARY" scan "$ROOT/src/keur" 2>/dev/null)"
+
+findings="$(printf '%s' "$clean_scan" | grep -c 'KEUR-ARCH-001' || true)"
 [[ "$findings" -eq 0 ]] \
   && ok "src/keur has no raw I/O outside adapters (0 KEUR-ARCH-001)" \
   || fail "architecture control fired on real source ($findings findings) — I/O leaked out of adapters/"
 
-# 2. The control must actually detect a violation (guards against a dead rule).
+ns="$(printf '%s' "$clean_scan" | grep -c 'KEUR-ARCH-002' || true)"
+[[ "$ns" -eq 0 ]] \
+  && ok "namespaces match their directory layer (0 KEUR-ARCH-002)" \
+  || fail "namespace/layer mismatch ($ns findings)"
+
+# 2. The io-via-adapter control must actually detect a violation (not a dead
+#    rule). Inject a raw popen() and re-scan — this needs its own scan because
+#    the tree changed.
 tmp="$ROOT/src/keur/cmd/selfcheck_probe.cpp"
 trap 'rm -f "$tmp" "$ROOT/src/keur/adapters/selfcheck_ns.cpp"' EXIT
 printf 'void probe(){ popen("x","r"); }\n' > "$tmp"
@@ -31,14 +43,6 @@ rm -f "$tmp"
 [[ "$probe" -ge 1 ]] \
   && ok "control detects an injected raw popen() in cmd/ ($probe finding)" \
   || fail "control did NOT detect an injected violation — rule may be dead"
-
-# 3. Namespace-matches-layer control (KEUR-ARCH-002, path-derived, ADR-020):
-#    ONE rule now derives the expected namespace from each file's directory,
-#    so the real source must be clean.
-ns="$("$BINARY" scan "$ROOT/src/keur" 2>/dev/null | grep -c 'KEUR-ARCH-002' || true)"
-[[ "$ns" -eq 0 ]] \
-  && ok "namespaces match their directory layer (0 KEUR-ARCH-002)" \
-  || fail "namespace/layer mismatch ($ns findings)"
 
 # 4. The namespace control fires when an adapter file uses the wrong namespace.
 #    Scan src/keur (not just adapters/) so the layer directory is part of the
