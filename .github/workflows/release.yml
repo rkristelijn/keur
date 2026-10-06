@@ -168,6 +168,11 @@ jobs:
           merge-multiple: true
       - name: Generate notes
         run: bash scripts/release.sh notes "${{ needs.prepare.outputs.version }}" > /tmp/notes.md
+      - name: Checksums (so install.sh can verify the download)
+        run: |
+          cd dist
+          sha256sum keur-* > SHA256SUMS
+          echo "=== SHA256SUMS ==="; cat SHA256SUMS
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
