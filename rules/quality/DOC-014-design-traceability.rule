@@ -1,4 +1,5 @@
 # @see ADR-169 (smart init)
+# @implements ADR-047
 id: DOC-014
 ilities: [analysability]
 source: cpm
@@ -12,6 +13,6 @@ target:
   extensions: .cpp .c .go .rs .java .py .ts .js
   exclude_paths: test/ tests/ vendor/ node_modules/ build/ dist/
 patterns:
-  - regex: "@see|ADR-|design:|see also:|References:"
+  - regex: "@see|@implements|@proves|@shows|@explains|@external|@id|ADR-|design:|see also:|References:"
     message: "No design traceability — link to the ADR or design doc that motivated this code"
-fix: "Add a @see reference: // @see ADR-042 or # @see docs/designs/auth-flow.md"
+fix: "Add a traceability marker: // @implements ADR-042, // @proves engine-x, // @see docs/design/auth.md (verbs: docs/design/traceability-verbs.tsv)"
