@@ -38,6 +38,20 @@ remediation.
   means you have read and fixed a file. Learning the codebase is the side effect
   of playing, which is the point.
 
+### Traceability is the map; accessibility sets the playability
+- The traceability links (ADR-047: `@implements` / `@proves` / `@shows` /
+  `@explains` / `@see`) are the **doors between rooms**. A finding's room connects
+  to the ADR it relates to, the test that proves it, the demo that shows it.
+  Well-referenced code is navigable: you move from an enemy to its context and on
+  to the next room. Code with no references is a set of isolated cells — you
+  cannot route through it, so the game is short and dead-ended.
+- So the game is a **mirror of the code's quality**: inaccessible, unreferenced
+  code plays as a cramped, frustrating level; code with clean references and
+  structure plays as a rich, connected one you can actually explore. This flips
+  the incentive the right way — the game rewards exactly the traceability and
+  structure keur already wants to enforce, instead of nagging for it. Playing
+  well and writing accessible code become the same thing.
+
 ### Enemies are findings, graded by severity
 - Each finding spawns an enemy in the room of its `file`. Severity picks the
   sprite/threat: `warn` = imp, `block` = baron, `critical` = cyberdemon.
@@ -106,6 +120,10 @@ the safe tier ships first:
   and learns what each finding means in place (the enemy carries its hint).
 - **Positive**: reuses what exists — the DOOM theme, maturity levels, the `fix:`
   hints on 1102 rules, `keur:ignore`.
+- **Positive**: the game is a mirror of code quality. Because the traceability
+  links are the doors, accessible well-referenced code plays rich and long while
+  unreferenced code plays short and dead-ended — so the fun aligns with the
+  traceability keur wants (ADR-047), rather than fighting it.
 - **Negative / caution**: autofix safety is the whole risk. A wrong auto-rewrite
   is worse than the finding. Mitigated by the SAFE/structural/never tiers, pure
   text transforms first, and the re-scan confirm (plus git — the user can revert
