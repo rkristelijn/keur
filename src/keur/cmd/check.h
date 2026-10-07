@@ -83,7 +83,7 @@ bool finding_blocks(const std::string& action, const std::string& confidence,
 std::string format_finding_line(const std::string& rule, const std::string& action,
                                 const std::string& confidence, const std::string& file,
                                 int line, const std::string& message, bool blocks,
-                                const std::string& fix = "");
+                                const std::string& fix = "", bool color = false);
 
 // ---------------------------------------------------------------------------
 // I/O boundary (injectable for tests)

@@ -1658,6 +1658,35 @@ SCENARIO("[feature:report] use_color Auto respects NO_COLOR") {
     unsetenv("NO_COLOR");
 }
 
+SCENARIO("[feature:report] use_color Auto honours FORCE_COLOR without a tty") {
+    unsetenv("NO_COLOR");
+    setenv("FORCE_COLOR", "1", 1);
+    CHECK(keur::report::use_color(keur::report::ColorMode::Auto, false));
+    unsetenv("FORCE_COLOR");
+}
+
+SCENARIO("[feature:report] use_color Auto honours CLICOLOR_FORCE without a tty") {
+    unsetenv("NO_COLOR");
+    setenv("CLICOLOR_FORCE", "1", 1);
+    CHECK(keur::report::use_color(keur::report::ColorMode::Auto, false));
+    unsetenv("CLICOLOR_FORCE");
+}
+
+SCENARIO("[feature:report] use_color FORCE_COLOR=0 does not force colour") {
+    unsetenv("NO_COLOR");
+    setenv("FORCE_COLOR", "0", 1);
+    CHECK(!keur::report::use_color(keur::report::ColorMode::Auto, false));
+    unsetenv("FORCE_COLOR");
+}
+
+SCENARIO("[feature:report] use_color NO_COLOR wins over FORCE_COLOR") {
+    setenv("NO_COLOR", "1", 1);
+    setenv("FORCE_COLOR", "1", 1);
+    CHECK(!keur::report::use_color(keur::report::ColorMode::Auto, true));
+    unsetenv("NO_COLOR");
+    unsetenv("FORCE_COLOR");
+}
+
 SCENARIO("[feature:report] parse_format maps names, falls back on unknown") {
     CHECK(keur::report::parse_format("jsonl")   == keur::report::OutputFormat::Jsonl);
     CHECK(keur::report::parse_format("compact") == keur::report::OutputFormat::Compact);

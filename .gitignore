@@ -57,3 +57,4 @@ eval/.awssec.tmp
 eval/__pycache__/
 keur.toml
 keur.toml.bak
+*.tmp
