@@ -105,6 +105,25 @@ domain only changes what a "room" and a "door" are.
   pacifist run reads as what it is. The broader the ignore (line < rule < value <
   disable), the louder the game flags it, mirroring its real blast radius.
 
+### Cheat codes are the suppress / navigate verbs
+The actions are entered as DOOM cheat codes — memorable, on-theme, and the cheat's
+reach mirrors the real suppression reach (narrow god-mode → broad disable), so the
+code teaches the blast radius:
+
+| Cheat | DOOM meaning | keur action | Reach |
+|-------|--------------|-------------|-------|
+| `IDDQD` | god mode | **line ignore** — `keur:ignore <RULE-ID>` inline | one line (narrowest) |
+| `IDKFA` | all weapons + keys + ammo | **rule ignore (repo)** — `.keurignore <RULE-ID>` | a whole rule class, this repo |
+| `IDFA` | all but keys | **value ignore** — `.keurignore allow <value>` (ADR-046) | that value, anywhere (by content) |
+| `IDCLEV` | warp past a level | **disable (global)** — `keur.toml [rules] disabled` | the rule, every repo (nuclear) |
+| `IDCLIP` | noclip through walls | **fix a missing reference** — a room with no door is a wall where a door belongs; IDCLIP forces it by adding the missing `@see`/`@implements` link, reconnecting the room | one edge (restores navigability) |
+| `IDDT` | automap reveal | **reveal mode** — show the whole graph / all findings at once | the overview |
+
+`IDCLIP` is the odd one out and the nicest: it is not a suppress, it is a *fix*
+of the traceability itself — the dead-code / missing-link case (a room with no
+inbound door) turned into an action. You noclip to the orphaned room and lay the
+door (the reference) that should have been there. (Trivia: noclip is `IDCLIP` in
+DOOM II; the original 1993 DOOM used `IDSPISPOPD`.)
 ### Levels are maturity levels (ADR-026)
 - Level N shows only maturity-N findings. Clear the room → the next maturity tier
   unlocks (the stricter rules spawn their enemies). You raise the codebase
