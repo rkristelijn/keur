@@ -2,7 +2,7 @@
 
 @id ADR-048
 
-**Status**: Proposed · **Date**: 2026-10-07 · **Coverage**: none · **Relates to**: ADR-026 (rule maturity levels — the DOOM skills already map onto them), `docs/design/doom-level-select.md` (the DOOM difficulty chooser, proven pipeline — this reuses its theme and braille/ASCII rendering), ADR-002 (single binary — why no external game engine/WAD), ADR-035 (`keur:ignore` — the "pacifist" suppression path), ADR-005 (platform abstraction — raw terminal input)
+**Status**: Proposed · **Date**: 2026-10-07 · **Coverage**: none · **Relates to**: ADR-026 (rule maturity levels — the DOOM skills already map onto them), `docs/design/doom-level-select.md` (the DOOM difficulty chooser, proven pipeline — this reuses its theme and braille/ASCII rendering), ADR-002 (single binary — why no external game engine/WAD), ADR-035 (keur:ignore — the suppression paths: inline/rule/disable) · ADR-046 (.keurignore value/allow — value-ignore), ADR-005 (platform abstraction — raw terminal input)
 
 ## Context
 
@@ -85,9 +85,25 @@ domain only changes what a "room" and a "door" are.
   verdict is keur's own scanner.
 - Where no safe autofix exists, shooting opens the `fix:` hint and the file at
   `file:line`; the enemy dies when the user fixes it and the re-scan clears it.
-- A finding you judge a false positive is a **pacifist option**: `keur:ignore`
-  (ADR-035) retires the enemy without a fix. Recorded, not a kill — so a repo
-  cannot be "won" by suppressing everything.
+- A finding you judge a false positive is a **pacifist retire** — not a fix, not
+  a kill, but a deliberate choice of HOW to suppress it, and the choice has
+  different reach (ADR-035 / ADR-046). The game surfaces the same four moves keur
+  already has, as distinct actions with distinct cost:
+  - **Line ignore** — inline `keur:ignore <RULE-ID>` on that one line. Narrowest:
+    this enemy, this spot, visible in the diff. The "sidestep one imp" move.
+  - **Rule ignore (repo)** — `.keurignore <RULE-ID>`. Retires every enemy of that
+    rule in this repo. Powerful: it clears a whole monster CLASS at once — so it
+    should feel like a big, deliberate lever, not a reflex.
+  - **Value ignore** — `.keurignore secret <value>` / `allow <term>` (ADR-046).
+    Retires every enemy carrying that exact value anywhere (the spellchecker
+    dictionary). Kills by content, not location — a different weapon.
+  - **Disable (global)** — `keur.toml [rules] disabled`. Turns the rule off
+    everywhere, every repo. The nuclear option; the game should treat it as such
+    (a confirm, a visible scar), because it stops the rule spawning at all.
+- Anti-cheese: a retire is **recorded, never a kill** — a repo cannot be "won" by
+  suppressing everything, and the HUD shows kills vs retires separately so a
+  pacifist run reads as what it is. The broader the ignore (line < rule < value <
+  disable), the louder the game flags it, mirroring its real blast radius.
 
 ### Levels are maturity levels (ADR-026)
 - Level N shows only maturity-N findings. Clear the room → the next maturity tier
@@ -124,8 +140,9 @@ the safe tier ships first:
 
 ## Scope & limits
 - **In scope**: `keur doom` subcommand; repo→map rendering (reuse braille/ASCII);
-  findings→enemies; shoot→Tier-A autofix with re-scan confirm; `keur:ignore` as
-  pacifist retire; maturity-as-levels (ADR-026).
+  findings→enemies; shoot→Tier-A autofix with re-scan confirm; pacifist retire
+  via the four ignore moves (line / rule / value / disable, ADR-035/046);
+  maturity-as-levels (ADR-026).
 - **Out of scope (follow-ups)**: level TYPES beyond source (CI/CD pipeline, IaC/
   Terragrunt state, documentation, the dead-code hunt — same graph engine, a new
   map adapter each); Tier-B structural autofix; first-person view;
