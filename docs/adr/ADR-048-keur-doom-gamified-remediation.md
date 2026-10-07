@@ -52,6 +52,25 @@ remediation.
   structure keur already wants to enforce, instead of nagging for it. Playing
   well and writing accessible code become the same thing.
 
+### The level is any graph keur can walk, not only source
+Source files are the first level TYPE, not the only one. Anything keur already
+scans and can turn into a navigable graph is a playable level — same loop (walk,
+find, fix, re-scan), different map:
+- **CI/CD pipeline**: stages are rooms, job dependencies are doors; enemies are
+  pipeline findings (no timeout, no cache, allow_failure). You walk your pipeline.
+- **IaC / Terragrunt state**: modules/resources are rooms, `dependency` blocks
+  and state references are doors; enemies are the K8S/SLS/IaC findings. You
+  navigate your infrastructure graph the way you navigate code.
+- **Documentation**: docs are rooms, links/`@see` are doors; enemies are doc
+  findings (broken link, orphan, missing section). You walk the doc graph.
+- **Dead-code hunt**: a special mode — rooms with no inbound door (nothing
+  references them) are the quarry. Finding unreferenced code IS the objective;
+  the missing door is the signal — the traceability-as-map idea turned into a
+  search.
+The engine stays one thing: build a graph (nodes + reference edges) from what
+keur scanned, place findings as enemies, let the player walk and clear it. The
+domain only changes what a "room" and a "door" are.
+
 ### Enemies are findings, graded by severity
 - Each finding spawns an enemy in the room of its `file`. Severity picks the
   sprite/threat: `warn` = imp, `block` = baron, `critical` = cyberdemon.
@@ -107,7 +126,9 @@ the safe tier ships first:
 - **In scope**: `keur doom` subcommand; repo→map rendering (reuse braille/ASCII);
   findings→enemies; shoot→Tier-A autofix with re-scan confirm; `keur:ignore` as
   pacifist retire; maturity-as-levels (ADR-026).
-- **Out of scope (follow-ups)**: Tier-B structural autofix; first-person view;
+- **Out of scope (follow-ups)**: level TYPES beyond source (CI/CD pipeline, IaC/
+  Terragrunt state, documentation, the dead-code hunt — same graph engine, a new
+  map adapter each); Tier-B structural autofix; first-person view;
   score/leaderboard persistence; multiplayer/anything networked.
 - **Single binary (ADR-002)**: all self-written C++, no WAD, no external engine,
   no GPL code. Raw terminal input via the platform abstraction (ADR-005), like
