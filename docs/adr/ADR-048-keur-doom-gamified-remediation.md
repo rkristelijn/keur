@@ -1,0 +1,115 @@
+# ADR-048 — `keur doom`: gamified remediation (findings are monsters, fixing is shooting)
+
+@id ADR-048
+
+**Status**: Proposed · **Date**: 2026-10-07 · **Coverage**: none · **Relates to**: ADR-026 (rule maturity levels — the DOOM skills already map onto them), `docs/design/doom-level-select.md` (the DOOM difficulty chooser, proven pipeline — this reuses its theme and braille/ASCII rendering), ADR-002 (single binary — why no external game engine/WAD), ADR-035 (`keur:ignore` — the "pacifist" suppression path), ADR-005 (platform abstraction — raw terminal input)
+
+## Context
+
+keur already dresses its difficulty chooser as DOOM's "Choose Skill Level"
+(`doom-level-select.md`), mapping the 5 skills onto the 5 CMMI rule-maturity
+levels (ADR-026). The theme is there; the engagement is not. Clearing findings
+is a chore list — a flat wall of warnings a developer skims and ignores.
+
+Two observations make a game the right shape here, not a gimmick:
+
+- **Findings are already a target list.** A scan yields {rule, severity,
+  file:line, fix-hint}. 1102 of 1109 rules carry a `fix:` hint. That is an
+  enemy roster with a weapon already attached.
+- **A codebase is hard to learn.** A newcomer does not know the files. If the
+  "level" IS the repository — rooms are files/dirs, enemies are findings in
+  them — then playing the level is walking the codebase. You learn the layout
+  by clearing it.
+
+The missing piece is that shooting must *do* something real: today the `fix:`
+field is advice a human applies by hand. For a game to be honest ("kill" = the
+finding is gone), shooting has to trigger an actual fix where one is mechanical.
+
+## Decision
+
+Add a hidden subcommand **`keur doom`**: a terminal ASCII game whose level is
+the user's own repository, whose enemies are its findings, and whose weapon is
+remediation.
+
+### The level is the codebase, visualised
+- The repo is rendered as a map: directories are rooms, files are tiles/doors,
+  reusing the braille/ASCII rendering already proven in `doom-level-select.md`.
+- Walking the map walks the tree — you SEE where the code lives. Clearing a room
+  means you have read and fixed a file. Learning the codebase is the side effect
+  of playing, which is the point.
+
+### Enemies are findings, graded by severity
+- Each finding spawns an enemy in the room of its `file`. Severity picks the
+  sprite/threat: `warn` = imp, `block` = baron, `critical` = cyberdemon.
+- The enemy carries its finding: rule id, message, and the `fix:` hint. Shooting
+  it opens that context (so you learn WHAT the problem is, in place).
+
+### Shooting triggers an autofix where one is mechanical
+- Shooting runs an **autofix** for that finding if the fix is deterministic
+  (formatting, a renamed import, a known-safe substitution, a style/consistency
+  correction). The kill is confirmed by a **re-scan**: the enemy dies only when
+  the finding is actually gone. No fake kills — the game cannot lie, because the
+  verdict is keur's own scanner.
+- Where no safe autofix exists, shooting opens the `fix:` hint and the file at
+  `file:line`; the enemy dies when the user fixes it and the re-scan clears it.
+- A finding you judge a false positive is a **pacifist option**: `keur:ignore`
+  (ADR-035) retires the enemy without a fix. Recorded, not a kill — so a repo
+  cannot be "won" by suppressing everything.
+
+### Levels are maturity levels (ADR-026)
+- Level N shows only maturity-N findings. Clear the room → the next maturity tier
+  unlocks (the stricter rules spawn their enemies). You raise the codebase
+  through the CMMI levels by playing, exactly the progression ADR-026 defines and
+  the DOOM chooser already names ("I'm Too Young to KEUR" → "H4x0r c0d3fl3x").
+
+### Honest scope: the autofix is the hard part, graded
+Autofix must be SAFE or it is worse than the finding. So it is tiered, and only
+the safe tier ships first:
+- **Tier A (ships first)**: idempotent, verifiable text fixes — formatting,
+  trailing whitespace, a missing header/marker (DOC-014), a renamed-API swap,
+  a path-breakout (QUAL-079) rewritten to a relative base. Each is a pure
+  text transform the re-scan confirms.
+- **Tier B (later)**: structural fixes needing a parser (extract a long
+  function, split a file). Out of scope initially.
+- **Never auto**: anything semantic (does this `catch` really swallow an error?)
+  — those stay "open the hint, human fixes", the enemy waits.
+
+## Why not the alternatives
+
+- **Port `doom-ascii` (the real DOOM)**: tens of thousands of lines of C + a WAD
+  asset, GPL, and a game that has nothing to do with the repo. It would bloat the
+  binary (ADR-002) and teach the player nothing about their code. We take the
+  *theme* (already proven), not a DOOM engine.
+- **A pure easter egg (splash screen, no gameplay)**: fun once, then dead. The
+  value is the remediation + codebase-learning loop, not the nostalgia.
+- **Shoot = instantly mark fixed (no re-scan)**: lets the game lie; a cleared
+  repo would not actually be clean. The re-scan confirm is non-negotiable.
+- **First-person raycaster vs top-down map**: top-down maps the tree legibly
+  (rooms = dirs) and is cheaper to render in ASCII; first-person is more DOOM but
+  obscures the "this is your codebase" readability. Lean top-down; revisit if the
+  first-person view adds to the learning goal. (Open question.)
+
+## Scope & limits
+- **In scope**: `keur doom` subcommand; repo→map rendering (reuse braille/ASCII);
+  findings→enemies; shoot→Tier-A autofix with re-scan confirm; `keur:ignore` as
+  pacifist retire; maturity-as-levels (ADR-026).
+- **Out of scope (follow-ups)**: Tier-B structural autofix; first-person view;
+  score/leaderboard persistence; multiplayer/anything networked.
+- **Single binary (ADR-002)**: all self-written C++, no WAD, no external engine,
+  no GPL code. Raw terminal input via the platform abstraction (ADR-005), like
+  the existing TUIs (`keur manager`).
+
+## Consequences
+- **Positive**: remediation becomes a loop a developer wants to run, not a wall
+  they skim. Clearing a level is clearing real findings, confirmed by the scanner.
+- **Positive**: onboarding — a newcomer learns the codebase layout by playing it,
+  and learns what each finding means in place (the enemy carries its hint).
+- **Positive**: reuses what exists — the DOOM theme, maturity levels, the `fix:`
+  hints on 1102 rules, `keur:ignore`.
+- **Negative / caution**: autofix safety is the whole risk. A wrong auto-rewrite
+  is worse than the finding. Mitigated by the SAFE/structural/never tiers, pure
+  text transforms first, and the re-scan confirm (plus git — the user can revert
+  a room).
+- **Negative / caution**: it must never become keur's identity. keur is a
+  security gate; `doom` is a hidden mode that makes the gate's output actionable
+  and teachable, not the product.
