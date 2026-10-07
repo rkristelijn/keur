@@ -88,7 +88,7 @@ Status legend: [x] done · [~] partially done · [ ] open
       include. (raised 2026-10-04 alongside the SONAR-* rules.)
 - [ ] findings double-count per (rule,file,line) — each fires 2× in a scan.
       CONFIRMED 2026-10-05 it is NOT SONAR-specific: a one-off pattern rule
-      (PII-vault 'flupke' probe) also fired twice on the same line:1. So it is a
+      (PII-vault denylist probe) also fired twice on the same line:1. So it is a
       general dedup gap in the scan/report path, not a per-rule quirk. Fix: dedupe
       on (rule,file,line) before emitting findings. First seen on SONAR-* rules.
 
@@ -442,3 +442,82 @@ Status legend: [x] done · [~] partially done · [ ] open
       "last change N iters ago" so a rejects-only stretch reads as progress,
       not a hang.
       See src/keur/cmd/learn.cpp (draw_frame, aggregate).
+
+## Traceability, demos & docs (ADR-047 — open)
+
+Context: ADR-047 added a verb registry, `@shows`/`@explains`, a mandatory file
+header, and two density capabilities. The data-only parts landed; the C++ and
+the remaining demos are open.
+
+- [x] ADR-047 written (extends ADR-010): verb registry, `@shows`/`@explains`,
+      file-header rule, two independent density capabilities (comment-ratio +
+      marker-density), meter moves to C++ `keur trace` (build once, not shell).
+- [x] `docs/design/traceability-verbs.tsv`: the supported-verb registry
+      (standard JSDoc/Doxygen + keur's own), data-driven.
+- [x] DOC-014: file-floor rule now counts `@implements`/`@proves`/`@shows`/
+      `@explains` as valid markers.
+- [x] `report::use_color` follows the standard colour chain: `--color` →
+      `NO_COLOR` → `FORCE_COLOR`/`CLICOLOR_FORCE` → isatty. 4 unit tests.
+- [x] `check` colours hook findings (BLOCK red, warn yellow) via `use_color`;
+      TTY detection behind new `platform::stderr_is_tty()` (no OS call in cmd/,
+      ADR-005 — keeps the portability self-check green).
+- [x] demos moved to `docs/demo/`; AAA pattern (Arrange/Act/Assert); zsh +
+      zsh-syntax-highlighting (coloured commands, grey comments),
+      `setopt interactive_comments`, neutral prompt, `/tmp/demo` (no username
+      leak), `git config color.ui always`.
+- [x] `docs/demo/TEMPLATE.tape` (AAA skeleton for new demos).
+- [x] `docs/demo/commit-env-file.tape` (@shows SEC-100 KEUR-SECRET-003) +
+      `secret-in-code.tape` (@shows KEUR-SEC-002), rendered.
+- [x] `docs/demo/run.sh` (@shows ADR-047): extracts the `Type "..."` commands
+      from a .tape and runs them in zsh so a demo's output can be verified
+      without rendering — AAA scenario + its test-runner. Could become a CI
+      check that every demo's Assert still holds.
+
+- [ ] **`keur trace` subcommand (C++)** — fold the shell prototype
+      `eval/doc-coverage.sh` into the binary: read the TSV registry, harvest the
+      tags, report every dimension (code/test/doc/engine + demo/guide + density),
+      `--strict` as the gate. Build ONCE in C++; remove the shell prototype at
+      parity. The `concept -> demo` (`@shows`) and `concept -> guide`
+      (`@explains`) dimensions live here (they were prototyped in shell and
+      reverted to avoid building twice).
+- [ ] **Two density engines (C++)**, each its own `.rule` + `severity`/`action`:
+      `comment-ratio` (cpm parity, comments/code, `min_ratio`) and
+      `min-marker-density` (only `@`-verbs count, + file-floor). Both build on
+      the `max-lines` comment/code split. Ship as `warning` first, ratchet to
+      block per-rule.
+- [ ] **ADR-047 conventions to pin**: `docs/demo/` location, one
+      `docs/<feature>.md` (`@explains`) per feature embedding its demo, the AAA
+      pattern, TEMPLATE as the start point. Decide `docs/<feature>.md` top-level
+      vs `docs/features/<feature>.md`. (Was going to be written into ADR-047.)
+- [ ] **Feature docs** `docs/commit-env-file.md` + `docs/secret-in-code.md`
+      (`@explains`), each embedding its GIF.
+- [ ] **`docs/demo/README.md`**: one index showing every GIF with the idea/story,
+      which other tool also covers this (or not — gitleaks/trufflehog/pre-commit/
+      semgrep positioning), and the render time per demo. (Currently a stub.)
+
+- [ ] **More demos to cover keur's story** (measured per engine/command, not per
+      rule — 1109 rules make per-rule meaningless):
+    - [ ] `keur:ignore` suppression (the core promise: kill a false positive
+          without `--no-verify`). NOTE: pick a SINGLE-rule example — a hardcoded
+          password fires several overlapping secret rules at once, so one
+          `keur:ignore <id>` leaves the others blocking and the demo looks broken.
+    - [ ] `keur hook` install (onboarding: how you get this working).
+    - [ ] `keur scan <path>` (ad-hoc scan, shows the breadth vs the hook).
+    - [ ] structural quality (`max-lines`/`max-nesting`/`max-dir-files`) — keur
+          is more than secrets.
+    - [ ] `composite` rule (ADR-009, the advanced capability).
+    - [ ] PII demo (user's PII-name idea). A made-up name does NOT block —
+          the VAULT/PII scanner only matches terms from the personal list. Needs
+          a demo-specific `.pii` list staged in Arrange (safe, invented name), or
+          it is skipped. BLOCKED by the pii-scanner-dependency item below.
+
+- [ ] **PII scanner is an external runtime dependency (architecture smell)** —
+      `scanners/pii.sh` delegates (via `KEUR_PII_SCAN`) to
+      `pii-sensitive-scan.sh` which lives in the *security-tooling* repo
+      (`.../src/tools/ticket-audit/pii-sensitive-scan.sh`), with term lists in
+      `~/.local/share/pii/patterns.d/*.pii`. That is a runtime dep outside the
+      single binary (conflicts with ADR-002). Decide: either (a) the PII/VAULT
+      detection belongs IN the C++ binary, or (b) it is an optional external
+      scanner integration (ADR-019) and NOT a shipped keur deliverable — and
+      document which. This blocks a portable, reproducible PII demo. Review
+      ADR-042 (pii-vault-scanner) against this.

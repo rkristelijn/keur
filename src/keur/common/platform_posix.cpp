@@ -294,6 +294,10 @@ TermSize terminal_size() {
     return t;
 }
 
+bool stderr_is_tty() {
+    return isatty(STDERR_FILENO) != 0;
+}
+
 bool process_alive(long pid) {
     if (pid <= 0) return false;
     return kill(static_cast<pid_t>(pid), 0) == 0;
