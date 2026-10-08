@@ -326,7 +326,7 @@ Status legend: [x] done · [~] partially done · [ ] open
 ### Quality / research
 
 - [ ] REFORMAT the C++ tree with clang-format (NEXT MR, on its own branch).
-      `.clang-format` now exists (Google base, IndentWidth 2, ColumnLimit 100,
+      `.clang-format` now exists (Google base, IndentWidth 2, ColumnLimit 140,
       PointerAlignment Left) — but the tree is NOT reformatted to it yet, so the
       style is still inconsistent hand-formatting (src/rules 2-space, src/keur
       4-space). Measured impact of the one-time reformat: ~19k changed +/- lines
