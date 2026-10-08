@@ -103,6 +103,22 @@ Flags a file where a pattern DOES appear (often gated by `content_contains`).
 
 Flags a file where NO line matches the pattern (something required is missing).
 
+> **Trap — set `skip_comments: true` on `absence`/`presence` rules.** The engine
+> matches raw lines by default, so a pattern that appears **only in a comment**
+> counts as "present". An `absence` rule for `helmet\(` then stays silent on a
+> file whose only `helmet(` is in a `// app.use(helmet())` note — a false
+> negative. Add `skip_comments: true` (and usually `skip_strings: true`) so
+> comment/string text is blanked before matching. Same for `presence` the other
+> way: a mention in a doc comment should not count as real usage.
+
+> **Trap — keep `content_contains` broad or omit it.** `content_contains` is a
+> literal pre-filter: a file not containing that exact substring is skipped
+> entirely, before any pattern runs. A too-specific value (e.g.
+> `content_contains: bodyParser`) silently excludes valid targets that use a
+> different API (`express.json()`). For a `pattern` rule the patterns are
+> already self-selecting, so prefer omitting `content_contains` over narrowing
+> it. Use it only for a cheap, broad gate (e.g. `express(`).
+
 ### `file-absence` / `file-presence`
 
 Operate on the file tree, not content — no patterns needed.

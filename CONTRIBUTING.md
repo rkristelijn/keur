@@ -191,6 +191,23 @@ content_contains), and one or more `patterns` with a `regex` and a `message`.
 Run your rules with `keur scan <path>` or point `KEUR_RULES_DIRS` at a directory
 of them. See `rules/security/KEUR-SEC-001-private-key.rule` for a worked example.
 
+> **Test a new or changed rule against the repo's `rules/` dir, not the
+> installed snapshot.** A plain `keur scan` resolves rules from the *installed*
+> locations (`$KEUR_HOME/rules`, `~/.config/keur/rules`, project `.keur/rules`),
+> which can lag behind the repo and apply the maturity/difficulty filter. If a
+> rule "doesn't fire", that is usually the cause, not the rule. Pin the engine
+> to this repo's rules explicitly and use the standalone `keur-rules` binary,
+> which does no difficulty filtering:
+>
+> ```bash
+> cd src/rules && make                         # build bin/keur-rules
+> KEUR_RULES_DIRS=$PWD/../../rules \
+>   bin/keur-rules --files path/to/fixture.ts  # exact findings, repo rules only
+> ```
+>
+> Always verify both directions: a **true positive** on the insecure fixture and
+> **no false positive** on a secure counterpart (helmet present, limit set, …).
+
 ## Commits
 
 Use Conventional Commits: `type(scope): description`, where scope is the
