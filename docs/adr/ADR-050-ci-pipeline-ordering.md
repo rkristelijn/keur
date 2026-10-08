@@ -127,6 +127,14 @@ Two levels, so a push is not a debug-by-CI loop:
   can run a Linux job in Docker; the macOS/Windows/arm32 matrix still needs real
   CI. Use `act -l` after reordering to confirm the new `needs:` graph.
 
+Practical note (tried 2026-10-08): `act -j build`/`-j dogfood` is slow to the
+point of not being worth it for routine use — the first run pulls a ~500MB
+runner image and then installs RE2/abseil and compiles from scratch inside the
+cold container, so it is much slower than online CI (which caches images and
+build state). Use `ci-local.sh` (seconds) + `act -l` (graph, seconds) as the
+pre-flight; reach for `act -j` only to chase a specific "works on my machine"
+Linux-vs-macOS discrepancy, and leave the cross-platform matrix to online CI.
+
 ## Open questions
 
 - Do we gate stage 5 (cross-platform) on e2e, or run it in parallel from stage 2
