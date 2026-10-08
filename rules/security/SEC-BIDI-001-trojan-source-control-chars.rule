@@ -1,0 +1,28 @@
+# Bidirectional / Trojan-Source control characters in source.
+#
+# Why this exists: Unicode bidi overrides and isolates (U+202A-202E, U+2066-2069)
+# reorder how text is DISPLAYED without changing the bytes a compiler reads. An
+# attacker can make a reviewer see one thing (a benign comment, an early return)
+# while the code executes another (CVE-2021-42574, "Trojan Source"). These
+# characters have no legitimate place in program source, so any occurrence is an
+# ERROR.
+#
+# What it flags: a line containing any of the bidi override/isolate code points.
+# The regex matches the LITERAL UTF-8 bytes of those characters (not a \u escape;
+# the \u-escaped obfuscation case is a separate concern). Written as a raw RE2
+# character class of the actual glyphs.
+#
+# ERROR / block: display spoofing that hides real behaviour from review.
+#
+# @see CVE-2021-42574 (Trojan Source), Unicode Technical Report #36.
+id: SEC-BIDI-001
+title: Bidirectional / Trojan-Source control characters in source
+category: security
+severity: error
+engine: pattern
+action: block
+patterns:
+  - regex: [‪‫‬‭‮⁦⁧⁨⁩]
+    message: "Bidirectional/Trojan-Source control character (U+202A-202E / U+2066-2069) — can make code execute differently than it reads to a reviewer. Remove it; these have no legitimate place in source. @see CVE-2021-42574, SEC-BIDI-001"
+confidence: 0.9
+fix: "Remove the bidirectional control character. If you genuinely need bidi text (e.g. an RTL string literal), isolate it in a resource/data file, never in executable source, and document why."
