@@ -18,7 +18,7 @@
 #
 # @see SonarCloud cpp:S6659.
 id: KEUR-QUAL-011
-title: Write printable Unicode glyphs as literal UTF-8, not \uXXXX escapes
+title: Write printable Unicode glyphs as literal UTF-8, not backslash-u escapes
 category: quality
 severity: warning
 engine: pattern
