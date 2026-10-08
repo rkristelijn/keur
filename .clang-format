@@ -1,0 +1,18 @@
+# keur C++ style. Google base, matching the 2-space convention of the other
+# rkristelijn projects (.editorconfig) and the newer src/rules/ code.
+#
+# NOTE: the repo has NOT been reformatted to this yet — the C++ tree is still
+# hand-formatted and inconsistent (src/rules 2-space, src/keur 4-space). A
+# one-time `clang-format -i` over all C++ files is a dedicated MR (see TODO),
+# kept separate so its ~19k-line diff does not pollute a feature change or every
+# git blame. Until then this file only DECLARES the target style; new code is
+# written to it.
+---
+Language: Cpp
+BasedOnStyle: Google
+IndentWidth: 2
+ColumnLimit: 100
+# keur writes pointer/reference bound to the type (int* p, const Foo& r), which
+# is the dominant style in the existing code.
+DerivePointerAlignment: false
+PointerAlignment: Left
