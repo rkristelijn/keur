@@ -521,3 +521,32 @@ the remaining demos are open.
       scanner integration (ADR-019) and NOT a shipped keur deliverable — and
       document which. This blocks a portable, reproducible PII demo. Review
       ADR-042 (pii-vault-scanner) against this.
+
+## Disabling a whole category is not discoverable (`disabled_categories`)
+
+Real case (2026-10-08): a private repo wanted PII/BII detection off. The user
+set `[scanners.pii] enabled = false` — the obvious-looking switch — but kept
+getting blocked. Root cause: that toggle only disables the EXTERNAL pii scanner
+(`scanners/pii.sh` → `pii-sensitive-scan.sh`); the VAULT-* findings come from
+built-in `.rule` files (`category: pii`) run by the `keur-rules` scanner, which
+that toggle does not touch. The working fix was listing all five rule ids in
+`[rules] disabled` (`VAULT-PERSONAL`, `VAULT-WORK_APS`, `VAULT-GDPR_NL`,
+`VAULT-GDPR_UK`, `VAULT-GENERIC`). Verified: per-id disable works correctly (not
+a bug) — it was a discoverability/ergonomics gap.
+
+Two things to fix:
+
+- [ ] **`disabled_categories` in keur.toml** — let a whole category be turned off
+      in one line, e.g. `disabled_categories = ["pii", "bii"]`, instead of
+      listing every rule id. The VAULT rules already carry `category: pii`, so the
+      data is there; only `config/disabled.cpp` (parse + filter) lacks the
+      category path. Scales: a new VAULT-* rule is covered automatically. Needs an
+      ADR (touches the config convention) + tests. This is the ergonomic switch a
+      user reaches for ("turn pii off for this private repo").
+- [ ] **Discoverability of the two PII mechanisms** — `[scanners.pii]` (external
+      scanner) vs the built-in `category: pii` VAULT rules are two different off
+      switches with the same name in the user's head. Document it, and/or when a
+      `pii`-category finding blocks, hint the real knob
+      (`[rules] disabled`/`disabled_categories`) the way findings already hint
+      `keur:ignore`. Ties into the existing TODO item about the external
+      pii-scanner runtime dependency (ADR-002 vs ADR-042).
