@@ -55,6 +55,8 @@ eval/.awssec.tmp
 # local agent coordination channel (not project history)
 .agent-mailbox/
 eval/__pycache__/
-keur.toml
+# Root-level keur.toml is a per-machine local override (not shared). The shared,
+# reviewable policy lives in the tracked .config/keur.toml (see ADR-054).
+/keur.toml
 keur.toml.bak
 *.tmp

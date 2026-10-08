@@ -72,6 +72,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [051](ADR-051-rules-distribution-and-install-sync.md) | Rules distribution: install/sync the bundled ruleset, not just the binary | proposed |
 | [052](ADR-052-scan-scope-file-level-vs-per-line.md) | Scan scope: file-level rules see the repo, per-line rules see the diff | accepted |
 | [053](ADR-053-finding-clustering.md) | Finding clustering: when several rules report the same issue | proposed |
+| [054](ADR-054-config-location-and-require-by-maturity.md) | Config location: `.config/keur.toml`, and require a repo config by maturity | accepted |
 
 ## Adding an ADR
 

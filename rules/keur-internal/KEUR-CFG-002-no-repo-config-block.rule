@@ -1,0 +1,21 @@
+# The blocking counterpart to KEUR-CFG-001. Same repo-scope file-absence check
+# (neither .config/keur.toml nor keur.toml present), but active only from
+# maturity 4 (managed) and with action: block — a mature project MUST pin its
+# own keur policy; shipping without one fails the gate. On a lower-maturity repo
+# this rule is simply not active (ADR-026), so only the KEUR-CFG-001 warn shows.
+#
+# @see KEUR-CFG-001 (the warn variant), ADR-026 (maturity vs action), ADR-052
+#      (file-absence is a repo question), ADR-053 (clustering the overlap).
+id: KEUR-CFG-002
+ilities: [analysability, modifiability]
+maturity: 4
+title: Repository has no keur config and must at this maturity (block)
+category: quality
+severity: error
+engine: file-absence
+action: block
+target:
+  filenames: keur.toml
+confidence: 0.9
+message: "No keur config at repo level, required from maturity 4 (managed). Add .config/keur.toml (preferred) or keur.toml pinning [difficulty] and [policy]; a managed/hardened project must run an explicit, shared gate — not per-machine defaults."
+fix: "Commit .config/keur.toml with a [difficulty] block (ADR-026) and [policy] thresholds. This is the same fix as KEUR-CFG-001; at maturity 4+ it blocks instead of warns."

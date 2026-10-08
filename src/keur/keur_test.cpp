@@ -237,9 +237,13 @@ SCENARIO("[feature:policy] find_config_upward returns empty when none exists") {
     CHECK(keur::cmd::find_config_upward(tmp).empty());
 }
 
-SCENARIO("[feature:policy] resolve_config falls back to XDG path") {
+SCENARIO("[feature:policy] resolve_config returns a keur.toml path") {
+    // With no --config hint, resolve_config walks the repo (.config/keur.toml or
+    // root keur.toml) and falls back to the XDG global path. Running inside the
+    // keur repo it finds the repo config; in a bare env it returns the XDG path.
+    // Either way the resolved path ends in keur.toml.
     auto r = keur::cmd::resolve_config("");
-    CHECK(r.find("keur/keur.toml") != std::string::npos);
+    CHECK(r.find("keur.toml") != std::string::npos);
 }
 
 SCENARIO("[feature:policy] cmd_policy_parse defaults to explain") {
@@ -1030,7 +1034,7 @@ SCENARIO("[feature:config] config_parse reads list / --json / --config") {
     CHECK(o2.json == false);
 }
 
-SCENARIO("[feature:config] resolve_layers orders defaults->global->keur-home->repo->explicit") {
+SCENARIO("[feature:config] resolve_layers orders defaults->global->keur-home->repo(.config,root)->explicit") {
     keur::config::ScopeEnv env;
     env.xdg_config_home = "/xdg";
     env.keur_home = "/kh";
@@ -1038,17 +1042,20 @@ SCENARIO("[feature:config] resolve_layers orders defaults->global->keur-home->re
     env.explicit_path = "/exp/keur.toml";
     // everything "exists" so we assert on ordering + paths, not presence.
     auto layers = keur::config::resolve_layers(env, [](const std::string&) { return true; });
-    REQUIRE(layers.size() == 5);
+    REQUIRE(layers.size() == 6);
     CHECK(layers[0].scope == keur::config::Scope::Defaults);
     CHECK(layers[0].path.empty());
     CHECK(layers[1].scope == keur::config::Scope::Global);
     CHECK(layers[1].path == "/xdg/keur/keur.toml");
     CHECK(layers[2].scope == keur::config::Scope::KeurHome);
     CHECK(layers[2].path == "/kh/config/keur.toml");
+    // Repo scope resolves .config/ first (uncluttered-first), then the root.
     CHECK(layers[3].scope == keur::config::Scope::Repo);
-    CHECK(layers[3].path == "/repo/keur.toml");
-    CHECK(layers[4].scope == keur::config::Scope::Explicit);
-    CHECK(layers[4].path == "/exp/keur.toml");
+    CHECK(layers[3].path == "/repo/.config/keur.toml");
+    CHECK(layers[4].scope == keur::config::Scope::Repo);
+    CHECK(layers[4].path == "/repo/keur.toml");
+    CHECK(layers[5].scope == keur::config::Scope::Explicit);
+    CHECK(layers[5].path == "/exp/keur.toml");
 }
 
 SCENARIO("[feature:config] resolve_layers omits layers whose env is unset") {
@@ -1062,15 +1069,19 @@ SCENARIO("[feature:config] resolve_layers omits layers whose env is unset") {
 SCENARIO("[feature:config] resolve_layers records existence per layer") {
     keur::config::ScopeEnv env;
     env.home = "/home/u";      // → global /home/u/.config/keur/keur.toml
-    env.repo_root = "/repo";   // → /repo/keur.toml
-    // only the repo file "exists".
+    env.repo_root = "/repo";   // → /repo/.config/keur.toml then /repo/keur.toml
+    // only the root repo file "exists".
     auto layers = keur::config::resolve_layers(
         env, [](const std::string& p) { return p == "/repo/keur.toml"; });
-    REQUIRE(layers.size() == 3);  // defaults + global + repo
+    REQUIRE(layers.size() == 4);  // defaults + global + repo(.config) + repo(root)
     CHECK(layers[1].scope == keur::config::Scope::Global);
     CHECK(layers[1].exists == false);
     CHECK(layers[2].scope == keur::config::Scope::Repo);
-    CHECK(layers[2].exists == true);
+    CHECK(layers[2].path == "/repo/.config/keur.toml");
+    CHECK(layers[2].exists == false);   // .config/ variant absent
+    CHECK(layers[3].scope == keur::config::Scope::Repo);
+    CHECK(layers[3].path == "/repo/keur.toml");
+    CHECK(layers[3].exists == true);    // root variant present
 }
 
 SCENARIO("[feature:config] config_render_json is valid and reflects existence") {
@@ -3176,6 +3187,31 @@ SCENARIO("[feature:rule-engine] file-absence over repo scope: truly absent still
     write_file(dir + "/app.js", "console.log(1)\n");   // no SECURITY.md anywhere
     auto f = keur::rules_scan_files_scoped(rules, {dir + "/app.js"}, dir);
     CHECK(has_rule(f, "FA-1"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] KEUR-CFG-001 fires when a repo has no keur config") {  // @proves ADR-054.require
+    auto rules = keur::rules_load(repo_root() + "/rules/keur-internal");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/app.js", "console.log(1)\n");   // no keur config anywhere
+    auto f = keur::rules_scan_files_scoped(rules, {dir + "/app.js"}, dir);
+    CHECK(has_rule(f, "KEUR-CFG-001"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] KEUR-CFG-001 is satisfied by .config/keur.toml") {  // @proves ADR-054.dotconfig
+    auto rules = keur::rules_load(repo_root() + "/rules/keur-internal");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/app.js", "console.log(1)\n");
+    REQUIRE(::mkdir((dir + "/.config").c_str(), 0755) == 0);
+    write_file(dir + "/.config/keur.toml", "[difficulty]\nintegrity = 5\n");
+    auto f = keur::rules_scan_files_scoped(rules, {dir + "/app.js"}, dir);
+    CHECK(!has_rule(f, "KEUR-CFG-001"));   // .config/keur.toml counts as the config
+    CHECK(!has_rule(f, "KEUR-CFG-002"));
     cleanup_dir(dir);
 }
 SCENARIO("[feature:rule-engine] requires: prunes a rule when facts don't satisfy it") {  // @proves ADR-009.requires
