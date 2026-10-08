@@ -2176,6 +2176,154 @@ SCENARIO("[feature:rule-engine] path-derived is self-scaling: a brand-new layer 
     cleanup_dir(base);
 }
 
+// --- base64-unwrap engine (ADR-049) -----------------------------------------
+// The engine decodes ONE base64 layer and re-runs the rule's OWN patterns over
+// the decoded text. Detection lives in the rule (data); the engine only does the
+// decode transform (ADR-009). The finding points at the ENCODED line and never
+// echoes the decoded secret.
+
+namespace {
+// A base64-unwrap rule whose inner patterns look for credential shapes in the
+// DECODED text. Written to `dir` and loaded; returns the loaded rule set.
+std::vector<keur::Rule> load_b64_unwrap_rule(const std::string& dir) {
+    write_file(dir + "/B64.rule",
+        "id: TEST-B64-001\n"
+        "title: secret hidden in base64\n"
+        "category: secret\n"
+        "severity: error\n"
+        "engine: base64-unwrap\n"
+        "min_count: 16\n"
+        "patterns:\n"
+        "  - regex: (?i)[\"']?(password|secret|token|api[_-]?key)[\"']?\\s*:\\s*[\"'][^\"']{8,}[\"']\n"
+        "    message: credential-shaped value one base64 layer deep\n"
+        "  - regex: AKIA[0-9A-Z]{16}\n"
+        "    message: AWS key revealed after decode\n");
+    return keur::rules_load(dir);
+}
+}  // namespace
+
+SCENARIO("[feature:rule-engine] base64-unwrap fires on a secret hidden one base64 layer deep") {  // @proves ADR-049 engine-base64-unwrap
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    auto rules = load_b64_unwrap_rule(dir);
+    REQUIRE(!rules.empty());
+    // base64 of {"token":"supersecretvalue"} — the inner shape matches, the
+    // encoded blob does not. (Precomputed so the test needs no base64 tool.)
+    // echo -n '{"token":"supersecretvalue"}' | base64
+    std::string blob = "eyJ0b2tlbiI6InN1cGVyc2VjcmV0dmFsdWUifQ==";
+    std::string src = dir + "/userdata.sh";
+    write_file(src, "setup --config " + blob + "\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(has_rule(fs, "TEST-B64-001"));
+    // The finding points at the encoded line (line 1), never the decoded value.
+    for (const auto& f : fs)
+        if (f.rule_id == "TEST-B64-001") {
+            CHECK(f.line == 1);
+            CHECK(f.message.find("supersecretvalue") == std::string::npos);
+        }
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] base64-unwrap surfaces an AWS key after decode") {  // @proves ADR-049
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    auto rules = load_b64_unwrap_rule(dir);
+    REQUIRE(!rules.empty());
+    // echo -n '{"aws_access_key_id":"AKIA...EXAMPLE"}' | base64  (example key id; keur:ignore SEC-010)
+    std::string blob = "eyJhd3NfYWNjZXNzX2tleV9pZCI6IkFLSUFJT1NGT0ROTjdFWEFNUExFIn0=";
+    std::string src = dir + "/config.ts";
+    write_file(src, "const c = \"" + blob + "\";\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(has_rule(fs, "TEST-B64-001"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] base64-unwrap does NOT fire on a harmless base64 blob") {  // @proves ADR-049 (filter)
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    auto rules = load_b64_unwrap_rule(dir);
+    REQUIRE(!rules.empty());
+    // echo -n 'this is a long but entirely harmless sentence' | base64
+    std::string blob = "dGhpcyBpcyBhIGxvbmcgYnV0IGVudGlyZWx5IGhhcm1sZXNzIHNlbnRlbmNl";
+    std::string src = dir + "/note.txt";
+    write_file(src, "note = \"" + blob + "\"\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(!has_rule(fs, "TEST-B64-001"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] base64-unwrap ignores short runs below the length floor") {  // @proves ADR-049 (min_count floor)
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    auto rules = load_b64_unwrap_rule(dir);
+    REQUIRE(!rules.empty());
+    // "eyJ4Ijox" decodes to {"x":1 but is only 8 chars — below the min_count:16
+    // floor, so the engine never decodes it. No finding.
+    std::string src = dir + "/tiny.txt";
+    write_file(src, "v = eyJ4Ijox\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(!has_rule(fs, "TEST-B64-001"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] urldecode-unwrap fires on a percent-encoded secret") {  // @proves ADR-049 engine-urldecode-unwrap
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/URL.rule",
+        "id: TEST-URL-001\n"
+        "title: secret hidden in percent-encoding\n"
+        "category: secret\n"
+        "severity: error\n"
+        "engine: urldecode-unwrap\n"
+        "min_count: 8\n"
+        "patterns:\n"
+        "  - regex: (?i)(password|secret|token)=[^&]{6,}\n"
+        "    message: credential-shaped value one url-encode layer deep\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    // "token=supersecret" percent-encoded as token%3Dsupersecret
+    std::string src = dir + "/callback.txt";
+    write_file(src, "redirect = /cb?token%3Dsupersecret%26ok\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(has_rule(fs, "TEST-URL-001"));
+    // Plain text with no percent-escape must not fire (nothing to unwrap).
+    std::string plain = dir + "/plain.txt";
+    write_file(plain, "note = just a normal sentence here\n");
+    auto fs2 = keur::rules_scan_files(rules, {plain});
+    CHECK(!has_rule(fs2, "TEST-URL-001"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] hex-unwrap fires on a hex-encoded secret blob") {  // @proves ADR-049 engine-hex-unwrap
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/HEX.rule",
+        "id: TEST-HEX-001\n"
+        "title: secret hidden in hex\n"
+        "category: secret\n"
+        "severity: error\n"
+        "engine: hex-unwrap\n"
+        "min_count: 10\n"
+        "patterns:\n"
+        "  - regex: (?i)(password|secret|token)=[^;]{4,}\n"
+        "    message: credential-shaped value hex-encoded\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    // hex of "token=hunter2secret"
+    // printf 'token=hunter2secret' | od -An -tx1 | tr -d ' '
+    std::string hex = "746f6b656e3d68756e74657232736563726574";
+    std::string src = dir + "/blob.txt";
+    write_file(src, "data = " + hex + "\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(has_rule(fs, "TEST-HEX-001"));
+    // A random hex hash that decodes to binary must not fire (UTF-8 filter).
+    std::string noise = dir + "/hash.txt";
+    write_file(noise, "sha = 9f8e7d6c5b4a3f2e1d0c9b8a7766554433221100\n");
+    auto fs2 = keur::rules_scan_files(rules, {noise});
+    CHECK(!has_rule(fs2, "TEST-HEX-001"));
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] absence rule fires on file missing header") {
     auto rules = keur::rules_load(fixtures_dir() + "/rules");
     REQUIRE(!rules.empty());
