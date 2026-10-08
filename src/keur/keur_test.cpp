@@ -783,8 +783,76 @@ SCENARIO("[feature:hook] augment_hook adds a shebang when the file has none") {
     CHECK(out.find("keur check --tier pre-push") != std::string::npos);
 }
 
-SCENARIO("[feature:hook] hooks_install creates executable stubs") {
+// --------------------------------------------------------------------------
+// Global orchestrator stub: behavioural tests. The stub is shell, so we prove
+// its EXIT CODE by executing it under /bin/sh with a fake `keur` on PATH. The
+// bug these characterise: when the repo has no .githooks/<hook>, the stub's
+// `run_keur && run_repo` chain must NOT fail just because run_repo found no
+// hook — a keur PASS has to exit 0 (ADR-002: the stub carries no verdict).
+//
+// Returns the exit status (0..255) of running the stub text as a script, with
+// `fake_keur_exit` as the exit code of the stubbed `keur` binary, and an
+// optional repo .githooks/<hook> written when repo_hook_exit >= 0.
+static int run_global_stub(const char* hook_name, int fake_keur_exit,
+                           int repo_hook_exit) {
     std::string tmp = create_temp_dir();
+    if (tmp.empty()) return -1;
+
+    // Fake repo: a git repo so `git rev-parse --show-toplevel` resolves to it.
+    std::string repo = tmp + "/repo";
+    (void)mkdir(repo.c_str(), 0755);
+    std::string gi = "cd '" + repo + "' && git -c init.defaultBranch=main "
+                     "init -q . >/dev/null 2>&1";
+    (void)std::system(gi.c_str());
+
+    // Fake keur on PATH with a controllable exit code.
+    std::string bin = tmp + "/bin";
+    (void)mkdir(bin.c_str(), 0755);
+    write_file(bin + "/keur",
+               "#!/bin/sh\necho 'KEUR (fake): PASS' >&2\nexit "
+                   + std::to_string(fake_keur_exit) + "\n");
+    (void)chmod((bin + "/keur").c_str(), 0755);
+
+    // Optionally create the repo's own .githooks/<hook>.
+    if (repo_hook_exit >= 0) {
+        std::string gh = repo + "/.githooks";
+        (void)mkdir(gh.c_str(), 0755);
+        write_file(gh + "/" + hook_name,
+                   "#!/bin/sh\nexit " + std::to_string(repo_hook_exit) + "\n");
+        (void)chmod((gh + "/" + hook_name).c_str(), 0755);
+    }
+
+    // Write the stub under test and run it from inside the repo.
+    std::string stub = keur::cmd::global_hook_stub(hook_name);
+    std::string stub_path = tmp + "/stub.sh";
+    write_file(stub_path, stub);
+    (void)chmod(stub_path.c_str(), 0755);
+
+    std::string cmd = "cd '" + repo + "' && PATH='" + bin + ":'\"$PATH\" "
+                      "/bin/sh '" + stub_path + "' </dev/null >/dev/null 2>&1";
+    int rc = std::system(cmd.c_str());
+    cleanup_dir(tmp);
+    return WIFEXITED(rc) ? WEXITSTATUS(rc) : -1;
+}
+
+SCENARIO("[feature:hook] global stub exits 0 on keur PASS when no repo hook exists") {
+    // The regression: a repo with no .githooks/pre-push must still push on PASS.
+    CHECK(run_global_stub("pre-push", /*fake_keur_exit=*/0, /*repo_hook_exit=*/-1) == 0);
+    CHECK(run_global_stub("pre-commit", /*fake_keur_exit=*/0, /*repo_hook_exit=*/-1) == 0);
+}
+
+SCENARIO("[feature:hook] global stub propagates a keur BLOCK (exit 1)") {
+    // keur's own verdict must still gate: a BLOCK stops the commit/push.
+    CHECK(run_global_stub("pre-commit", /*fake_keur_exit=*/1, /*repo_hook_exit=*/-1) == 1);
+}
+
+SCENARIO("[feature:hook] global stub runs the repo hook after keur and propagates its result") {
+    // keur PASS + repo hook PASS -> 0; keur PASS + repo hook FAIL -> non-zero.
+    CHECK(run_global_stub("pre-commit", /*fake_keur_exit=*/0, /*repo_hook_exit=*/0) == 0);
+    CHECK(run_global_stub("pre-commit", /*fake_keur_exit=*/0, /*repo_hook_exit=*/1) != 0);
+}
+
+SCENARIO("[feature:hook] hooks_install creates executable stubs") {    std::string tmp = create_temp_dir();
     REQUIRE(!tmp.empty());
     std::string hdir = tmp + "/hooks";
     CHECK(keur::cmd::hooks_install(hdir));
