@@ -36,7 +36,7 @@
 #include <string>
 #include <vector>
 
-#include "../../vendor/doctest.h"
+#include "../../../vendor/doctest.h"
 #include "rules/rule_engine.h"
 #include "rule/facts.h"
 #include "rule/semver.h"
@@ -75,7 +75,7 @@
 // `using` so the 290 scenarios below keep calling them unqualified. Domain
 // helpers (manager model builders, hook-stub runners, scanner TOML) stay below.
 // ---------------------------------------------------------------------------
-#include "tests/test_helpers.h"
+#include "test_helpers.h"
 
 using keur::test::create_temp_dir;
 using keur::test::write_file;
