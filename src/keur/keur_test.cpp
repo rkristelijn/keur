@@ -357,6 +357,22 @@ SCENARIO("[feature:check] cmd_check PASS with empty file source") {    keur::cmd
     CHECK(keur::cmd::check(opts, []() { return std::vector<std::string>{}; }) == 0);
 }
 
+// A clean PASS must NOT write to stderr: VS Code (and some CI) treat ANY stderr
+// output from a git hook as a failure, even on exit 0 — that made keur's PASS
+// look like an error in the editor. The non-error verdict belongs on stdout.
+SCENARIO("[feature:check] a PASS writes to stdout, not stderr") {  // @proves hook-pass-on-stdout
+    keur::cmd::CheckOptions opts;
+    std::ostringstream cap_out, cap_err;
+    std::streambuf* old_out = std::cout.rdbuf(cap_out.rdbuf());
+    std::streambuf* old_err = std::cerr.rdbuf(cap_err.rdbuf());
+    int rc = keur::cmd::check(opts, []() { return std::vector<std::string>{}; });
+    std::cout.rdbuf(old_out);
+    std::cerr.rdbuf(old_err);
+    CHECK(rc == 0);
+    CHECK(cap_err.str().empty());                              // nothing on stderr
+    CHECK(cap_out.str().find("PASS") != std::string::npos);    // verdict on stdout
+}
+
 SCENARIO("[feature:check] staged_files returns empty outside a git repo") {
     char orig[4096];
     REQUIRE(getcwd(orig, sizeof(orig)) != nullptr);
