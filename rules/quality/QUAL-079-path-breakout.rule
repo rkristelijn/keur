@@ -1,0 +1,30 @@
+id: QUAL-079
+ilities: [portability]
+maturity: 2
+title: Path breakout — hardcoded absolute/home path or deep ../ traversal
+category: quality
+severity: warning
+engine: pattern
+action: warn
+skip_comments: true
+# "Breaking out of the path" takes three shapes, all brittle and often a leak:
+#   1. a hardcoded absolute user/home path (/Users/<name>/…, /home/<name>/…) —
+#      non-portable and it usually leaks a username (the exact problem a demo
+#      recording hits);
+#   2. a hardcoded home reference (~/… or $HOME/… inside a string literal) —
+#      same non-portability, resolved only at runtime by a shell;
+#   3. deep relative traversal (../../../ , 3+ levels) — almost certainly climbs
+#      out of the project root (classic directory-traversal shape, CWE-22).
+# Prefer a path relative to a known base, a config value, or an env lookup. In a
+# shell demo an absolute path is sometimes fine — review and `keur:ignore` it.
+target:
+  extensions: .cpp .c .h .hpp .py .ts .js .go .java .rb .sh .yml .yaml .json .md
+  exclude_paths: test/ tests/ fixtures/ eval/ vendor/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ([\"'`])(/Users/|/home/)[A-Za-z0-9._-]+
+    message: "Hardcoded absolute home path — non-portable and it leaks a username. Use a path relative to a known base, a config value, or an env lookup."
+  - regex: ([\"'`])(~|\$HOME|\$\{HOME\})/
+    message: "Hardcoded home reference (~ / $HOME) in a literal — resolve the base at runtime instead of embedding it."
+  - regex: (\.\./){3,}
+    message: "Deep ../ traversal (3+ levels) climbs out of the project root (CWE-22). Anchor the path to a known base instead."
+fix: "Build the path from a known base (project root, a config value, or an env var) instead of hardcoding an absolute/home path or climbing out with ../. If an absolute path is genuinely required (e.g. a shell demo), add keur:ignore QUAL-079 on the line."

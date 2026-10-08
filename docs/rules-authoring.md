@@ -376,6 +376,43 @@ patterns:
     message: "Duplicate test name '{match}' — give each test a unique name"
 ```
 
+### `base64-unwrap` / `urldecode-unwrap` / `hex-unwrap` (ADR-049)
+
+Decode-then-scan engines for secrets/PII hidden ONE encoding layer deep, which a
+surface scan (and the proven secret tools) miss because they match the *decoded*
+shape. On each line the engine finds encoded candidate runs, decodes **one
+layer**, drops non-UTF-8/binary output, then re-runs **this rule's own
+`patterns:`** over the DECODED text. The detection lives in the rule (data); the
+engine only performs the transform (ADR-009 — a regex must not decode). The
+finding points at the ENCODED line and the decoded value is NEVER echoed (the
+message comes from the pattern).
+
+- The `patterns[].regex` are the INNER (decoded) shapes to look for — write them
+  against what the blob decodes TO, not the encoded blob.
+- `min_count` — candidate length floor (base64 default 24, url 8, hex 16).
+  Shorter runs are skipped (keeps the decode set small and deterministic).
+- One layer only; no recursion; no network. Same input → same verdict.
+- `base64-unwrap` handles base64 and base64url, padding optional.
+- `urldecode-unwrap` requires at least one real `%XX` escape, so plain text is
+  never decoded.
+- `hex-unwrap` decodes a bare even-length hex run; the UTF-8 filter drops
+  hashes/binary. (This is distinct from a rule matching `\xNN` ESCAPE sequences
+  in source text — that is an ordinary `pattern` rule, see SCA-066.)
+
+```yaml
+# a secret wrapped in a base64 blob: decode one layer, scan the decoded JSON.
+id: SECRETS-090
+title: Secret hidden inside a base64 blob (decode-and-scan)
+category: secret
+severity: error
+engine: base64-unwrap
+min_count: 24
+patterns:
+  # INNER (decoded) shape — a credential-shaped key/value in decoded JSON.
+  - regex: (?i)"(password|secret|token|api[_-]?key)"\s*:\s*"[^"]{12,}"
+    message: "Credential-shaped value hidden one base64 layer deep. Decode locally, rotate, move to a secret store."
+```
+
 ## Facts, `requires:` and composite rules (ADR-009)
 
 Beyond single patterns, a rule can reason about *context* and *combine* other

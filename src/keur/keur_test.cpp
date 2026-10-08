@@ -25,6 +25,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -354,6 +355,22 @@ SCENARIO("[feature:check] format_finding_line — a warn finding is marked warn"
 
 SCENARIO("[feature:check] cmd_check PASS with empty file source") {    keur::cmd::CheckOptions opts;
     CHECK(keur::cmd::check(opts, []() { return std::vector<std::string>{}; }) == 0);
+}
+
+// A clean PASS must NOT write to stderr: VS Code (and some CI) treat ANY stderr
+// output from a git hook as a failure, even on exit 0 — that made keur's PASS
+// look like an error in the editor. The non-error verdict belongs on stdout.
+SCENARIO("[feature:check] a PASS writes to stdout, not stderr") {  // @proves hook-pass-on-stdout
+    keur::cmd::CheckOptions opts;
+    std::ostringstream cap_out, cap_err;
+    std::streambuf* old_out = std::cout.rdbuf(cap_out.rdbuf());
+    std::streambuf* old_err = std::cerr.rdbuf(cap_err.rdbuf());
+    int rc = keur::cmd::check(opts, []() { return std::vector<std::string>{}; });
+    std::cout.rdbuf(old_out);
+    std::cerr.rdbuf(old_err);
+    CHECK(rc == 0);
+    CHECK(cap_err.str().empty());                              // nothing on stderr
+    CHECK(cap_out.str().find("PASS") != std::string::npos);    // verdict on stdout
 }
 
 SCENARIO("[feature:check] staged_files returns empty outside a git repo") {
@@ -783,8 +800,107 @@ SCENARIO("[feature:hook] augment_hook adds a shebang when the file has none") {
     CHECK(out.find("keur check --tier pre-push") != std::string::npos);
 }
 
-SCENARIO("[feature:hook] hooks_install creates executable stubs") {
+// --------------------------------------------------------------------------
+// Global orchestrator stub: behavioural tests. The stub is shell, so we prove
+// its EXIT CODE by executing it under /bin/sh with a fake `keur` on PATH. The
+// bug these characterise: when the repo has no .githooks/<hook>, the stub's
+// `run_keur && run_repo` chain must NOT fail just because run_repo found no
+// hook — a keur PASS has to exit 0 (ADR-002: the stub carries no verdict).
+//
+// Returns the exit status (0..255) of running the stub text as a script, with
+// `fake_keur_exit` as the exit code of the stubbed `keur` binary, and an
+// optional repo .githooks/<hook> written when repo_hook_exit >= 0.
+// Run argv[] in a child process, shell-free (no std::system / no /bin/sh string
+// interpolation — Sonar cpp:S4036 / CWE-78). Optionally chdir, set PATH, and
+// silence stdio. Returns the child's exit status, or -1 if it did not exit
+// normally. Used by the hook-stub behavioural tests below.
+static int run_argv_in(const std::vector<std::string>& argv, const std::string& cwd,
+                       const std::string& path_env, bool silence) {
+    pid_t pid = fork();
+    if (pid < 0) return -1;
+    if (pid == 0) {
+        if (!cwd.empty() && chdir(cwd.c_str()) != 0) _exit(127);
+        if (!path_env.empty()) setenv("PATH", path_env.c_str(), 1);
+        if (silence) {
+            (void)!freopen("/dev/null", "r", stdin);
+            (void)!freopen("/dev/null", "w", stdout);
+            (void)!freopen("/dev/null", "w", stderr);
+        }
+        std::vector<char*> c;
+        c.reserve(argv.size() + 1);
+        for (const auto& a : argv) c.push_back(const_cast<char*>(a.c_str()));
+        c.push_back(nullptr);
+        execvp(c[0], c.data());
+        _exit(127);  // exec failed
+    }
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0) return -1;
+    return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+}
+
+static int run_global_stub(const char* hook_name, int fake_keur_exit,
+                           int repo_hook_exit) {
     std::string tmp = create_temp_dir();
+    if (tmp.empty()) return -1;
+
+    // Fake repo: a git repo so `git rev-parse --show-toplevel` resolves to it.
+    // Shell-free spawn (argv, not a /bin/sh string) — @see KEUR-SEC-006.
+    std::string repo = tmp + "/repo";
+    (void)mkdir(repo.c_str(), 0755);
+    (void)run_argv_in({"git", "-c", "init.defaultBranch=main", "init", "-q", "."},
+                      repo, /*path_env=*/"", /*silence=*/true);
+
+    // Fake keur on PATH with a controllable exit code.
+    std::string bin = tmp + "/bin";
+    (void)mkdir(bin.c_str(), 0755);
+    write_file(bin + "/keur",
+               "#!/bin/sh\necho 'KEUR (fake): PASS' >&2\nexit "
+                   + std::to_string(fake_keur_exit) + "\n");
+    (void)chmod((bin + "/keur").c_str(), 0755);
+
+    // Optionally create the repo's own .githooks/<hook>.
+    if (repo_hook_exit >= 0) {
+        std::string gh = repo + "/.githooks";
+        (void)mkdir(gh.c_str(), 0755);
+        write_file(gh + "/" + hook_name,
+                   "#!/bin/sh\nexit " + std::to_string(repo_hook_exit) + "\n");
+        (void)chmod((gh + "/" + hook_name).c_str(), 0755);
+    }
+
+    // Write the stub under test and run it from inside the repo, shell-free:
+    // exec /bin/sh with the stub path as an argv element (no string the shell
+    // could re-parse), with PATH pointing at the fake keur. cwd + PATH + stdio
+    // are set in the child, so the behaviour matches the old command string.
+    std::string stub = keur::cmd::global_hook_stub(hook_name);
+    std::string stub_path = tmp + "/stub.sh";
+    write_file(stub_path, stub);
+    (void)chmod(stub_path.c_str(), 0755);
+
+    std::string path_env = bin;
+    if (const char* p = std::getenv("PATH")) path_env += std::string(":") + p;
+    int rc = run_argv_in({"/bin/sh", stub_path}, repo, path_env, /*silence=*/true);
+    cleanup_dir(tmp);
+    return rc;
+}
+
+SCENARIO("[feature:hook] global stub exits 0 on keur PASS when no repo hook exists") {
+    // The regression: a repo with no .githooks/pre-push must still push on PASS.
+    CHECK(run_global_stub("pre-push", /*fake_keur_exit=*/0, /*repo_hook_exit=*/-1) == 0);
+    CHECK(run_global_stub("pre-commit", /*fake_keur_exit=*/0, /*repo_hook_exit=*/-1) == 0);
+}
+
+SCENARIO("[feature:hook] global stub propagates a keur BLOCK (exit 1)") {
+    // keur's own verdict must still gate: a BLOCK stops the commit/push.
+    CHECK(run_global_stub("pre-commit", /*fake_keur_exit=*/1, /*repo_hook_exit=*/-1) == 1);
+}
+
+SCENARIO("[feature:hook] global stub runs the repo hook after keur and propagates its result") {
+    // keur PASS + repo hook PASS -> 0; keur PASS + repo hook FAIL -> non-zero.
+    CHECK(run_global_stub("pre-commit", /*fake_keur_exit=*/0, /*repo_hook_exit=*/0) == 0);
+    CHECK(run_global_stub("pre-commit", /*fake_keur_exit=*/0, /*repo_hook_exit=*/1) != 0);
+}
+
+SCENARIO("[feature:hook] hooks_install creates executable stubs") {    std::string tmp = create_temp_dir();
     REQUIRE(!tmp.empty());
     std::string hdir = tmp + "/hooks";
     CHECK(keur::cmd::hooks_install(hdir));
@@ -1658,6 +1774,35 @@ SCENARIO("[feature:report] use_color Auto respects NO_COLOR") {
     unsetenv("NO_COLOR");
 }
 
+SCENARIO("[feature:report] use_color Auto honours FORCE_COLOR without a tty") {
+    unsetenv("NO_COLOR");
+    setenv("FORCE_COLOR", "1", 1);
+    CHECK(keur::report::use_color(keur::report::ColorMode::Auto, false));
+    unsetenv("FORCE_COLOR");
+}
+
+SCENARIO("[feature:report] use_color Auto honours CLICOLOR_FORCE without a tty") {
+    unsetenv("NO_COLOR");
+    setenv("CLICOLOR_FORCE", "1", 1);
+    CHECK(keur::report::use_color(keur::report::ColorMode::Auto, false));
+    unsetenv("CLICOLOR_FORCE");
+}
+
+SCENARIO("[feature:report] use_color FORCE_COLOR=0 does not force colour") {
+    unsetenv("NO_COLOR");
+    setenv("FORCE_COLOR", "0", 1);
+    CHECK(!keur::report::use_color(keur::report::ColorMode::Auto, false));
+    unsetenv("FORCE_COLOR");
+}
+
+SCENARIO("[feature:report] use_color NO_COLOR wins over FORCE_COLOR") {
+    setenv("NO_COLOR", "1", 1);
+    setenv("FORCE_COLOR", "1", 1);
+    CHECK(!keur::report::use_color(keur::report::ColorMode::Auto, true));
+    unsetenv("NO_COLOR");
+    unsetenv("FORCE_COLOR");
+}
+
 SCENARIO("[feature:report] parse_format maps names, falls back on unknown") {
     CHECK(keur::report::parse_format("jsonl")   == keur::report::OutputFormat::Jsonl);
     CHECK(keur::report::parse_format("compact") == keur::report::OutputFormat::Compact);
@@ -2045,6 +2190,154 @@ SCENARIO("[feature:rule-engine] path-derived is self-scaling: a brand-new layer 
     CHECK(!has_rule(fs_ok, "KEUR-ARCH-002"));
     CHECK(has_rule(fs_bad, "KEUR-ARCH-002"));
     cleanup_dir(base);
+}
+
+// --- base64-unwrap engine (ADR-049) -----------------------------------------
+// The engine decodes ONE base64 layer and re-runs the rule's OWN patterns over
+// the decoded text. Detection lives in the rule (data); the engine only does the
+// decode transform (ADR-009). The finding points at the ENCODED line and never
+// echoes the decoded secret.
+
+namespace {
+// A base64-unwrap rule whose inner patterns look for credential shapes in the
+// DECODED text. Written to `dir` and loaded; returns the loaded rule set.
+std::vector<keur::Rule> load_b64_unwrap_rule(const std::string& dir) {
+    write_file(dir + "/B64.rule",
+        "id: TEST-B64-001\n"
+        "title: secret hidden in base64\n"
+        "category: secret\n"
+        "severity: error\n"
+        "engine: base64-unwrap\n"
+        "min_count: 16\n"
+        "patterns:\n"
+        "  - regex: (?i)[\"']?(password|secret|token|api[_-]?key)[\"']?\\s*:\\s*[\"'][^\"']{8,}[\"']\n"
+        "    message: credential-shaped value one base64 layer deep\n"
+        "  - regex: AKIA[0-9A-Z]{16}\n"
+        "    message: AWS key revealed after decode\n");
+    return keur::rules_load(dir);
+}
+}  // namespace
+
+SCENARIO("[feature:rule-engine] base64-unwrap fires on a secret hidden one base64 layer deep") {  // @proves ADR-049 engine-base64-unwrap
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    auto rules = load_b64_unwrap_rule(dir);
+    REQUIRE(!rules.empty());
+    // base64 of {"token":"supersecretvalue"} — the inner shape matches, the
+    // encoded blob does not. (Precomputed so the test needs no base64 tool.)
+    // echo -n '{"token":"supersecretvalue"}' | base64
+    std::string blob = "eyJ0b2tlbiI6InN1cGVyc2VjcmV0dmFsdWUifQ==";
+    std::string src = dir + "/userdata.sh";
+    write_file(src, "setup --config " + blob + "\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(has_rule(fs, "TEST-B64-001"));
+    // The finding points at the encoded line (line 1), never the decoded value.
+    for (const auto& f : fs)
+        if (f.rule_id == "TEST-B64-001") {
+            CHECK(f.line == 1);
+            CHECK(f.message.find("supersecretvalue") == std::string::npos);
+        }
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] base64-unwrap surfaces an AWS key after decode") {  // @proves ADR-049
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    auto rules = load_b64_unwrap_rule(dir);
+    REQUIRE(!rules.empty());
+    // echo -n '{"aws_access_key_id":"AKIA...EXAMPLE"}' | base64  (example key id; keur:ignore SEC-010)
+    std::string blob = "eyJhd3NfYWNjZXNzX2tleV9pZCI6IkFLSUFJT1NGT0ROTjdFWEFNUExFIn0=";
+    std::string src = dir + "/config.ts";
+    write_file(src, "const c = \"" + blob + "\";\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(has_rule(fs, "TEST-B64-001"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] base64-unwrap does NOT fire on a harmless base64 blob") {  // @proves ADR-049 (filter)
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    auto rules = load_b64_unwrap_rule(dir);
+    REQUIRE(!rules.empty());
+    // echo -n 'this is a long but entirely harmless sentence' | base64
+    std::string blob = "dGhpcyBpcyBhIGxvbmcgYnV0IGVudGlyZWx5IGhhcm1sZXNzIHNlbnRlbmNl";
+    std::string src = dir + "/note.txt";
+    write_file(src, "note = \"" + blob + "\"\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(!has_rule(fs, "TEST-B64-001"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] base64-unwrap ignores short runs below the length floor") {  // @proves ADR-049 (min_count floor)
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    auto rules = load_b64_unwrap_rule(dir);
+    REQUIRE(!rules.empty());
+    // "eyJ4Ijox" decodes to {"x":1 but is only 8 chars — below the min_count:16
+    // floor, so the engine never decodes it. No finding.
+    std::string src = dir + "/tiny.txt";
+    write_file(src, "v = eyJ4Ijox\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(!has_rule(fs, "TEST-B64-001"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] urldecode-unwrap fires on a percent-encoded secret") {  // @proves ADR-049 engine-urldecode-unwrap
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/URL.rule",
+        "id: TEST-URL-001\n"
+        "title: secret hidden in percent-encoding\n"
+        "category: secret\n"
+        "severity: error\n"
+        "engine: urldecode-unwrap\n"
+        "min_count: 8\n"
+        "patterns:\n"
+        "  - regex: (?i)(password|secret|token)=[^&]{6,}\n"
+        "    message: credential-shaped value one url-encode layer deep\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    // "token=supersecret" percent-encoded as token%3Dsupersecret
+    std::string src = dir + "/callback.txt";
+    write_file(src, "redirect = /cb?token%3Dsupersecret%26ok\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(has_rule(fs, "TEST-URL-001"));
+    // Plain text with no percent-escape must not fire (nothing to unwrap).
+    std::string plain = dir + "/plain.txt";
+    write_file(plain, "note = just a normal sentence here\n");
+    auto fs2 = keur::rules_scan_files(rules, {plain});
+    CHECK(!has_rule(fs2, "TEST-URL-001"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] hex-unwrap fires on a hex-encoded secret blob") {  // @proves ADR-049 engine-hex-unwrap
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    write_file(dir + "/HEX.rule",
+        "id: TEST-HEX-001\n"
+        "title: secret hidden in hex\n"
+        "category: secret\n"
+        "severity: error\n"
+        "engine: hex-unwrap\n"
+        "min_count: 10\n"
+        "patterns:\n"
+        "  - regex: (?i)(password|secret|token)=[^;]{4,}\n"
+        "    message: credential-shaped value hex-encoded\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    // hex of "token=hunter2secret"
+    // printf 'token=hunter2secret' | od -An -tx1 | tr -d ' '
+    std::string hex = "746f6b656e3d68756e74657232736563726574";
+    std::string src = dir + "/blob.txt";
+    write_file(src, "data = " + hex + "\n");
+    auto fs = keur::rules_scan_files(rules, {src});
+    CHECK(has_rule(fs, "TEST-HEX-001"));
+    // A random hex hash that decodes to binary must not fire (UTF-8 filter).
+    std::string noise = dir + "/hash.txt";
+    write_file(noise, "sha = 9f8e7d6c5b4a3f2e1d0c9b8a7766554433221100\n");
+    auto fs2 = keur::rules_scan_files(rules, {noise});
+    CHECK(!has_rule(fs2, "TEST-HEX-001"));
+    cleanup_dir(dir);
 }
 
 SCENARIO("[feature:rule-engine] absence rule fires on file missing header") {

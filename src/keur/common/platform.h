@@ -108,6 +108,11 @@ void sleep_ms(int ms);
 struct TermSize { int cols = 0; int rows = 0; };
 TermSize terminal_size();
 
+/// True if stderr is a terminal (not a pipe/file). Used to decide colour the
+/// standard way (TTY → colour, pipe → plain), behind the platform abstraction
+/// so no OS call leaks into cmd/ (ADR-005). posix: isatty  win32: _isatty.
+bool stderr_is_tty();
+
 /// True if a process with the given PID is currently alive.
 /// posix: kill(pid, 0) == 0   win32: OpenProcess + GetExitCodeProcess
 bool process_alive(long pid);

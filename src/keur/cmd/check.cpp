@@ -9,6 +9,9 @@
  */
 #include "cmd/check.h"
 
+#include "common/platform.h"
+#include "report/report.h"
+
 #include <iostream>
 #include <set>
 #include <string>
@@ -63,9 +66,16 @@ bool finding_blocks(const std::string& action, const std::string& confidence,
 std::string format_finding_line(const std::string& rule, const std::string& action,
                                 const std::string& confidence, const std::string& file,
                                 int line, const std::string& message, bool blocks,
-                                const std::string& fix) {
-    // Marker first so a scanning eye finds the blockers immediately.
-    std::string out = blocks ? "BLOCK " : "warn  ";
+                                const std::string& fix, bool color) {
+    // Marker first so a scanning eye finds the blockers immediately. When colour
+    // is on (a TTY, or FORCE_COLOR/CLICOLOR_FORCE — see report::use_color), the
+    // marker is red for a blocker, yellow for a warning, so the verdict reads at
+    // a glance in a terminal or a recording.
+    const char* red    = color ? "\033[31m" : "";
+    const char* yellow = color ? "\033[33m" : "";
+    const char* reset  = color ? "\033[0m"  : "";
+    std::string out = blocks ? (std::string(red) + "BLOCK " + reset)
+                             : (std::string(yellow) + "warn  " + reset);
     out += rule.empty() ? "(no-rule)" : rule;
     out += " | " + (action.empty() ? std::string("warn") : action);
     out += " | conf " + (confidence.empty() ? std::string("?") : confidence);
@@ -113,10 +123,12 @@ int check(const CheckOptions& opts, FileSource file_src) {
     if (!file_src) file_src = []() { return staged_files(); };
     auto files = file_src();
     if (files.empty()) {
-        std::cerr << "KEUR (" << tier_str << "): no staged files -- PASS\n";
+        // Not an error: a clean pass must write to stdout. VS Code and some CI
+        // treat ANY stderr output from a hook as a failure even on exit 0.
+        std::cout << "KEUR (" << tier_str << "): no staged files -- PASS\n";
         return 0;
     }
-    std::cerr << "KEUR (" << tier_str << "): scanning "
+    std::cout << "KEUR (" << tier_str << "): scanning "
               << files.size() << " staged file(s)...\n";
 
     // 2. Load the active rule set (resolved dirs minus the disable-list).
@@ -234,11 +246,20 @@ int check(const CheckOptions& opts, FileSource file_src) {
     // is reproducible from what the user sees (fixes the "blocks with no reason"
     // usability bug). Each line marks whether that finding is a blocker.
     if (verdict != Verdict::Pass) {
+        // Colour follows report::use_color: on a TTY, or forced via
+        // FORCE_COLOR/CLICOLOR_FORCE (so the hook output is coloured in a
+        // recording or a CI log too), unless NO_COLOR is set.
+        bool color = report::use_color(report::ColorMode::Auto,
+                                       keur::platform::stderr_is_tty());
+        // A BLOCK is a real failure → stderr. A WARN is non-blocking (exit 0) →
+        // stdout, so editors/CI do not misread an advisory as an error.
+        std::ostream& out = (verdict == Verdict::Block) ? std::cerr : std::cout;
         for (const auto& f : findings) {
             bool blocks = finding_blocks(f.action, f.confidence, policy.block_at);
-            std::cerr << "  " << format_finding_line(f.rule, f.action, f.confidence,
-                                                     f.file, f.line, f.message, blocks, f.fix)
-                      << "\n";
+            out << "  " << format_finding_line(f.rule, f.action, f.confidence,
+                                               f.file, f.line, f.message, blocks,
+                                               f.fix, color)
+                << "\n";
         }
     }
 
@@ -248,11 +269,11 @@ int check(const CheckOptions& opts, FileSource file_src) {
                       << "): BLOCK -- blocking finding(s) above; commit stopped\n";
             return 1;
         case Verdict::Warn:
-            std::cerr << "KEUR (" << tier_str
+            std::cout << "KEUR (" << tier_str
                       << "): WARN -- non-blocking finding(s) above; review advised\n";
             return 0;
         case Verdict::Pass:
-            std::cerr << "KEUR (" << tier_str << "): PASS\n";
+            std::cout << "KEUR (" << tier_str << "): PASS\n";
             return 0;
     }
     return 0;

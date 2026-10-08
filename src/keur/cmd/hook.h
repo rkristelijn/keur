@@ -103,4 +103,19 @@ std::string repo_hooks_dir(const adapters::Git& git = adapters::Git{});
 /// True when the content already contains a keur-augment block. Pure.
 [[nodiscard]] bool is_augmented(const std::string& content);
 
+/**
+ * The minimal per-repo hook stub: `exec keur check --tier <tier>`. Pure.
+ * @param hook_name  "pre-commit" | "pre-push".
+ */
+[[nodiscard]] std::string hook_stub(const char* hook_name);
+
+/**
+ * The global orchestrator hook stub. Composes keur with the repo's own
+ * .githooks/<hook> per the repo's keur.toml [hooks].mode. Pure (returns the
+ * script text). Critical property: when the repo has NO .githooks/<hook>, the
+ * stub must still exit 0 on a keur PASS — the absence of a repo hook is a
+ * no-op, never a failure. @param hook_name  "pre-commit" | "pre-push".
+ */
+[[nodiscard]] std::string global_hook_stub(const char* hook_name);
+
 }  // namespace keur::cmd

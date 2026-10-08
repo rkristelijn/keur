@@ -13,6 +13,8 @@
  */
 #include "rule/internal.h"
 
+#include <array>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -247,6 +249,258 @@ void eng_extract_duplicates(const ScanContext& cx, std::vector<RuleFinding>& out
   }
 }
 
+// --- base64 unwrap-then-scan (ADR-049) --------------------------------------
+//
+// A deterministic transform engine: find base64 blobs on a line, decode ONE
+// layer, and re-run THIS rule's own patterns over the decoded bytes. The
+// detection lives in the rule's patterns[] (data); the engine only performs the
+// decode transform (ADR-009: the RE2 line engine stays minimal; a regex must not
+// base64-decode). This closes the demonstrated visibility gap where a secret/PII is
+// one base64 layer deep and a surface scan matches only the encoded shape
+// (motivating case: a cloudflared tunnel token committed as base64 JSON).
+//
+// Scope & limits (ADR-049): one decode layer; UTF-8/text output only (binary
+// blobs — images, hashes, compiled bytes — are dropped); candidate length floor
+// to keep the decode set small and deterministic. No network, no recursion.
+//
+// The finding points at the ENCODED span (the line the blob is on), never the
+// decoded inner value — we do not echo the secret (consistent with ADR-042/046).
+// @id engine-base64-unwrap @implements ADR-049
+
+namespace {
+
+// Decode a base64 / base64url token (padding optional). Returns false if the
+// token is not valid base64 or decodes to bytes we should not re-scan.
+bool b64_decode_one_layer(std::string_view in, std::string& out) {
+  // Reverse lookup for the standard and URL-safe alphabets. '-'/'_' map to the
+  // same values as '+'/'/' so base64url is handled without a second pass.
+  static const auto make_table = [] {
+    std::array<int8_t, 256> t{};
+    t.fill(-1);
+    const char* std_alpha =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    for (int i = 0; i < 64; i++) t[(unsigned char)std_alpha[i]] = (int8_t)i;
+    t[(unsigned char)'-'] = 62;  // base64url
+    t[(unsigned char)'_'] = 63;  // base64url
+    return t;
+  };
+  static const std::array<int8_t, 256> T = make_table();
+
+  // Strip trailing '=' padding; count only alphabet characters.
+  std::string sym;
+  sym.reserve(in.size());
+  for (char ch : in) {
+    if (ch == '=') break;  // padding — stop; anything after is not data
+    int8_t v = T[(unsigned char)ch];
+    if (v < 0) return false;  // not a base64 char → not a clean blob, bail
+    sym.push_back(ch);
+  }
+  if (sym.size() < 4) return false;  // too short to carry anything
+
+  out.clear();
+  out.reserve(sym.size() * 3 / 4);
+  uint32_t buf = 0;
+  int bits = 0;
+  for (char ch : sym) {
+    buf = (buf << 6) | (uint32_t)T[(unsigned char)ch];
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out.push_back((char)((buf >> bits) & 0xFF));
+    }
+  }
+  return !out.empty();
+}
+
+// Validate the UTF-8 multibyte sequence starting at s[i] (lead byte already
+// known to be >= 0x80). Returns its byte length (2..4) if well-formed, else 0.
+// Pulled out of looks_like_utf8_text so that function stays flat (ADR-039
+// maintainability; SonarCloud cognitive-complexity).
+int utf8_multibyte_len(const std::string& s, size_t i) {
+  unsigned char c = (unsigned char)s[i];
+  size_t n = s.size();
+  auto cont = [&](size_t j) {
+    return j < n && ((unsigned char)s[j] & 0xC0) == 0x80;
+  };
+  if ((c & 0xE0) == 0xC0) return (c >= 0xC2 && cont(i + 1)) ? 2 : 0;  // reject overlong
+  if ((c & 0xF0) == 0xE0) return (cont(i + 1) && cont(i + 2)) ? 3 : 0;
+  if ((c & 0xF8) == 0xF0) return (cont(i + 1) && cont(i + 2) && cont(i + 3)) ? 4 : 0;
+  return 0;  // invalid lead byte
+}
+
+// Is `s` valid UTF-8 AND does it look like text (no NUL/control bytes other than
+// tab/newline/CR)? ADR-049 re-scans only text; binary decodes are dropped so we
+// do not flood on images/hashes/compiled blobs.
+bool looks_like_utf8_text(const std::string& s) {
+  size_t i = 0, n = s.size();
+  while (i < n) {
+    unsigned char c = (unsigned char)s[i];
+    if (c < 0x80) {
+      // ASCII; reject control chars except tab/newline/CR.
+      if (c < 0x20 && c != '\t' && c != '\n' && c != '\r') return false;
+      i++;
+      continue;
+    }
+    int len = utf8_multibyte_len(s, i);
+    if (len == 0) return false;
+    i += (size_t)len;
+  }
+  return true;
+}
+
+// Percent-decode one layer: %XX -> byte, '+' -> space (form-encoding). Returns
+// false if the input carries no percent-escape at all (nothing to unwrap) or a
+// malformed escape. @implements ADR-049 (url variant)
+bool url_decode_one_layer(std::string_view in, std::string& out) {
+  auto hexval = [](char ch) -> int {
+    if (ch >= '0' && ch <= '9') return ch - '0';
+    if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
+    if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+    return -1;
+  };
+  out.clear();
+  out.reserve(in.size());
+  bool saw_escape = false;
+  for (size_t i = 0; i < in.size(); i++) {
+    char ch = in[i];
+    if (ch == '%') {
+      if (i + 2 >= in.size()) return false;
+      int hi = hexval(in[i + 1]), lo = hexval(in[i + 2]);
+      if (hi < 0 || lo < 0) return false;
+      out.push_back((char)((hi << 4) | lo));
+      i += 2;
+      saw_escape = true;
+    } else if (ch == '+') {
+      out.push_back(' ');
+    } else {
+      out.push_back(ch);
+    }
+  }
+  return saw_escape && !out.empty();  // require at least one real escape
+}
+
+// Decode a run of hex digits (even length) to bytes. Returns false if the input
+// is not pure even-length hex. @implements ADR-049 (hex variant)
+bool hex_decode_one_layer(std::string_view in, std::string& out) {
+  if (in.size() < 2 || (in.size() % 2) != 0) return false;
+  auto hexval = [](char ch) -> int {
+    if (ch >= '0' && ch <= '9') return ch - '0';
+    if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
+    if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+    return -1;
+  };
+  out.clear();
+  out.reserve(in.size() / 2);
+  for (size_t i = 0; i + 1 < in.size(); i += 2) {
+    int hi = hexval(in[i]), lo = hexval(in[i + 1]);
+    if (hi < 0 || lo < 0) return false;
+    out.push_back((char)((hi << 4) | lo));
+  }
+  return !out.empty();
+}
+
+}  // namespace (base64 helpers)
+
+// Shared unwrap-then-scan driver (ADR-049). For each line, walk candidate runs
+// (characters for which `is_cand` is true), and for every run of length >=
+// Re-scan already-decoded TEXT with the rule's patterns; on the first match,
+// emit a finding at the ENCODED line (`enc_line`) and stop. The decoded value is
+// never put in the message, so no secret is echoed. Non-template so it is not
+// re-instantiated per engine. @id engine-unwrap-rescan
+void rescan_decoded_emit(const ScanContext& cx, const std::string& decoded,
+                         int enc_line, std::vector<RuleFinding>& out) {
+  const Compiled& c = cx.compiled;
+  const Rule& r = *c.rule;
+  for (size_t pi = 0; pi < c.res.size(); pi++) {
+    if (!c.res[pi]) continue;
+    if (RE2::PartialMatch(decoded, *c.res[pi])) {
+      emit(r, cx.rel, enc_line, finding_msg(r, r.patterns[pi].message), out);
+      return;  // one finding per encoded line is enough
+    }
+  }
+}
+
+// Decode one candidate token and, if it decodes to text, re-scan it. Pulled out
+// of the line loop so the driver stays flat (SonarCloud nesting/complexity).
+template <typename Decode>
+void unwrap_token(const ScanContext& cx, std::string_view token, int floor,
+                  int enc_line, Decode decode, std::vector<RuleFinding>& out) {
+  // NB: these four guard clauses are flat (depth 1 each). keur's own max-nesting
+  // lexer miscounts sequential brace-less guard ifs as nesting (KEUR-QUAL-004, a
+  // non-blocking warning) — tracked as a lexer fix in TODO.md, not worked around
+  // here by distorting the code.
+  const size_t min_len = floor > 0 ? (size_t)floor : 0;  // compare in size_t (ADR-006)
+  if (token.size() < min_len) return;
+  std::string decoded;
+  if (!decode(token, decoded)) return;
+  if (!looks_like_utf8_text(decoded)) return;  // ADR-049: text only
+  rescan_decoded_emit(cx, decoded, enc_line, out);
+}
+
+// `floor`, decode one layer with `decode`, drop non-UTF-8/binary output, then
+// re-scan the decoded TEXT with the rule's own patterns. A hit is reported at
+// the ENCODED line; the decoded value is never echoed (message comes from the
+// pattern). This is the common body behind the base64/url/hex unwrap engines —
+// only the alphabet and the decode step differ. @id engine-unwrap-driver
+template <typename IsCand, typename Decode>
+void unwrap_scan(const ScanContext& cx, int floor, IsCand is_cand, Decode decode,
+                 std::vector<RuleFinding>& out) {
+  if (cx.compiled.res.empty()) return;  // nothing to re-scan with
+
+  for (size_t li = 0; li < cx.lines.size(); li++) {
+    std::string_view line(cx.lines[li].data(), cx.lines[li].size());
+    size_t pos = 0, n = line.size();
+    while (pos < n) {
+      if (!is_cand(line[pos])) { pos++; continue; }
+      size_t start = pos;
+      while (pos < n && is_cand(line[pos])) pos++;
+      unwrap_token(cx, line.substr(start, pos - start), floor,
+                   (int)(li + 1), decode, out);
+    }
+  }
+}
+
+// base64-unwrap: decode one base64/base64url layer, re-scan the decoded text.
+// Candidate = base64 alphabet; default length floor 24. @id engine-base64-unwrap @implements ADR-049
+void eng_base64_unwrap(const ScanContext& cx, std::vector<RuleFinding>& out) {
+  const int floor = cx.compiled.rule->min_count > 0 ? cx.compiled.rule->min_count : 24;
+  unwrap_scan(cx, floor,
+      [](char ch) {
+        return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+               (ch >= '0' && ch <= '9') || ch == '+' || ch == '/' ||
+               ch == '-' || ch == '_' || ch == '=';
+      },
+      b64_decode_one_layer, out);
+}
+
+// urldecode-unwrap: percent-decode one layer, re-scan the decoded text. The
+// candidate run includes %XX escapes and the surrounding unreserved chars so a
+// value like name%3Dsecret%40v is decoded as a whole. Default floor 8 (a short
+// escaped value still matters). @id engine-urldecode-unwrap @implements ADR-049
+void eng_urldecode_unwrap(const ScanContext& cx, std::vector<RuleFinding>& out) {
+  const int floor = cx.compiled.rule->min_count > 0 ? cx.compiled.rule->min_count : 8;
+  unwrap_scan(cx, floor,
+      [](char ch) {
+        return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+               (ch >= '0' && ch <= '9') || ch == '%' || ch == '+' ||
+               ch == '-' || ch == '_' || ch == '.' || ch == '~';
+      },
+      url_decode_one_layer, out);
+}
+
+// hex-unwrap: decode a run of hex digits to bytes, re-scan the decoded text.
+// Catches a bare hex-encoded blob (not a \xNN sequence — SCA-066 covers those).
+// Default floor 16 (8 bytes). @id engine-hex-unwrap @implements ADR-049
+void eng_hex_unwrap(const ScanContext& cx, std::vector<RuleFinding>& out) {
+  const int floor = cx.compiled.rule->min_count > 0 ? cx.compiled.rule->min_count : 16;
+  unwrap_scan(cx, floor,
+      [](char ch) {
+        return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') ||
+               (ch >= 'A' && ch <= 'F');
+      },
+      hex_decode_one_layer, out);
+}
+
 }  // namespace
 EngineFn engine_lookup(const std::string& name) {
   static const std::unordered_map<std::string, EngineFn> registry = {
@@ -260,6 +514,9 @@ EngineFn engine_lookup(const std::string& name) {
       {"max-nesting", &eng_max_nesting},
       {"max-lines", &eng_max_lines},
       {"extract-duplicates", &eng_extract_duplicates},
+      {"base64-unwrap", &eng_base64_unwrap},
+      {"urldecode-unwrap", &eng_urldecode_unwrap},
+      {"hex-unwrap", &eng_hex_unwrap},
   };
   auto it = registry.find(name);
   return it == registry.end() ? nullptr : it->second;

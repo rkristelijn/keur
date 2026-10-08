@@ -1,0 +1,32 @@
+# Executable or compiled binary committed to source control.
+#
+# Why this exists: a committed executable or compiled object (ELF/PE/Mach-O,
+# .exe/.dll/.so, .class/.pyc/.wasm) is unreviewable in a diff and is a classic
+# way to ship a backdoor or vendored binary that bypasses source review. Build
+# outputs do not belong in git; they belong in an artifact store.
+#
+# What it flags: a tracked file whose extension is a known executable/binary
+# format. file-level check (file-presence); no content pattern, works on binary.
+#
+# SCOPE LIMIT: this covers the by-EXTENSION case only. Detecting an executable by
+# magic bytes (ELF/PE/Mach-O header) or by the filesystem exec bit on an
+# extension-less file needs a byte/stat check the RE2 rule engine does not do;
+# that stays with the scanner layer. Extension coverage catches the common case
+# at commit time.
+#
+# WARNING, not block: a committed binary is sometimes a deliberate (if
+# ill-advised) vendored tool; WARN nudges review without failing every build.
+id: SEC-101
+ilities: [integrity]
+maturity: 3
+title: Executable or compiled binary committed to source control
+category: security
+severity: warning
+engine: file-presence
+action: warn
+target:
+  extensions: .exe .dll .so .dylib .bin .class .pyc .wasm .o .a
+  exclude_paths: eval/corpus/repos/ tests/ test/ fixtures/ vendor/ build/ dist/ bin/
+message: "Executable/compiled binary committed to source control — unreviewable in a diff and a common backdoor/vendored-binary vector. Keep build outputs in an artifact store or release registry, not git. @see SEC-101"
+confidence: 0.6
+fix: "Remove the binary from the repo (and from history if its provenance is unclear), add the pattern to .gitignore, and produce the artifact from a reproducible build published to an artifact store instead of committing it."

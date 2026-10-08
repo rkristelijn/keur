@@ -25,7 +25,7 @@ namespace keur::cmd {
 static constexpr std::array<const char*, 2> k_hook_names = {"pre-commit", "pre-push"};
 
 // Per-repo hook stub: minimal, just run keur for this repo's commits.
-static std::string hook_stub(const char* hook_name) {
+std::string hook_stub(const char* hook_name) {
     std::string tier = (std::strcmp(hook_name, "pre-push") == 0) ? "pre-push" : "pre-commit";
     return std::string("#!/bin/sh\nexec keur check --tier ") + tier + "\n";
 }
@@ -41,7 +41,7 @@ static std::string hook_stub(const char* hook_name) {
 //
 // The repo hook is expected at .githooks/<hook> (a common convention that is
 // not shadowed by core.hooksPath).
-static std::string global_hook_stub(const char* hook_name) {
+std::string global_hook_stub(const char* hook_name) {
     std::string tier = (std::strcmp(hook_name, "pre-push") == 0) ? "pre-push" : "pre-commit";
     std::string h(hook_name);
     return
@@ -56,7 +56,12 @@ static std::string global_hook_stub(const char* hook_name) {
         "fi\n"
         "repo_hook=\"$root/.githooks/" + h + "\"\n"
         "run_keur() { keur check --tier " + tier + "; }\n"
-        "run_repo() { [ -x \"$repo_hook\" ] && \"$repo_hook\" \"$@\"; }\n"
+        // No repo hook is a no-op (exit 0), never a failure: otherwise the
+        // `run_keur && run_repo` chain below would fail every push/commit in a
+        // repo that has no .githooks/<hook> — the common case. The hook stub
+        // carries no verdict of its own (ADR-002); only keur or a real repo
+        // hook may block.
+        "run_repo() { [ -x \"$repo_hook\" ] || return 0; \"$repo_hook\" \"$@\"; }\n"
         "case \"$mode\" in\n"
         "  replace)   run_repo \"$@\" ;;\n"
         "  keur-only) run_keur ;;\n"
