@@ -8,17 +8,10 @@
  * scenarios. Shared helpers come from test_helpers.h; this file keeps them
  * unqualified via `using`.
  */
-#include <dirent.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
-#include <algorithm>
 #include <cstdlib>
-#include <fstream>
-#include <iostream>
 #include <set>
-#include <sstream>
 #include <string>
 #include <vector>
 

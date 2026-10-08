@@ -153,7 +153,7 @@ jobs:
       - name: Install RE2
         run: |
           sudo apt-get update
-          sudo apt-get install -y libre2-dev libabsl-dev
+          sudo apt-get install -y libre2-dev libabsl-dev clang-tidy
       - name: Build keur
         run: make build
         working-directory: src/keur
@@ -161,6 +161,11 @@ jobs:
         run: bash tests/e2e/test_selfcheck.sh bin/keur
       - name: Self-check (portability — OS code only in common/)
         run: bash tests/e2e/test_portability.sh bin/keur
+
+      # Unused #include check (clang-tidy misc-include-cleaner) over the test TUs.
+      - name: Self-check (no unused includes in tests)
+        run: make lint-includes
+        working-directory: src/keur
 
       # The ADR index (docs/adr/README.md) is generated from the ADR files;
       # fail if someone added/renamed an ADR without regenerating it.
