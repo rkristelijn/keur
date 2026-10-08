@@ -325,13 +325,22 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ### Quality / research
 
-- [ ] no .clang-format exists — C++ style is inconsistent hand-formatting.
-      Notably, broken function headers align continuation lines under the open
-      paren (AlignAfterOpenBracket: Align), which drifts right on long names and
-      churns diffs on rename. Add a .clang-format with a STABLE style (e.g.
-      AlignAfterOpenBracket: BlockIndent or DontAlign + ContinuationIndentWidth:
-      4, one param per line), then format the codebase once. Hook into `make
-      lint`/`make format`. New code is already written in the stable style.
+- [ ] REFORMAT the C++ tree with clang-format (NEXT MR, on its own branch).
+      `.clang-format` now exists (Google base, IndentWidth 2, ColumnLimit 100,
+      PointerAlignment Left) — but the tree is NOT reformatted to it yet, so the
+      style is still inconsistent hand-formatting (src/rules 2-space, src/keur
+      4-space). Measured impact of the one-time reformat: ~19k changed +/- lines
+      across 97 C++ files. Keep it a DEDICATED MR so the diff does not pollute a
+      feature change or every git blame. Steps: run
+      `/opt/homebrew/opt/llvm/bin/clang-format -i` (or add a `make format` target)
+      over `src/**/*.{cpp,h}`, build + `make test` green, commit as one
+      `style: clang-format the C++ tree` commit. Then hook clang-format --dry-run
+      --Werror into `make lint` and the ADR-050 lint stage so it stays formatted.
+- [ ] clang-tidy fixes (separate from clang-format): the Sonar C++ findings
+      (`std::byte`, `std::format`, init-statement in if, redundant lambda return
+      type) are clang-tidy --fix territory, not formatting. clang-tidy is at
+      /opt/homebrew/opt/llvm/bin/clang-tidy. Scope per-file when touched, not a
+      bulk pass. Reject the C++23 suggestions (`\o{...}`) — keur is C++20.
 - [ ] BASICS as enforced norms (candidate for KEUR-ARCH self-check rules):
       * no source file > ~300 NET lines (comments/blank excluded);
       * no dir > ~10 files;
