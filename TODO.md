@@ -325,6 +325,19 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ### Quality / research
 
+- [ ] CI COST: take the macOS/Windows/arm32 matrix off the per-PR hot path
+      (fail-fast + cheap). GitHub Actions bills macOS at x10 and Windows at x2;
+      ci.yml runs the full matrix on every push, so one matrix run is ~175
+      billed minutes (macOS ~15min x10 = 150 alone). On 2026-10-08 this exhausted
+      the 2000-min GitHub Free quota mid-day — keur alone was $11.95 of $14.41
+      total metered usage — which ALSO blocks release.yml (no runners = no
+      release build). Fix: on a PR/push run ONLY the Linux job (build + unit +
+      integration + e2e + dogfood, x1, ~5-10 min); gate macOS/Windows/arm32
+      behind `if: github.ref == 'refs/heads/main'` or a `ci-full` PR label. Leave
+      release.yml's matrix as-is (a release genuinely needs the per-OS binaries,
+      and it runs rarely). Expected: ~20x less CI spend per PR. Ties into ADR-050
+      (stage 5 = cross-platform, last). Verify the new `needs:` graph with
+      `act -l` before pushing.
 - [ ] REFORMAT the C++ tree with clang-format (NEXT MR, on its own branch).
       `.clang-format` now exists (Google base, IndentWidth 2, ColumnLimit 140,
       PointerAlignment Left) — but the tree is NOT reformatted to it yet, so the
