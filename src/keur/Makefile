@@ -199,7 +199,7 @@ $(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
 
 ## ---- Test binary ----------------------------------------------------------
 
-$(TEST_OBJ): keur_test.cpp cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/config.h cmd/manager.h cmd/level.h render/logo.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h \
+$(TEST_OBJ): keur_test.cpp tests/test_helpers.h cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/config.h cmd/manager.h cmd/level.h render/logo.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h \
              adapters/git.h adapters/fs.h adapters/proc.h adapters/sysinfo.h learn/sysinfo.h report/report.h util/keur_utils.h \
              ../rules/tokenizer.h ../../vendor/doctest.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
