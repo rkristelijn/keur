@@ -70,6 +70,8 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [049](ADR-049-base64-unwrap-scanner.md) | Base64 unwrap-then-scan engine (surface secrets hidden in encoded blobs) | accepted |
 | [050](ADR-050-ci-pipeline-ordering.md) | CI pipeline ordering: fail-fast, cheap-to-expensive stages | proposed |
 | [051](ADR-051-rules-distribution-and-install-sync.md) | Rules distribution: install/sync the bundled ruleset, not just the binary | proposed |
+| [052](ADR-052-scan-scope-file-level-vs-per-line.md) | Scan scope: file-level rules see the repo, per-line rules see the diff | accepted |
+| [053](ADR-053-finding-clustering.md) | Finding clustering: when several rules report the same issue | proposed |
 
 ## Adding an ADR
 
