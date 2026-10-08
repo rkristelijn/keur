@@ -179,10 +179,14 @@ int check(const CheckOptions& opts, FileSource file_src) {
     ctx.proc = proc;
     ctx.exists = [&fs](const std::string& p) { return fs.exists(p); };
     // keur-rules layer: run the in-process engine, mapped to canonical Findings.
-    ctx.keur_rules = [&rules](const std::vector<std::string>& fs_in) {
+    // File-level rules (file-absence/presence, etc.) are evaluated over the whole
+    // repo tree (repo_root), not just the staged diff — a "repo has no
+    // SECURITY.md" check is a repo property, not a diff property. Per-line rules
+    // still run only over the staged files, so the hook stays sub-second.
+    ctx.keur_rules = [&rules, repo_root](const std::vector<std::string>& fs_in) {
         std::vector<scan::Finding> out;
         if (rules.empty()) return out;
-        for (const auto& rf : rules_scan_files(rules, fs_in)) {
+        for (const auto& rf : rules_scan_files_scoped(rules, fs_in, repo_root)) {
             scan::Finding f;
             f.source = "keur-rules";
             f.rule = rf.rule_id;

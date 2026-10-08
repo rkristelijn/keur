@@ -7,6 +7,7 @@
 #include "config/ruleset.h"
 
 #include <fstream>
+#include <set>
 #include <sstream>
 
 #include "adapters/fs.h"
@@ -197,10 +198,18 @@ int policy_level(const std::string& toml_body) {
 }
 
 std::vector<Rule> load_active_rules(std::set<std::string>* out_disabled) {
-    // 1. gather every rule from the resolved rule dirs.
+    // 1. gather every rule from the resolved rule dirs, de-duplicating by id.
+    //    The same rule id can appear in more than one dir (e.g. the repo's
+    //    rules/ AND the installed ~/.config/keur/rules snapshot — ADR-051). The
+    //    dirs are in precedence order (built-in -> global -> personal -> project
+    //    -> KEUR_RULES_DIRS), so the FIRST occurrence of an id wins and later
+    //    copies are skipped. Without this, an overlapping id would be loaded and
+    //    evaluated twice, emitting a duplicate finding for the same issue.
     std::vector<Rule> rules;
+    std::set<std::string> seen_ids;
     for (const auto& d : keur::rule_dirs())
-        for (auto& r : rules_load(d)) rules.push_back(std::move(r));
+        for (auto& r : rules_load(d))
+            if (seen_ids.insert(r.id).second) rules.push_back(std::move(r));
 
     // 2. resolve the disable-list from the config layer stack. I/O via the fs
     //    adapter (existence) + a plain read here; git gives the repo root.

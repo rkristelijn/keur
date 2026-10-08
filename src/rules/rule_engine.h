@@ -174,6 +174,19 @@ bool rule_matches_file(const Rule& rule, const std::string& rel_path);
 std::vector<RuleFinding> rules_scan_files(const std::vector<Rule>& rules,
                                           const std::vector<std::string>& files);
 
+/**
+ * Scan staged files for per-line rules, but evaluate FILE-LEVEL rules
+ * (file-absence/file-presence/max-dir-files/filename-case) over the whole repo
+ * tree rooted at `repo_root`. This is what the hook wants: a file-absence rule
+ * ("project has no SECURITY.md") is a repo property, not a diff property, so it
+ * must not fire just because SECURITY.md is absent from THIS commit. Per-line
+ * rules still run only over `files`, keeping the hook sub-second.
+ * If `repo_root` is empty, behaves exactly like `rules_scan_files`.
+ */
+std::vector<RuleFinding> rules_scan_files_scoped(const std::vector<Rule>& rules,
+                                                 const std::vector<std::string>& files,
+                                                 const std::string& repo_root);
+
 /** Scan a whole project directory (used by `keur scan`). */
 std::vector<RuleFinding> rules_scan_dir(const std::vector<Rule>& rules,
                                         const std::string& root);
