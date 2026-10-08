@@ -1,0 +1,24 @@
+# traceability-verbs.tsv — the registry of supported @-verbs (ADR-047).
+# @id traceability-verb-registry
+# @implements ADR-047
+#
+# This is the single source of truth for "which @-tags does keur traceability
+# support?". doc-coverage.sh reads it; adding a verb is a new row here, never a
+# script edit. Standard verbs (JSDoc/Doxygen) and keur's own sauce live together.
+#
+# Columns (tab-separated; POSIX-greppable; macOS + Linux):
+#   verb          the tag, without the leading @
+#   source        where it comes from: jsdoc,doxygen,phpdoc = standard; keur = ours
+#   kind          decl (declares an @id) | ref (points at one)
+#   validated     yes = target must resolve to a declared @id; no = free (path/url/text)
+#   deliverable   the deliverable type this verb represents
+#   coverage-dim  the measured axis it feeds, or - if recorded-only
+#
+# verb        source          kind   validated  deliverable  coverage-dim
+id            keur            decl   -          -            -
+implements    jsdoc,doxygen   ref    yes        code         concept->code
+proves        keur            ref    yes        test         concept->test
+shows         keur            ref    yes        demo         concept->demo
+explains      keur            ref    yes        guide        concept->guide
+see           jsdoc,doxygen   ref    no         related      -
+external      keur            ref    no         cross-repo   -

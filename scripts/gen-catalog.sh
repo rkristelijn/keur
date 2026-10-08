@@ -110,6 +110,21 @@ awk '
   END { flush() }
 ' $(cat "$tmp_list") >"$tmp_tsv"
 
+# Control (source-side, portable): a rule title must not carry a lone backslash
+# before u/U/x. Whatever an awk/locale/arch does to escape it on the way into
+# the C++ catalogue, such a title is a latent "incomplete universal character
+# name" compile error (it is what broke the arm32 build). Forbid it at the
+# source, so no title can ever require fragile escaping. Titles should read as
+# plain text anyway (e.g. "backslash-u", not a literal escape). @see KEUR-QUAL-011.
+bad_title="$(awk -F'\t' '$6 ~ /\\[uUx]/ { print $5 "\t" $6 }' "$tmp_tsv" || true)"
+if [[ -n "$bad_title" ]]; then
+  echo "gen-catalog: ERROR rule title contains a backslash-escape (\\u/\\U/\\x) that" >&2
+  echo "  does not survive catalogue generation portably. Rewrite it as plain text" >&2
+  echo "  (e.g. 'backslash-u XXXX' instead of a literal escape). Offending rule(s):" >&2
+  printf '%s\n' "$bad_title" | sed 's/^/    /' >&2
+  exit 1
+fi
+
 # Control: a duplicate rule id is an authoring mistake (two .rule files claiming
 # the same id). The catalogue used to dedup it away silently (!seen below), so a
 # collision shipped unnoticed. Fail the build instead — this is the control that
@@ -137,10 +152,26 @@ sorted="$(sort -t$'\t' -k1,1 -k2,2 -k5,5 "$tmp_tsv" | awk -F'\t' '!seen[$5]++')"
   echo
   echo 'const std::vector<CatalogEntry>& catalog() {'
   echo '    static const std::vector<CatalogEntry> k = {'
-  printf '%s\n' "$sorted" | awk -F'\t' 'NF>=7 {
-    for (i=1;i<=NF;i++){ gsub(/\\/,"\\\\",$i); gsub(/"/,"\\\"",$i) }
-    printf "        {\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", %s},\n", $5,$1,$2,$3,$4,$6,$7
-  }'
+  printf '%s\n' "$sorted" | awk -F'\t' '
+    # Portable C-string escape: build the output char-by-char. We deliberately
+    # avoid gsub(/\\/,"\\\\",…) because the backslash is SPECIAL in an awk
+    # gsub *replacement* under POSIX/gawk (there, "\\\\" collapses to a single
+    # backslash) but NOT under BSD awk — the two disagree, so a title like
+    # "…not \uXXXX escapes" emitted a single \u on CI (gawk) and compiled as an
+    # incomplete universal character name. cesc() uses only substr/concat, which
+    # behave identically everywhere. @see KEUR-INTERNAL catalog self-check.
+    function cesc(s,   out,i,c) {
+      out=""
+      for (i=1;i<=length(s);i++){ c=substr(s,i,1)
+        if (c=="\\") out=out "\\\\"
+        else if (c=="\"") out=out "\\\""
+        else out=out c }
+      return out
+    }
+    NF>=7 {
+      printf "        {\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", %s},\n", \
+        cesc($5), cesc($1), cesc($2), cesc($3), cesc($4), cesc($6), $7
+    }'
   echo '    };'
   echo '    return k;'
   echo '}'
@@ -154,5 +185,25 @@ echo "gen-catalog: wrote $count rules (from $rule_total files) to $out" >&2
 # Completion check: a partial write is a failure, not a silent half-catalogue.
 if [[ "$count" -lt 1 ]]; then
   echo "gen-catalog: ERROR wrote 0 rules — refusing a broken catalogue" >&2
+  exit 1
+fi
+
+# Control (shift-left): refuse to emit a catalogue that would not compile.
+# A single backslash followed by u/U/x in a C++ string literal is a universal
+# character name / hex escape; if it is not a well-formed one the compiler
+# errors with "incomplete universal character name" — which is exactly how a
+# rule TITLE containing a literal "\uXXXX" (or \U…, \x…) broke the arm32 build.
+# Catch it here, at the point of generation, with a clear message naming the
+# offending line — portable across every awk/locale/arch, so it can never slip
+# through to the compiler again. @see KEUR-QUAL-011.
+#   - a VALID escape is an even run of backslashes (\\, \\\\u → literal) OR
+#     \u followed by 4 hex / \U by 8 hex / \x by hex — those compile fine.
+#   - we flag a LONE backslash (odd run) before u/U/x that is NOT so formed.
+bad="$(grep -nE '(^|[^\\])(\\\\)*\\(u[0-9A-Fa-f]{0,3}([^0-9A-Fa-f]|$)|U[0-9A-Fa-f]{0,7}([^0-9A-Fa-f]|$)|x([^0-9A-Fa-f]|$))' "$out" || true)"
+if [[ -n "$bad" ]]; then
+  echo "gen-catalog: ERROR catalogue contains an ill-formed C++ escape (would not compile)." >&2
+  echo "  A rule title/field has a lone backslash before u/U/x — write it as plain text" >&2
+  echo "  (e.g. 'backslash-u' instead of a literal escape). Offending line(s):" >&2
+  printf '%s\n' "$bad" | sed 's/^/    /' >&2
   exit 1
 fi

@@ -1,0 +1,29 @@
+# Base64 data: URI carrying an inline payload.
+#
+# Why this exists: a `data:<mime>;base64,<blob>` URI embeds arbitrary bytes
+# inline. Small icons are fine, but the same shape hides larger payloads,
+# scripts, or exfiltrated data that a surface scan and a human reviewer skim
+# past. Flagging the shape surfaces the ones worth decoding and reviewing.
+#
+# What it flags: a data: URI with a base64 blob of non-trivial length. The length
+# floor ({40,}) skips tiny tracking pixels/favicons and keeps this to blobs that
+# can actually carry something. RE2, linear, no backtracking.
+#
+# WARNING, not block: inline assets are common and legitimate; this is a
+# review-this signal, not a bug. Decode locally (never paste into an online
+# decoder) to confirm it is not a hidden secret or script.
+#
+# Note: this is the ENCODED-span heuristic only. Decoding the blob and re-scanning
+# the inner bytes is a scanner-layer concern (keur's base64 unwrap engine), not a
+# regex rule — a regex must not base64-decode.
+id: SCA-080
+title: Base64 data URI with inline payload
+category: supply-chain
+severity: warning
+engine: pattern
+action: warn
+confidence: 0.6
+patterns:
+  - regex: data:[a-zA-Z0-9.+-]+/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]{40,}
+    message: "Base64 data: URI with an inline payload — can carry a hidden script/secret, not just an image. Decode locally and review. @see SCA-080"
+fix: "Confirm the inline blob is a legitimate small asset. For anything non-trivial, move it to a real file/artifact store and reference it by path/URL instead of embedding it. Decode locally to verify it is not a hidden secret or payload."

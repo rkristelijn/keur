@@ -47,8 +47,15 @@ std::string finding_to_json(const RuleFinding& f) {
 bool use_color(ColorMode mode, bool is_tty) {
     if (mode == ColorMode::Never)  return false;
     if (mode == ColorMode::Always) return true;
-    // Auto: colour only on a TTY and when NO_COLOR is unset.
+    // Auto: NO_COLOR wins over everything (no-color.org). Otherwise an explicit
+    // force env (FORCE_COLOR / CLICOLOR_FORCE — the Node and BSD conventions)
+    // turns colour on even without a TTY, so colour survives a pipe, a git hook,
+    // or a terminal recording. Falling through, colour only on a real TTY.
     if (std::getenv("NO_COLOR") != nullptr) return false;
+    if (const char* f = std::getenv("FORCE_COLOR"); f && *f && std::string(f) != "0")
+        return true;
+    if (const char* c = std::getenv("CLICOLOR_FORCE"); c && *c && std::string(c) != "0")
+        return true;
     return is_tty;
 }
 

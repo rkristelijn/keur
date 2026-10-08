@@ -11,6 +11,7 @@
 #include <windows.h>
 
 #include <cstdio>
+#include <io.h>
 #include <cstring>
 #include <string>
 
@@ -283,6 +284,10 @@ TermSize terminal_size() {
         t.rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
     }
     return t;
+}
+
+bool stderr_is_tty() {
+    return _isatty(_fileno(stderr)) != 0;
 }
 
 bool process_alive(long pid) {

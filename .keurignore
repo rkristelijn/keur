@@ -7,3 +7,10 @@
 # not a bypass. A finer per-term allow ("allow <term>" in the scan layer) is
 # designed in ADR-046 and will replace this blunt rule-level suppression.
 VAULT-PERSONAL
+
+# VAULT-GDPR_UK is likewise a PERSONAL-vault rule from the global
+# ~/.config/keur/rules/ layer (scans prose for GDPR/PII terms). On this public
+# tool repo it only ever fires on binary assets (e.g. demos/*.gif, where image
+# bytes coincidentally match a term) — a false positive, not a leak. Scoping it
+# off here is a scope correction, same as VAULT-PERSONAL above (ADR-035/043).
+VAULT-GDPR_UK

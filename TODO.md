@@ -88,7 +88,7 @@ Status legend: [x] done · [~] partially done · [ ] open
       include. (raised 2026-10-04 alongside the SONAR-* rules.)
 - [ ] findings double-count per (rule,file,line) — each fires 2× in a scan.
       CONFIRMED 2026-10-05 it is NOT SONAR-specific: a one-off pattern rule
-      (PII-vault 'flupke' probe) also fired twice on the same line:1. So it is a
+      (PII-vault denylist probe) also fired twice on the same line:1. So it is a
       general dedup gap in the scan/report path, not a per-rule quirk. Fix: dedupe
       on (rule,file,line) before emitting findings. First seen on SONAR-* rules.
 
@@ -325,13 +325,35 @@ Status legend: [x] done · [~] partially done · [ ] open
 
 ### Quality / research
 
-- [ ] no .clang-format exists — C++ style is inconsistent hand-formatting.
-      Notably, broken function headers align continuation lines under the open
-      paren (AlignAfterOpenBracket: Align), which drifts right on long names and
-      churns diffs on rename. Add a .clang-format with a STABLE style (e.g.
-      AlignAfterOpenBracket: BlockIndent or DontAlign + ContinuationIndentWidth:
-      4, one param per line), then format the codebase once. Hook into `make
-      lint`/`make format`. New code is already written in the stable style.
+- [ ] CI COST: take the macOS/Windows/arm32 matrix off the per-PR hot path
+      (fail-fast + cheap). GitHub Actions bills macOS at x10 and Windows at x2;
+      ci.yml runs the full matrix on every push, so one matrix run is ~175
+      billed minutes (macOS ~15min x10 = 150 alone). On 2026-10-08 this exhausted
+      the 2000-min GitHub Free quota mid-day — keur alone was $11.95 of $14.41
+      total metered usage — which ALSO blocks release.yml (no runners = no
+      release build). Fix: on a PR/push run ONLY the Linux job (build + unit +
+      integration + e2e + dogfood, x1, ~5-10 min); gate macOS/Windows/arm32
+      behind `if: github.ref == 'refs/heads/main'` or a `ci-full` PR label. Leave
+      release.yml's matrix as-is (a release genuinely needs the per-OS binaries,
+      and it runs rarely). Expected: ~20x less CI spend per PR. Ties into ADR-050
+      (stage 5 = cross-platform, last). Verify the new `needs:` graph with
+      `act -l` before pushing.
+- [ ] REFORMAT the C++ tree with clang-format (NEXT MR, on its own branch).
+      `.clang-format` now exists (Google base, IndentWidth 2, ColumnLimit 140,
+      PointerAlignment Left) — but the tree is NOT reformatted to it yet, so the
+      style is still inconsistent hand-formatting (src/rules 2-space, src/keur
+      4-space). Measured impact of the one-time reformat: ~19k changed +/- lines
+      across 97 C++ files. Keep it a DEDICATED MR so the diff does not pollute a
+      feature change or every git blame. Steps: run
+      `/opt/homebrew/opt/llvm/bin/clang-format -i` (or add a `make format` target)
+      over `src/**/*.{cpp,h}`, build + `make test` green, commit as one
+      `style: clang-format the C++ tree` commit. Then hook clang-format --dry-run
+      --Werror into `make lint` and the ADR-050 lint stage so it stays formatted.
+- [ ] clang-tidy fixes (separate from clang-format): the Sonar C++ findings
+      (`std::byte`, `std::format`, init-statement in if, redundant lambda return
+      type) are clang-tidy --fix territory, not formatting. clang-tidy is at
+      /opt/homebrew/opt/llvm/bin/clang-tidy. Scope per-file when touched, not a
+      bulk pass. Reject the C++23 suggestions (`\o{...}`) — keur is C++20.
 - [ ] BASICS as enforced norms (candidate for KEUR-ARCH self-check rules):
       * no source file > ~300 NET lines (comments/blank excluded);
       * no dir > ~10 files;
@@ -353,6 +375,28 @@ Status legend: [x] done · [~] partially done · [ ] open
       cap; regroup (eval/ into subdirs: corpus/, groundtruth/, loop/, report/).
       Consider making these checks KEUR's OWN dogfooding rules once measurable.
 - [ ] rules: do they follow an ISO *ilities structure? would that be applicable?
+- [ ] SPLIT src/keur/keur_test.cpp — it is now ~4384 lines / 283 SCENARIOs in a
+      single translation unit (the historical "~858 net" bullet above is badly
+      out of date). One TU means every test edit recompiles the whole file and
+      merge conflicts concentrate. The split boundaries already exist: the file
+      is sectioned by `// --- [feature:...] ---` headers. Carve those into
+      sibling TUs (keur_test_policy.cpp, _check.cpp, _dispatch.cpp,
+      _rule_engine.cpp, _manager.cpp, _settings.cpp, ...) with the doctest main
+      in ONE small TU and the rest header-shared, linked together. Verify:
+      before/after SCENARIO count stays 283 and `make test` is green — no test
+      silently dropped from the build. Shared helpers (create_temp_dir,
+      write_file, has_rule, ...) move to a keur_test_support.h.
+- [ ] FIX max-nesting lexer: sequential guard clauses counted as nesting depth.
+      `engine: max-nesting` (src/rules/rule/block.cpp eval_max_nesting) flags a
+      function with four single-statement `if (...) return;` guard clauses as
+      "nested > 3", but they are four checks at depth 1, not nested. Diagnosed
+      2026-10-08 on engines.cpp unwrap_token (suppressed there with keur:ignore
+      KEUR-QUAL-004 + reason). Root cause: a brace-less `if` whose body is one
+      statement is not popped from the depth count. Fix the lexer to treat a
+      single-statement (brace-less) control body as depth+1 for that statement
+      only, then verify unwrap_token no longer flags and the existing
+      max-nesting tests stay green. This is keur dogfooding a bug in its own
+      engine — fix + control (add a guard-clause fixture to the max-nesting test).
 - [ ] CENTRALISE the corpus path (DRY) + move it out of the tracked tree.
       Today the corpus path is hardcoded ~146x across ~8 eval/*.sh scripts
       (corpus/repos, corpus/groundtruth, corpus/measure, corpus/split) — no
@@ -442,3 +486,111 @@ Status legend: [x] done · [~] partially done · [ ] open
       "last change N iters ago" so a rejects-only stretch reads as progress,
       not a hang.
       See src/keur/cmd/learn.cpp (draw_frame, aggregate).
+
+## Traceability, demos & docs (ADR-047 — open)
+
+Context: ADR-047 added a verb registry, `@shows`/`@explains`, a mandatory file
+header, and two density capabilities. The data-only parts landed; the C++ and
+the remaining demos are open.
+
+- [x] ADR-047 written (extends ADR-010): verb registry, `@shows`/`@explains`,
+      file-header rule, two independent density capabilities (comment-ratio +
+      marker-density), meter moves to C++ `keur trace` (build once, not shell).
+- [x] `docs/design/traceability-verbs.tsv`: the supported-verb registry
+      (standard JSDoc/Doxygen + keur's own), data-driven.
+- [x] DOC-014: file-floor rule now counts `@implements`/`@proves`/`@shows`/
+      `@explains` as valid markers.
+- [x] `report::use_color` follows the standard colour chain: `--color` →
+      `NO_COLOR` → `FORCE_COLOR`/`CLICOLOR_FORCE` → isatty. 4 unit tests.
+- [x] `check` colours hook findings (BLOCK red, warn yellow) via `use_color`;
+      TTY detection behind new `platform::stderr_is_tty()` (no OS call in cmd/,
+      ADR-005 — keeps the portability self-check green).
+- [x] demos moved to `docs/demo/`; AAA pattern (Arrange/Act/Assert); zsh +
+      zsh-syntax-highlighting (coloured commands, grey comments),
+      `setopt interactive_comments`, neutral prompt, `/tmp/demo` (no username
+      leak), `git config color.ui always`.
+- [x] `docs/demo/TEMPLATE.tape` (AAA skeleton for new demos).
+- [x] `docs/demo/commit-env-file.tape` (@shows SEC-100 KEUR-SECRET-003) +
+      `secret-in-code.tape` (@shows KEUR-SEC-002), rendered.
+- [x] `docs/demo/run.sh` (@shows ADR-047): extracts the `Type "..."` commands
+      from a .tape and runs them in zsh so a demo's output can be verified
+      without rendering — AAA scenario + its test-runner. Could become a CI
+      check that every demo's Assert still holds.
+
+- [ ] **`keur trace` subcommand (C++)** — fold the shell prototype
+      `eval/doc-coverage.sh` into the binary: read the TSV registry, harvest the
+      tags, report every dimension (code/test/doc/engine + demo/guide + density),
+      `--strict` as the gate. Build ONCE in C++; remove the shell prototype at
+      parity. The `concept -> demo` (`@shows`) and `concept -> guide`
+      (`@explains`) dimensions live here (they were prototyped in shell and
+      reverted to avoid building twice).
+- [ ] **Two density engines (C++)**, each its own `.rule` + `severity`/`action`:
+      `comment-ratio` (cpm parity, comments/code, `min_ratio`) and
+      `min-marker-density` (only `@`-verbs count, + file-floor). Both build on
+      the `max-lines` comment/code split. Ship as `warning` first, ratchet to
+      block per-rule.
+- [ ] **ADR-047 conventions to pin**: `docs/demo/` location, one
+      `docs/<feature>.md` (`@explains`) per feature embedding its demo, the AAA
+      pattern, TEMPLATE as the start point. Decide `docs/<feature>.md` top-level
+      vs `docs/features/<feature>.md`. (Was going to be written into ADR-047.)
+- [ ] **Feature docs** `docs/commit-env-file.md` + `docs/secret-in-code.md`
+      (`@explains`), each embedding its GIF.
+- [ ] **`docs/demo/README.md`**: one index showing every GIF with the idea/story,
+      which other tool also covers this (or not — gitleaks/trufflehog/pre-commit/
+      semgrep positioning), and the render time per demo. (Currently a stub.)
+
+- [ ] **More demos to cover keur's story** (measured per engine/command, not per
+      rule — 1109 rules make per-rule meaningless):
+    - [ ] `keur:ignore` suppression (the core promise: kill a false positive
+          without `--no-verify`). NOTE: pick a SINGLE-rule example — a hardcoded
+          password fires several overlapping secret rules at once, so one
+          `keur:ignore <id>` leaves the others blocking and the demo looks broken.
+    - [ ] `keur hook` install (onboarding: how you get this working).
+    - [ ] `keur scan <path>` (ad-hoc scan, shows the breadth vs the hook).
+    - [ ] structural quality (`max-lines`/`max-nesting`/`max-dir-files`) — keur
+          is more than secrets.
+    - [ ] `composite` rule (ADR-009, the advanced capability).
+    - [ ] PII demo (user's PII-name idea). A made-up name does NOT block —
+          the VAULT/PII scanner only matches terms from the personal list. Needs
+          a demo-specific `.pii` list staged in Arrange (safe, invented name), or
+          it is skipped. BLOCKED by the pii-scanner-dependency item below.
+
+- [ ] **PII scanner is an external runtime dependency (architecture smell)** —
+      `scanners/pii.sh` delegates (via `KEUR_PII_SCAN`) to
+      `pii-sensitive-scan.sh` which lives in the *security-tooling* repo
+      (`.../src/tools/ticket-audit/pii-sensitive-scan.sh`), with term lists in
+      `~/.local/share/pii/patterns.d/*.pii`. That is a runtime dep outside the
+      single binary (conflicts with ADR-002). Decide: either (a) the PII/VAULT
+      detection belongs IN the C++ binary, or (b) it is an optional external
+      scanner integration (ADR-019) and NOT a shipped keur deliverable — and
+      document which. This blocks a portable, reproducible PII demo. Review
+      ADR-042 (pii-vault-scanner) against this.
+
+## Disabling a whole category is not discoverable (`disabled_categories`)
+
+Real case (2026-10-08): a private repo wanted PII/BII detection off. The user
+set `[scanners.pii] enabled = false` — the obvious-looking switch — but kept
+getting blocked. Root cause: that toggle only disables the EXTERNAL pii scanner
+(`scanners/pii.sh` → `pii-sensitive-scan.sh`); the VAULT-* findings come from
+built-in `.rule` files (`category: pii`) run by the `keur-rules` scanner, which
+that toggle does not touch. The working fix was listing all five rule ids in
+`[rules] disabled` (`VAULT-PERSONAL`, `VAULT-WORK_APS`, `VAULT-GDPR_NL`,
+`VAULT-GDPR_UK`, `VAULT-GENERIC`). Verified: per-id disable works correctly (not
+a bug) — it was a discoverability/ergonomics gap.
+
+Two things to fix:
+
+- [ ] **`disabled_categories` in keur.toml** — let a whole category be turned off
+      in one line, e.g. `disabled_categories = ["pii", "bii"]`, instead of
+      listing every rule id. The VAULT rules already carry `category: pii`, so the
+      data is there; only `config/disabled.cpp` (parse + filter) lacks the
+      category path. Scales: a new VAULT-* rule is covered automatically. Needs an
+      ADR (touches the config convention) + tests. This is the ergonomic switch a
+      user reaches for ("turn pii off for this private repo").
+- [ ] **Discoverability of the two PII mechanisms** — `[scanners.pii]` (external
+      scanner) vs the built-in `category: pii` VAULT rules are two different off
+      switches with the same name in the user's head. Document it, and/or when a
+      `pii`-category finding blocks, hint the real knob
+      (`[rules] disabled`/`disabled_categories`) the way findings already hint
+      `keur:ignore`. Ties into the existing TODO item about the external
+      pii-scanner runtime dependency (ADR-002 vs ADR-042).
