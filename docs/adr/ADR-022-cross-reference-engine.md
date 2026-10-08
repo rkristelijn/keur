@@ -26,6 +26,19 @@ The same shape recurs everywhere:
   `doc-coverage.sh`, not the engine);
 - every public export is re-exported from the package index.
 
+A closely related variant is **cross-file value *agreement*** (not just
+presence): the same fact is declared in several places and they must match. The
+motivating case (raised 2026-10-08): a project's **Node version** is pinned in up
+to four files — `package.json` `engines.node`, `.nvmrc`, the CI workflow's
+`setup-node` `node-version:`, and a `Dockerfile` `FROM node:<X>`. If those drift
+apart, the build is reproducible nowhere: CI tests one Node, the image ships
+another, the developer runs a third. A per-file rule can say "a Node version is
+pinned *here*" (that is NODE-PIN-001, an `absence` check on `package.json`), but
+only a corpus-scoped engine can say "the version in `.nvmrc` equals the one in
+`engines.node` equals the `FROM node:` tag equals the CI `node-version`". Same
+engine shape as the presence cases, but the comparison is value-equality across
+the extracted tokens, not membership.
+
 **No current engine can express this.** Every engine — `pattern`, `presence`,
 `absence`, `count`, `multiline`, even `path-derived` (ADR-020) — runs over **one
 file at a time**: the `ScanContext` gives `cx.lines` (this file) and `cx.rel`
