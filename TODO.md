@@ -353,6 +353,17 @@ Status legend: [x] done · [~] partially done · [ ] open
       cap; regroup (eval/ into subdirs: corpus/, groundtruth/, loop/, report/).
       Consider making these checks KEUR's OWN dogfooding rules once measurable.
 - [ ] rules: do they follow an ISO *ilities structure? would that be applicable?
+- [ ] SPLIT src/keur/keur_test.cpp — it is now ~4384 lines / 283 SCENARIOs in a
+      single translation unit (the historical "~858 net" bullet above is badly
+      out of date). One TU means every test edit recompiles the whole file and
+      merge conflicts concentrate. The split boundaries already exist: the file
+      is sectioned by `// --- [feature:...] ---` headers. Carve those into
+      sibling TUs (keur_test_policy.cpp, _check.cpp, _dispatch.cpp,
+      _rule_engine.cpp, _manager.cpp, _settings.cpp, ...) with the doctest main
+      in ONE small TU and the rest header-shared, linked together. Verify:
+      before/after SCENARIO count stays 283 and `make test` is green — no test
+      silently dropped from the build. Shared helpers (create_temp_dir,
+      write_file, has_rule, ...) move to a keur_test_support.h.
 - [ ] CENTRALISE the corpus path (DRY) + move it out of the tracked tree.
       Today the corpus path is hardcoded ~146x across ~8 eval/*.sh scripts
       (corpus/repos, corpus/groundtruth, corpus/measure, corpus/split) — no
