@@ -254,8 +254,8 @@ void eng_extract_duplicates(const ScanContext& cx, std::vector<RuleFinding>& out
 // A deterministic transform engine: find base64 blobs on a line, decode ONE
 // layer, and re-run THIS rule's own patterns over the decoded bytes. The
 // detection lives in the rule's patterns[] (data); the engine only performs the
-// decode transform (ADR-009: the RE2 line engine stays dumb; a regex must not
-// base64-decode). This closes the demonstrated blind spot where a secret/PII is
+// decode transform (ADR-009: the RE2 line engine stays minimal; a regex must not
+// base64-decode). This closes the demonstrated visibility gap where a secret/PII is
 // one base64 layer deep and a surface scan matches only the encoded shape
 // (motivating case: a cloudflared tunnel token committed as base64 JSON).
 //
@@ -312,6 +312,22 @@ bool b64_decode_one_layer(std::string_view in, std::string& out) {
   return !out.empty();
 }
 
+// Validate the UTF-8 multibyte sequence starting at s[i] (lead byte already
+// known to be >= 0x80). Returns its byte length (2..4) if well-formed, else 0.
+// Pulled out of looks_like_utf8_text so that function stays flat (ADR-039
+// maintainability; SonarCloud cognitive-complexity).
+int utf8_multibyte_len(const std::string& s, size_t i) {
+  unsigned char c = (unsigned char)s[i];
+  size_t n = s.size();
+  auto cont = [&](size_t j) {
+    return j < n && ((unsigned char)s[j] & 0xC0) == 0x80;
+  };
+  if ((c & 0xE0) == 0xC0) return (c >= 0xC2 && cont(i + 1)) ? 2 : 0;  // reject overlong
+  if ((c & 0xF0) == 0xE0) return (cont(i + 1) && cont(i + 2)) ? 3 : 0;
+  if ((c & 0xF8) == 0xF0) return (cont(i + 1) && cont(i + 2) && cont(i + 3)) ? 4 : 0;
+  return 0;  // invalid lead byte
+}
+
 // Is `s` valid UTF-8 AND does it look like text (no NUL/control bytes other than
 // tab/newline/CR)? ADR-049 re-scans only text; binary decodes are dropped so we
 // do not flood on images/hashes/compiled blobs.
@@ -323,22 +339,11 @@ bool looks_like_utf8_text(const std::string& s) {
       // ASCII; reject control chars except tab/newline/CR.
       if (c < 0x20 && c != '\t' && c != '\n' && c != '\r') return false;
       i++;
-    } else if ((c & 0xE0) == 0xC0) {
-      if (i + 1 >= n || ((unsigned char)s[i + 1] & 0xC0) != 0x80) return false;
-      if (c < 0xC2) return false;  // overlong
-      i += 2;
-    } else if ((c & 0xF0) == 0xE0) {
-      if (i + 2 >= n || ((unsigned char)s[i + 1] & 0xC0) != 0x80 ||
-          ((unsigned char)s[i + 2] & 0xC0) != 0x80) return false;
-      i += 3;
-    } else if ((c & 0xF8) == 0xF0) {
-      if (i + 3 >= n || ((unsigned char)s[i + 1] & 0xC0) != 0x80 ||
-          ((unsigned char)s[i + 2] & 0xC0) != 0x80 ||
-          ((unsigned char)s[i + 3] & 0xC0) != 0x80) return false;
-      i += 4;
-    } else {
-      return false;  // invalid lead byte
+      continue;
     }
+    int len = utf8_multibyte_len(s, i);
+    if (len == 0) return false;
+    i += (size_t)len;
   }
   return true;
 }
@@ -398,6 +403,40 @@ bool hex_decode_one_layer(std::string_view in, std::string& out) {
 
 // Shared unwrap-then-scan driver (ADR-049). For each line, walk candidate runs
 // (characters for which `is_cand` is true), and for every run of length >=
+// Re-scan already-decoded TEXT with the rule's patterns; on the first match,
+// emit a finding at the ENCODED line (`enc_line`) and stop. The decoded value is
+// never put in the message, so no secret is echoed. Non-template so it is not
+// re-instantiated per engine. @id engine-unwrap-rescan
+void rescan_decoded_emit(const ScanContext& cx, const std::string& decoded,
+                         int enc_line, std::vector<RuleFinding>& out) {
+  const Compiled& c = cx.compiled;
+  const Rule& r = *c.rule;
+  for (size_t pi = 0; pi < c.res.size(); pi++) {
+    if (!c.res[pi]) continue;
+    if (RE2::PartialMatch(decoded, *c.res[pi])) {
+      emit(r, cx.rel, enc_line, finding_msg(r, r.patterns[pi].message), out);
+      return;  // one finding per encoded line is enough
+    }
+  }
+}
+
+// Decode one candidate token and, if it decodes to text, re-scan it. Pulled out
+// of the line loop so the driver stays flat (SonarCloud nesting/complexity).
+template <typename Decode>
+void unwrap_token(const ScanContext& cx, std::string_view token, int floor,
+                  int enc_line, Decode decode, std::vector<RuleFinding>& out) {
+  // NB: these four guard clauses are flat (depth 1 each). keur's own max-nesting
+  // lexer miscounts sequential brace-less guard ifs as nesting (KEUR-QUAL-004, a
+  // non-blocking warning) — tracked as a lexer fix in TODO.md, not worked around
+  // here by distorting the code.
+  const size_t min_len = floor > 0 ? (size_t)floor : 0;  // compare in size_t (ADR-006)
+  if (token.size() < min_len) return;
+  std::string decoded;
+  if (!decode(token, decoded)) return;
+  if (!looks_like_utf8_text(decoded)) return;  // ADR-049: text only
+  rescan_decoded_emit(cx, decoded, enc_line, out);
+}
+
 // `floor`, decode one layer with `decode`, drop non-UTF-8/binary output, then
 // re-scan the decoded TEXT with the rule's own patterns. A hit is reported at
 // the ENCODED line; the decoded value is never echoed (message comes from the
@@ -406,9 +445,7 @@ bool hex_decode_one_layer(std::string_view in, std::string& out) {
 template <typename IsCand, typename Decode>
 void unwrap_scan(const ScanContext& cx, int floor, IsCand is_cand, Decode decode,
                  std::vector<RuleFinding>& out) {
-  const Compiled& c = cx.compiled;
-  const Rule& r = *c.rule;
-  if (c.res.empty()) return;  // nothing to re-scan with
+  if (cx.compiled.res.empty()) return;  // nothing to re-scan with
 
   for (size_t li = 0; li < cx.lines.size(); li++) {
     std::string_view line(cx.lines[li].data(), cx.lines[li].size());
@@ -417,21 +454,8 @@ void unwrap_scan(const ScanContext& cx, int floor, IsCand is_cand, Decode decode
       if (!is_cand(line[pos])) { pos++; continue; }
       size_t start = pos;
       while (pos < n && is_cand(line[pos])) pos++;
-      std::string_view token = line.substr(start, pos - start);
-      if ((int)token.size() < floor) continue;
-
-      std::string decoded;
-      if (!decode(token, decoded)) continue;
-      if (!looks_like_utf8_text(decoded)) continue;  // ADR-049: text only
-
-      bool fired = false;
-      for (size_t pi = 0; pi < c.res.size() && !fired; pi++) {
-        if (!c.res[pi]) continue;
-        if (RE2::PartialMatch(decoded, *c.res[pi])) {
-          emit(r, cx.rel, (int)(li + 1), finding_msg(r, r.patterns[pi].message), out);
-          fired = true;  // one finding per encoded line is enough
-        }
-      }
+      unwrap_token(cx, line.substr(start, pos - start), floor,
+                   (int)(li + 1), decode, out);
     }
   }
 }
