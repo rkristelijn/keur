@@ -3214,6 +3214,41 @@ SCENARIO("[feature:rule-engine] KEUR-CFG-001 is satisfied by .config/keur.toml")
     CHECK(!has_rule(f, "KEUR-CFG-002"));
     cleanup_dir(dir);
 }
+
+SCENARIO("[feature:rule-engine] NODE-PIN-001 fires when package.json pins no Node version") {  // @proves NODE-PIN-001
+    auto rules = keur::rules_load(repo_root() + "/rules/quality");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    // A JS repo (a .ts file makes facts resolve lang=ts) with a manifest that
+    // declares a project but no engines.node.
+    write_file(dir + "/app.ts", "export const x = 1;\n");
+    write_file(dir + "/package.json", "{\n  \"name\": \"app\",\n  \"dependencies\": {}\n}\n");
+    auto f = keur::rules_scan_dir(rules, dir);
+    CHECK(has_rule(f, "NODE-PIN-001"));
+    cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] NODE-PIN-001 is satisfied by engines.node (one-line and expanded)") {  // @proves NODE-PIN-001
+    auto rules = keur::rules_load(repo_root() + "/rules/quality");
+    REQUIRE(!rules.empty());
+    // One-line engines block.
+    std::string d1 = create_temp_dir();
+    write_file(d1 + "/app.ts", "export const x = 1;\n");
+    write_file(d1 + "/package.json", "{\"name\":\"app\",\"engines\":{\"node\":\">=20 <21\"}}\n");
+    auto f1 = keur::rules_scan_dir(rules, d1);
+    CHECK(!has_rule(f1, "NODE-PIN-001"));
+    cleanup_dir(d1);
+    // Expanded (multi-line) engines block — the node KEY is still on one line,
+    // so keying on it is robust to formatting (no false positive here).
+    std::string d2 = create_temp_dir();
+    write_file(d2 + "/app.ts", "export const x = 1;\n");
+    write_file(d2 + "/package.json",
+        "{\n  \"name\": \"app\",\n  \"engines\": {\n    \"node\": \">=20.11 <21\"\n  }\n}\n");
+    auto f2 = keur::rules_scan_dir(rules, d2);
+    CHECK(!has_rule(f2, "NODE-PIN-001"));
+    cleanup_dir(d2);
+}
 SCENARIO("[feature:rule-engine] requires: prunes a rule when facts don't satisfy it") {  // @proves ADR-009.requires
     // A rule requiring framework=express must NOT fire in a repo whose package.json
     // has no express; the same rule MUST fire when express is present.

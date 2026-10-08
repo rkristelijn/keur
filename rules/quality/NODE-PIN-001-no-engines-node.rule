@@ -1,0 +1,36 @@
+# A Node project should pin which Node runtime it supports, so a build is
+# reproducible and a wrong Node version fails fast instead of breaking subtly.
+# The canonical declaration is "engines": { "node": ... } in package.json
+# (optionally enforced hard with engine-strict=true in .npmrc). This absence
+# rule fires when no `"node": "<range>"` line appears anywhere in a package.json.
+#
+# WHY the pattern is just the node-key line: the `absence` engine matches
+# per-line (docs/rules-authoring.md), so a multi-line "engines": { \n "node": ...
+# block cannot be matched as one span. The `"node": "<version>"` KEY, however,
+# is always on a single line whether the block is one-line or expanded — so
+# keying on that line is robust to formatting and avoids a false positive on a
+# project that DOES pin (expanded) its engines block.
+#
+# requires lang js/ts so it only speaks to Node/JS repos (facts, ADR-009).
+# WARN, modest confidence: a library may stay Node-agnostic, a monorepo may pin
+# once at the root — a nudge, not a hard fail.
+#
+# @see docs/rules-authoring.md (absence is per-line), ADR-026 (maturity).
+id: NODE-PIN-001
+ilities: [reliability-maturity, modifiability]
+maturity: 3
+title: Node project does not pin its Node version (no engines.node)
+category: quality
+severity: warning
+engine: absence
+action: warn
+confidence: 0.5
+requires:
+  lang: js ts
+target:
+  filenames: package.json
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \"node\"\s*:\s*\"[^\"]*\d
+    message: "package.json pins no Node version — add \"engines\": { \"node\": \">=20 <21\" } so the runtime is reproducible, and enforce it with engine-strict=true in .npmrc."
+fix: "Add an \"engines\" block to package.json, e.g. \"engines\": { \"node\": \">=20.11 <21\" }, and set engine-strict=true in .npmrc so a wrong Node version fails install instead of breaking subtly. A .nvmrc with the same version helps developers switch."
