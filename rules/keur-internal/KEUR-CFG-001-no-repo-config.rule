@@ -1,0 +1,23 @@
+# A repo should declare its own keur policy so the gate is explicit and shared,
+# not left to per-machine defaults. file-absence over the repo scope (ADR-052):
+# fires when neither <repo>/.config/keur.toml nor <repo>/keur.toml exists.
+# Basename match, so either location counts.
+#
+# Two-rule escalation (ADR-026: maturity decides IF active, action decides how
+# hard): this warn is active from maturity 2 (developing). KEUR-CFG-002 blocks
+# the same gap from maturity 4 (managed). A low-maturity repo gets a nudge; a
+# mature one must commit a policy. The overlap between the two is the kind of
+# "same issue, two rules" ADR-053 (clustering) will fold in the report.
+id: KEUR-CFG-001
+ilities: [analysability, modifiability]
+maturity: 2
+title: Repository has no keur config (.config/keur.toml or keur.toml)
+category: quality
+severity: warning
+engine: file-absence
+action: warn
+target:
+  filenames: keur.toml
+confidence: 0.6
+message: "No keur config at repo level — add .config/keur.toml (preferred, keeps the root clean) or keur.toml so the gate's policy is explicit, shared and reviewable, not left to per-machine defaults."
+fix: "Create .config/keur.toml with at least a [difficulty] block (ADR-026) and the [policy] thresholds; commit it so the whole team runs the same gate."

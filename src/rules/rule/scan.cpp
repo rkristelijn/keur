@@ -450,7 +450,7 @@ void walk(const std::string& dir, const std::string& prefix,
     struct stat st;
     if (stat(full.c_str(), &st) != 0) continue;
     if (name[0] == '.' && S_ISDIR(st.st_mode) &&
-        name != ".github" && name != ".gitlab" && name != ".ci")
+        name != ".github" && name != ".gitlab" && name != ".ci" && name != ".config")
       continue;
     if (S_ISDIR(st.st_mode) &&
         (name == "node_modules" || name == "vendor" || name == "build" || name == "dist" ||

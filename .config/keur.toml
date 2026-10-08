@@ -1,0 +1,66 @@
+
+[rules]
+
+[scanners.gitleaks]
+enabled = false
+
+[scanners.trufflehog]
+enabled = false
+
+[scanners.trivy]
+enabled = false
+
+[scanners.grype]
+enabled = false
+
+[scanners.osv-scanner]
+enabled = false
+
+[scanners.syft]
+enabled = false
+
+[scanners.semgrep]
+enabled = false
+
+[scanners.checkov]
+enabled = false
+
+[scanners.tfsec]
+enabled = false
+
+[scanners.pii]
+enabled = false
+
+[scanners.presidio]
+enabled = false
+
+[scanners.keur-rules]
+enabled = false
+
+[scanners.sonar]
+enabled = false
+
+[scanners.coderabbit]
+enabled = false
+
+# keur holds ITSELF to the strictest band (ADR-026 level 5, "optimising"):
+# every ility at 5, so every rule up to and including the opinionated/advisory
+# ones is active. Measured 2026-10-08: at level 5 the only rule firing on src/
+# is KEUR-INCL-002 (a known advisory nudge on an ADR title quote); level-4 rules
+# find nothing. So the strict gate is clean, not aspirational. The KEUR-SELF-005
+# self-check below fails if any ility is set below 5 — "get to level 5 and stay".
+[difficulty]
+confidentiality = 5
+integrity = 5
+authenticity = 5
+reliability-maturity = 5
+fault-tolerance = 5
+availability = 5
+analysability = 5
+modifiability = 5
+testability = 5
+modularity = 5
+time-behaviour = 5
+accessibility = 5
+adaptability = 5
+traceability = 5

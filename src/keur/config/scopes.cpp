@@ -53,6 +53,17 @@ std::string repo_config_path(const ScopeEnv& env) {
     return platform::path_join(env.repo_root, "keur.toml");
 }
 
+// Repo-scoped config in a .config/ subdirectory, to keep the project root
+// uncluttered (the XDG-in-repo convention: tools look under <repo>/.config/ so
+// the root does not fill with per-tool dotfiles — see nodejs/tooling#71). This
+// resolves to <repo>/.config/keur.toml and is tried BEFORE the root
+// <repo>/keur.toml, so a project can keep its keur config out of the root.
+std::string repo_dotconfig_path(const ScopeEnv& env) {
+    if (env.repo_root.empty()) return "";
+    return platform::path_join(platform::path_join(env.repo_root, ".config"),
+                               "keur.toml");
+}
+
 std::string scope_name(Scope scope) {
     switch (scope) {
         case Scope::Defaults: return "defaults";
@@ -82,6 +93,9 @@ std::vector<Layer> resolve_layers(
 
     add(Scope::Global, global_config_path(env));
     add(Scope::KeurHome, keur_home_config_path(env));
+    // Repo scope, uncluttered-first: <repo>/.config/keur.toml is tried before
+    // the root <repo>/keur.toml, so both work and .config/ keeps the root clean.
+    add(Scope::Repo, repo_dotconfig_path(env));
     add(Scope::Repo, repo_config_path(env));
 
     // Explicit --config always wins; it is the last (most specific) layer.

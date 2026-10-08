@@ -77,6 +77,11 @@ std::string find_config_upward(const std::string& start_dir) {
 
     while (!dir.empty()) {
         std::string sep = (dir.back() == '/' || dir.back() == '\\') ? "" : "/";
+        // Uncluttered-first: a <dir>/.config/keur.toml wins over <dir>/keur.toml,
+        // so a project can keep its config out of the root (nodejs/tooling#71).
+        std::string dotcfg = dir + sep + ".config" + "/keur.toml";
+        std::ifstream df(dotcfg);
+        if (df.good()) return dotcfg;
         std::string candidate = dir + sep + "keur.toml";
         std::ifstream f(candidate);
         if (f.good()) return candidate;
