@@ -111,6 +111,22 @@ single-file regression, clean vs dirty), `hook`, `policy`, `rules`, `config`,
 - Restructure `ci.yml` on a dedicated branch; confirm a full green run before
   merging. Keep `smoke.sh` for the cross-platform stage.
 
+## Testing the pipeline locally (before pushing)
+
+Two levels, so a push is not a debug-by-CI loop:
+
+- **Stage content** — `scripts/ci-local.sh` runs the stages in this ADR's order
+  on the local machine (lint → build + unit/integration → e2e → dogfood), fail-
+  fast, no Docker. `--fast` skips e2e. The cross-platform matrix is the one thing
+  it cannot prove and is skipped with a note. This catches ~90% of failures
+  (compile, test, lint, dogfood) in seconds-to-minutes.
+- **Workflow graph** — `act -l` (nektos/act) prints the job graph and stages, so
+  a reordering can be validated structurally before pushing: today it shows
+  `stage 0: build, build-arm32` then `stage 1: dogfood` — exactly the inversion
+  this ADR fixes (expensive matrix first, cheap dogfood after). `act -j <job>`
+  can run a Linux job in Docker; the macOS/Windows/arm32 matrix still needs real
+  CI. Use `act -l` after reordering to confirm the new `needs:` graph.
+
 ## Open questions
 
 - Do we gate stage 5 (cross-platform) on e2e, or run it in parallel from stage 2
