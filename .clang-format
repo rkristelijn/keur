@@ -11,7 +11,9 @@
 Language: Cpp
 BasedOnStyle: Google
 IndentWidth: 2
-ColumnLimit: 100
+# 140, not 80: modern full-HD displays make the old terminal-width limit cost
+# more than it saves (needless wrapping = more scrolling, not less).
+ColumnLimit: 140
 # keur writes pointer/reference bound to the type (int* p, const Foo& r), which
 # is the dominant style in the existing code.
 DerivePointerAlignment: false

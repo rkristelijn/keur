@@ -16,6 +16,9 @@ end_of_line = lf
 charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
+# In line with .clang-format ColumnLimit: 140 — modern full-HD width, no needless
+# wrapping. Editors show the ruler at the same place clang-format will enforce.
+max_line_length = 140
 
 [Makefile]
 indent_style = tab
@@ -31,5 +34,8 @@ indent_size = 2
 
 # Markdown: keep trailing-whitespace trimming OFF would break hard line breaks,
 # but keur docs do not rely on two-space line breaks, so the global trim stays.
+# Line length for docs is governed by the doc linter (rumdl MD013), not the code
+# width, so do not impose the 140 ruler on prose here.
 [*.md]
 indent_size = 2
+max_line_length = off
