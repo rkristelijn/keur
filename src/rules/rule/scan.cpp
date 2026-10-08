@@ -204,8 +204,19 @@ void eval_max_dir_files(const std::vector<const Rule*>& rules,
 
 std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
                                    const std::vector<std::pair<std::string, std::string>>& files,
-                                   const Facts& facts) {
+                                   const Facts& facts,
+                                   const std::vector<std::pair<std::string, std::string>>* file_level_files = nullptr) {
   std::vector<RuleFinding> findings;
+  // File-level rules (file-absence/presence, max-dir-files, filename-case) ask a
+  // REPO question ("does the project have a SECURITY.md?"), not a diff question.
+  // In the hook, `files` is only the staged diff, so a file-absence rule would
+  // wrongly fire for a file that exists in the repo but is not in this commit.
+  // When a caller passes `file_level_files` (the full repo fileset), the
+  // file-level pass runs over THAT; the per-line pass still runs over `files`
+  // (the staged diff) to keep the hook sub-second. Default: same fileset.
+  // @id ADR-052.scope @implements ADR-052
+  const std::vector<std::pair<std::string, std::string>>& flfiles =
+      file_level_files ? *file_level_files : files;
 
   // ADR-009: composites run after the single-rule pass; hold them aside. Single
   // rules whose requires: guard isn't satisfied by facts are pruned up front
@@ -396,11 +407,11 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
     else if (r.engine == "filename-case") filename_case.push_back(&r);
   }
   if (!file_absence.empty() || !file_presence.empty())
-    eval_file_level_rules(file_absence, file_presence, files, findings);
+    eval_file_level_rules(file_absence, file_presence, flfiles, findings);
   if (!max_dir_files.empty())
-    eval_max_dir_files(max_dir_files, files, findings);
+    eval_max_dir_files(max_dir_files, flfiles, findings);
   if (!filename_case.empty())
-    eval_filename_case(filename_case, files, findings);
+    eval_filename_case(filename_case, flfiles, findings);
 
   // ADR-009: composite pass. After the single-rule pass, collect the ids that
   // fired, then evaluate each composite's boolean tree over that set. A composite
@@ -472,6 +483,35 @@ std::vector<RuleFinding> rules_scan_files(const std::vector<Rule>& rules,
   }
   Facts facts = derive_facts(root);
   return scan_impl(rules, pairs, facts);
+}
+
+std::vector<RuleFinding> rules_scan_files_scoped(const std::vector<Rule>& rules,
+                                                 const std::vector<std::string>& files,
+                                                 const std::string& repo_root) {
+  // Per-line fileset: the explicit (staged) list, rel == abs.
+  std::vector<std::pair<std::string, std::string>> pairs;
+  for (auto& f : files) pairs.emplace_back(f, f);  // keur:ignore KEUR-PORT-007 — std::pair<string,string> has a constructor — safe
+
+  // No repo root → behave like rules_scan_files (file-level over the staged set).
+  if (repo_root.empty()) {
+    std::string root = ".";
+    if (!files.empty()) {
+      size_t slash = files[0].find_last_of('/');
+      if (slash != std::string::npos) root = files[0].substr(0, slash);
+    }
+    Facts facts = derive_facts(root);
+    return scan_impl(rules, pairs, facts);
+  }
+
+  // File-level fileset: the whole repo tree. file-absence/presence,
+  // max-dir-files and filename-case are evaluated against THIS, so they answer
+  // a repo question, not a diff question.
+  std::vector<std::pair<std::string, std::string>> repo_files;
+  walk(repo_root, "", repo_files);
+  std::sort(repo_files.begin(), repo_files.end());
+
+  Facts facts = derive_facts(repo_root);
+  return scan_impl(rules, pairs, facts, &repo_files);
 }
 
 std::vector<RuleFinding> rules_scan_dir(const std::vector<Rule>& rules, const std::string& root) {
