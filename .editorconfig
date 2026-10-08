@@ -1,0 +1,35 @@
+# keur .editorconfig — follows the same convention as the other
+# github.com/rkristelijn projects (helmet, sysinfo, apex-cli, ...):
+# 2-space, LF, UTF-8, trim trailing, final newline; tabs only in Makefiles.
+#
+# NOTE on C/C++ indent: the C++ tree is currently INCONSISTENT — src/rules/ uses
+# 2-space, src/keur/ uses 4-space (the hand-formatting drift tracked in TODO).
+# A [*.{c,cpp,h}] indent_size is therefore deliberately NOT set here: pinning one
+# would fight half the codebase. It is decided together with the .clang-format
+# choice (TODO: add .clang-format, reformat once), then added here.
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[Makefile]
+indent_style = tab
+
+[*.{sh,bash}]
+indent_style = space
+indent_size = 2
+
+# Rule files are a simple key: value / YAML-ish format — 2-space.
+[*.rule]
+indent_style = space
+indent_size = 2
+
+# Markdown: keep trailing-whitespace trimming OFF would break hard line breaks,
+# but keur docs do not rely on two-space line breaks, so the global trim stays.
+[*.md]
+indent_size = 2
