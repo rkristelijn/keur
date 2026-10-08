@@ -364,6 +364,17 @@ Status legend: [x] done · [~] partially done · [ ] open
       before/after SCENARIO count stays 283 and `make test` is green — no test
       silently dropped from the build. Shared helpers (create_temp_dir,
       write_file, has_rule, ...) move to a keur_test_support.h.
+- [ ] FIX max-nesting lexer: sequential guard clauses counted as nesting depth.
+      `engine: max-nesting` (src/rules/rule/block.cpp eval_max_nesting) flags a
+      function with four single-statement `if (...) return;` guard clauses as
+      "nested > 3", but they are four checks at depth 1, not nested. Diagnosed
+      2026-10-08 on engines.cpp unwrap_token (suppressed there with keur:ignore
+      KEUR-QUAL-004 + reason). Root cause: a brace-less `if` whose body is one
+      statement is not popped from the depth count. Fix the lexer to treat a
+      single-statement (brace-less) control body as depth+1 for that statement
+      only, then verify unwrap_token no longer flags and the existing
+      max-nesting tests stay green. This is keur dogfooding a bug in its own
+      engine — fix + control (add a guard-clause fixture to the max-nesting test).
 - [ ] CENTRALISE the corpus path (DRY) + move it out of the tracked tree.
       Today the corpus path is hardcoded ~146x across ~8 eval/*.sh scripts
       (corpus/repos, corpus/groundtruth, corpus/measure, corpus/split) — no
