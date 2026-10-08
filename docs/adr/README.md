@@ -73,6 +73,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [052](ADR-052-scan-scope-file-level-vs-per-line.md) | Scan scope: file-level rules see the repo, per-line rules see the diff | accepted |
 | [053](ADR-053-finding-clustering.md) | Finding clustering: when several rules report the same issue | proposed |
 | [054](ADR-054-config-location-and-require-by-maturity.md) | Config location: `.config/keur.toml`, and require a repo config by maturity | accepted |
+| [055](ADR-055-4a-tests-arrange-act-assert-annihilate.md) | 4A tests: Arrange, Act, Assert, Annihilate (phase annotations) | proposed |
 
 ## Adding an ADR
 

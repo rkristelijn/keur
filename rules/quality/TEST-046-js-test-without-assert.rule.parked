@@ -1,0 +1,42 @@
+# PARKED (.rule.parked — not loaded by rules_load). Concept is right (multi-
+# framework test-without-assert) but block-absence under-fires on an
+# `it('x', () => { ... })` body (arrow-fn brace / skip_strings interaction), so
+# assertion-less its are missed. Un-park once block-absence counts arrow-fn
+# bodies reliably. See ADR-055.
+#
+# A test that asserts nothing passes forever, even when the behaviour it claims
+# to cover breaks. This is the JS/TS, multi-framework counterpart of keur's own
+# C++ KEUR-TEST-001 (doctest). block-absence finds a test body — it(...),
+# test(...), or a BDD step — and flags it when no assertion appears inside.
+#
+# Framework-agnostic by design (the point of this rule, per the "many runners"
+# reality: jest, vitest, mocha, cypress, playwright all share this shape):
+#   block start : it( | test( | specify(            (xit/xtest skipped tests are not matched — they're intentional)
+#   assertion   : expect( | assert( | .should(      (jest/vitest | node:assert/chai assert | chai/cypress BDD)
+#                 | cy.<cmd> with built-in assertion is NOT counted — too broad; prefer an explicit expect.
+#
+# WARN, maturity 3: a stubbed `it('todo')` is common early; a managed project
+# should not keep assertion-free tests. A deliberate pending test can carry
+# `it.todo(...)` / `it.skip(...)` (not matched) or an inline keur:ignore.
+#
+# @see KEUR-TEST-001 (the C++/doctest sibling), ADR-055 (4A: the Assert phase),
+#      docs/rules-authoring.md (block-absence).
+id: TEST-046
+ilities: [testability]
+maturity: 3
+title: JS/TS test asserts nothing (it/test block with no expect/assert)
+category: quality
+severity: warning
+engine: block-absence
+action: warn
+skip_comments: true
+skip_strings: true
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .test.jsx .spec.tsx .spec.jsx .cy.ts .cy.js
+  exclude_paths: node_modules/ .git/ build/ dist/
+patterns:
+  - regex: \b(it|test|specify)\s*\(\s*['"`]
+block_inner: \bexpect\s*\(|\bassert\b|\.should\b|\btoEqual\b|\btoBe\b
+confidence: 0.6
+message: "This it()/test() block contains no assertion (no expect(...)/assert/.should) — it runs code but verifies nothing, so it cannot fail when the behaviour breaks. Add an expectation, or mark it pending with it.todo()/it.skip()."
+fix: "Add at least one assertion (expect(...).toBe(...), assert(...), .should(...)). For a genuinely not-yet-written test use it.todo('…') or it.skip('…') so the intent is explicit. Reviewed exception: inline keur:ignore TEST-046."

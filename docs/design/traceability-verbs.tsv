@@ -22,3 +22,10 @@ shows         keur            ref    yes        demo         concept->demo
 explains      keur            ref    yes        guide        concept->guide
 see           jsdoc,doxygen   ref    no         related      -
 external      keur            ref    no         cross-repo   -
+# 4A test-phase markers (ADR-055). kind=phase: intra-test structure, not a
+# reference to an @id. validated=no (they point at nothing). coverage-dim=- for
+# now; the assert-after-act check (ADR-055.check) consumes them.
+arrange       keur            phase  no         test-phase   -
+act           keur            phase  no         test-phase   -
+assert        keur            phase  no         test-phase   -
+annihilate    keur            phase  no         test-phase   -

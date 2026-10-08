@@ -3077,37 +3077,41 @@ SCENARIO("[feature:rule-engine] file-absence over repo scope: present-but-unstag
     // not a diff question. rules_scan_files_scoped evaluates file-level rules over
     // the whole repo tree, so a SECURITY.md that EXISTS in the repo but is not in
     // the staged set must NOT trigger the rule.
-    std::string dir = create_temp_dir();
-    REQUIRE(!dir.empty());
-    write_file(dir + "/FA.rule",
+    // @arrange
+    keur::test::TempDir t;
+    REQUIRE(t.valid());
+    write_file(t / "FA.rule",
         "id: FA-1\ntitle: repo has no SECURITY.md\ncategory: quality\nseverity: warning\n"
         "engine: file-absence\ntarget:\n  filenames: SECURITY.md\n");
-    auto rules = keur::rules_load(dir);
+    auto rules = keur::rules_load(t.path());
     REQUIRE(!rules.empty());
-
     // Repo contains SECURITY.md and a source file; only the source file is "staged".
-    write_file(dir + "/SECURITY.md", "report here\n");
-    write_file(dir + "/app.js", "console.log(1)\n");
-    auto f = keur::rules_scan_files_scoped(rules, {dir + "/app.js"}, dir);
+    write_file(t / "SECURITY.md", "report here\n");
+    write_file(t / "app.js", "console.log(1)\n");
+    // @act
+    auto f = keur::rules_scan_files_scoped(rules, {t / "app.js"}, t.path());
+    // @assert
     CHECK(!has_rule(f, "FA-1"));   // SECURITY.md exists in the repo → no finding
-    cleanup_dir(dir);
+    // @annihilate — automatic: t's dtor removes the tempdir on every exit path.
 }
 
 SCENARIO("[feature:rule-engine] file-absence over repo scope: truly absent still fires") {  // @proves ADR-052.scope
     // The complement: when the required file is absent from the WHOLE repo, the
     // rule must still fire — the fix must not silence the real case.
-    std::string dir = create_temp_dir();
-    REQUIRE(!dir.empty());
-    write_file(dir + "/FA.rule",
+    // @arrange
+    keur::test::TempDir t;
+    REQUIRE(t.valid());
+    write_file(t / "FA.rule",
         "id: FA-1\ntitle: repo has no SECURITY.md\ncategory: quality\nseverity: warning\n"
         "engine: file-absence\ntarget:\n  filenames: SECURITY.md\n");
-    auto rules = keur::rules_load(dir);
+    auto rules = keur::rules_load(t.path());
     REQUIRE(!rules.empty());
-
-    write_file(dir + "/app.js", "console.log(1)\n");   // no SECURITY.md anywhere
-    auto f = keur::rules_scan_files_scoped(rules, {dir + "/app.js"}, dir);
+    write_file(t / "app.js", "console.log(1)\n");   // no SECURITY.md anywhere
+    // @act
+    auto f = keur::rules_scan_files_scoped(rules, {t / "app.js"}, t.path());
+    // @assert
     CHECK(has_rule(f, "FA-1"));
-    cleanup_dir(dir);
+    // @annihilate — automatic (TempDir dtor).
 }
 
 SCENARIO("[feature:rule-engine] KEUR-CFG-001 fires when a repo has no keur config") {  // @proves ADR-054.require

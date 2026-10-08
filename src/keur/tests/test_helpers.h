@@ -130,6 +130,37 @@ inline keur::adapters::Fs make_fake_fs(FakeFsState& st) {
     return fs;
 }
 
+// RAII tempdir — the 4th A of 4A testing (Arrange, Act, Assert, Annihilate).
+// Annihilate is the symmetric counterpart of Arrange: whatever Arrange built,
+// Annihilate tears down — and it must run whether or not the asserts pass. A
+// manual cleanup_dir() at the end of a scenario is NOT symmetric: it is skipped
+// whenever an earlier REQUIRE fails (doctest aborts via exception), so the
+// tempdir leaks (we found 263 stale /tmp/keur_test_* dirs from exactly this).
+// TempDir binds Arrange (ctor) and Annihilate (dtor) into one object, so the
+// two phases can never drift apart and Annihilate runs on every exit path.
+//
+//   TempDir t;                       // Arrange: made + auto-annihilated
+//   write_file(t / "app.ts", "...");
+//   auto f = rules_scan_dir(rules, t.path());   // Act
+//   CHECK(has_rule(f, "X"));                     // Assert — leak-free even if it REQUIREs
+//                                                // Annihilate: t's dtor, guaranteed
+class TempDir {
+  public:
+    TempDir() : dir_(create_temp_dir()) {}
+    ~TempDir() { if (!dir_.empty()) cleanup_dir(dir_); }
+    TempDir(const TempDir&) = delete;
+    TempDir& operator=(const TempDir&) = delete;
+
+    const std::string& path() const { return dir_; }
+    bool valid() const { return !dir_.empty(); }
+    // Join a child path, e.g. `td / "package.json"`.
+    std::string operator/(const std::string& child) const { return dir_ + "/" + child; }
+    operator const std::string&() const { return dir_; }  // pass where a dir string is wanted
+
+  private:
+    std::string dir_;
+};
+
 }  // namespace keur::test
 
 #endif  // KEUR_TESTS_TEST_HELPERS_H
