@@ -1,0 +1,27 @@
+# Zero-width / invisible Unicode characters in source.
+#
+# Why this exists: zero-width and invisible code points (U+200B zero-width space,
+# U+200C/200D joiners, U+FEFF BOM/zero-width no-break space, U+2060 word joiner)
+# are not visible to a reviewer but are present in the bytes. They can smuggle
+# meaning past a code review, break naive tokenisers, or watermark/fingerprint
+# text. They almost never belong inside program source.
+#
+# What it flags: a line containing any of those invisible code points, matched as
+# the LITERAL UTF-8 bytes. A leading U+FEFF BOM on the very first line of a file
+# is a common, benign case; this fires on any occurrence, so scope with
+# exclude_paths or suppress inline (keur:ignore SEC-ZWSP-001) where a BOM is
+# intentional.
+#
+# WARNING, not block: usually a smell or a copy-paste artefact, occasionally
+# legitimate (BOM). Worth a human look, not an automatic fail.
+id: SEC-ZWSP-001
+title: Zero-width / invisible Unicode characters in source
+category: security
+severity: warning
+engine: pattern
+action: warn
+patterns:
+  - regex: [​‌‍﻿⁠]
+    message: "Zero-width/invisible Unicode character (U+200B/200C/200D/FEFF/2060) — invisible to a reviewer but present in the bytes; can hide meaning or watermark text. Remove unless it is an intentional BOM. @see SEC-ZWSP-001"
+confidence: 0.6
+fix: "Delete the invisible character. If it is a byte-order mark (U+FEFF) that must stay, keep it only as the first byte of the file and suppress with 'keur:ignore SEC-ZWSP-001' on that line."

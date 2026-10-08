@@ -1,0 +1,29 @@
+# Archive committed to source control.
+#
+# Why this exists: a committed archive (zip/tar/jar/...) is opaque to review and
+# to a content secret scan — nobody can see what is inside a binary blob in a
+# diff, and it may carry secrets, vendored binaries, or just bloat. Source
+# belongs in source; built/packaged artifacts belong in an artifact store or
+# release registry.
+#
+# What it flags: a tracked file whose extension is a known archive format. This
+# is a file-level check (file-presence), so it needs no content pattern and
+# works on binary files. Compound extensions like .tar.gz resolve to .gz/.tgz.
+#
+# WARNING, not block: occasionally an archive is a legitimate test fixture, so
+# this nudges a look rather than failing the build. Scope with exclude_paths or
+# suppress where a fixture archive is intended.
+id: SCA-081
+ilities: [integrity]
+maturity: 3
+title: Archive committed to source control
+category: supply-chain
+severity: warning
+engine: file-presence
+action: warn
+target:
+  extensions: .zip .tar .tgz .tbz2 .7z .rar .jar .war .ear .gz .bz2 .xz
+  exclude_paths: eval/corpus/repos/ tests/ test/ fixtures/ vendor/ build/ dist/
+message: "Archive committed to source control — opaque to review and to content scanning; may hide secrets or binaries and bloats the repo. Keep build/packaged artifacts in an artifact store or release registry, not git. @see SCA-081"
+confidence: 0.6
+fix: "Remove the archive from the repo (and from history if it carried sensitive data), add the pattern to .gitignore, and publish the artifact to a package/release registry or artifact store instead."
