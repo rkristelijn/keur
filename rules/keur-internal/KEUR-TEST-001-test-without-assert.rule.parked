@@ -1,0 +1,39 @@
+# PARKED (.rule.parked — not loaded by rules_load). The concept is sound but the
+# block-absence engine false-positives on C++ raw-string literals R"({...})"
+# whose JSON braces end the block early (confirmed on keur_test.cpp 369/486).
+# Un-park (rename to .rule) once block-absence is raw-string aware. See ADR-055.
+#
+# A test that asserts nothing is not a test — it exercises code and throws the
+# result away, so it passes forever even when the behaviour breaks. This is the
+# "Assert" half of the 4A model (ADR-055): every SCENARIO / TEST_CASE body must
+# contain at least one assertion. block-absence finds the test block and flags
+# it when no CHECK/REQUIRE/WARN-family macro (or an @assert marker) appears
+# inside its braces.
+#
+# WHY maturity 4 (managed): a prototype may sketch a test stub; a managed/
+# hardened project must not ship assertion-free tests. On keur's own level-5
+# gate this is active and dogfooded over this very test file.
+#
+# skip_comments so a "CHECK" written in prose doesn't satisfy the block; the
+# @assert marker (ADR-055) is matched explicitly so an annotated-but-macro-free
+# phase still counts. Scoped to C++ test files via the _test.cpp / tests/ path.
+#
+# @see ADR-055 (4A tests), docs/rules-authoring.md (block-absence).
+id: KEUR-TEST-001
+ilities: [testability]
+maturity: 4
+title: Test case asserts nothing (no CHECK/REQUIRE in a SCENARIO/TEST_CASE)
+category: quality
+severity: warning
+engine: block-absence
+action: warn
+skip_comments: false
+skip_strings: true
+target:
+  extensions: .cpp .cc
+patterns:
+  - regex: \b(SCENARIO|TEST_CASE)\s*\(
+block_inner: \b(CHECK|REQUIRE|WARN|CHECK_FALSE|REQUIRE_FALSE|CHECK_EQ|CHECK_THROWS|REQUIRE_THROWS|CHECK_NOTHROW)\b|@assert
+confidence: 0.7
+message: "This SCENARIO/TEST_CASE contains no assertion (no CHECK/REQUIRE family macro) — it runs code but verifies nothing, so it cannot fail when the behaviour breaks. Add an assertion, or an @assert phase (ADR-055)."
+fix: "Add at least one CHECK/REQUIRE assertion. Follow the 4A shape (ADR-055): @arrange, @act, @assert (and @annihilate if clean-up is manual). A deliberate stub can carry `keur:ignore KEUR-TEST-001`."

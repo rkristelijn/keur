@@ -47,6 +47,14 @@ reach for those, restructure. Use character classes and quantifiers
 (`[A-Za-z0-9_-]`, `\d`, `\w`, `{n,m}`, `+`, `*`), `(?i)` for case-insensitive,
 `^`/`$` for line boundaries. The regex value is written RAW and UNQUOTED.
 
+> **Trap — don't wrap the regex in single quotes.** The parser strips ONE pair
+> of surrounding *double* quotes (so `regex: "..."` works), but it does NOT strip
+> single quotes. `regex: '"node"\s*:'` is read literally with the leading `'` as
+> part of the pattern, so it never matches what you intended. Write the regex
+> raw, and use `\"` for a literal double quote inside it:
+> `regex: \"node\"\s*:\s*\"[^\"]*\d` — not `regex: '"node"...'`. If the pattern
+> has no double quotes, just write it bare (`regex: \beval\s*\(`).
+
 ## Regex craft: tricks that work
 
 - **Word boundaries** `\b` around keywords so `eval` doesn't match `evaluate`
