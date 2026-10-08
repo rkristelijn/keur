@@ -75,7 +75,7 @@ MAIN_OBJ   = $(BINDIR)/keur_main.o
 TEST_OBJ   = $(BINDIR)/unit_test.o $(BINDIR)/test_main.o $(BINDIR)/perf_test.o $(BINDIR)/integration_test.o $(BINDIR)/unit_layer45_test.o
 TEST_BIN   = $(BINDIR)/keur-test
 
-.PHONY: all build test test-unit test-integration perf e2e coverage mutate compile-commands lint clean help
+.PHONY: all build test test-unit test-integration perf e2e coverage mutate compile-commands lint lint-includes clean help
 .DEFAULT_GOAL := build
 
 # Auto-generated header dependency files (-MMD). Pull them in so a changed header
@@ -316,6 +316,34 @@ lint: ## Run clang-tidy if installed; otherwise a -Wall -Wextra syntax check
 	 else \
 	   echo "basics: keur not built yet (run 'make build') — skipping"; \
 	 fi
+
+## ---- Unused-include check (clang-tidy misc-include-cleaner) ----------------
+# Detects #includes whose symbols are never used (and headers used only
+# transitively). Needs a real clang-tidy: Homebrew keeps it off PATH under
+# /opt/homebrew/opt/llvm/bin, so look there too. Advisory locally; CI runs it as
+# its own stage (see .github/workflows/ci.yml). @see ADR-056
+TIDY := $(shell command -v clang-tidy 2>/dev/null || echo /opt/homebrew/opt/llvm/bin/clang-tidy)
+# Scoped to the test TUs for now (they are clean). The cmd/ and config/ sources
+# carry pre-existing unused-include debt (surfaced by this check); clearing that
+# and widening TIDY_TUS to main.cpp + $(IMPL_SRCS) is tracked follow-up work.
+TIDY_TUS := tests/unit_test.cpp tests/integration_test.cpp tests/unit_layer45_test.cpp tests/perf_test.cpp
+
+lint-includes: ## Flag unused #includes (clang-tidy misc-include-cleaner)
+	@if [ ! -x "$(TIDY)" ]; then \
+	   echo "clang-tidy not found (brew install llvm) — skipping unused-include check"; exit 0; \
+	 fi
+	@echo "unused-include check ($(TIDY)):"
+	@n=0; \
+	 for src in $(TIDY_TUS); do \
+	   out=$$("$(TIDY)" --quiet --checks='-*,misc-include-cleaner' "$$src" -- \
+	          -std=c++20 $(INCLUDES) -I../rules $(RE2_CFLAGS) \
+	          -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' 2>/dev/null \
+	          | grep "included header .* is not used directly" || true); \
+	   if [ -n "$$out" ]; then echo "$$out"; n=$$((n+1)); fi; \
+	 done; \
+	 if [ "$$n" -gt 0 ]; then \
+	   echo "unused-include: $$n file(s) with unused includes — remove them"; exit 1; \
+	 else echo "unused-include: OK"; fi
 
 clean: ## Remove build artifacts
 	rm -f $(BIN) $(TEST_BIN) $(MAIN_OBJ) $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)

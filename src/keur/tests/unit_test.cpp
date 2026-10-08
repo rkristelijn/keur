@@ -22,16 +22,14 @@
  *
  * @see docs/adr/ADR-002-single-cpp-binary.md
  */
-#include <dirent.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include <algorithm>
-#include <chrono>
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -44,18 +42,14 @@
 #include "cmd/check.h"
 #include "cmd/config.h"
 #include "cmd/hook.h"
-#include "cmd/learn.h"
-#include "cmd/level.h"
 #include "cmd/manager.h"
 #include "cmd/policy.h"
 #include "cmd/scan.h"
-#include "cmd/settings.h"
-#include "cmd/train.h"
-#include "cmd/tune.h"
 #include "config/hookmgr.h"
 #include "config/scanners.h"
 #include "config/disabled.h"
 #include "config/ruleset.h"
+#include "config/scopes.h"
 #include "adapters/fs.h"
 #include "adapters/git.h"
 #include "util/keur_utils.h"
@@ -64,10 +58,6 @@
 #include "adapters/sysinfo.h"
 #include "learn/sysinfo.h"
 #include "report/report.h"
-#include "common/platform.h"
-#include "manager/model.h"
-#include "manager/view.h"
-#include "manager/catalog.h"
 
 // ---------------------------------------------------------------------------
 // Test helpers — shared, universally-useful ones live in tests/test_helpers.h
