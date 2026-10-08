@@ -162,6 +162,11 @@ jobs:
       - name: Self-check (portability — OS code only in common/)
         run: bash tests/e2e/test_portability.sh bin/keur
 
+      # The ADR index (docs/adr/README.md) is generated from the ADR files;
+      # fail if someone added/renamed an ADR without regenerating it.
+      - name: Self-check (ADR index is in sync)
+        run: bash scripts/gen-adr-index.sh --check
+
       # ── The real gate: keur check over this change's own diff ────────────
       # Stage the diff against its base, then run the hook's command verbatim.
       - name: Gate own diff (keur check, pre-commit + pre-push)
