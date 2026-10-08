@@ -72,7 +72,7 @@ IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/train.cp
 # Object files: flatten path (cmd/check.cpp -> keur_cmd_check.o) via subst
 IMPL_OBJS  = $(patsubst %.cpp,$(BINDIR)/keur_%.o,$(subst /,_,$(IMPL_SRCS)))
 MAIN_OBJ   = $(BINDIR)/keur_main.o
-TEST_OBJ   = $(BINDIR)/keur_test.o
+TEST_OBJ   = $(BINDIR)/keur_test.o $(BINDIR)/test_main.o $(BINDIR)/perf_test.o
 TEST_BIN   = $(BINDIR)/keur-test
 
 .PHONY: all build test test-unit test-integration perf e2e coverage mutate compile-commands lint clean help
@@ -199,9 +199,14 @@ $(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
 
 ## ---- Test binary ----------------------------------------------------------
 
-$(TEST_OBJ): keur_test.cpp tests/test_helpers.h cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/config.h cmd/manager.h cmd/level.h render/logo.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h \
+$(BINDIR)/keur_test.o: keur_test.cpp tests/test_helpers.h cmd/check.h cmd/hook.h cmd/scan.h cmd/policy.h cmd/config.h cmd/manager.h cmd/level.h render/logo.h config/scopes.h config/hookmgr.h config/scanners.h config/disabled.h config/ruleset.h \
              adapters/git.h adapters/fs.h adapters/proc.h adapters/sysinfo.h learn/sysinfo.h report/report.h util/keur_utils.h \
              ../rules/tokenizer.h ../../vendor/doctest.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
+
+# Split test TUs under tests/ (ADR-002 layout). Each registers its scenarios
+# into the shared doctest registry; the single main lives in test_main.cpp.
+$(BINDIR)/%.o: tests/%.cpp tests/test_helpers.h ../../vendor/doctest.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
 
 $(TEST_BIN): $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)

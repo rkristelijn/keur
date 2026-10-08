@@ -22,7 +22,6 @@
  *
  * @see docs/adr/ADR-002-single-cpp-binary.md
  */
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -32,6 +31,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -3242,50 +3242,6 @@ SCENARIO("[feature:rule-engine] composite all/any/not combines leaf rules") {  /
 }
 
 } // TEST_SUITE("integration")
-
-
-// ============================================================================
-// TEST_SUITE: perf — timing guards
-// ============================================================================
-
-TEST_SUITE("perf") {
-
-SCENARIO("[feature:rule-engine] rules_load is fast (<50ms)") {
-    auto t0 = std::chrono::steady_clock::now();
-    auto rules = keur::rules_load(keur_rules_dir());
-    auto t1 = std::chrono::steady_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
-    MESSAGE("rules_load: " << ms << "ms, " << rules.size() << " rules");
-    CHECK(ms < 50);
-}
-
-SCENARIO("[feature:rule-engine] scan 3 files is fast (<100ms)") {
-    auto rules = keur::rules_load(keur_rules_dir());
-    REQUIRE(!rules.empty());
-    std::vector<std::string> files = {
-        fixtures_dir() + "/secrets/rsa_key.pem",
-        fixtures_dir() + "/secrets/ec_key.pem",
-        fixtures_dir() + "/clean/clean.yml",
-    };
-    auto t0 = std::chrono::steady_clock::now();
-    auto fs = keur::rules_scan_files(rules, files);
-    auto t1 = std::chrono::steady_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
-    MESSAGE("scan 3 files: " << ms << "ms, " << fs.size() << " findings");
-    CHECK(ms < 100);
-}
-
-SCENARIO("[feature:policy] 100x policy_load is fast (<5ms)") {
-    auto t0 = std::chrono::steady_clock::now();
-    for (int i = 0; i < 100; ++i)
-        keur::cmd::policy_load("/tmp/nonexistent_perf.toml");
-    auto t1 = std::chrono::steady_clock::now();
-    auto us = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-    MESSAGE("100x policy_load: " << us << "us");
-    CHECK(us < 5000);
-}
-
-} // TEST_SUITE("perf")
 
 // Reopen the unit suite for the pure Layer 4/5 tests below (decode_key +
 // manager tree model/view) so `make test-unit` runs them.
