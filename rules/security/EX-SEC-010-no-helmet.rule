@@ -7,6 +7,8 @@ title: Express.js missing security headers (no helmet)
 category: security
 severity: warning
 engine: absence
+skip_comments: true
+skip_strings: true
 target:
   extensions: .js .ts
   exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/
