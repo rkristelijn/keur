@@ -25,6 +25,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -793,17 +794,45 @@ SCENARIO("[feature:hook] augment_hook adds a shebang when the file has none") {
 // Returns the exit status (0..255) of running the stub text as a script, with
 // `fake_keur_exit` as the exit code of the stubbed `keur` binary, and an
 // optional repo .githooks/<hook> written when repo_hook_exit >= 0.
+// Run argv[] in a child process, shell-free (no std::system / no /bin/sh string
+// interpolation — Sonar cpp:S4036 / CWE-78). Optionally chdir, set PATH, and
+// silence stdio. Returns the child's exit status, or -1 if it did not exit
+// normally. Used by the hook-stub behavioural tests below.
+static int run_argv_in(const std::vector<std::string>& argv, const std::string& cwd,
+                       const std::string& path_env, bool silence) {
+    pid_t pid = fork();
+    if (pid < 0) return -1;
+    if (pid == 0) {
+        if (!cwd.empty() && chdir(cwd.c_str()) != 0) _exit(127);
+        if (!path_env.empty()) setenv("PATH", path_env.c_str(), 1);
+        if (silence) {
+            (void)!freopen("/dev/null", "r", stdin);
+            (void)!freopen("/dev/null", "w", stdout);
+            (void)!freopen("/dev/null", "w", stderr);
+        }
+        std::vector<char*> c;
+        c.reserve(argv.size() + 1);
+        for (const auto& a : argv) c.push_back(const_cast<char*>(a.c_str()));
+        c.push_back(nullptr);
+        execvp(c[0], c.data());
+        _exit(127);  // exec failed
+    }
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0) return -1;
+    return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+}
+
 static int run_global_stub(const char* hook_name, int fake_keur_exit,
                            int repo_hook_exit) {
     std::string tmp = create_temp_dir();
     if (tmp.empty()) return -1;
 
     // Fake repo: a git repo so `git rev-parse --show-toplevel` resolves to it.
+    // Shell-free spawn (argv, not a /bin/sh string) — @see KEUR-SEC-006.
     std::string repo = tmp + "/repo";
     (void)mkdir(repo.c_str(), 0755);
-    std::string gi = "cd '" + repo + "' && git -c init.defaultBranch=main "
-                     "init -q . >/dev/null 2>&1";
-    (void)std::system(gi.c_str());
+    (void)run_argv_in({"git", "-c", "init.defaultBranch=main", "init", "-q", "."},
+                      repo, /*path_env=*/"", /*silence=*/true);
 
     // Fake keur on PATH with a controllable exit code.
     std::string bin = tmp + "/bin";
@@ -822,17 +851,20 @@ static int run_global_stub(const char* hook_name, int fake_keur_exit,
         (void)chmod((gh + "/" + hook_name).c_str(), 0755);
     }
 
-    // Write the stub under test and run it from inside the repo.
+    // Write the stub under test and run it from inside the repo, shell-free:
+    // exec /bin/sh with the stub path as an argv element (no string the shell
+    // could re-parse), with PATH pointing at the fake keur. cwd + PATH + stdio
+    // are set in the child, so the behaviour matches the old command string.
     std::string stub = keur::cmd::global_hook_stub(hook_name);
     std::string stub_path = tmp + "/stub.sh";
     write_file(stub_path, stub);
     (void)chmod(stub_path.c_str(), 0755);
 
-    std::string cmd = "cd '" + repo + "' && PATH='" + bin + ":'\"$PATH\" "
-                      "/bin/sh '" + stub_path + "' </dev/null >/dev/null 2>&1";
-    int rc = std::system(cmd.c_str());
+    std::string path_env = bin;
+    if (const char* p = std::getenv("PATH")) path_env += std::string(":") + p;
+    int rc = run_argv_in({"/bin/sh", stub_path}, repo, path_env, /*silence=*/true);
     cleanup_dir(tmp);
-    return WIFEXITED(rc) ? WEXITSTATUS(rc) : -1;
+    return rc;
 }
 
 SCENARIO("[feature:hook] global stub exits 0 on keur PASS when no repo hook exists") {
