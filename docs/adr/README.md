@@ -75,6 +75,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [054](ADR-054-config-location-and-require-by-maturity.md) | Config location: `.config/keur.toml`, and require a repo config by maturity | accepted |
 | [055](ADR-055-4a-tests-arrange-act-assert-annihilate.md) | 4A tests: Arrange, Act, Assert, Annihilate (phase annotations) | proposed |
 | [056](ADR-056-orchestrate-clang-tidy-semantic-checks.md) | Orchestrate clang-tidy for semantic checks RE2 cannot do (unused includes first) | accepted |
+| [057](ADR-057-branch-protection-in-check.md) | Branch protection in `keur check`: warn/block direct commits to the default branch | accepted |
 
 ## Adding an ADR
 

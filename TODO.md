@@ -594,3 +594,29 @@ Two things to fix:
       (`[rules] disabled`/`disabled_categories`) the way findings already hint
       `keur:ignore`. Ties into the existing TODO item about the external
       pii-scanner runtime dependency (ADR-002 vs ADR-042).
+
+
+## keur.toml trust: resolve policy from git, not the dirty working tree
+
+Found 2026-10-08 while adding branch protection (ADR-057). The gate's own policy
+(difficulty level, `[rules] disabled`, block-at) is read from the working-tree
+`.config/keur.toml` / `keur.toml`. That means a developer can **silently weaken
+the gate for the very commit being checked** by editing (or dropping an ignored
+root) `keur.toml` without committing it — lower the level, commit under the
+weaker policy, done. A guardrail that can be disarmed by an uncommitted local
+file is not much of a guardrail.
+
+The fix is to make policy resolution honour git, with one deliberate exception:
+
+- [ ] **Read the committed policy, not the dirty one.** When gating a commit,
+      resolve `keur.toml`/`.config/keur.toml` from the index/HEAD
+      (`git show :.config/keur.toml` or `HEAD:...`), not the working tree, so a
+      local uncommitted downgrade cannot take effect for that commit.
+- [ ] **…unless the config change is itself staged.** If `keur.toml` is in the
+      staged set, use the staged version — a legitimate, reviewable policy change
+      travels with the commit (and is visible in the diff/PR). This is the "take
+      it from git, or from staging if it's part of this commit" rule.
+- [ ] Needs an ADR (it changes where config authority comes from — relates to
+      ADR-043/051/054) + tests (dirty-downgrade ignored; staged change honoured;
+      no-repo/`--config` paths unaffected). Keep a `--config <file>` override
+      explicit and trusted (CI/tooling), outside this git-sourcing rule.

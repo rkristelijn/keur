@@ -36,9 +36,24 @@ struct Git {
     std::function<std::vector<std::string>()> staged_files =
         default_staged_files;
 
+    /**
+     * The current branch name (e.g. "main"), or "" when detached/not a repo.
+     */
+    std::function<std::string()> current_branch =
+        default_current_branch;
+
+    /**
+     * The repo's default branch (e.g. "main"/"master"), resolved from
+     * origin/HEAD when known, else the local HEAD's default. "" if unknown.
+     */
+    std::function<std::string()> default_branch =
+        default_default_branch;
+
     /** Real implementations (over the git CLI). */
     static std::string default_run(const std::string& args);
     static std::vector<std::string> default_staged_files();
+    static std::string default_current_branch();
+    static std::string default_default_branch();
 };
 
 /**

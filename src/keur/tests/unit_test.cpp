@@ -222,6 +222,37 @@ SCENARIO("[feature:check] finding_blocks — malformed confidence is treated as 
     CHECK(keur::cmd::finding_blocks("block", "notanumber", 0.85));
 }
 
+SCENARIO("[feature:check] branch_protection — level 1 (prototype) does NOT fire") {  // @proves ADR-057.finding
+    // The question that must stay answered: a prototype commits to main freely.
+    auto f = keur::cmd::branch_protection_finding("main", "main", 1);
+    CHECK_FALSE(f.has_value());
+}
+
+SCENARIO("[feature:check] branch_protection — level 2/3 warns, does not block") {  // @proves ADR-057.finding
+    for (int level : {2, 3}) {
+        auto f = keur::cmd::branch_protection_finding("main", "main", level);
+        REQUIRE(f.has_value());
+        CHECK(f->rule == "KEUR-BRANCH-001");
+        CHECK(f->action == "warn");
+    }
+}
+
+SCENARIO("[feature:check] branch_protection — level 4/5 blocks") {  // @proves ADR-057.finding
+    for (int level : {4, 5}) {
+        auto f = keur::cmd::branch_protection_finding("master", "master", level);
+        REQUIRE(f.has_value());
+        CHECK(f->action == "block");
+    }
+}
+
+SCENARIO("[feature:check] branch_protection — off the default branch never fires") {  // @proves ADR-057.finding
+    // Even at the strictest level, a feature branch is fine.
+    CHECK_FALSE(keur::cmd::branch_protection_finding("feature/x", "main", 5).has_value());
+    // Detached/unknown (empty) current or default → no finding (fail open).
+    CHECK_FALSE(keur::cmd::branch_protection_finding("", "main", 5).has_value());
+    CHECK_FALSE(keur::cmd::branch_protection_finding("main", "", 5).has_value());
+}
+
 SCENARIO("[feature:check] cmd_check_parse defaults") {
     auto o = keur::cmd::check_parse({});
     CHECK(o.tier == keur::cmd::Tier::PreCommit);
