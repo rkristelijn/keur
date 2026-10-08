@@ -72,7 +72,7 @@ IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/train.cp
 # Object files: flatten path (cmd/check.cpp -> keur_cmd_check.o) via subst
 IMPL_OBJS  = $(patsubst %.cpp,$(BINDIR)/keur_%.o,$(subst /,_,$(IMPL_SRCS)))
 MAIN_OBJ   = $(BINDIR)/keur_main.o
-TEST_OBJ   = $(BINDIR)/keur_test.o $(BINDIR)/test_main.o $(BINDIR)/perf_test.o
+TEST_OBJ   = $(BINDIR)/keur_test.o $(BINDIR)/test_main.o $(BINDIR)/perf_test.o $(BINDIR)/integration_test.o
 TEST_BIN   = $(BINDIR)/keur-test
 
 .PHONY: all build test test-unit test-integration perf e2e coverage mutate compile-commands lint clean help
