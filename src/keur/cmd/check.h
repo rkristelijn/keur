@@ -13,10 +13,12 @@
  */
 #pragma once
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "adapters/git.h"
+#include "scan/dispatch.h"
 
 namespace keur::cmd {
 
@@ -69,6 +71,18 @@ Verdict policy_evaluate(const PolicyInput& input);
  */
 bool finding_blocks(const std::string& action, const std::string& confidence,
                     double block_at);
+
+/**
+ * Branch-protection finding (KEUR-BRANCH-001). Pure: given the current branch,
+ * the repo's default branch, and the resolved maturity level, return a Finding
+ * when a direct commit to the default branch should be reported. Gated by
+ * maturity (ADR-026/ADR-057): nullopt below level 2 or off the default branch;
+ * action "warn" at level 2-3, "block" at level >= 4. Emitted as a normal
+ * Finding with a rule id so it flows through the usual suppression and can be
+ * turned off like any rule.
+ */
+std::optional<scan::Finding> branch_protection_finding(
+    const std::string& current_branch, const std::string& default_branch, int level);
 
 /**
  * Format one finding as a self-explaining gate line:

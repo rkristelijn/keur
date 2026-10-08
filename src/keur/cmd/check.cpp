@@ -25,8 +25,11 @@
 #include "config/ruleset.h"
 #include "config/keurignore.h"
 #include "config/scanners.h"
+#include "config/scopes.h"
 #include "scan/dispatch.h"
 #include "util/keur_utils.h"
+
+#include <optional>
 
 namespace keur::cmd {
 
@@ -62,6 +65,41 @@ bool finding_blocks(const std::string& action, const std::string& confidence,
         return true;  // fail safe: a blocking rule with a bad confidence blocks
     }
 }
+
+// Branch-protection finding (KEUR-BRANCH-001). Pure: given the current and
+// default branch names and the resolved maturity level, decide whether a direct
+// commit to the default branch should be reported, and how hard. Gated by
+// maturity exactly like a rule (ADR-026): warn from level >= 2 (developing),
+// block from level >= 4 (managed). Below 2, or off the default branch, no
+// finding. Emitting it as a normal Finding with a rule id means it flows through
+// the SAME suppression (`[rules] disabled`, `keur:ignore KEUR-BRANCH-001`) as
+// any rule — so a repo that does not want it can simply turn it off.
+// @id KEUR-BRANCH-001 @implements ADR-057
+std::optional<scan::Finding> branch_protection_finding(
+    const std::string& current_branch, const std::string& default_branch, int level) {
+    if (current_branch.empty() || default_branch.empty()) return std::nullopt;
+    if (current_branch != default_branch) return std::nullopt;
+    if (level < 2) return std::nullopt;  // prototype/developing-1: not gated yet
+
+    const bool block = level >= 4;
+    scan::Finding f;
+    f.source = "keur";
+    f.rule = "KEUR-BRANCH-001";
+    f.title = "Direct commit to the default branch";
+    f.category = "quality";
+    f.severity = block ? "error" : "warning";
+    f.action = block ? "block" : "warn";
+    f.confidence = block ? "0.9" : "0.6";
+    f.file = default_branch;
+    f.line = 0;
+    f.message = "Committing directly to the default branch '" + default_branch +
+        "'. Work on a feature branch and open a merge/pull request so changes "
+        "are reviewed before they land. (Disable with keur:ignore KEUR-BRANCH-001 "
+        "or [rules] disabled if your workflow commits to the default branch.)";
+    f.fix = "git switch -c <feature-branch>, commit there, then open an MR/PR.";
+    return f;
+}
+
 
 std::string format_finding_line(const std::string& rule, const std::string& action,
                                 const std::string& confidence, const std::string& file,
@@ -120,6 +158,7 @@ int check(const CheckOptions& opts, FileSource file_src) {
 
     // 1. File discovery (injectable — tests pass a lambda). When no source is
     //    given, fall back to staged_files() over the real git adapter.
+    const bool real_hook_run = !file_src;  // no injected source => a real commit
     if (!file_src) file_src = []() { return staged_files(); };
     auto files = file_src();
     if (files.empty()) {
@@ -210,6 +249,31 @@ int check(const CheckOptions& opts, FileSource file_src) {
     };
 
     auto findings = scan::dispatch_scanners(ctx);
+
+    // Branch protection (KEUR-BRANCH-001, ADR-057): warn/block a direct commit
+    // to the default branch, gated by the resolved maturity level — the same
+    // config stack `keur difficulty` reads. Emitted as a normal Finding so it
+    // runs through the suppression below and can be turned off like any rule.
+    // Only on a real hook run: a test/explicit file_src must stay hermetic and
+    // not depend on which branch the suite happens to run on.
+    if (real_hook_run) {
+        config::ScopeEnv denv = config::capture_scope_env("", repo_root);
+        auto dlayers = config::resolve_layers(
+            denv, [&fs](const std::string& p) { return fs.exists(p); });
+        std::vector<std::pair<std::string, std::string>> dscopes;
+        for (const auto& ly : dlayers)
+            if (ly.exists && !ly.path.empty())
+                dscopes.emplace_back(config::scope_name(ly.scope), ly.path);
+        auto resolved = config::resolve_difficulty_explained(
+            dscopes,
+            [&fs](const std::string& p) { auto rr = fs.read_file(p); return rr.ok ? rr.content : std::string(); },
+            /*default_level=*/1);
+        // Branch discipline is a modifiability/process concern (ADR-039).
+        int level = resolved.vector.level_of("modifiability");
+        if (auto bf = branch_protection_finding(git.current_branch(),
+                                                git.default_branch(), level))
+            findings.push_back(std::move(*bf));
+    }
 
     // Repo-level suppression on top of inline `keur:ignore` (ADR-035): the
     // `.keurignore` file (repo root or .config/). Secrets suppress by VALUE
