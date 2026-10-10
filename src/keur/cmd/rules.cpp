@@ -273,7 +273,7 @@ int rules(const RulesOptions& opts) {
     auto clayers = config::resolve_layers(env, [&fs](const std::string& p) { return fs.exists(p); });
     disabled = config::resolve_disabled(clayers, [&fs](const std::string& p) {
       auto rr = fs.read_file(p); return rr.ok ? rr.content : std::string();
-    });
+    }, repo_root, env.home);
   }
 
   // Load each layer and track, per rule id, which layer currently wins (the
