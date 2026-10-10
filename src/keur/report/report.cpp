@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "util/keur_utils.h"
+#include "rules/rule_engine.h"
 
 namespace keur::report {
 
@@ -22,9 +23,11 @@ constexpr const char* C_RST  = "\033[0m";
 
 // Map an action to a severity colour.
 const char* action_color(const std::string& action) {
-    if (action == "block") return C_RED;
-    if (action == "warn")  return C_YEL;
-    return C_DIM;
+    switch (keur::action_from_string(action)) {
+        case keur::Action::Block: return C_RED;
+        case keur::Action::Warn:  return C_YEL;
+        default:                  return C_DIM;
+    }
 }
 }  // namespace
 

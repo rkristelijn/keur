@@ -8,6 +8,30 @@
 
 namespace keur {
 
+// --- Action verb: central string<->enum + validation (ADR-058 drift class) ---
+Action action_from_string(const std::string& s) {
+  if (s == "block") return Action::Block;
+  if (s == "warn") return Action::Warn;
+  if (s == "advisory") return Action::Advisory;
+  if (s == "off") return Action::Off;
+  return Action::Unknown;
+}
+
+std::string action_to_string(Action a) {
+  switch (a) {
+    case Action::Block:    return "block";
+    case Action::Warn:     return "warn";
+    case Action::Advisory: return "advisory";
+    case Action::Off:      return "off";
+    case Action::Unknown:  return "";
+  }
+  return "";
+}
+
+bool action_is_valid(const std::string& s) {
+  return action_from_string(s) != Action::Unknown;
+}
+
 namespace detail {
 
 std::string trim(const std::string& s) {
@@ -61,10 +85,11 @@ std::string default_action(const Rule& r) {
 
 std::string default_conf(const Rule& r) {
   if (!r.confidence.empty()) return r.confidence;
-  std::string a = default_action(r);
-  if (a == "block") return "0.9";
-  if (a == "warn") return "0.6";
-  return "0.4";
+  switch (action_from_string(default_action(r))) {
+    case Action::Block: return "0.9";
+    case Action::Warn:  return "0.6";
+    default:            return "0.4";
+  }
 }
 
 std::string finding_msg(const Rule& r, const std::string& pattern_message) {
