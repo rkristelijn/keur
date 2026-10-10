@@ -41,6 +41,24 @@ std::string action_to_string(Action a);
 /** True if `s` is one of the known action verbs (block|warn|advisory|off). */
 bool action_is_valid(const std::string& s);
 
+/**
+ * A rule's severity — the companion drift-safe enum to Action. Historically
+ * compared ad-hoc as strings (`severity == "error"`), same drift risk. Order
+ * reflects escalation (Info < Warning < Error < Critical). Unknown/empty →
+ * Severity::Unknown. The string stays in the struct; this is the conversion
+ * layer around it.
+ */
+enum class Severity { Info, Warning, Error, Critical, Unknown };
+
+/** Parse a severity string to the enum. Unknown/empty → Severity::Unknown. */
+Severity severity_from_string(const std::string& s);
+
+/** Canonical lowercase string for a severity (round-trips with the parser). */
+std::string severity_to_string(Severity s);
+
+/** True if `s` is one of the known severities (info|warning|error|critical). */
+bool severity_is_valid(const std::string& s);
+
 /** A single regex pattern within a rule. */
 struct RulePattern {
   std::string regex_str;

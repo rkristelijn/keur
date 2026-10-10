@@ -32,6 +32,29 @@ bool action_is_valid(const std::string& s) {
   return action_from_string(s) != Action::Unknown;
 }
 
+Severity severity_from_string(const std::string& s) {
+  if (s == "info") return Severity::Info;
+  if (s == "warning") return Severity::Warning;
+  if (s == "error") return Severity::Error;
+  if (s == "critical") return Severity::Critical;
+  return Severity::Unknown;
+}
+
+std::string severity_to_string(Severity s) {
+  switch (s) {
+    case Severity::Info:     return "info";
+    case Severity::Warning:  return "warning";
+    case Severity::Error:    return "error";
+    case Severity::Critical: return "critical";
+    case Severity::Unknown:  return "";
+  }
+  return "";
+}
+
+bool severity_is_valid(const std::string& s) {
+  return severity_from_string(s) != Severity::Unknown;
+}
+
 namespace detail {
 
 std::string trim(const std::string& s) {
@@ -78,9 +101,12 @@ bool looks_binary(std::string_view content, size_t inspect) {
 
 std::string default_action(const Rule& r) {
   if (!r.action.empty()) return r.action;
-  if (r.severity == "error" || r.severity == "critical") return "block";
-  if (r.severity == "warning") return "warn";
-  return "advisory";
+  switch (severity_from_string(r.severity)) {
+    case Severity::Error:
+    case Severity::Critical: return "block";
+    case Severity::Warning:  return "warn";
+    default:                 return "advisory";
+  }
 }
 
 std::string default_conf(const Rule& r) {

@@ -2187,6 +2187,21 @@ TEST_CASE("action: central string<->enum round-trips and catches drift") {
     CHECK(!keur::action_is_valid("wrn"));
 }
 
+TEST_CASE("severity: central string<->enum round-trips and catches drift") {
+    using keur::Severity;
+    CHECK(keur::severity_from_string("info") == Severity::Info);
+    CHECK(keur::severity_from_string("warning") == Severity::Warning);
+    CHECK(keur::severity_from_string("error") == Severity::Error);
+    CHECK(keur::severity_from_string("critical") == Severity::Critical);
+    CHECK(keur::severity_to_string(Severity::Error) == "error");
+    CHECK(keur::severity_to_string(Severity::Critical) == "critical");
+    // drift: a typo is Unknown, not silently a valid severity
+    CHECK(keur::severity_from_string("err") == Severity::Unknown);
+    CHECK(keur::severity_from_string("") == Severity::Unknown);
+    CHECK(keur::severity_is_valid("critical"));
+    CHECK(!keur::severity_is_valid("err"));
+}
+
 TEST_CASE("pipeline: extract -> count -> classify routes literals to buckets (ADR-060)") {
     // a classify rule with three classes (first match wins)
     keur::Rule rule;
