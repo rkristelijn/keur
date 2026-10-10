@@ -29,6 +29,18 @@ bool starts_with(const std::string& s, const std::string& pre);
 std::string get_ext(const std::string& p);
 std::string basename_of(const std::string& p);
 
+// --- binary-content detection -----------------------------------------------
+// Does a file's content look binary (so per-line text rules should NOT run on
+// it)? Heuristic, same as git/grep: a NUL byte within the inspected prefix means
+// binary. PDFs, images, archives, fonts etc. hit this; text (UTF-8 source,
+// prose, config) does not. Pure — operates on the already-read buffer, no I/O.
+// Keeps a PII/secret regex from matching coincidental byte sequences in binary
+// blobs (the dominant false-positive source measured on committed PDFs/assets).
+// File-level engines (file-absence "does the repo have a SECURITY.md?") do NOT
+// depend on content and are unaffected. Supports the per-rule skip_binary
+// opt-out (KEUR-BINARY-SKIP). Pure.
+[[nodiscard]] bool looks_binary(std::string_view content, size_t inspect = 8192);
+
 // --- finding defaults (severity -> action/confidence) ---
 std::string default_action(const Rule& r);
 std::string default_conf(const Rule& r);

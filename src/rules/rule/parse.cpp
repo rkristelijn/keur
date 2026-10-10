@@ -147,6 +147,7 @@ Rule rule_parse(const std::string& path) {
     else if (key == "allow") rule.name_allow = split_ws(val);     // exempt names
     else if (key == "skip_comments") rule.skip_comments = (val == "true" || val == "yes");
     else if (key == "skip_strings") rule.skip_strings = (val == "true" || val == "yes");
+    else if (key == "skip_binary") rule.skip_binary = (val == "true" || val == "yes");
     else if (key == "extensions") rule.target.extensions = split_ws(val);
     else if (key == "filenames") rule.target.filenames = split_ws(val);
     else if (key == "exclude_paths") rule.target.exclude_paths = split_ws(val);
