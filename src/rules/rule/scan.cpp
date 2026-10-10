@@ -316,10 +316,19 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
     if (!f.is_open()) continue;
     std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
 
+    // Binary content: a per-line text rule that opts out (skip_binary) must not
+    // run here (a PII/secret regex matching coincidental bytes in a PDF/image is
+    // noise). Computed once per file; file-level engines are unaffected (they do
+    // not read content). Default false → a rule that must inspect binaries is
+    // unchanged. @implements KEUR-BINARY-SKIP
+    const bool is_binary = looks_binary(content);
+
     std::vector<const Rule*> filtered;
-    for (auto* r : applicable)
+    for (auto* r : applicable) {
+      if (is_binary && r->skip_binary) continue;  // opt-out on binary content
       if (r->target.content_contains.empty() || content.find(r->target.content_contains) != std::string::npos)
         filtered.push_back(r);
+    }
     if (filtered.empty()) continue;
 
     std::vector<re2::StringPiece> raw_lines;

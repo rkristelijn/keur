@@ -43,6 +43,15 @@ std::string basename_of(const std::string& p) {
   return slash == std::string::npos ? p : p.substr(slash + 1);
 }
 
+bool looks_binary(std::string_view content, size_t inspect) {
+  // git/grep heuristic: a NUL byte in the inspected prefix => binary. Cheap,
+  // deterministic, and extension-agnostic (catches .pdf/.png/… without a list).
+  size_t n = content.size() < inspect ? content.size() : inspect;
+  for (size_t i = 0; i < n; i++)
+    if (content[i] == '\0') return true;
+  return false;
+}
+
 std::string default_action(const Rule& r) {
   if (!r.action.empty()) return r.action;
   if (r.severity == "error" || r.severity == "critical") return "block";
