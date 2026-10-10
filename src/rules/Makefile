@@ -11,7 +11,7 @@ RE2_LDFLAGS = -L$(RE2_PREFIX)/lib -L$(ABSL_PREFIX)/lib -lre2
 
 BINDIR = ../../bin
 BIN    = $(BINDIR)/keur-rules
-SRC    = rule/parse.cpp rule/match.cpp rule/scan.cpp rule/block.cpp rule/engines.cpp rule/facts.cpp rule/semver.cpp rule/composite.cpp rule/resolve.cpp tokenizer.cpp main.cpp
+SRC    = rule/parse.cpp rule/match.cpp rule/scan.cpp rule/block.cpp rule/engines.cpp rule/facts.cpp rule/semver.cpp rule/composite.cpp rule/resolve.cpp rule/pipeline.cpp tokenizer.cpp main.cpp
 
 .PHONY: all clean
 all: $(BIN)

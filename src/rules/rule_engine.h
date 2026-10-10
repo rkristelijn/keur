@@ -218,6 +218,32 @@ struct RuleFinding {
         fix(std::move(fix_)) {}
 };
 
+/**
+ * One classified literal — the output row of the literal-analyze pipeline
+ * (ADR-058/060). `count` is how often the literal occurs across the scanned
+ * fileset; `klass`/`bucket`/`advice` come from the matched class-table row.
+ * `file`/`line` point at the first occurrence (for the human to go look).
+ */
+struct ClassifiedLiteral {
+  std::string text;
+  int count = 0;
+  std::string klass;   // e.g. "EMAIL", "WORD" — empty if no class matched
+  std::string bucket;  // "noise" | "magic" | "identity" | "" (unclassified)
+  std::string advice;
+  std::string file;    // first occurrence
+  int line = 0;        // first occurrence (1-based)
+};
+
+/**
+ * Run the literal-analyze pipeline (ADR-060) over a set of files, using a
+ * generic classify rule (ADR-059) that carries the class table. Executes the
+ * fixed verbs extract -> count -> classify. Returns one row per unique literal.
+ * Noise-bucket literals are kept in the result (the caller decides to drop
+ * them) so the function stays a pure transform. Read-only; never blocks.
+ */
+std::vector<ClassifiedLiteral> run_literal_pipeline(const Rule& classify_rule,
+                                                    const std::vector<std::string>& files);
+
 /** Parse a single .rule file. */
 Rule rule_parse(const std::string& path);
 

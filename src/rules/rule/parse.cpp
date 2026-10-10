@@ -321,7 +321,10 @@ std::vector<Rule> rules_load(const std::string& dir) {
     // filename-case (ADR-naming): a file-level naming-convention check; it needs
     // no regex pattern, just a `case:` style.
     const bool name_case = (r.engine == "filename-case" && !r.name_case.empty());
-    if (!r.id.empty() && (!r.patterns.empty() || file_level || composite || path_derived || name_case))
+    // generic rules (ADR-059) carry a data payload (classes/stages), not
+    // patterns; the engine=pipeline analyze rule is the first such case.
+    const bool generic = r.generic || r.engine == "pipeline";
+    if (!r.id.empty() && (!r.patterns.empty() || file_level || composite || path_derived || name_case || generic))
       rules.push_back(std::move(r));
   }
   return rules;
