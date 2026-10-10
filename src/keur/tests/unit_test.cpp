@@ -1523,6 +1523,100 @@ SCENARIO("[feature:rules] resolve_disabled unions ids across existing layers") {
     CHECK(set.size() == 2);  // the absent keur-home layer contributed nothing
 }
 
+// --- [feature:config] ADR-043 path-scoped disable (one keur.toml) -----------
+
+SCENARIO("[feature:config] path_matches_prefix matches dir, subpaths, tilde, globstar") {  // @proves KEUR-SCOPED-DISABLED
+    using keur::config::path_matches_prefix;
+    const std::string home = "/home/u";
+    // tilde + /** : the dir itself and anything beneath it.
+    CHECK(path_matches_prefix("~/git/lab/**", "/home/u/git/lab", home));
+    CHECK(path_matches_prefix("~/git/lab/**", "/home/u/git/lab/aps/forms", home));
+    // a sibling that merely shares a name prefix must NOT match (boundary).
+    CHECK(!path_matches_prefix("~/git/lab/**", "/home/u/git/lab-notes", home));
+    // outside the prefix.
+    CHECK(!path_matches_prefix("~/git/lab/**", "/home/u/git/hub/keur", home));
+    // absolute prefix without tilde or globstar still works.
+    CHECK(path_matches_prefix("/srv/work", "/srv/work/x", ""));
+}
+
+SCENARIO("[feature:config] scoped_disabled reads [scopes.\"<glob>\".rules] only on a match") {  // @proves KEUR-SCOPED-DISABLED
+    using keur::config::scoped_disabled;
+    const std::string home = "/home/u";
+    const std::string body =
+        "[rules]\n"
+        "disabled = [\"ALWAYS-OFF\"]\n"            // flat: not a scope, must NOT leak here
+        "[scopes.\"~/git/lab/**\".rules]\n"
+        "disabled = [\"VAULT-WORK_APS\"]\n"
+        "[scopes.\"~/personal/**\".rules]\n"
+        "disabled = [\"VAULT-WORK_APS\", \"VAULT-GDPR_NL\", \"VAULT-PERSONAL\"]\n";
+
+    // a work repo under lab/** → only the lab scope fires.
+    auto lab = scoped_disabled(body, "/home/u/git/lab/aps/forms", home);
+    CHECK(lab.count("VAULT-WORK_APS"));
+    CHECK(lab.size() == 1);
+    CHECK(!lab.count("ALWAYS-OFF"));   // the flat [rules] list is NOT a scope
+    CHECK(!lab.count("VAULT-GDPR_NL")); // the personal scope must not bleed in
+
+    // a personal repo → the broader personal set.
+    auto pers = scoped_disabled(body, "/home/u/personal/notes", home);
+    CHECK(pers.count("VAULT-WORK_APS"));
+    CHECK(pers.count("VAULT-GDPR_NL"));
+    CHECK(pers.count("VAULT-PERSONAL"));
+    CHECK(pers.size() == 3);
+
+    // a repo under neither scope → nothing scoped.
+    auto none = scoped_disabled(body, "/home/u/git/hub/keur", home);
+    CHECK(none.empty());
+
+    // not in a repo → nothing.
+    CHECK(scoped_disabled(body, "", home).empty());
+}
+
+SCENARIO("[feature:config] resolve_disabled folds flat [rules] AND path scopes per repo root") {  // @proves KEUR-SCOPED-DISABLED
+    std::vector<keur::config::Layer> layers = {
+        {keur::config::Scope::Global, "/g/keur.toml", true},
+    };
+    const std::string global_body =
+        "[rules]\n"
+        "disabled = [\"ALWAYS-OFF\"]\n"
+        "[scopes.\"~/git/lab/**\".rules]\n"
+        "disabled = [\"VAULT-WORK_APS\"]\n";
+    auto read = [&](const std::string& p) -> std::string {
+        return p == "/g/keur.toml" ? global_body : std::string();
+    };
+
+    // Inside a lab repo: flat id + scoped id both apply.
+    auto in_lab = keur::config::resolve_disabled(layers, read,
+                                                 "/home/u/git/lab/aps/forms", "/home/u");
+    CHECK(in_lab.count("ALWAYS-OFF"));      // flat always applies
+    CHECK(in_lab.count("VAULT-WORK_APS"));  // scope matched
+    CHECK(in_lab.size() == 2);
+
+    // In a hub repo: only the flat id; the lab scope does not match.
+    auto in_hub = keur::config::resolve_disabled(layers, read,
+                                                 "/home/u/git/hub/keur", "/home/u");
+    CHECK(in_hub.count("ALWAYS-OFF"));
+    CHECK(!in_hub.count("VAULT-WORK_APS"));
+    CHECK(in_hub.size() == 1);
+
+    // Monorepo subtree: a repo-level keur.toml can scope by sub-path too.
+    std::vector<keur::config::Layer> repo_layers = {
+        {keur::config::Scope::Repo, "/mono/keur.toml", true},
+    };
+    const std::string repo_body =
+        "[scopes.\"/mono/packages/internal/**\".rules]\n"
+        "disabled = [\"VAULT-WORK_APS\"]\n";
+    auto read_repo = [&](const std::string& p) -> std::string {
+        return p == "/mono/keur.toml" ? repo_body : std::string();
+    };
+    auto internal = keur::config::resolve_disabled(repo_layers, read_repo,
+                                                   "/mono/packages/internal", "");
+    CHECK(internal.count("VAULT-WORK_APS"));
+    auto public_pkg = keur::config::resolve_disabled(repo_layers, read_repo,
+                                                     "/mono/packages/public", "");
+    CHECK(public_pkg.empty());
+}
+
 // --- [feature:manager] aggregated board (status overview) -------------------
 
 SCENARIO("[feature:manager] manager_parse reads status / --json / --config") {

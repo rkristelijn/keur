@@ -221,7 +221,7 @@ std::vector<Rule> load_active_rules(std::set<std::string>* out_disabled) {
     auto disabled = resolve_disabled(layers, [&fs](const std::string& p) {
         auto rr = fs.read_file(p);
         return rr.ok ? rr.content : std::string();
-    });
+    }, repo_root, env.home);
 
     if (out_disabled) *out_disabled = disabled;
     auto kept = filter_disabled(std::move(rules), disabled);

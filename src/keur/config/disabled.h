@@ -31,11 +31,48 @@ namespace keur::config {
 /// Pure — no I/O.
 [[nodiscard]] std::set<std::string> parse_disabled(const std::string& toml_body);
 
+/// Does a directory-prefix glob match a repo root? Supports a trailing `/**`
+/// (match the dir and everything under it) and a leading `~/` (expanded with
+/// `home`). A bare prefix matches the root itself or any path beneath it.
+/// Pure string op over normalised paths — no I/O. @implements ADR-043
+[[nodiscard]] bool path_matches_prefix(const std::string& glob,
+                                       const std::string& repo_root,
+                                       const std::string& home);
+
+/// Resolve the disabled-id set contributed by `[scopes."<glob>"]` sections in
+/// ONE keur.toml body, for ONE repo root.
+///
+/// Path scoping lives INSIDE keur.toml (one file, ADR-043), as a sub-table
+/// keyed by a directory-prefix glob. Its `[...].rules] disabled` applies only
+/// when the repo root matches that glob:
+///
+///     [scopes."~/git/lab/**".rules]
+///     disabled = ["VAULT-WORK_APS"]
+///
+/// This works in ANY layer: a global keur.toml expresses a machine-wide split
+/// (lab/** vs personal/**); a repo keur.toml expresses a monorepo subtree split
+/// (packages/public/** stricter than apps/internal/**). Every matching scope
+/// contributes to the union (no re-enable, matching resolve_disabled). A repo
+/// under no scope section gets an empty set — fully backward compatible. Pure.
+/// @id KEUR-SCOPED-DISABLED
+/// @implements ADR-043
+[[nodiscard]] std::set<std::string> scoped_disabled(const std::string& toml_body,
+                                                    const std::string& repo_root,
+                                                    const std::string& home);
+
 /// Collect the union of disabled ids across every resolved config layer that
 /// exists. `read_file` returns a layer's toml body ("" when unreadable).
+///
+/// A `Scope::PathScoped` layer (scopes.toml) is NOT a plain keur.toml: its body
+/// is resolved via `scoped_disabled` against `repo_root` (prefix-glob match).
+/// `repo_root`/`home` default to "" so a caller outside a repo (or that does
+/// not use path scoping) behaves exactly as before — the PathScoped layer then
+/// contributes nothing. @implements ADR-043
 [[nodiscard]] std::set<std::string> resolve_disabled(
     const std::vector<Layer>& layers,
-    const std::function<std::string(const std::string& path)>& read_file);
+    const std::function<std::string(const std::string& path)>& read_file,
+    const std::string& repo_root = "",
+    const std::string& home = "");
 
 /// Serialise a disabled-id set back into a `[rules]` section body (one
 /// `disabled = [...]` array, ids sorted for a stable diff). Pure.

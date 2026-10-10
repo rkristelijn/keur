@@ -17,6 +17,7 @@
 
 #include "../../../vendor/doctest.h"
 #include "rules/rule_engine.h"
+#include "rule/internal.h"
 #include "cmd/check.h"
 #include "cmd/hook.h"
 #include "cmd/scan.h"
@@ -102,6 +103,67 @@ SCENARIO("[feature:rule-engine] custom pattern rule fires on trigger file") {  /
     auto fs = keur::rules_scan_files(rules, {path});
     CHECK(has_rule(fs, "TEST-PAT-001"));
     cleanup_dir(dir);
+}
+
+SCENARIO("[feature:rule-engine] looks_binary flags NUL-bearing content, not text") {  // @proves KEUR-BINARY-SKIP
+    using keur::detail::looks_binary;
+    // Text: source, prose, UTF-8 — no NUL → not binary.
+    CHECK(!looks_binary("const x = 42;\nfunction f() {}\n"));
+    CHECK(!looks_binary("Beste collega,\n\ntot ziens.\n"));   // UTF-8 prose
+    CHECK(!looks_binary(""));                                  // empty is not binary
+    // Binary: a NUL byte anywhere in the inspected prefix → binary.
+    std::string pdfish = "%PDF-1.7\n";
+    pdfish.push_back('\0');
+    pdfish += "stream....";
+    CHECK(looks_binary(pdfish));
+    // A NUL beyond the inspect window is NOT seen (bounded scan).
+    std::string late(10000, 'a');
+    late.push_back('\0');
+    CHECK(!looks_binary(late, 8192));   // NUL at 10000 > window
+    CHECK(looks_binary(late, 10001));   // widen window → seen
+}
+
+SCENARIO("[feature:rule-engine] skip_binary opts a pattern rule out of binary content, file-presence still fires") {  // @proves KEUR-BINARY-SKIP
+    using keur::test::TempDir;
+    using keur::test::write_file;
+    // Arrange: a crafted rules dir with two rules targeting .dat files —
+    //  (a) a pattern rule WITH skip_binary (should NOT fire on NUL content)
+    //  (b) a pattern rule WITHOUT it (control: SHOULD fire)
+    //  (c) a file-presence rule (should fire regardless — it ignores content)
+    TempDir rulesdir;
+    REQUIRE(rulesdir.valid());
+    write_file(rulesdir / "skip.rule",
+               "id: TEST-SKIPBIN\ntitle: skip-binary pattern\ncategory: pii\nseverity: warning\n"
+               "engine: pattern\nskip_binary: true\ntarget:\n  extensions: .dat\n"
+               "patterns:\n  - regex: SECRETTERM\n    message: hit\n");
+    write_file(rulesdir / "noskip.rule",
+               "id: TEST-NOSKIP\ntitle: control pattern\ncategory: pii\nseverity: warning\n"
+               "engine: pattern\ntarget:\n  extensions: .dat\n"
+               "patterns:\n  - regex: SECRETTERM\n    message: hit\n");
+    write_file(rulesdir / "present.rule",
+               "id: TEST-PRESENT\ntitle: file present\ncategory: supply-chain\nseverity: warning\n"
+               "engine: file-presence\ntarget:\n  extensions: .dat\n"
+               "message: a .dat file exists\n");
+    auto rules = keur::rules_load(rulesdir.path());
+    REQUIRE(rules.size() == 3);
+
+    // A binary .dat file: contains the term AND a NUL byte (→ looks_binary true).
+    TempDir work;
+    REQUIRE(work.valid());
+    std::string bin = "SECRETTERM";
+    bin.push_back('\0');
+    bin += "more\n";
+    write_file(work / "blob.dat", bin);
+
+    auto fs = keur::rules_scan_files(rules, {work / "blob.dat"});
+    CHECK(!has_rule(fs, "TEST-SKIPBIN"));  // opted out of binary → no per-line hit
+    CHECK(has_rule(fs, "TEST-NOSKIP"));    // control still matches the term
+    CHECK(has_rule(fs, "TEST-PRESENT"));   // file-presence ignores content → fires
+
+    // Sanity: on a TEXT .dat (no NUL) the skip_binary rule DOES fire.
+    write_file(work / "plain.dat", "SECRETTERM here\n");
+    auto fs2 = keur::rules_scan_files(rules, {work / "plain.dat"});
+    CHECK(has_rule(fs2, "TEST-SKIPBIN"));  // text content → not skipped
 }
 
 SCENARIO("[feature:rule-engine] KEUR-QUAL-014 fires on a bash script without strict mode") {  // @proves KEUR-QUAL-014
