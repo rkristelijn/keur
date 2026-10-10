@@ -574,7 +574,7 @@ getting blocked. Root cause: that toggle only disables the EXTERNAL pii scanner
 (`scanners/pii.sh` → `pii-sensitive-scan.sh`); the VAULT-* findings come from
 built-in `.rule` files (`category: pii`) run by the `keur-rules` scanner, which
 that toggle does not touch. The working fix was listing all five rule ids in
-`[rules] disabled` (`VAULT-PERSONAL`, `VAULT-WORK_APS`, `VAULT-GDPR_NL`,
+`[rules] disabled` (`VAULT-PERSONAL`, `VAULT-WORK`, `VAULT-GDPR_NL`,
 `VAULT-GDPR_UK`, `VAULT-GENERIC`). Verified: per-id disable works correctly (not
 a bug) — it was a discoverability/ergonomics gap.
 

@@ -177,4 +177,128 @@ std::string strip_comments_and_strings(const std::string& content, const LangSyn
   return strip_impl(content, syntax, true);
 }
 
+// --- Literal extraction (ADR-058): the inverse projection ---
+// Same single-pass state machine as strip_impl, but instead of blanking string
+// content it collects it. Comments are skipped (never collected). One Literal
+// per string, tagged with the 1-based line where it opened.
+std::vector<Literal> extract_literals(const std::string& content, const LangSyntax* syntax) {
+  std::vector<Literal> out;
+  if (!syntax) return out;
+
+  const size_t len = content.size();
+  size_t block_end_len = syntax->block_end ? std::strlen(syntax->block_end) : 0;
+  size_t block_start_len = syntax->block_start ? std::strlen(syntax->block_start) : 0;
+  size_t line_comment_len = syntax->line_comment ? std::strlen(syntax->line_comment) : 0;
+
+  bool php_hash = false;
+  for (int j = 0; j < 8 && syntax->extensions[j]; j++) {
+    if (std::strcmp(syntax->extensions[j], ".php") == 0) { php_hash = true; break; }
+  }
+
+  State state = State::NORMAL;
+  char string_delim = 0;
+  int line = 1;              // 1-based current line
+  std::string cur;           // accumulator for the literal being read
+  int cur_line = 0;          // line where the current literal opened
+
+  auto flush = [&]() {
+    // Emit the accumulated literal (even empty ones are dropped — an empty
+    // string carries no identifier signal and only adds noise).
+    if (!cur.empty()) out.push_back(Literal{cur, cur_line});
+    cur.clear();
+  };
+
+  size_t i = 0;
+  while (i < len) {
+    char c = content[i];
+    switch (state) {
+      case State::NORMAL: {
+        if (syntax->triple_strings && i + 2 < len && is_string_delim(c, syntax->string_delims) &&
+            content[i + 1] == c && content[i + 2] == c) {
+          state = State::TRIPLE_STRING;
+          string_delim = c;
+          cur_line = line;
+          i += 3;
+          continue;
+        }
+        if (syntax->block_start && match_at(content, i, syntax->block_start)) {
+          state = State::BLOCK_COMMENT;
+          i += block_start_len;
+          continue;
+        }
+        if (syntax->line_comment && match_at(content, i, syntax->line_comment)) {
+          state = State::LINE_COMMENT;
+          i += line_comment_len;
+          continue;
+        }
+        if (php_hash && c == '#') { state = State::LINE_COMMENT; i++; continue; }
+        if (is_string_delim(c, syntax->string_delims)) {
+          state = State::STRING;
+          string_delim = c;
+          cur_line = line;
+          i++;
+          continue;
+        }
+        if (c == '\n') line++;
+        i++;
+        break;
+      }
+      case State::LINE_COMMENT: {
+        if (c == '\n') { state = State::NORMAL; line++; }
+        i++;
+        break;
+      }
+      case State::BLOCK_COMMENT: {
+        if (match_at(content, i, syntax->block_end)) {
+          i += block_end_len;
+          state = State::NORMAL;
+        } else {
+          if (c == '\n') line++;
+          i++;
+        }
+        break;
+      }
+      case State::STRING: {
+        if (c == '\\') {
+          i++;  // skip the escape marker
+          if (i < len) {
+            if (content[i] == '\n') line++;
+            else cur.push_back(content[i]);  // keep the escaped char's value
+            i++;
+          }
+        } else if (c == string_delim) {
+          flush();
+          state = State::NORMAL;
+          i++;
+        } else if (c == '\n') {
+          // Unterminated single-line string: close it, count the newline.
+          flush();
+          state = State::NORMAL;
+          line++;
+          i++;
+        } else {
+          cur.push_back(c);
+          i++;
+        }
+        break;
+      }
+      case State::TRIPLE_STRING: {
+        if (c == string_delim && i + 2 < len && content[i + 1] == string_delim && content[i + 2] == string_delim) {
+          flush();
+          i += 3;
+          state = State::NORMAL;
+        } else {
+          if (c == '\n') line++;
+          cur.push_back(c);
+          i++;
+        }
+        break;
+      }
+    }
+  }
+  // EOF inside a string: emit whatever we have.
+  if (state == State::STRING || state == State::TRIPLE_STRING) flush();
+  return out;
+}
+
 }  // namespace keur

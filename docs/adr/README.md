@@ -61,7 +61,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [040](ADR-040-engine-coverage-gaps.md) | Engine coverage gaps: what keur's rule engines can and cannot catch | proposed |
 | [041](ADR-041-tiered-ci.md) | Tiered CI: gate by PR title-state depth × affected-paths breadth | proposed |
 | [042](ADR-042-pii-vault-scanner.md) | PII vault scanner: a self-explaining, opt-in BII/PII gate reading `$PII_VAULT` | proposed |
-| [043](ADR-043-path-scoped-config.md) | Path-scoped config: per repo-root-class rules (work `lab/*` vs personal `hub/*`) | proposed |
+| [043](ADR-043-path-scoped-config.md) | Path-scoped config: per repo-root-class rules (work `lab/*` vs personal `hub/*`) | accepted |
 | [044](ADR-044-makefile-conventions.md) | Makefile conventions: thin orchestration, maturity-gated, enforceable as rules | proposed |
 | [045](ADR-045-go-public-distribution-cpm-decommission.md) | Go-public, distribution (brew/npx/apt), and cpm decommission sequence | proposed |
 | [046](ADR-046-keurignore-pii-allowlist.md) | Allow a PII/BII false positive like a spellchecker dictionary: value entries in .keurignore | proposed |
@@ -76,6 +76,9 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [055](ADR-055-4a-tests-arrange-act-assert-annihilate.md) | 4A tests: Arrange, Act, Assert, Annihilate (phase annotations) | proposed |
 | [056](ADR-056-orchestrate-clang-tidy-semantic-checks.md) | Orchestrate clang-tidy for semantic checks RE2 cannot do (unused includes first) | accepted |
 | [057](ADR-057-branch-protection-in-check.md) | Branch protection in `keur check`: warn/block direct commits to the default branch | accepted |
+| [058](ADR-058-literal-frequency-scanner.md) | Literal-frequency scanner: extract literals, strip code+comments, subtract an allowlist, surface the residue | proposed |
+| [059](ADR-059-generic-rules.md) | Generic rules: a rule that feeds an engine's logic instead of firing on its own | proposed |
+| [060](ADR-060-declarative-stage-pipeline.md) | Declarative stage-pipeline engine: compose fixed verbs (extract | count | classify) as data | proposed |
 
 ## Adding an ADR
 

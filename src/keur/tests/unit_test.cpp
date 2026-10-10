@@ -1530,7 +1530,7 @@ SCENARIO("[feature:config] path_matches_prefix matches dir, subpaths, tilde, glo
     const std::string home = "/home/u";
     // tilde + /** : the dir itself and anything beneath it.
     CHECK(path_matches_prefix("~/git/lab/**", "/home/u/git/lab", home));
-    CHECK(path_matches_prefix("~/git/lab/**", "/home/u/git/lab/aps/forms", home));
+    CHECK(path_matches_prefix("~/git/lab/**", "/home/u/git/lab/acme/forms", home));
     // a sibling that merely shares a name prefix must NOT match (boundary).
     CHECK(!path_matches_prefix("~/git/lab/**", "/home/u/git/lab-notes", home));
     // outside the prefix.
@@ -1546,20 +1546,20 @@ SCENARIO("[feature:config] scoped_disabled reads [scopes.\"<glob>\".rules] only 
         "[rules]\n"
         "disabled = [\"ALWAYS-OFF\"]\n"            // flat: not a scope, must NOT leak here
         "[scopes.\"~/git/lab/**\".rules]\n"
-        "disabled = [\"VAULT-WORK_APS\"]\n"
+        "disabled = [\"VAULT-WORK\"]\n"
         "[scopes.\"~/personal/**\".rules]\n"
-        "disabled = [\"VAULT-WORK_APS\", \"VAULT-GDPR_NL\", \"VAULT-PERSONAL\"]\n";
+        "disabled = [\"VAULT-WORK\", \"VAULT-GDPR_NL\", \"VAULT-PERSONAL\"]\n";
 
     // a work repo under lab/** → only the lab scope fires.
-    auto lab = scoped_disabled(body, "/home/u/git/lab/aps/forms", home);
-    CHECK(lab.count("VAULT-WORK_APS"));
+    auto lab = scoped_disabled(body, "/home/u/git/lab/acme/forms", home);
+    CHECK(lab.count("VAULT-WORK"));
     CHECK(lab.size() == 1);
     CHECK(!lab.count("ALWAYS-OFF"));   // the flat [rules] list is NOT a scope
     CHECK(!lab.count("VAULT-GDPR_NL")); // the personal scope must not bleed in
 
     // a personal repo → the broader personal set.
     auto pers = scoped_disabled(body, "/home/u/personal/notes", home);
-    CHECK(pers.count("VAULT-WORK_APS"));
+    CHECK(pers.count("VAULT-WORK"));
     CHECK(pers.count("VAULT-GDPR_NL"));
     CHECK(pers.count("VAULT-PERSONAL"));
     CHECK(pers.size() == 3);
@@ -1580,23 +1580,23 @@ SCENARIO("[feature:config] resolve_disabled folds flat [rules] AND path scopes p
         "[rules]\n"
         "disabled = [\"ALWAYS-OFF\"]\n"
         "[scopes.\"~/git/lab/**\".rules]\n"
-        "disabled = [\"VAULT-WORK_APS\"]\n";
+        "disabled = [\"VAULT-WORK\"]\n";
     auto read = [&](const std::string& p) -> std::string {
         return p == "/g/keur.toml" ? global_body : std::string();
     };
 
     // Inside a lab repo: flat id + scoped id both apply.
     auto in_lab = keur::config::resolve_disabled(layers, read,
-                                                 "/home/u/git/lab/aps/forms", "/home/u");
+                                                 "/home/u/git/lab/acme/forms", "/home/u");
     CHECK(in_lab.count("ALWAYS-OFF"));      // flat always applies
-    CHECK(in_lab.count("VAULT-WORK_APS"));  // scope matched
+    CHECK(in_lab.count("VAULT-WORK"));  // scope matched
     CHECK(in_lab.size() == 2);
 
     // In a hub repo: only the flat id; the lab scope does not match.
     auto in_hub = keur::config::resolve_disabled(layers, read,
                                                  "/home/u/git/hub/keur", "/home/u");
     CHECK(in_hub.count("ALWAYS-OFF"));
-    CHECK(!in_hub.count("VAULT-WORK_APS"));
+    CHECK(!in_hub.count("VAULT-WORK"));
     CHECK(in_hub.size() == 1);
 
     // Monorepo subtree: a repo-level keur.toml can scope by sub-path too.
@@ -1605,13 +1605,13 @@ SCENARIO("[feature:config] resolve_disabled folds flat [rules] AND path scopes p
     };
     const std::string repo_body =
         "[scopes.\"/mono/packages/internal/**\".rules]\n"
-        "disabled = [\"VAULT-WORK_APS\"]\n";
+        "disabled = [\"VAULT-WORK\"]\n";
     auto read_repo = [&](const std::string& p) -> std::string {
         return p == "/mono/keur.toml" ? repo_body : std::string();
     };
     auto internal = keur::config::resolve_disabled(repo_layers, read_repo,
                                                    "/mono/packages/internal", "");
-    CHECK(internal.count("VAULT-WORK_APS"));
+    CHECK(internal.count("VAULT-WORK"));
     auto public_pkg = keur::config::resolve_disabled(repo_layers, read_repo,
                                                      "/mono/packages/public", "");
     CHECK(public_pkg.empty());
@@ -2043,6 +2043,60 @@ TEST_CASE("tokenizer: the comment false-positive scenario (system in a comment)"
 TEST_CASE("tokenizer: nullptr syntax returns content unchanged") {
     std::string src = "anything // goes\n";
     CHECK(keur::strip_comments(src, nullptr) == src);
+}
+
+TEST_CASE("tokenizer: extract_literals emits string contents, not code or comments") {
+    auto* cpp = keur::lang_syntax(".cpp");
+    std::string src = "int id = 2650567;\nconst char* s = \"hello\"; // \"not me\"\n";
+    auto lits = keur::extract_literals(src, cpp);
+    // the string literal is emitted; the comment string and bare number are not
+    REQUIRE(lits.size() == 1);
+    CHECK(lits[0].text == "hello");
+    CHECK(lits[0].line == 2);
+}
+
+TEST_CASE("tokenizer: extract_literals skips comment content entirely") {
+    auto* py = keur::lang_syntax(".py");
+    // '# ...' is a comment; the only real string is the url
+    std::string src = "url = \"http://example.com\"  # \"fake-literal\"\n";
+    auto lits = keur::extract_literals(src, py);
+    REQUIRE(lits.size() == 1);
+    CHECK(lits[0].text == "http://example.com");
+}
+
+TEST_CASE("tokenizer: extract_literals handles escapes and keeps the escaped value") {
+    auto* cpp = keur::lang_syntax(".cpp");
+    std::string src = "s = \"a\\\"b\";\n";  // literal: a"b
+    auto lits = keur::extract_literals(src, cpp);
+    REQUIRE(lits.size() == 1);
+    CHECK(lits[0].text == "a\"b");
+}
+
+TEST_CASE("tokenizer: extract_literals handles python triple strings") {
+    auto* py = keur::lang_syntax(".py");
+    std::string src = "doc = \"\"\"multi\nline\"\"\"\n";
+    auto lits = keur::extract_literals(src, py);
+    REQUIRE(lits.size() == 1);
+    CHECK(lits[0].text == "multi\nline");
+    CHECK(lits[0].line == 1);  // opened on line 1
+}
+
+TEST_CASE("tokenizer: extract_literals tracks line numbers across code") {
+    auto* sh = keur::lang_syntax(".sh");
+    std::string src = "x=1\ny=2\nHOST=\"internal.example\"\n";
+    auto lits = keur::extract_literals(src, sh);
+    REQUIRE(lits.size() == 1);
+    CHECK(lits[0].text == "internal.example");
+    CHECK(lits[0].line == 3);
+}
+
+TEST_CASE("tokenizer: extract_literals drops empty strings and nullptr syntax") {
+    auto* cpp = keur::lang_syntax(".cpp");
+    std::string src = "a = \"\"; b = \"keep\";\n";  // empty string dropped, "keep" kept
+    auto lits = keur::extract_literals(src, cpp);
+    REQUIRE(lits.size() == 1);
+    CHECK(lits[0].text == "keep");
+    CHECK(keur::extract_literals("x = 1", nullptr).empty());  // no syntax = no literals
 }
 
 SCENARIO("[feature:rule-engine] semver comparator handles ops and numeric order") {  // @proves ADR-009.requires

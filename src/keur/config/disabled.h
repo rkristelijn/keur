@@ -47,7 +47,7 @@ namespace keur::config {
 /// when the repo root matches that glob:
 ///
 ///     [scopes."~/git/lab/**".rules]
-///     disabled = ["VAULT-WORK_APS"]
+///     disabled = ["VAULT-WORK"]
 ///
 /// This works in ANY layer: a global keur.toml expresses a machine-wide split
 /// (lab/** vs personal/**); a repo keur.toml expresses a monorepo subtree split
