@@ -42,6 +42,41 @@ using keur::test::make_fake_fs;
 
 TEST_SUITE("integration") {
 
+SCENARIO("[feature:generic-rules] a generic rule never fires standalone (ADR-059)") {
+    // Two identical pattern rules except for `generic`. The non-generic one
+    // fires on the fixture; the generic one must NOT (it feeds an engine).
+    std::string dir = create_temp_dir();
+    std::string path = dir + "/sample.txt";
+    write_file(path, "the quick brown fox\n");
+
+    auto make = [](const std::string& id, bool generic) {
+        keur::Rule r;
+        r.id = id;
+        r.category = "quality";
+        r.engine = "pattern";
+        r.action = "warn";
+        r.generic = generic;
+        keur::RulePattern p;
+        p.regex_str = "quick";
+        p.message = "found quick";
+        r.patterns.push_back(p);
+        return r;
+    };
+
+    SUBCASE("non-generic fires") {
+        std::vector<keur::Rule> rules = { make("PLAIN-FIRE", false) };
+        auto fs = keur::rules_scan_files(rules, {path});
+        CHECK(has_rule(fs, "PLAIN-FIRE"));
+    }
+    SUBCASE("generic does not fire") {
+        std::vector<keur::Rule> rules = { make("GENERIC-INERT", true) };
+        auto fs = keur::rules_scan_files(rules, {path});
+        CHECK(!has_rule(fs, "GENERIC-INERT"));
+        CHECK(fs.empty());
+    }
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] RSA private key triggers KEUR-SEC-001") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());

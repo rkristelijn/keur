@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <sstream>
@@ -2097,6 +2098,93 @@ TEST_CASE("tokenizer: extract_literals drops empty strings and nullptr syntax") 
     REQUIRE(lits.size() == 1);
     CHECK(lits[0].text == "keep");
     CHECK(keur::extract_literals("x = 1", nullptr).empty());  // no syntax = no literals
+}
+
+TEST_CASE("parse: generic rule with classes table (ADR-058/059)") {
+    const char* path = "/tmp/keur_test_generic.rule";
+    {
+        std::ofstream o(path);
+        o << "id: literal-classes\n"
+             "category: quality\n"
+             "engine: pipeline\n"
+             "generic: true\n"
+             "classes:\n"
+             "  - name: EMAIL      bucket: identity  regex: @[\\w.-]+  advice: externalise\n"
+             "  - name: LONG_NUM   bucket: identity  regex: ^[0-9]{6,}$\n"
+             "  - name: WORD       bucket: magic     regex: ^[A-Za-z]+$  threshold: 3  advice: extract to a constant\n";
+    }
+    keur::Rule r = keur::rule_parse(path);
+    CHECK(r.id == "literal-classes");
+    CHECK(r.generic);
+    REQUIRE(r.classes.size() == 3);
+    CHECK(r.classes[0].name == "EMAIL");
+    CHECK(r.classes[0].bucket == "identity");
+    CHECK(r.classes[0].regex_str == "@[\\w.-]+");
+    CHECK(r.classes[0].advice == "externalise");
+    CHECK(r.classes[1].name == "LONG_NUM");
+    CHECK(r.classes[1].regex_str == "^[0-9]{6,}$");
+    CHECK(r.classes[1].threshold == 0);
+    CHECK(r.classes[2].name == "WORD");
+    CHECK(r.classes[2].bucket == "magic");
+    CHECK(r.classes[2].threshold == 3);
+    CHECK(r.classes[2].advice == "extract to a constant");
+    std::remove(path);
+}
+
+TEST_CASE("parse: pipeline stages + report (ADR-060)") {
+    const char* path = "/tmp/keur_test_stages.rule";
+    {
+        std::ofstream o(path);
+        o << "id: literal-classify\n"
+             "engine: pipeline\n"
+             "generic: true\n"
+             "stages:\n"
+             "  - extract: literals\n"
+             "  - count: unique\n"
+             "  - classify: { table: literal-classes }\n"
+             "report: by-bucket\n";
+    }
+    keur::Rule r = keur::rule_parse(path);
+    CHECK(r.generic);
+    CHECK(r.report == "by-bucket");
+    REQUIRE(r.stages.size() == 3);
+    CHECK(r.stages[0].verb == "extract");
+    CHECK(r.stages[0].arg == "literals");
+    CHECK(r.stages[1].verb == "count");
+    CHECK(r.stages[1].arg == "unique");
+    CHECK(r.stages[2].verb == "classify");
+    CHECK(r.stages[2].table == "literal-classes");
+    std::remove(path);
+}
+
+TEST_CASE("parse: a non-generic rule leaves generic/classes/stages empty") {
+    const char* path = "/tmp/keur_test_plain.rule";
+    {
+        std::ofstream o(path);
+        o << "id: PLAIN-001\nengine: pattern\npatterns:\n  - regex: foo\n";
+    }
+    keur::Rule r = keur::rule_parse(path);
+    CHECK(!r.generic);
+    CHECK(r.classes.empty());
+    CHECK(r.stages.empty());
+    CHECK(r.patterns.size() == 1);
+    std::remove(path);
+}
+
+TEST_CASE("action: central string<->enum round-trips and catches drift") {
+    using keur::Action;
+    // known verbs round-trip
+    CHECK(keur::action_from_string("block") == Action::Block);
+    CHECK(keur::action_from_string("warn") == Action::Warn);
+    CHECK(keur::action_from_string("advisory") == Action::Advisory);
+    CHECK(keur::action_from_string("off") == Action::Off);
+    CHECK(keur::action_to_string(Action::Block) == "block");
+    CHECK(keur::action_to_string(Action::Warn) == "warn");
+    // drift: a typo is Unknown, not silently treated as a valid action
+    CHECK(keur::action_from_string("wrn") == Action::Unknown);
+    CHECK(keur::action_from_string("") == Action::Unknown);
+    CHECK(keur::action_is_valid("block"));
+    CHECK(!keur::action_is_valid("wrn"));
 }
 
 SCENARIO("[feature:rule-engine] semver comparator handles ops and numeric order") {  // @proves ADR-009.requires
