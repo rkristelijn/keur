@@ -224,6 +224,10 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
   std::vector<const Rule*> composite_rules;
   std::vector<const Rule*> active;
   for (auto& r : rules) {
+    // Generic rules (ADR-059) feed an engine; they never fire on their own.
+    // Skip them from standalone dispatch entirely — a consuming engine reads
+    // their payload by id (see the pipeline engine, ADR-060).
+    if (r.generic) continue;
     if (r.engine == "composite" || r.has_composite) { composite_rules.push_back(&r); continue; }
     if (!requires_satisfied(r, facts)) continue;  // guard failed → skip entirely
     active.push_back(&r);
@@ -409,6 +413,7 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
   // file-level engines run once over the whole fileset (respect requires: too).
   std::vector<const Rule*> file_absence, file_presence, max_dir_files, filename_case;
   for (const auto& r : rules) {
+    if (r.generic) continue;  // ADR-059: generic rules never fire standalone
     if (!requires_satisfied(r, facts)) continue;
     if (r.engine == "file-absence") file_absence.push_back(&r);
     else if (r.engine == "file-presence") file_presence.push_back(&r);

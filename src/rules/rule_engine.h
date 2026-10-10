@@ -21,6 +21,26 @@
 
 namespace keur {
 
+/**
+ * A rule's action — the single source of truth for the gate verbs. Historically
+ * these were bare strings (`"block"`, `"warn"`, …) compared ad-hoc across ~18
+ * files, which drifts: a typo like `"wrn"` compiles and fails silently. The
+ * enum + the central from/to-string pair below make a typo in code a compile
+ * error and a typo in rule data a validation failure (ADR-058 drift class).
+ * The string stays in the Rule/Finding structs (serialisation unchanged); this
+ * is the conversion/validation layer around it, not a struct change.
+ */
+enum class Action { Block, Warn, Advisory, Off, Unknown };
+
+/** Parse an action string to the enum. Unknown/empty → Action::Unknown. */
+Action action_from_string(const std::string& s);
+
+/** Canonical lowercase string for an action (round-trips with the parser). */
+std::string action_to_string(Action a);
+
+/** True if `s` is one of the known action verbs (block|warn|advisory|off). */
+bool action_is_valid(const std::string& s);
+
 /** A single regex pattern within a rule. */
 struct RulePattern {
   std::string regex_str;
@@ -63,6 +83,30 @@ struct CompositeNode {
   enum Kind { Ref, All, Any, Not } kind = Ref;
   std::string ref;                    // for Kind::Ref — the rule id it points at
   std::vector<CompositeNode> children;  // for All/Any/Not
+};
+
+/**
+ * One row of a literal-classification table (ADR-058/059). A generic rule
+ * carries an ordered list of these; the first whose `regex` matches a literal
+ * wins. `bucket` is noise|magic|identity; `threshold` is the rule-of-three
+ * minimum occurrence count for the magic bucket (0 = not applicable).
+ */
+struct LiteralClass {
+  std::string name;       // e.g. "EMAIL", "LONG_NUM", "WORD"
+  std::string bucket;     // "noise" | "magic" | "identity"
+  std::string regex_str;  // match pattern (first match wins, in list order)
+  int threshold = 0;      // magic bucket: min occurrences to flag (rule of three)
+  std::string advice;     // human guidance when this class is surfaced
+};
+
+/**
+ * One stage of a declarative pipeline (ADR-060): a fixed verb plus its params.
+ * The closed verb set is implemented in C++; data only sequences them.
+ */
+struct PipelineStage {
+  std::string verb;   // "extract" | "count" | "classify"
+  std::string arg;    // e.g. "literals" (extract), "unique" (count)
+  std::string table;  // classify: the generic rule id holding the class table
 };
 
 /** A complete rule loaded from a .rule file. */
@@ -128,6 +172,14 @@ struct Rule {
   RuleRequires requires_;      // ADR-009: facts guard (empty = always applies)
   CompositeNode composite;     // ADR-009: for engine=composite, the boolean tree
   bool has_composite = false;  // true when engine=composite and a tree was parsed
+  // Generic rule (ADR-059): a rule that feeds an engine instead of firing on its
+  // own. `generic` makes it inert to standalone dispatch; the consuming engine
+  // reads its payload by id. `classes` is the literal-classify table; `stages`
+  // is the declarative pipeline (ADR-060); `report` names the output shape.
+  bool generic = false;
+  std::vector<LiteralClass> classes;   // ADR-058/059: classification table
+  std::vector<PipelineStage> stages;   // ADR-060: ordered pipeline verbs
+  std::string report;                  // ADR-060: e.g. "by-bucket"
   RuleTarget target;
   std::vector<RulePattern> patterns;
 };

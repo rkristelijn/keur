@@ -18,6 +18,80 @@ using detail::split_ws;
 using detail::starts_with;
 using detail::trim;
 
+namespace {
+
+// Strip one enclosing pair of matching quotes (single or double).
+std::string unquote(const std::string& s) {
+  if (s.size() >= 2 && (s.front() == '"' || s.front() == '\'') && s.back() == s.front())
+    return s.substr(1, s.size() - 2);
+  return s;
+}
+
+// Apply one key:value field to a LiteralClass (ADR-058/059).
+void apply_class_field(LiteralClass& lc, const std::string& k, const std::string& v) {
+  if (k == "name") lc.name = unquote(v);
+  else if (k == "bucket") lc.bucket = unquote(v);
+  else if (k == "regex") lc.regex_str = unquote(v);
+  else if (k == "threshold") lc.threshold = std::atoi(v.c_str());
+  else if (k == "advice") lc.advice = unquote(v);
+}
+
+// Parse an inline class row: fields separated by two-or-more spaces, each
+// "key: value". `regex`/`advice` may contain single spaces, so we split on the
+// 2+-space boundary, not every space. Order of fields is free.
+void parse_class_row(const std::string& row, LiteralClass& lc) {
+  size_t i = 0, n = row.size();
+  while (i < n) {
+    size_t key_start = i;
+    size_t c = row.find(':', i);
+    if (c == std::string::npos) break;
+    std::string k = trim(row.substr(key_start, c - key_start));
+    // value runs until a 2+-space gap that is followed by a "word:" token.
+    size_t v_start = c + 1;
+    size_t j = v_start;
+    size_t v_end = n;
+    while (j < n) {
+      if (row[j] == ' ' && j + 1 < n && row[j + 1] == ' ') {
+        size_t k2 = j;
+        while (k2 < n && row[k2] == ' ') k2++;
+        size_t cc = row.find(':', k2);
+        size_t sp = row.find(' ', k2);
+        if (cc != std::string::npos && (sp == std::string::npos || cc < sp)) {
+          v_end = j; break;  // next key starts here
+        }
+      }
+      j++;
+    }
+    std::string v = trim(row.substr(v_start, v_end - v_start));
+    apply_class_field(lc, k, v);
+    i = (v_end < n) ? v_end + 1 : n;
+    while (i < n && row[i] == ' ') i++;
+  }
+}
+
+// Parse a stage row: "verb: arg" (e.g. "extract: literals", "count: unique",
+// "classify: { table: literal-classes }").
+void parse_stage_row(const std::string& row, PipelineStage& st) {
+  size_t c = row.find(':');
+  if (c == std::string::npos) { st.verb = trim(row); return; }
+  st.verb = trim(row.substr(0, c));
+  std::string rest = trim(row.substr(c + 1));
+  if (!rest.empty() && rest.front() == '{') {
+    // inline map, e.g. { table: literal-classes }
+    std::string inner = rest.substr(1, rest.size() - (rest.back() == '}' ? 2 : 1));
+    size_t ic = inner.find(':');
+    if (ic != std::string::npos) {
+      std::string k = trim(inner.substr(0, ic)), v = trim(inner.substr(ic + 1));
+      if (k == "table") st.table = v;
+      else st.arg = v;
+    }
+  } else {
+    st.arg = unquote(rest);
+  }
+}
+
+}  // namespace
+
 Rule rule_parse(const std::string& path) {
   Rule rule;
   std::ifstream f(path);
@@ -27,6 +101,8 @@ Rule rule_parse(const std::string& path) {
   bool in_patterns = false;
   bool in_requires = false;   // ADR-009: inside a requires: block
   bool in_composite = false;  // ADR-009: inside a composite: block
+  bool in_classes = false;    // ADR-058/059: inside a classes: block
+  bool in_stages = false;     // ADR-060: inside a stages: block
   RulePattern cur;
 
   while (std::getline(f, line)) {
@@ -74,6 +150,51 @@ Rule rule_parse(const std::string& path) {
       continue;
     } else if (in_composite) {
       in_composite = false;
+    }
+
+    // classes: block (ADR-058/059) — each "  - name: ..." row is one class.
+    // Fields may be on the same row (name/bucket/regex/threshold) with `advice`
+    // optionally on its own indented line, OR each field on its own line.
+    if (in_classes && starts_with(line, "  - ")) {
+      LiteralClass lc;
+      // the row after "- " is a sequence of "key: value" separated by two+ spaces
+      std::string row = trim(line.substr(line.find("- ") + 2));
+      parse_class_row(row, lc);
+      rule.classes.push_back(lc);
+      continue;
+    } else if (in_classes && starts_with(line, "    ") && t.find(':') != std::string::npos) {
+      // continuation field for the last class (e.g. advice: on its own line)
+      if (!rule.classes.empty()) {
+        auto c = t.find(':');
+        std::string k = trim(t.substr(0, c)), v = trim(t.substr(c + 1));
+        apply_class_field(rule.classes.back(), k, v);
+      }
+      continue;
+    } else if (in_classes && starts_with(line, "  ")) {
+      continue;
+    } else if (in_classes) {
+      in_classes = false;  // dedented — fall through
+    }
+
+    // stages: block (ADR-060) — each "  - verb: arg" row is one pipeline stage.
+    if (in_stages && starts_with(line, "  - ")) {
+      PipelineStage st;
+      std::string row = trim(line.substr(line.find("- ") + 2));
+      parse_stage_row(row, st);
+      rule.stages.push_back(st);
+      continue;
+    } else if (in_stages && starts_with(line, "    ") && t.find(':') != std::string::npos) {
+      if (!rule.stages.empty()) {
+        auto c = t.find(':');
+        std::string k = trim(t.substr(0, c)), v = trim(t.substr(c + 1));
+        if (k == "table") rule.stages.back().table = v;
+        else if (k == "arg") rule.stages.back().arg = v;
+      }
+      continue;
+    } else if (in_stages && starts_with(line, "  ")) {
+      continue;
+    } else if (in_stages) {
+      in_stages = false;
     }
 
     // patterns: sub-items are indented "  - regex:" / "    message:"
@@ -155,6 +276,10 @@ Rule rule_parse(const std::string& path) {
     else if (key == "patterns") { in_patterns = true; cur = {}; }
     else if (key == "requires") { in_requires = true; }
     else if (key == "composite") { in_composite = true; }
+    else if (key == "generic") rule.generic = (val == "true" || val == "yes");  // ADR-059
+    else if (key == "report") rule.report = val;                                 // ADR-060
+    else if (key == "classes") { in_classes = true; }                            // ADR-058/059
+    else if (key == "stages") { in_stages = true; }                              // ADR-060
   }
   if (!cur.regex_str.empty()) rule.patterns.push_back(std::move(cur));
   return rule;
