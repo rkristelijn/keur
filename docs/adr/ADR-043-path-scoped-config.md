@@ -4,13 +4,64 @@
 
 ## Status
 
-Proposed · 2026-10-06 · Coverage: none
-· Relates to: ADR-003 (adapters + the pure config-layer resolver this extends —
-`config/scopes.h` `resolve_layers`), ADR-042 (PII vault scanner — the rule class
-that motivated this), ADR-035 (self-explaining findings + suppression — the
-per-repo escape this replaces for the whole-class case), ADR-026/038/039
-(difficulty cascade — the same global→repo fold this inserts a layer into),
-`src/keur/config/scopes.h` (the `Scope` enum + `resolve_layers` this changes)
+Accepted · 2026-10-06 (revised 2026-10-10) · Coverage: code
+(`config/disabled.cpp` `path_matches_prefix` + `scoped_disabled`,
+`resolve_disabled` fold) + tests (`@proves KEUR-SCOPED-DISABLED`)
+· Relates to: ADR-003 (adapters + the pure config-layer resolver this extends),
+ADR-042 (PII vault scanner — the rule class that motivated this), ADR-035
+(self-explaining findings + suppression — the per-repo escape this replaces for
+the whole-class case), ADR-026/038/039 (difficulty cascade), ADR-054
+(`.config/keur.toml` as the one repo config home — this decision keeps path
+scoping in THAT one file rather than adding a second file),
+`src/keur/config/disabled.h` (`scoped_disabled`, the mechanism)
+
+## Revision note (2026-10-10): one file, not two
+
+The original decision below proposed a **separate** `scopes.toml` file. During
+implementation that was rejected in favour of a `[scopes."<glob>"]` **section
+inside the existing keur.toml** — one file, not two. Reasons:
+
+- **One config home (ADR-054).** keur just consolidated on a single
+  `.config/keur.toml`; a second `scopes.toml` reintroduces the "two surfaces to
+  learn and keep in sync" problem ADR-035/054 explicitly avoid.
+- **Monorepo.** A path scope is useful not only machine-wide (global config:
+  `~/git/work/**` vs `~/git/hobby/**`) but also WITHIN one repo (a monorepo's
+  `packages/public/**` held stricter than `apps/internal/**`). A section inside
+  keur.toml works at ANY layer — global for the machine split, a repo-level
+  `.config/keur.toml` for the monorepo subtree split — because every layer goes
+  through the same reader. A separate global-only `scopes.toml` cannot express
+  the monorepo case and would not travel with the repo.
+- **Less code.** No new file path, no extra layer in `resolve_layers`; the
+  scope section is read from every existing keur.toml layer.
+
+The format is a sub-table keyed by a directory-prefix glob:
+
+```toml
+# in ~/.config/keur/keur.toml (machine-wide) OR a repo's .config/keur.toml
+[scopes."~/git/work/**".rules]
+disabled = ["ORG-JARGON-RULE"]
+```
+
+Everything below the line describes the original two-file design and its
+rationale; the prefix-glob matching, layer-fold semantics and scope-guard
+(secrets never path-suppressed) all still hold — only the file layout changed.
+
+### PII principle (fail-safe on; path = opt-out only)
+
+A PII/security rule's safe default is ON. Path scoping is therefore
+**opt-out only**: a glob can `disabled`-list a rule for a path class, never
+"enable only here" (which would fail OPEN — a new, unlisted repo would stop
+scanning for PII). Concretely for the motivating split:
+
+- An **org-jargon** rule (vocabulary that is legitimate inside work repos) →
+  disabled on the work-repo prefix. This is the dominant noise driver on that
+  class of repos.
+- The **personal-data** rules (real identity/financial data, which can live
+  under the same work prefix in a notes/vault repo) → **stay on**. Disabling
+  org jargon must not disable detection of actual personal data.
+
+---
+
 
 ## Context
 

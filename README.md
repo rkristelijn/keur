@@ -312,6 +312,36 @@ tool inventory. Resolution order (later overrides earlier):
 An explicit `--config` path always wins. See `config/keur.toml` for the full,
 documented set of defaults.
 
+### Path-scoped rules (work vs personal, monorepo subtrees)
+
+Sometimes a rule is noise for a whole *class* of repositories but wanted
+elsewhere — e.g. an org-jargon PII rule that is legitimate in every work repo
+but should still guard personal projects. Instead of dropping a `keur.toml`
+into every such repo, scope the rule off by directory prefix in **one**
+`keur.toml` (the global one, or a repo's own for a monorepo). A
+`[scopes."<glob>".rules]` section's `disabled` list applies only when the repo
+root matches the glob (ADR-043):
+
+```toml
+# ~/.config/keur/keur.toml  (machine-wide)
+# Org jargon is normal in work repos → don't flag it under ~/git/work/**,
+# but keep real PII (personal-data) detection ON everywhere.
+[scopes."~/git/work/**".rules]
+disabled = ["ORG-JARGON-RULE"]
+
+# personal / hobby projects → quieter still
+[scopes."~/git/hobby/**".rules]
+disabled = ["ORG-JARGON-RULE", "PERSONAL-DATA-RULE"]
+```
+
+A glob supports a leading `~/` (your `$HOME`) and a trailing `/**` ("this
+directory and everything under it"). The same section works in a monorepo's own
+`.config/keur.toml` to hold a subtree (`packages/public/**`) stricter than
+another (`apps/internal/**`). Path scoping is **opt-out only** — a scope can
+disable a rule for a path class, never "enable only here", so a new unlisted
+repo always keeps the safe default (PII rules stay on). Secrets are never
+path-suppressed; they suppress by value only (ADR-035).
+
 ## Rules and custom rule directories
 
 Rules are `.rule` files (cpm-compatible format) grouped by category under
