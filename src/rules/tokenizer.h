@@ -20,6 +20,7 @@
 #define KEUR_UTIL_TOKENIZER_H
 
 #include <string>
+#include <vector>
 
 namespace keur {
 
@@ -42,6 +43,20 @@ std::string strip_comments(const std::string& content, const LangSyntax* syntax)
 
 /** Strip both comments AND string literals, preserving line structure. */
 std::string strip_comments_and_strings(const std::string& content, const LangSyntax* syntax);
+
+/** A single string literal extracted from source: its text (delimiters and
+ *  escape backslashes removed) and the 1-based line where it opened. */
+struct Literal {
+  std::string text;  // the literal's content, without surrounding delimiters
+  int line;          // 1-based line number where the literal started
+};
+
+/** Third projection (ADR-058): the inverse of strip_comments_and_strings.
+ *  Comments are ignored; the CONTENT of each string literal is emitted as a
+ *  Literal. Code (keywords, identifiers, operators) is dropped. Line numbers
+ *  are 1-based and refer to where each literal opened. nullptr syntax (or a
+ *  language with no string delimiters, e.g. markdown) yields no literals. */
+std::vector<Literal> extract_literals(const std::string& content, const LangSyntax* syntax);
 
 }  // namespace keur
 

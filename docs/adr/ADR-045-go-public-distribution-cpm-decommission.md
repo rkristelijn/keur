@@ -48,7 +48,7 @@ A public repo exposes EVERY commit, not just HEAD. So before flipping visibility
 
 - **PII/BII over full history.** Run the PII-vault scanner (ADR-042) over the
   entire git history, not the worktree — `git log -p` / a history walk, or
-  `git filter-repo --analyze`. Today's `VAULT-WORK_APS` catch (a work path in an
+  `git filter-repo --analyze`. Today's `VAULT-WORK` catch (a work path in an
   ADR) proves the risk is real and already present. ANY hit = fix history
   (rewrite/squash) before public. This is the single blocking criterion.
 - **No private rules leak.** `~/.keur/rules` and any work-specific patterns

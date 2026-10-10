@@ -14,3 +14,11 @@ VAULT-PERSONAL
 # bytes coincidentally match a term) — a false positive, not a leak. Scoping it
 # off here is a scope correction, same as VAULT-PERSONAL above (ADR-035/043).
 VAULT-GDPR_UK
+
+# VAULT-WORK is the work-vault rule from the global ~/.config/keur/rules/ layer.
+# On this public tool repo its only hits are in config/disabled unit tests
+# (src/keur/config) that use the rule id "VAULT-WORK" as test data to prove the
+# scope-resolution logic — you cannot test resolving VAULT-WORK without naming
+# it. The company name that used to be in the id was renamed out; what remains
+# is a self-referential test, not a leak. Scope correction (ADR-035/043/046).
+VAULT-WORK

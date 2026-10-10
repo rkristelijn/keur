@@ -20,7 +20,7 @@ machine name — into a rule, a fixture, or any file. A central vault already
 exists for exactly this:
 
 - `~/.local/share/pii/patterns.d/*.pii` (overridable via `$PII_VAULT`), five
-  lists (`work-aps` ~593 lines, `personal`, `gdpr-nl`, `gdpr-uk`, `generic`),
+  lists (`work` ~593 lines, `personal`, `gdpr-nl`, `gdpr-uk`, `generic`),
   `700`/`600` perms, documented against NIST SP 800-122 / ISO 27701 / ISO 27001
   A.8.12. Format: one regex per line, `#` = comment, blank skipped.
 - It is already consumed by **cpm's** check-pii and by a global git hook
