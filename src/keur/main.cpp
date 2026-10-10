@@ -21,6 +21,7 @@
 
 #include "cmd/check.h"
 #include "cmd/config.h"
+#include "cmd/analyze.h"
 #include "cmd/doctor.h"
 #include "cmd/hook.h"
 #include "cmd/learn.h"
@@ -114,6 +115,7 @@ static const std::unordered_map<std::string, Handler> k_commands = {
     {"rules",  [](const Args& a) { return keur::cmd::rules(keur::cmd::rules_parse(a)); }},
     {"config", [](const Args& a) { return keur::cmd::config(keur::cmd::config_parse(a)); }},
     {"doctor", [](const Args& a) { return keur::cmd::doctor(keur::cmd::doctor_parse(a)); }},
+    {"analyze", [](const Args& a) { return keur::cmd::analyze(keur::cmd::analyze_parse(a)); }},
     {"manager", [](const Args& a) { return keur::cmd::manager(keur::cmd::manager_parse(a)); }},
     {"level",  [](const Args& a) { return keur::cmd::level(keur::cmd::level_parse(a)); }},
     {"settings", [](const Args& a) { return keur::cmd::settings(keur::cmd::settings_parse(a)); }},

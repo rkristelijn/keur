@@ -2187,6 +2187,53 @@ TEST_CASE("action: central string<->enum round-trips and catches drift") {
     CHECK(!keur::action_is_valid("wrn"));
 }
 
+TEST_CASE("pipeline: extract -> count -> classify routes literals to buckets (ADR-060)") {
+    // a classify rule with three classes (first match wins)
+    keur::Rule rule;
+    rule.id = "literal-classes";
+    rule.generic = true;
+    rule.classes = {
+        {"EMAIL",    "identity", "@[\\w.-]+\\.[a-z]{2,}", 0, "externalise"},
+        {"LONG_NUM", "identity", "^[0-9]{6,}$",           0, "looks like an id"},
+        {"WORD",     "magic",    "^[A-Za-z]+$",            3, "extract to a constant"},
+    };
+
+    // a source file: STATUS appears 3x (hits magic threshold), hi 1x (below),
+    // an email once, a 7-digit id once.
+    const char* path = "/tmp/keur_pipeline_test.py";
+    {
+        std::ofstream o(path);
+        o << "a = \"STATUS\"\nb = \"STATUS\"\nc = \"STATUS\"\n"
+             "d = \"hi\"\n"
+             "e = \"foo@bar.com\"\n"
+             "f = \"2650567\"\n";
+    }
+    auto rows = keur::run_literal_pipeline(rule, {path});
+    std::remove(path);
+
+    // index by text for assertions
+    std::map<std::string, keur::ClassifiedLiteral> by;
+    for (auto& r : rows) by[r.text] = r;
+
+    REQUIRE(by.count("STATUS"));
+    CHECK(by["STATUS"].count == 3);
+    CHECK(by["STATUS"].klass == "WORD");
+    CHECK(by["STATUS"].bucket == "magic");   // 3 >= threshold 3
+
+    REQUIRE(by.count("hi"));
+    CHECK(by["hi"].count == 1);
+    CHECK(by["hi"].klass == "WORD");
+    CHECK(by["hi"].bucket == "noise");       // below threshold -> demoted to noise
+
+    REQUIRE(by.count("foo@bar.com"));
+    CHECK(by["foo@bar.com"].bucket == "identity");
+    CHECK(by["foo@bar.com"].klass == "EMAIL");
+
+    REQUIRE(by.count("2650567"));
+    CHECK(by["2650567"].klass == "LONG_NUM");
+    CHECK(by["2650567"].bucket == "identity");
+}
+
 SCENARIO("[feature:rule-engine] semver comparator handles ops and numeric order") {  // @proves ADR-009.requires
     using keur::semver_satisfies;
     using keur::semver_compare;

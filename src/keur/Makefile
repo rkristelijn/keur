@@ -57,12 +57,12 @@ REPO_ROOT := $(shell cd ../.. && pwd -P)
 UTF8_LOCALE := $(shell locale -a 2>/dev/null | grep -iqE '^C\.utf-?8$$' && echo C.UTF-8 || echo en_US.UTF-8)
 
 # Rule engine (shared, lower layer)
-RULES_OBJ = $(BINDIR)/rule_parse.o $(BINDIR)/rule_match.o $(BINDIR)/rule_scan.o $(BINDIR)/rule_block.o $(BINDIR)/rule_engines.o $(BINDIR)/rule_facts.o $(BINDIR)/rule_semver.o $(BINDIR)/rule_composite.o $(BINDIR)/rule_resolve.o
+RULES_OBJ = $(BINDIR)/rule_parse.o $(BINDIR)/rule_match.o $(BINDIR)/rule_scan.o $(BINDIR)/rule_block.o $(BINDIR)/rule_engines.o $(BINDIR)/rule_facts.o $(BINDIR)/rule_semver.o $(BINDIR)/rule_composite.o $(BINDIR)/rule_resolve.o $(BINDIR)/rule_pipeline.o
 TOKENIZER_OBJ = $(BINDIR)/tokenizer.o
 
 # All keur sources (relative to src/keur)
 MAIN_SRC   = main.cpp
-IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/train.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/doctor.cpp cmd/manager.cpp cmd/level.cpp cmd/difficulty.cpp cmd/settings.cpp cmd/tune.cpp \
+IMPL_SRCS  = cmd/check.cpp cmd/hook.cpp cmd/scan.cpp cmd/policy.cpp cmd/train.cpp cmd/learn.cpp cmd/rules.cpp cmd/config.cpp cmd/doctor.cpp cmd/analyze.cpp cmd/manager.cpp cmd/level.cpp cmd/difficulty.cpp cmd/settings.cpp cmd/tune.cpp \
              config/scopes.cpp config/hookmgr.cpp config/scanners.cpp config/disabled.cpp config/keurignore.cpp config/ruleset.cpp \
              scan/dispatch.cpp scan/mappers.cpp scan/json_util.cpp \
              learn/history.cpp learn/sysinfo.cpp learn/monitor.cpp \
@@ -123,6 +123,9 @@ $(BINDIR)/rule_composite.o: ../rules/rule/composite.cpp ../rules/rule/internal.h
 $(BINDIR)/rule_resolve.o: ../rules/rule/resolve.cpp ../rules/rule/internal.h ../rules/rule_engine.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
+$(BINDIR)/rule_pipeline.o: ../rules/rule/pipeline.cpp ../rules/rule/internal.h ../rules/rule_engine.h ../rules/tokenizer.h | $(BINDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
+
 $(TOKENIZER_OBJ): ../rules/tokenizer.cpp ../rules/tokenizer.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -c $< -o $@
 
@@ -140,7 +143,7 @@ $(TOKENIZER_OBJ): ../rules/tokenizer.cpp ../rules/tokenizer.h | $(BINDIR)
 # REAL source path (so object names containing underscores, e.g. scan/json_util
 # → keur_scan_json_util.o, map correctly — a blind `_`→`/` substitution would
 # not). Sources that pull in the rule engine get -I../rules; the rest don't.
-RULES_DEP_SRCS = cmd/learn.cpp cmd/difficulty.cpp cmd/settings.cpp cmd/tune.cpp config/ruleset.cpp report/report.cpp
+RULES_DEP_SRCS = cmd/analyze.cpp cmd/learn.cpp cmd/difficulty.cpp cmd/settings.cpp cmd/tune.cpp config/ruleset.cpp report/report.cpp
 
 # src → flattened object path (cmd/doctor.cpp → $(BINDIR)/keur_cmd_doctor.o)
 obj_of = $(BINDIR)/keur_$(subst /,_,$(1:.cpp=.o))
