@@ -120,6 +120,11 @@ struct Rule {
   std::vector<std::string> name_allow;   // exempt exact names
   bool skip_comments = false;  // strip comments before matching (ADR-004 stage 1)
   bool skip_strings = false;   // strip string literals before matching
+  bool skip_binary = false;    // opt-out: skip per-line matching on binary files
+                               // (NUL-byte content). Default false = scan all,
+                               // so a rule that must inspect binaries is unchanged;
+                               // a rule prone to binary false positives (PII/secret
+                               // regexes on PDFs/images) sets this. @id KEUR-BINARY-SKIP
   RuleRequires requires_;      // ADR-009: facts guard (empty = always applies)
   CompositeNode composite;     // ADR-009: for engine=composite, the boolean tree
   bool has_composite = false;  // true when engine=composite and a tree was parsed
