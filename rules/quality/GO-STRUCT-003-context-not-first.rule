@@ -1,0 +1,15 @@
+id: GO-STRUCT-003
+ilities: [maintainability]
+source: kooiaapi
+title: context.Context is not the first parameter
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .go
+  exclude_paths: vendor/
+patterns:
+  - regex: func\s+[A-Za-z0-9_]*\([^)]+,\s*[A-Za-z0-9_]+\s+context\.Context
+    message: "context.Context should be the first parameter, by convention — ctx comes before other args."
+fix: "Move the context.Context parameter to the front: func F(ctx context.Context, …)."

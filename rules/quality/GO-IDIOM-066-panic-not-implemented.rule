@@ -1,0 +1,15 @@
+id: GO-IDIOM-066
+ilities: [reliability]
+source: kooiaapi
+title: panic used as a not-implemented stub
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .go
+  exclude_paths: vendor/ _test.go
+patterns:
+  - regex: (?i)panic\(\s*"(todo|not implemented|unimplemented|fixme)
+    message: "panic(\"TODO/not implemented\") ships a crash — return an explicit error instead."
+fix: "Return errors.New(\"not implemented\") (or a real implementation) rather than panicking."

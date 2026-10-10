@@ -1,0 +1,16 @@
+id: GO-STRUCT-002
+ilities: [maintainability]
+source: kooiaapi
+title: Error formatted with %v instead of %w
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+skip_strings: false
+target:
+  extensions: .go
+  exclude_paths: vendor/
+patterns:
+  - regex: fmt\.Errorf\([^)]*%v[^)]*,\s*err\b
+    message: "Error wrapped with %v loses the chain — use %w so errors.Is/As still work."
+fix: "Change the %v next to err to %w: fmt.Errorf(\"doing X: %w\", err)."

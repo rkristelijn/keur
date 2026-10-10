@@ -1,0 +1,15 @@
+id: GO-STRUCT-004
+ilities: [maintainability]
+source: kooiaapi
+title: context.Context stored in a struct field
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .go
+  exclude_paths: vendor/ _test.go
+patterns:
+  - regex: ^\s*[A-Za-z0-9_]+\s+context\.Context\s*$
+    message: "Do not store context.Context in a struct — pass it per call as the first argument."
+fix: "Remove the ctx field and accept context.Context in the methods that need it."
