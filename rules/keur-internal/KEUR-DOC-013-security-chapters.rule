@@ -1,0 +1,26 @@
+# KEUR-DOC-013 — SECURITY.md carries its agreed chapters.
+# @implements ADR-061, docs/design/doc-chapter-contract.md
+#
+# absence engine, maturity 3: the disclosure contract. GitHub surfaces SECURITY
+# to enable the "Report a vulnerability" flow, so the reporting chapter is the
+# load-bearing one; Scope and Supported versions complete the set. Closed alias
+# sets per the contract.
+id: KEUR-DOC-013
+ilities: [analysability]
+maturity: 3
+title: SECURITY.md is missing an agreed chapter (Reporting / Scope / Supported versions)
+category: quality
+severity: warning
+engine: absence
+action: warn
+target:
+  filenames: SECURITY.md
+patterns:
+  - regex: (?im)^#{1,}\s+(Reporting a vulnerability|Reporting|Report a vulnerability|Disclosure)\b
+    message: "SECURITY.md has no Reporting a vulnerability chapter — accepted: Reporting a vulnerability (canonical), Reporting, Report a vulnerability, Disclosure. The private channel, never a public issue/PR."
+  - regex: (?im)^#{1,}\s+(Scope|In scope|What .* in scope)\b
+    message: "SECURITY.md has no Scope chapter — accepted: Scope (canonical), In scope. What counts as a vuln in the tool vs. a finding it emits."
+  - regex: (?im)^#{1,}\s+(Supported versions|Supported|Versions|Supported releases)\b
+    message: "SECURITY.md has no Supported versions chapter — accepted: Supported versions (canonical), Supported, Versions, Supported releases. Which releases get fixes."
+confidence: 0.5
+fix: "Add the missing chapter with a canonical heading or agreed alias (doc-chapter-contract.md)."

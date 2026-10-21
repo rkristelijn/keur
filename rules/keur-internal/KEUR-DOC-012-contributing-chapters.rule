@@ -1,0 +1,33 @@
+# KEUR-DOC-012 — CONTRIBUTING.md carries its agreed chapters.
+# @implements ADR-061, docs/design/doc-chapter-contract.md
+#
+# absence engine, maturity 3: CONTRIBUTING is the owner of operational truth, so
+# its chapters appear once the process is "Defined" (CMMI-3). Build / Test are
+# the load-bearing ones (every other doc links here for commands); Prerequisites,
+# Code style, Commits, Architecture decisions complete the set. Closed alias
+# sets per the contract.
+id: KEUR-DOC-012
+ilities: [analysability]
+maturity: 3
+title: CONTRIBUTING.md is missing an agreed chapter (Build / Test / Commits / ...)
+category: quality
+severity: warning
+engine: absence
+action: warn
+target:
+  filenames: CONTRIBUTING.md
+patterns:
+  - regex: (?im)^#{1,}\s+(Prerequisites|Requirements|Dependencies)\b
+    message: "CONTRIBUTING.md has no Prerequisites chapter — accepted: Prerequisites, Requirements, Dependencies. The real toolchain (README references this)."
+  - regex: (?im)^#{1,}\s+(Build|Building|Compile)\b
+    message: "CONTRIBUTING.md has no Build chapter — accepted: Build, Building, Compile. The authoritative build commands (owner; other docs link here)."
+  - regex: (?im)^#{1,}\s+(Test|Tests|Testing|Coverage)\b
+    message: "CONTRIBUTING.md has no Test chapter — accepted: Test, Tests, Testing, Coverage. The full verification story (owner)."
+  - regex: (?im)^#{1,}\s+(Code style|Style|Conventions|Coding standards)\b
+    message: "CONTRIBUTING.md has no Code style chapter — accepted: Code style, Style, Conventions, Coding standards."
+  - regex: (?im)^#{1,}\s+(Commits|Commit messages|Pull requests|PR|Contributing changes)\b
+    message: "CONTRIBUTING.md has no Commits/PR chapter — accepted: Commits, Commit messages, Pull requests, PR. Conventional Commits, scope, no build artifacts."
+  - regex: (?im)^#{1,}\s+(Architecture decisions|Architecture|Decisions|ADRs?)\b
+    message: "CONTRIBUTING.md has no Architecture decisions chapter — accepted: Architecture decisions, Architecture, Decisions, ADR(s). Link docs/adr/, never duplicate."
+confidence: 0.5
+fix: "Add the missing chapter with a canonical heading or agreed alias (doc-chapter-contract.md). CONTRIBUTING owns build/test facts; keep README and AGENTS linking here, not copying."

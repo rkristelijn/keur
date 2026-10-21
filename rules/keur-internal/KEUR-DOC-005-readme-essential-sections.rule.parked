@@ -1,0 +1,30 @@
+# KEUR-DOC-005 — README carries the two essential chapters (CMMI-1 floor).
+# @implements ADR-061, docs/design/doc-chapter-contract.md, ADR-011 (maturity gate)
+#
+# absence engine: fires per chapter whose canonical heading AND none of its
+# agreed aliases appear in README.md. These are the two the chapter contract
+# marks "Required from CMMI-1". The other four README chapters are DOC-005b.
+#
+# CLOSED ALIAS SET, not free synonyms (contract rationale): keur accepts the
+# canonical heading or an agreed alias listed in doc-chapter-contract.md, and
+# rejects an unlisted word. The alternation below IS that closed set. A new
+# alias is added to the contract (one place), not here per repo. The regex
+# anchors on an H2+ heading and matches case-insensitively.
+id: KEUR-DOC-005
+ilities: [analysability]
+maturity: 1
+title: README is missing an essential chapter (Context / Local setup)
+category: quality
+severity: warning
+engine: absence
+action: warn
+skip_emoji: true
+target:
+  filenames: README.md
+patterns:
+  - regex: (?im)^#{2,}\s+(Context|Overview|About|Introduction)\b
+    message: "README has no Context chapter. The contract (doc-chapter-contract.md) requires it from CMMI-1 — accepted headings: Context (canonical), Overview, About, Introduction."
+  - regex: (?im)^#{2,}\s+(Local setup|Getting started|Install|Installation|Usage|Quick ?start)\b
+    message: "README has no Local setup chapter. Required from CMMI-1 — accepted headings: Local setup (canonical), Getting started, Install, Installation, Usage, Quick start."
+confidence: 0.6
+fix: "Add the chapter using the canonical heading or an agreed alias (see docs/design/doc-chapter-contract.md). The remaining four README chapters — Prerequisites, Validate, Release, More info — are required from CMMI-2 (DOC-005b)."

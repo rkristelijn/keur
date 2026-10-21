@@ -1,0 +1,28 @@
+# KEUR-DOC-005b — README carries the type-independent CMMI-2 chapters.
+# @implements ADR-061, docs/design/doc-chapter-contract.md, ADR-011
+#
+# absence engine, maturity 2: the README chapters required at CMMI-2 REGARDLESS
+# of repo type — Prerequisites and More info. (Validate and Release are
+# type-dependent: required for app/service, moved to CONTRIBUTING for
+# util/library — see DOC-005c, parked until the repo-type fact exists.)
+#
+# Each pattern is the CLOSED alias set for that chapter (doc-chapter-contract.md).
+id: KEUR-DOC-005b
+ilities: [analysability]
+maturity: 2
+title: README is missing a CMMI-2 chapter (Prerequisites / More info)
+category: quality
+severity: warning
+engine: absence
+action: warn
+skip_emoji: true
+target:
+  filenames: README.md
+patterns:
+  - regex: (?im)^#{2,}\s+(Prerequisites|Requirements|Dependencies)\b
+    message: "README has no Prerequisites chapter — accepted: Prerequisites (canonical), Requirements, Dependencies. Required from CMMI-2 (doc-chapter-contract.md)."
+  - regex: (?im)^#{2,}\s+(More info|Further reading|References|Resources|Documentation|Links)\b
+    message: "README has no More info chapter — accepted: More info (canonical), Further reading, References, Resources, Documentation, Links. Required from CMMI-2."
+confidence: 0.55
+fix: "Add the missing chapter(s) with a canonical heading or an agreed alias (docs/design/doc-chapter-contract.md). Validate and Release are checked by repo type (DOC-005c): an app/service needs them in the README, a util/library moves them to CONTRIBUTING."
+

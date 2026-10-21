@@ -1,0 +1,32 @@
+# KEUR-DOC-004 — agent-tool file is a divergent copy, not a pointer to AGENTS.md (shim divergence).
+# @implements ADR-061 (shims by reference, never by copy)
+#
+# max-lines engine with a LOW budget: a per-tool instruction file (CLAUDE.md,
+# .cursorrules, copilot-instructions.md) should be a symlink or a one-line
+# pointer to the single source, AGENTS.md (ADR-061). If it is more than a few
+# lines, it is a divergent copy — a second source that will drift from AGENTS.md
+# the moment one is edited and the other is not.
+#
+# A symlink is not read as content here (it resolves to AGENTS.md), so this
+# fires only on a real, fat copy. Budget 10 lines: enough for a pointer with a
+# short note, far too few for a forked copy. WARN — the fix is "make it a
+# pointer", not a gate.
+#
+# NOTE: .cursorrules has no extension; filenames match covers it. The GitHub
+# copilot file lives at .github/copilot-instructions.md — basename match.
+id: KEUR-DOC-004
+ilities: [modifiability]
+maturity: 2
+title: Agent-tool file is a copy, not a pointer to AGENTS.md (shim divergence)
+category: quality
+severity: warning
+engine: max-lines
+action: warn
+min_count: 10
+target:
+  filenames: CLAUDE.md .cursorrules copilot-instructions.md GEMINI.md .windsurfrules
+patterns:
+  - regex: ""
+    message: "This agent-tool file is longer than a pointer, so it is a divergent copy of AGENTS.md — a second source that will drift (ADR-061). Make it a symlink to AGENTS.md, or a one-line 'See AGENTS.md' stub. Keep one editable source for agent instructions."
+confidence: 0.6
+fix: "Replace the copy with 'ln -s AGENTS.md CLAUDE.md' where symlinks are honoured, or a one-line pointer file ('See [AGENTS.md](AGENTS.md)') on locked-down endpoints where symlinks are blocked. Never maintain N copies."

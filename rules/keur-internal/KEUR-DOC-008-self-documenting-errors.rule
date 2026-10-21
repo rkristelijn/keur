@@ -1,0 +1,36 @@
+# KEUR-DOC-008 — error/usage strings should be self-documenting (say how to fix, not just what failed).
+# @implements ADR-061, ADR-035 (self-explaining — a human OR an AI must know what to fix)
+#
+# CAN keur find "not self-documenting"? Yes, as a NEGATIVE heuristic, so WARN at
+# low confidence. The idea: an error literal that states WHAT failed ("invalid
+# config", "parse error", "bad input") but gives no HOW-to-fix is the kind of
+# dead-end message that sends a human or an agent reaching for --no-verify. A
+# self-documenting message names the fix, a flag, a file, or an expected value.
+#
+# Detection = pattern (over source), not docs: match a thrown/returned error
+# string that is SHORT and contains a bare failure noun with no actionable tail.
+# This is inherently fuzzy — a terse message can still be fine, and a long one
+# can still be useless. Hence confidence 0.3 and warn: it is a nudge to review,
+# a conversation starter (ADR-035), not a verdict. Pair with human judgement.
+#
+# The regex matches common "what failed, no how" openers inside a quoted string
+# passed to a throw/error/fail/abort call. The `exclude` (pattern-not) suppresses
+# the match when the SAME line also carries an actionable hint — a flag (--x),
+# a path, "try ", "use ", "expected", "run ", "see " — i.e. it IS self-documenting.
+id: KEUR-DOC-008
+ilities: [analysability]
+maturity: 3
+title: Error/usage string says what failed but not how to fix (not self-documenting)
+category: quality
+severity: warning
+engine: pattern
+action: warn
+target:
+  extensions: .cpp .h .ts .tsx .js .jsx .py .go .rb .java .rs .sh
+  exclude_paths: vendor/ test/ tests/ _test.cpp node_modules/ build/ dist/
+patterns:
+  - regex: (?i)(throw|error|fail|abort|die|panic|raise)\b[^\n]{0,40}?"(invalid|bad|unexpected|parse error|syntax error|something went wrong|unknown error|failed)[^"\n]{0,30}"
+    exclude: (?i)(--[a-z]|try |use |expected|run |see |hint|example|\.(toml|json|yaml|yml|md)\b|/)
+    message: "This error message states what failed but not how to fix it. A self-documenting error (ADR-035) names the fix: the flag to set, the file to edit, the expected value, or a 'see <doc>'. A dead-end message is what makes a human — or an AI — reach for --no-verify instead of fixing the cause."
+confidence: 0.3
+fix: "Rewrite the message to carry the remedy: 'invalid config: set [policy].block-at in .config/keur.toml (0.0-1.0)' instead of 'invalid config'. Say what, where, and how — then neither a human nor an agent has to guess. Suppress with keur:ignore KEUR-DOC-008 if the fix lives elsewhere."

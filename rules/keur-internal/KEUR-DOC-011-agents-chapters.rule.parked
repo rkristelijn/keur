@@ -1,0 +1,26 @@
+# KEUR-DOC-011 — AGENTS.md carries its agreed chapters.
+# @implements ADR-061, docs/design/doc-chapter-contract.md
+#
+# absence engine, maturity 2: the agents.md popular-section set, pinned to agreed
+# headings with a small closed alias set. The format itself requires no fields,
+# so this is keur's house contract, not an upstream mandate. Code style and PR
+# instructions are required from CMMI-3; this rule covers the CMMI-2 three.
+id: KEUR-DOC-011
+ilities: [analysability]
+maturity: 2
+title: AGENTS.md is missing an agreed chapter (Project overview / Setup / Build and test)
+category: quality
+severity: warning
+engine: absence
+action: warn
+target:
+  filenames: AGENTS.md
+patterns:
+  - regex: (?im)^#{1,}\s+(Project overview|Overview)\b
+    message: "AGENTS.md has no Project overview chapter — accepted: Project overview (canonical), Overview. One line; link README, don't restate it."
+  - regex: (?im)^#{1,}\s+(Setup|Dev environment|Development|Getting started)\b
+    message: "AGENTS.md has no Setup chapter — accepted: Setup (canonical), Dev environment, Development, Getting started. Exact commands; link CONTRIBUTING as the owner."
+  - regex: (?im)^#{1,}\s+(Build and test|Build & test|Build and tests|Testing|Test)\b
+    message: "AGENTS.md has no Build and test chapter — accepted: Build and test (canonical), Build & test, Testing, Test. The literal gate the agent must run before finishing."
+confidence: 0.5
+fix: "Add the chapter with a canonical heading or agreed alias (doc-chapter-contract.md). Keep AGENTS.md terse and literal; the owner of command detail is CONTRIBUTING — link it, don't duplicate it."

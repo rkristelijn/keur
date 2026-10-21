@@ -1,0 +1,29 @@
+# KEUR-DOC-006 — a hardcoded tool/runtime version in doc prose (too-detailed → drift bait).
+# @implements ADR-061 (anti-pattern: too much detail that invites drift)
+#
+# pattern engine over doc files. A patch-level version pinned in prose
+# ("requires Node 18.17.1", "Python 3.11.4") is drift bait: the moment the real
+# toolchain moves, the doc is wrong, and nobody updates prose. The fix is to
+# name the MAJOR line only ("Node 18+") and let the authoritative source
+# (.nvmrc, package.json engines, .tool-versions, pyproject) own the exact pin.
+#
+# Heuristic, so WARN: matches a known runtime name followed by a THREE-part
+# version (major.minor.patch) — a two-part "Node 18.17" or bare "Node 18" does
+# NOT fire, because those are the acceptable, drift-resistant forms. Code fences
+# are not special-cased here (RE2 is per-line); a literal command showing an
+# exact version is usually fine, hence warn + suppressible.
+id: KEUR-DOC-006
+ilities: [modifiability]
+maturity: 2
+title: Hardcoded patch-level version in documentation (invites drift)
+category: quality
+severity: warning
+engine: pattern
+action: warn
+target:
+  filenames: README.md CONTRIBUTING.md AGENTS.md
+patterns:
+  - regex: (?i)\b(node|python|java|ruby|go|php|dotnet|\.net|rust|npm|yarn|pnpm)\b[^\n]{0,12}?\bv?\d+\.\d+\.\d+
+    message: "A patch-level version is pinned in prose. This is drift bait (ADR-061): when the toolchain moves, the doc silently goes stale. Name the major line only (e.g. 'Node 18+') and let .nvmrc / package.json engines / .tool-versions own the exact pin."
+confidence: 0.4
+fix: "Replace the exact 'X.Y.Z' with the major line ('Node 18+', 'Python 3.11+') and point to the authoritative version file. If an exact version is genuinely required in a command, add 'keur:ignore KEUR-DOC-006' on that line."

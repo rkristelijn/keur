@@ -1,0 +1,27 @@
+# KEUR-DOC-002 — a documentation file has no outbound links (bad linking / drift bait).
+# @implements ADR-061 ("repeat links, not facts")
+#
+# absence engine (ADR engine-absence): fires on a doc file whose content NEVER
+# matches a markdown link or an ADR/doc reference. The "link don't copy"
+# contract is only real if docs actually link; a doc with zero links has likely
+# started duplicating facts that live elsewhere (the exact drift ADR-061 fights).
+#
+# Scope: the instruction docs that are supposed to cross-reference. README,
+# AGENTS, CONTRIBUTING. SECURITY and CHANGELOG are exempt (they can legitimately
+# stand alone). The pattern matches either a markdown link `](` or a bare
+# `ADR-NNN` / `docs/` reference, so any form of cross-reference satisfies it.
+id: KEUR-DOC-002
+ilities: [analysability, modifiability]
+maturity: 3
+title: Documentation file has no cross-links (started duplicating?)
+category: quality
+severity: warning
+engine: absence
+action: warn
+target:
+  filenames: README.md AGENTS.md CONTRIBUTING.md
+patterns:
+  - regex: \]\(|ADR-[0-9]|docs/
+    message: "This doc contains no links, no ADR reference, and no docs/ pointer. The 'repeat links, not facts' contract (ADR-061) means a doc orients and links outward; a doc with zero cross-links has usually started duplicating facts that belong to one owner elsewhere."
+confidence: 0.5
+fix: "Replace any duplicated facts (build commands, thresholds, process steps) with a link to the one file that owns them (CONTRIBUTING for commands, docs/adr/ for decisions, SECURITY for disclosure). A doc is an entry point and a map, not a destination."

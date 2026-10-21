@@ -1,0 +1,32 @@
+# KEUR-DOC-005c — type-dependent README chapters (PARKED: needs the project-type fact).
+# @implements ADR-061, docs/design/doc-chapter-contract.md, ADR-011
+#
+# PARKED (.rule.parked, inert) until the `[project] type` config field (ADR-011)
+# and its matching fact exist. This rule requires Validate and Release chapters
+# in the README ONLY for an app or service; a util/library moves them to
+# CONTRIBUTING (the chapter contract). keur declares type = "util", so this must
+# NOT fire on keur's own README — which is exactly why it waits for the fact
+# rather than firing type-blind (that was the DOC-005b false positive we removed).
+#
+# Intended behaviour once the fact lands:
+#   requires: project.type in {app, service}
+#   engine: absence over README.md, patterns = Validate + Release alias sets
+# Type is DECLARED in .config/keur.toml, never guessed (ADR-032); default util.
+id: KEUR-DOC-005c
+ilities: [analysability]
+maturity: 2
+title: README is missing Validate/Release chapter (required for app/service)
+category: quality
+severity: warning
+engine: absence
+action: warn
+# requires: project.type in {app, service}   # ← activate when the fact exists
+target:
+  filenames: README.md
+patterns:
+  - regex: (?im)^#{2,}\s+(Validate|Validating|Testing|Tests|Running tests)\b
+    message: "README has no Validate chapter — an app/service must document how to run its checks (doc-chapter-contract.md). A util/library moves this to CONTRIBUTING."
+  - regex: (?im)^#{2,}\s+(Release|Deployment|Deploy|CI/CD|Pipeline|Publishing)\b
+    message: "README has no Release chapter — an app/service must document how it ships. A util/library moves this to CONTRIBUTING (a util's release is its install path)."
+confidence: 0.55
+fix: "If this is an app/service, add the Validate and Release chapters to the README. If it is a util/library, declare [project] type in .config/keur.toml and keep these in CONTRIBUTING."

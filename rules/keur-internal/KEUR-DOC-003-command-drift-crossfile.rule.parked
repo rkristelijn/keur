@@ -1,0 +1,37 @@
+# KEUR-DOC-003 — command-token drift between docs (PARKED: needs ADR-022 engine).
+# @implements ADR-061
+#
+# PARKED (.rule.parked, inert) because it needs the `cross-reference` engine
+# (ADR-022, proposed) which does not exist yet. keur's current engines are all
+# single-file (pattern/presence/absence) or whole-fileset-existence
+# (file-absence/presence); none can assert "set A (commands in AGENTS/README) ⊆
+# set B (commands in CONTRIBUTING)". That subset check across two files is
+# exactly what ADR-022's corpus-scoped engine is for.
+#
+# Intended behaviour once the engine lands: extract build/test command tokens
+# (make <target>, npm run <x>, pnpm <x>) from AGENTS.md and README.md; require
+# each to also appear in CONTRIBUTING.md (the owner, ADR-061). A command named
+# in an agent-facing file but NOT in the human reference means they have drifted
+# or contradict — the single worst doc failure, because an agent follows the
+# stale literal confidently. The finding names both files and the orphan token.
+#
+# This file is kept as the design-of-record so the rule is ready to activate by
+# renaming .rule.parked -> .rule the day the cross-reference engine exists.
+id: KEUR-DOC-003
+ilities: [analysability, modifiability]
+maturity: 3
+title: Build/test command in AGENTS/README not found in CONTRIBUTING (drift/contradiction)
+category: quality
+severity: warning
+engine: cross-reference
+action: warn
+# ADR-022 draft shape (fields are illustrative until the engine fixes them):
+#   source_files: AGENTS.md README.md
+#   target_file: CONTRIBUTING.md
+#   extract: '\b(make\s+[a-z-]+|npm run [a-z:-]+|pnpm [a-z:-]+)\b'
+#   assert: subset           # every source token must appear in target
+target:
+  filenames: AGENTS.md README.md
+confidence: 0.6
+message: "A build/test command named in AGENTS.md or README.md does not appear in CONTRIBUTING.md. CONTRIBUTING owns operational commands (ADR-061); a command only in an agent/human-facing file means they have drifted — an agent will run the stale one. Move the command's owner to CONTRIBUTING and link to it."
+fix: "Put the authoritative command in CONTRIBUTING.md and have AGENTS.md/README.md reference it. One owner per fact; repeat links, not facts."

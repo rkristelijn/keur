@@ -1,0 +1,24 @@
+# KEUR-DOC-001 — required documentation files are present (gap detection).
+# @implements ADR-061 (doc standards), ADR-052 (file-level scope)
+#
+# file-absence over the repo (ADR-052): fires once per missing basename. The
+# bare minimum climbs the CMMI ladder (ADR-011): LICENSE + a README are the
+# floor; CONTRIBUTING/SECURITY join at CMMI-3. This rule covers the CMMI-2
+# floor (README + LICENSE + AGENTS.md); DOC-001b covers the CMMI-3 additions so
+# the two can carry different maturity gates and messages.
+#
+# Honest limit: file-absence matches by basename across the fileset, so a doc in
+# .github/ or docs/ counts too (GitHub accepts all three locations — ADR-061).
+id: KEUR-DOC-001
+ilities: [analysability]
+maturity: 2
+title: Required documentation file is missing (README / LICENSE / AGENTS.md)
+category: quality
+severity: warning
+engine: file-absence
+action: warn
+target:
+  filenames: README.md LICENSE AGENTS.md
+confidence: 0.6
+message: "A baseline documentation file is missing. At CMMI-2 (work is tracked, others touch the repo) a repo owes a README, a LICENSE (legal clarity), and an AGENTS.md (one owner for an agent's commands)."
+fix: "Add the missing file at the repo root (or .github/ for LICENSE-adjacent community files). README: the six RFC sections (ADR-061). LICENSE: an SPDX-listed licence. AGENTS.md: the short command/convention list that points at CONTRIBUTING."

@@ -1,0 +1,20 @@
+# KEUR-DOC-001b — CMMI-3 documentation files (CONTRIBUTING / SECURITY / CHANGELOG).
+# @implements ADR-061, ADR-011 (CMMI-3 = Defined: standardised, documented process)
+#
+# Separate rule from DOC-001 so it can carry a higher maturity gate (3) and its
+# own message. At CMMI-3 the process is "Defined": contribution rules, a
+# disclosure contract, and a versioned change history must exist. Still warn —
+# it blocks only at CMMI-4 under --strict (ADR-037: brief before gate).
+id: KEUR-DOC-001b
+ilities: [analysability]
+maturity: 3
+title: CMMI-3 documentation file is missing (CONTRIBUTING / SECURITY / CHANGELOG)
+category: quality
+severity: warning
+engine: file-absence
+action: warn
+target:
+  filenames: CONTRIBUTING.md SECURITY.md CHANGELOG.md
+confidence: 0.6
+message: "A CMMI-3 documentation file is missing. A Defined process needs contribution rules (CONTRIBUTING), a disclosure contract (SECURITY), and a versioned change history (CHANGELOG, Keep-a-Changelog format)."
+fix: "Add CONTRIBUTING.md (build/test/commit rules + link the Code of Conduct), SECURITY.md (private disclosure, scope, supported versions), and CHANGELOG.md (reverse-chronological, Added/Changed/Deprecated/Removed/Fixed/Security, ISO-8601 dates)."

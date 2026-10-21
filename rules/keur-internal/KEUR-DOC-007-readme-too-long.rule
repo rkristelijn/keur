@@ -1,0 +1,28 @@
+# KEUR-DOC-007 — README is too long (too-much / clutter → move detail to docs/).
+# @implements ADR-061 (anti-pattern: "too much clutter"), APS RFC ("one page")
+#
+# max-lines engine: fires once when the file exceeds a line budget. The RFC and
+# purposeful-readme agree a README is an entry point and a map, not a
+# destination — "it should fit on one piece of paper", staccato. A bloated
+# README is the clutter anti-pattern: the reader cannot find the quick start
+# under the walls of detail that belong in docs/.
+#
+# Budget: 200 lines. Generous (keur's own README is ~400 and is a deliberate,
+# content-rich public face — it will fire and should carry a keur:ignore or be
+# split; that is the honest conversation this rule starts). WARN, never block.
+id: KEUR-DOC-007
+ilities: [analysability]
+maturity: 3
+title: README exceeds the one-page budget (move detail to docs/)
+category: quality
+severity: warning
+engine: max-lines
+action: warn
+min_count: 200
+target:
+  filenames: README.md
+patterns:
+  - regex: ""
+    message: "README exceeds ~200 lines. A README is a map, not a destination (ADR-061): keep a staccato quick start and move depth (architecture, extended usage, tutorials) to docs/ or companion files, linked. Clutter buries the one thing a newcomer needs."
+confidence: 0.5
+fix: "Move long sections (detailed configuration, architecture essays, extended examples) into docs/ and link them from a short 'More info' chapter. Keep the README to the six chapters at quick-start depth."
