@@ -692,6 +692,56 @@ SCENARIO("[feature:rule-engine] skip_comments suppresses comment-only matches") 
     cleanup_dir(dir);
 }
 
+// skip_emoji end-to-end (ADR-061): an absence rule looking for a `## Features`
+// heading must NOT fire on a decorative `## ✨ Features` heading — the emoji is
+// stripped before matching so the word follows the hashes. Proves the emoji
+// strip variant through the real scan path, not just the tokenizer unit.
+// @proves ADR-061
+SCENARIO("[feature:rule-engine] skip_emoji lets a heading regex see past an emoji prefix") {
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    std::string rule_path = dir + "/EMOJI.rule";
+    // absence rule: fires when the Features heading is ABSENT.
+    write_file(rule_path,
+        "id: DOC-EMOJI\n"
+        "title: README has no Features chapter\n"
+        "category: quality\n"
+        "severity: warning\n"
+        "engine: absence\n"
+        "skip_emoji: true\n"
+        "target:\n"
+        "  filenames: README.md\n"
+        "patterns:\n"
+        "  - regex: (?im)^#{2,}\\s+Features\\b\n"
+        "    message: no Features chapter\n");
+    auto rules = keur::rules_load(dir);
+    REQUIRE(!rules.empty());
+    REQUIRE(rules[0].skip_emoji == true);  // field parsed
+
+    // README whose only Features heading carries an emoji + variation selector.
+    std::string readme = dir + "/README.md";
+    write_file(readme, "# Proj\n\n## \xE2\x9C\xA8 Features\n\ntext\n");  // U+2728 ✨
+
+    auto fs = keur::rules_scan_files(rules, {readme});
+    int hits = 0;
+    for (auto& f : fs) if (f.rule_id == "DOC-EMOJI") hits++;
+    // The heading IS present (once the emoji is stripped) → absence rule stays silent.
+    CHECK(hits == 0);
+
+    // Control: a README with no Features heading at all MUST still fire.
+    std::string dir2 = create_temp_dir();
+    REQUIRE(!dir2.empty());
+    std::string readme2 = dir2 + "/README.md";
+    write_file(readme2, "# Proj\n\n## Intro\n\ntext\n");
+    auto fs2 = keur::rules_scan_files(rules, {readme2});
+    int hits2 = 0;
+    for (auto& f : fs2) if (f.rule_id == "DOC-EMOJI") hits2++;
+    CHECK(hits2 == 1);
+
+    cleanup_dir(dir2);
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] skip_comments rule keeps string matches when a skip_strings rule is also loaded") {
     // Regression: the scan used to strip ONE shared variant per file. If any
     // loaded rule wanted skip_strings, every skip_comments rule was matched

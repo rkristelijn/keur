@@ -10,6 +10,7 @@
  */
 #include "rule/internal.h"
 #include "tokenizer.h"
+#include "keur/common/platform.h"
 
 #include <dirent.h>     // keur:ignore KEUR-PORT-002 — engine I/O seam; rules/ is exempt (see rule exclude_paths + TODO I/O-via-platform)
 #include <sys/stat.h>   // keur:ignore KEUR-PORT-002 — same tracked seam
@@ -347,10 +348,11 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
     // string literals that the skip_comments-only rule needs to match (its
     // pattern often targets text inside a string, e.g. a \uXXXX escape). So we
     // keep comments-only and comments+strings separate.
-    bool need_comments = false, need_strings = false;
+    bool need_comments = false, need_strings = false, need_emoji = false;
     for (auto* r : filtered) {
       if (r->skip_comments && !r->skip_strings) need_comments = true;
       if (r->skip_strings) need_strings = true;
+      if (r->skip_emoji) need_emoji = true;
     }
     std::string comments_only_content, comments_strings_content;
     std::vector<re2::StringPiece> comments_only_lines, comments_strings_lines;
@@ -367,16 +369,27 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
         }
       }
     }
+    // Emoji stripping is language-agnostic (ADR-061) — it needs no LangSyntax and
+    // works on markdown, so it is a strip variant of its own, orthogonal to the
+    // comment/string ones above.
+    std::string emoji_content;
+    std::vector<re2::StringPiece> emoji_lines;
+    if (need_emoji) {
+      emoji_content = strip_emoji(content);
+      split_lines(emoji_content, emoji_lines);
+    }
 
     size_t before = findings.size();
     for (auto* r : filtered) {
       auto& c = compiled[to_compiled[r]];
       const std::string engine = r->engine.empty() ? "pattern" : r->engine;
       // Pick the strip variant that matches THIS rule's flags: strings-stripping
-      // implies comments too; comments-only keeps string literals intact.
+      // implies comments too; comments-only keeps string literals intact; emoji
+      // stripping is independent and chosen when no comment/string strip applies.
       const std::vector<re2::StringPiece>& lines =
           (r->skip_strings && !comments_strings_lines.empty())      ? comments_strings_lines
           : (r->skip_comments && !comments_only_lines.empty())      ? comments_only_lines
+          : (r->skip_emoji && !emoji_lines.empty())                 ? emoji_lines
                                                                     : raw_lines;
 
       // Engine dispatch via the strategy registry (ADR-014): look up the engine
@@ -482,6 +495,28 @@ void walk(const std::string& dir, const std::string& prefix,
   closedir(d);
 }
 
+// Repo-relative paths git would NOT commit because they are gitignored. One
+// shell-free `git ls-files` call under repo_root. Used to keep file-presence
+// rules (e.g. SEC-100 "committed .env file") honest: a gitignored .env is NOT
+// committed, so it must not be flagged. @implements ADR-166 (bugfix).
+std::unordered_set<std::string> gitignored_paths(const std::string& repo_root) {
+  std::unordered_set<std::string> ignored;
+  std::string raw;
+  // --others --ignored --exclude-standard: files present on disk that match a
+  // .gitignore rule. -z: NUL-separated, survives odd filenames. We cd via -C so
+  // the emitted paths are relative to repo_root (matching our `rel` keys).
+  platform::capture_bytes_argv(
+      {"git", "-C", repo_root, "ls-files", "--others", "--ignored",
+       "--exclude-standard", "-z"}, raw);
+  std::string cur;
+  for (char c : raw) {
+    if (c == '\0') { if (!cur.empty()) { ignored.insert(cur); cur.clear(); } }
+    else cur += c;
+  }
+  if (!cur.empty()) ignored.insert(cur);
+  return ignored;
+}
+
 }  // namespace
 
 std::vector<RuleFinding> rules_scan_files(const std::vector<Rule>& rules,
@@ -522,6 +557,19 @@ std::vector<RuleFinding> rules_scan_files_scoped(const std::vector<Rule>& rules,
   // a repo question, not a diff question.
   std::vector<std::pair<std::string, std::string>> repo_files;
   walk(repo_root, "", repo_files);
+  // Drop gitignored files: they are on disk but never committed, so a
+  // file-presence rule ("committed .env") must not fire on them. @implements ADR-166
+  {
+    auto ignored = gitignored_paths(repo_root);
+    if (!ignored.empty()) {
+      repo_files.erase(
+          std::remove_if(repo_files.begin(), repo_files.end(),
+                         [&](const std::pair<std::string, std::string>& p) {
+                           return ignored.count(p.first) > 0;
+                         }),
+          repo_files.end());
+    }
+  }
   std::sort(repo_files.begin(), repo_files.end());
 
   Facts facts = derive_facts(repo_root);

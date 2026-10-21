@@ -44,6 +44,17 @@ std::string strip_comments(const std::string& content, const LangSyntax* syntax)
 /** Strip both comments AND string literals, preserving line structure. */
 std::string strip_comments_and_strings(const std::string& content, const LangSyntax* syntax);
 
+/** Replace every emoji / pictographic-symbol codepoint with spaces, byte-for-
+ *  byte (a 4-byte emoji becomes 4 spaces), so line and column offsets are
+ *  preserved. Language-agnostic: operates on UTF-8 text, not source syntax.
+ *  Covers the standard emoji blocks (Misc Symbols & Pictographs, Emoticons,
+ *  Transport & Map, Supplemental & Extended-A, Misc Symbols, Dingbats) plus the
+ *  variation selector U+FE0F and the zero-width joiner U+200D used in sequences.
+ *  Enables the per-rule `skip_emoji` feature so a decorative `## ✨ Features`
+ *  heading does not hide the word from a `^#+\s+(Features)` regex (ADR-061).
+ *  @implements ADR-061 */
+std::string strip_emoji(const std::string& content);
+
 /** A single string literal extracted from source: its text (delimiters and
  *  escape backslashes removed) and the 1-based line where it opened. */
 struct Literal {

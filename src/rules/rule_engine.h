@@ -182,6 +182,9 @@ struct Rule {
   std::vector<std::string> name_allow;   // exempt exact names
   bool skip_comments = false;  // strip comments before matching (ADR-004 stage 1)
   bool skip_strings = false;   // strip string literals before matching
+  bool skip_emoji = false;     // strip emoji/pictograph codepoints before matching
+                               // (ADR-061): a decorative "## ✨ Features" heading
+                               // must not hide the word from a heading regex.
   bool skip_binary = false;    // opt-out: skip per-line matching on binary files
                                // (NUL-byte content). Default false = scan all,
                                // so a rule that must inspect binaries is unchanged;

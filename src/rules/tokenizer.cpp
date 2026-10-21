@@ -177,6 +177,50 @@ std::string strip_comments_and_strings(const std::string& content, const LangSyn
   return strip_impl(content, syntax, true);
 }
 
+// Is this Unicode codepoint an emoji / pictographic symbol we strip? Closed set
+// of the standard emoji blocks plus the two sequence glue codepoints (variation
+// selector FE0F, zero-width joiner 200D). Deliberately NOT stripping general
+// punctuation or letters — only decorative pictographs.
+static bool is_emoji_cp(unsigned int cp) {
+  return (cp >= 0x1F300 && cp <= 0x1F5FF) ||  // Misc Symbols & Pictographs
+         (cp >= 0x1F600 && cp <= 0x1F64F) ||  // Emoticons
+         (cp >= 0x1F680 && cp <= 0x1F6FF) ||  // Transport & Map
+         (cp >= 0x1F900 && cp <= 0x1F9FF) ||  // Supplemental Symbols & Pictographs
+         (cp >= 0x1FA70 && cp <= 0x1FAFF) ||  // Symbols & Pictographs Extended-A
+         (cp >= 0x2600  && cp <= 0x26FF)  ||  // Miscellaneous Symbols (☀ ⚠ ⚙)
+         (cp >= 0x2700  && cp <= 0x27BF)  ||  // Dingbats (✨ ✅ ✔ ✈)
+         cp == 0xFE0F   ||                    // variation selector-16 (emoji style)
+         cp == 0x200D;                        // zero-width joiner (emoji sequences)
+}
+
+std::string strip_emoji(const std::string& content) {
+  std::string out = content;
+  const size_t len = content.size();
+  size_t i = 0;
+  while (i < len) {
+    unsigned char b = (unsigned char)content[i];
+    // Decode one UTF-8 scalar. ASCII fast-path keeps the common case cheap.
+    unsigned int cp = 0;
+    size_t n = 1;
+    if (b < 0x80) { i += 1; continue; }
+    else if ((b & 0xE0) == 0xC0 && i + 1 < len) { cp = b & 0x1F; n = 2; }
+    else if ((b & 0xF0) == 0xE0 && i + 2 < len) { cp = b & 0x0F; n = 3; }
+    else if ((b & 0xF8) == 0xF0 && i + 3 < len) { cp = b & 0x07; n = 4; }
+    else { i += 1; continue; }  // invalid lead byte — leave as-is, advance one
+    bool ok = true;
+    for (size_t k = 1; k < n; k++) {
+      unsigned char cont = (unsigned char)content[i + k];
+      if ((cont & 0xC0) != 0x80) { ok = false; break; }  // not a continuation byte
+      cp = (cp << 6) | (cont & 0x3F);
+    }
+    if (!ok) { i += 1; continue; }
+    if (is_emoji_cp(cp))
+      for (size_t k = 0; k < n; k++) out[i + k] = ' ';  // blank, byte-for-byte
+    i += n;
+  }
+  return out;
+}
+
 // --- Literal extraction (ADR-058): the inverse projection ---
 // Same single-pass state machine as strip_impl, but instead of blanking string
 // content it collects it. Comments are skipped (never collected). One Literal
