@@ -1,10 +1,12 @@
-# Traceability convention — explicit, refactor-proof
+# annotrace — the traceability convention (explicit, refactor-proof)
 
-keur links decisions, code and tests so we can *measure* whether every decision
-is actually built and tested — bidirectional requirements traceability, the
+**annotrace** (*annotation-driven traceability*) is keur's name for how it links
+decisions, code and tests so we can *measure* whether every decision is actually
+built and tested — bidirectional requirements traceability, the
 ISO/IEC/IEEE 29148 idea, implemented the OpenFastTrace way but **lightweight**:
-grep-able tags in the artefacts themselves, no external tool (that would break
-the single-binary rule, ADR-002).
+grep-able `@`-annotations in the artefacts themselves, no external tool (that
+would break the single-binary rule, ADR-002). The decision is ADR-010
+(`@id annotrace`); this doc is the reference.
 
 ## The one rule: explicit, never hard
 

@@ -7,6 +7,8 @@ limiter** that runs as a git pre-commit hook.
 > pre-commit gate · shift-left security hook · secret & hardening scanning ·
 > deterministic policy-as-code. That's keur.
 
+## Context
+
 keur is a single compiled C++ binary that runs as a git pre-commit / pre-push
 gate. On commit or push it reads the staged files, runs a native RE2 rule engine
 over them, normalises the matches into findings, and a policy engine decides
@@ -34,7 +36,7 @@ standards-grounded guardrail — a copilot for coding and vibe-coding**:
   platform / framework / runtime. → `docs/adr/ADR-009-composite-rules-and-facts.md`
 - **Clear errors** so a human *or an AI* knows exactly what to fix — no reaching
   for `--no-verify`.
-- **Traceability** (`@id` / `@implements` / `@proves`, IDE-clickable) and
+- **annotrace** — traceability (`@id` / `@implements` / `@proves`, IDE-clickable) and
   **pipeline coverage** (which CI stages a repo has vs. needs).
   → `docs/adr/ADR-010-traceability.md`, `docs/adr/ADR-012-pipeline-coverage.md`
 - **Learns on your own codebase** with a local LLM — **your IP never leaves your
@@ -54,45 +56,49 @@ one artifact to distribute and no runtime language dependency. See
 `docs/adr/ADR-001-native-rule-engine.md` and
 `docs/adr/ADR-002-single-cpp-binary.md`.
 
-## Build
+## Prerequisites
 
-The binary is built from `src/keur`. It depends on RE2 and abseil.
+- `git` (keur installs as a git hook).
+- A POSIX shell for the installer. macOS, Linux, and Windows (WSL/MSYS2) are
+  supported.
 
-```bash
-# macOS
-brew install re2 abseil
+No compiler or language runtime is needed to *use* keur — it ships as a single
+prebuilt binary. (Building from source is a contributor task; see
+[`CONTRIBUTING.md`](CONTRIBUTING.md).)
 
-# Debian / Ubuntu
-sudo apt install libre2-dev libabsl-dev
+## Local setup
 
-# Windows (MSYS2 UCRT64 shell)
-pacman -S make mingw-w64-ucrt-x86_64-gcc \
-          mingw-w64-ucrt-x86_64-re2 mingw-w64-ucrt-x86_64-abseil-cpp
-```
-
-Build:
+Install the prebuilt binary from the latest GitHub Release. The installer
+downloads the binary **and** its `SHA256SUMS`, verifies the checksum *before*
+installing, and never pipes an unverified download into a shell:
 
 ```bash
-cd src/keur
-make            # produces ../../bin/keur  (keur.exe on Windows)
+# Recommended: download, read it, then run.
+curl -fsSLO https://raw.githubusercontent.com/rkristelijn/keur/main/install.sh
+less install.sh && sh install.sh      # installs to ~/.local/bin (no sudo)
 ```
 
-keur builds on macOS, Linux and Windows. OS-divergent code lives behind a
-platform abstraction layer (`src/keur/common/platform.*`); the Makefile selects
-`platform_posix.cpp` or `platform_win32.cpp` per OS, and business code holds no
-`#ifdef`. The `KEUR-PORT-*` self-check rules block platform drift, and CI
-(`.github/workflows/ci.yml`) builds + smoke-tests all three OSes on every push.
-See `docs/adr/ADR-005-platform-abstraction.md`.
-
-The Makefile resolves RE2 and abseil via `brew --prefix` on macOS and falls back
-to system include/lib paths on Linux. The version string is read from
-`config/keur.toml` at build time and baked in as `KEUR_VERSION`.
-
-Install the binary on your PATH so the hook stubs can find it:
+Then install the hook into your repo (or globally for every repo):
 
 ```bash
-install -m 755 bin/keur /usr/local/bin/keur
+keur hook --install          # this repo's .git/hooks
+keur hook --global           # every repo on the machine
 ```
+
+That is the whole setup. From now on every `git commit` is gated.
+
+### Demo
+
+```console
+$ echo 'const KEY = "AKIAIOSFODNN7EXAMPLE";' > creds.js && git add creds.js
+$ git commit -m "add config"
+keur: BLOCK — KEUR-SEC-001 (secret): AWS access key id in creds.js:1
+  fix: remove the hardcoded key; load it from the environment or a secret store.
+commit aborted (exit 1)
+```
+
+A secret never reaches history. A clean commit passes silently. See
+[Subcommands](#subcommands) for `scan`, `check`, and `policy explain`.
 
 ## Subcommands
 
@@ -369,12 +375,12 @@ Inline suppression uses the marker `keur:ignore [<rule-id|category>]` in a
 comment on the offending line. Matching is token-exact, so `SEC-04` does not
 suppress `SEC-043`.
 
-## Documentation
+## More info
 
 Start with the big picture, then dive into the decisions:
 
 - **`docs/design/vision.md`** - the whole picture: from hook to copilot
-- `docs/design/traceability.md` - the `@id` / `@implements` / `@proves` convention
+- `docs/design/traceability.md` - annotrace: the `@id` / `@implements` / `@proves` convention
 - `docs/design/learning-loop.md` - how `keur learn` trains the rule set on your code
 - `docs/c4.md`, `docs/dataflow.md`, `docs/diagrams.md` - architecture views
 
@@ -386,7 +392,7 @@ Decisions (ADRs) — the *why* behind each part:
 - `docs/adr/ADR-007` - pattern-level `exclude` (RE2-friendly "pattern-not")
 - `docs/adr/ADR-008` - incremental compile / build-affected
 - `docs/adr/ADR-009` - composite rules & the fact-driven engine
-- `docs/adr/ADR-010` - lightweight traceability (`@id`/`@implements`/`@proves`)
+- `docs/adr/ADR-010` - annotrace: lightweight traceability (`@id`/`@implements`/`@proves`)
 - `docs/adr/ADR-011` - project profile (owner, lifecycle, criticality, maturity, docs)
 - `docs/adr/ADR-012` - pipeline coverage (which CI/CD stages a project needs)
 - `docs/adr/ADR-013` - OWASP SAMM coverage & parked gaps

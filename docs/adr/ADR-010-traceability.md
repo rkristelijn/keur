@@ -1,7 +1,19 @@
-# ADR-010 — Lightweight traceability (`@id` / `@implements` / `@proves`)
+# ADR-010 — annotrace: lightweight traceability (`@id` / `@implements` / `@proves`)
 
 @id ADR-010
+@id annotrace
 **Status**: accepted · **Date**: 2026-09-19 · **Coverage**: code · **Relates to**: ADR-002 (single binary — why no external tool), ADR-004 & ADR-009 (large ADRs that use sub-`@id`s)
+
+## Name
+
+The convention has a name: **annotrace** — *annotation-driven traceability*. One
+word for the whole idea: links between decisions, code, and tests are carried by
+explicit `@`-annotations (`@id` / `@implements` / `@proves` / `@see` /
+`@external`) rather than inferred, and those annotations trace a concept across
+artefacts. When this repo (or an adopter) says "annotate it for annotrace" or
+"does annotrace cover this?", it means exactly the tag-set and coverage contract
+below. The concept itself declares `@id annotrace`, so it is traceable by its own
+rules.
 
 ## Context
 
@@ -75,9 +87,11 @@ decision, that doc is the reference.
   auto-claimed.
 - **The report is shell; the gate belongs in the engine.** The percentage report
   is set arithmetic (`doc-coverage.sh`, shell). The commit-gate checks — dead link
-  (`KEUR-DOC-001`) and duplicate `@id` (`KEUR-DOC-002`) — are findings over code
-  and are implemented as `.rule` files in the RE2 engine, so anyone adopting the
-  pattern gets them in `keur check` without copying a script. (Rules TODO.)
+  (`@implements X` with no `@id X`) and duplicate `@id` — are findings over code
+  and will be implemented as `.rule` files in the RE2 engine, so anyone adopting
+  annotrace gets them in `keur check` without copying a script. (Rules TODO —
+  reserved family `KEUR-TRACE-*`; the `KEUR-DOC-*` ids are taken by the ADR-061
+  doc-standards family and must not be reused here.)
 
 ## Acceptable gaps (what the gate tolerates)
 
@@ -117,8 +131,9 @@ a navigation aid layered on top, not part of the coverage contract.
   builds it and the test that proves it — measurable, sub-second, any language.
 - The convention is portable: teams adopting keur annotate with the same four
   verbs and get the same coverage report and gate.
-- keur keeps guarding itself: `KEUR-DOC-*` will fail the build on a dead link or a
-  duplicate `@id`, the same way `KEUR-PORT-*` guards platform drift.
+- keur keeps guarding itself: the planned `KEUR-TRACE-*` rules will fail the build
+  on a dead link or a duplicate `@id`, the same way `KEUR-PORT-*` guards platform
+  drift. Until then `doc-coverage.sh --strict` is the annotrace gate.
 - Honest limit: coverage measures that a *claim exists* (a `@proves` tag), backed
   by the discipline that the test must actually pass (verified in `make test`) —
   the tag never substitutes for a green test.

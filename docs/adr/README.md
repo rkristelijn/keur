@@ -28,7 +28,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [007](ADR-007-pattern-exclude.md) | Pattern-level `exclude` (RE2-friendly "pattern-not") | accepted |
 | [008](ADR-008-incremental-compile-and-build-affected.md) | Incremental compile (`-MMD -MP`) and a note on build-affected | accepted / proposed |
 | [009](ADR-009-composite-rules-and-facts.md) | Composite rules & the fact-driven engine (engine stays dumb, rules carry the logic) | proposed |
-| [010](ADR-010-traceability.md) | Lightweight traceability (`@id` / `@implements` / `@proves`) | accepted |
+| [010](ADR-010-traceability.md) | annotrace: lightweight traceability (`@id` / `@implements` / `@proves`) | accepted |
 | [011](ADR-011-project-profile.md) | Project profile: owner, lifecycle, criticality, maturity | proposed |
 | [012](ADR-012-pipeline-coverage.md) | Pipeline coverage (which CI/CD stages a project must have) | proposed |
 | [013](ADR-013-samm-gaps.md) | OWASP SAMM coverage & parked gaps | proposed |
@@ -79,6 +79,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [058](ADR-058-literal-frequency-scanner.md) | Literal-frequency scanner: extract literals, strip code+comments, subtract an allowlist, surface the residue | proposed |
 | [059](ADR-059-generic-rules.md) | Generic rules: a rule that feeds an engine's logic instead of firing on its own | proposed |
 | [060](ADR-060-declarative-stage-pipeline.md) | Declarative stage-pipeline engine: compose fixed verbs (extract | count | classify) as data | proposed |
+| [061](ADR-061-doc-standards.md) | Root doc-set: audience-indexed chapters, one source of truth per fact, cross-link not copy, and a deterministic drift guard | proposed |
 
 ## Adding an ADR
 
