@@ -194,7 +194,7 @@ Measured distribution on security-tooling (uniq counts) in parentheses:
 | `HOSTNAME/DOMAIN` | IDENTITY | ends `.local`/`.internal`/`.com`/…, no spaces | `vault.internal.example` (61) |
 | `URL` | IDENTITY | `http(s)://…` | endpoints (99) |
 | `PATH` | IDENTITY | starts `/`, `~/`, `./` | (80) |
-| `WORD(const?)` | MAGIC | `^[A-Za-z][A-Za-z0-9_]*$`, ≤24 chars | `stopped`, `clickup-api-key` (1148) |
+| `WORD(const?)` | MAGIC | `^[A-Za-z][A-Za-z0-9_]*$`, ≤24 chars | `stopped`, `service-api-key` (1148) |
 | `OTHER` | review | anything unmatched | (shrinks as table grows) |
 
 ¹ `SENTENCE/MSG` is NOISE for this tool, not "fine" — it is the i18n question,

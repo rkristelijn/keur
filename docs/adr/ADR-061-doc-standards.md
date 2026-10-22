@@ -15,10 +15,9 @@ maturity — repo-type and the required-section bar are profile-driven; CMMI 1�
 the existing `maturity` axis this ADR gives a doc-column), ADR-037 (brief the repo
 on the bar before gating it — warn precedes block), ADR-055 (defect-prevention:
 a regression fixture per historical drift at CMMI-5)
-· Grounds in: APS RFC "README.md context standardised for projects"
-(Confluence PLAT/21744320552, ClickUp 861mgzzwv — co-authored by this maintainer):
-the org-ratified six-section README standard, used here as the **human-layer**
-section contract. External standards surveyed (see Research section): the
+· Grounds in: an organisation RFC "README.md context standardised for projects"
+(an internal six-section README standard, co-authored by this maintainer and
+ratified for org-wide use): used here as the **human-layer** section contract. External standards surveyed (see Research section): the
 `AGENTS.md` open format (agents.md, Agentic AI Foundation / Linux Foundation),
 Diátaxis (four doc types), standard-readme (RichardLitt), purposeful-readme
 (AI-native, anti-drift), Keep a Changelog + SemVer, Contributor Covenant v2.1,

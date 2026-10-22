@@ -80,7 +80,7 @@ external scanners). Nodes are shown even when *not installed / not present*, so
 the tree doubles as "what you could turn on", not just "what is on".
 
 ```text
-keur manager · /Users/remi/git/hub/keur                         [q] quit  [?] help
+keur manager · ~/projects/keur                         [q] quit  [?] help
 
  ▼ Global  (~/.config)
    ▼ Hooks  (core.hooksPath → ~/.config/git/hooks)
@@ -90,7 +90,7 @@ keur manager · /Users/remi/git/hub/keur                         [q] quit  [?] h
      [ ] lint-shell.sh       present, not registered
    ▶ Config  (~/.config/keur/keur.toml)              [present]
 
- ▼ This repo  (/Users/remi/git/hub/keur)
+ ▼ This repo  (~/projects/keur)
    ▼ Hook managers  (detected — keur coexists, does not clobber)
      [x] keur            .git/hooks (or core.hooksPath)   active
      [ ] husky           .husky/                          detected, chained
