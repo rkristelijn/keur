@@ -10,7 +10,7 @@
 
 [project]
 name = "keur"
-version = "0.1.0"
+version = "0.2.0"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tiers — what runs where. Keep pre-commit fast; push heavier work down the line.

@@ -1,3 +1,89 @@
+## v0.2.0 (2026-10-25)
+
+_Changes since v0.1.0._
+
+### Features
+- external scanners are opt-in; default gate is keur-rules only (ADR-066)
+- offer keur as a GitHub Action + GitLab CI/CD component (ADR-062)
+- KEUR-INT-001 blocks internal references (pre-commit)
+- KEUR-DOC-* doc-standards self-checks (ADR-061)
+- skip_emoji strip-variant + gitignore-aware file-presence
+- add 'keur analyze literals' command + generic class-table rule (ADR-058/059)
+- literal-analyze engine — extract/count/classify over a fileset (ADR-060)
+- add Go quality rules (idiom/pattern/struct)
+- parse generic rules + skip them in standalone dispatch (ADR-059/060)
+- literal classifier foundation + PII rename (#18)
+- per-rule skip_binary opt-out for binary content
+- path-scoped rule disabling via [scopes."<glob>"] in keur.toml
+- branch protection — warn/block direct commits to default branch
+- 4A tests (Arrange/Act/Assert/Annihilate) + RAII TempDir
+- NODE-PIN-001 — warn when a Node project pins no Node version
+- .config/keur.toml location + require a repo config by maturity
+- base64/url/hex unwrap-then-scan engines (ADR-049)
+- flag bidi, zero-width, data-uri, archive and binary artifacts
+- QUAL-079 path breakout (absolute/home path, deep ../ traversal)
+- colour hook output; AAA demos under docs/demo with a runner
+- secure install.sh + release checksums + rule-id control (#15)
+
+### Fixes
+- derive KEUR_HOME from the binary, not a required env var (ADR-063)
+- SECRETS-057 Vercel token — drop overfit [A-Za-z0-9]{24}
+- file-level rules scan the repo, not just the staged diff
+- make EX-SEC-010/011 fire on real Express apps
+- write PASS/WARN to stdout so editors do not read it as an error
+- rule title must not carry a literal backslash-u (arm32 build break)
+- global stub must exit 0 when repo has no .githooks hook
+
+### Refactoring
+- central Severity enum + from/to-string for drift protection
+- central Action enum + from/to-string for drift protection (ADR-058)
+- rename keur_test.cpp to tests/unit_test.cpp (split step 4)
+- move Layer 4/5 unit suite to its own TU (split step 3)
+- move integration suite to tests/integration_test.cpp (split step 2)
+- split doctest main + perf suite into own TUs (split step 1)
+- extract shared test helpers to tests/test_helpers.h (split step 0)
+- cut unwrap complexity/nesting, keep size compares in size_t
+
+### Documentation
+- make KEUR-INT-001 generic — shape-based, no hardcoded names
+- show the demo GIF + add badges for the public front page
+- ADR-065 async build-confidence — fast sync gate, heavy builds async
+- ADR-064 pair keur's gate with an AI-guidance layer (arcane)
+- scrub internal references before going public
+- ADR-061 doc-standards + chapter contract + CMMI doc-ladder
+- add ADR-056 (orchestrate clang-tidy for semantic checks)
+- add ADR-052 (scan scope) and ADR-053 (finding clustering)
+- add ADR-051 (rules distribution) + generated ADR index
+- take the macOS/Windows/arm32 matrix off the per-PR hot path
+- ADR-050 — act is too slow (cold start) for routine local runs
+- ADR-050 CI pipeline ordering (lint-first, e2e as a named stage)
+- ADR-049 accepted + authoring guide and test-split TODO
+- category-disable (disabled_categories) + PII off-switch discoverability
+- ADR-048 — DOOM cheat codes as the suppress/navigate verbs
+- ADR-048 — four ignore moves as distinct pacifist actions
+- ADR-048 — level is any graph keur can walk (pipeline, IaC, docs, dead code)
+- ADR-048 — traceability links are the map, accessibility sets playability
+- ADR-048 keur doom — gamified remediation
+- ADR-047 verb registry, @shows/@explains, demos
+
+### Build
+- set line width to 140 across .clang-format and .editorconfig
+- declare C++ style in .clang-format (Google, indent 2, col 100)
+- add .editorconfig matching the rkristelijn project convention
+- local pipeline pre-flight (scripts/ci-local.sh) + act notes in ADR-050
+
+### CI
+- tier the pipeline by cost — Linux-only on PRs, full matrix on main
+
+### Tests
+- generic-rule parse/skip + Action conversion (248 unit, 65 integration)
+- run stub tests shell-free (fork+execvp, no std::system)
+
+### Chores
+- post-public cleanup, defaults/ rename, and e2e/perf hardening (#20)
+- post-public cleanup, defaults/ rename, and e2e/perf hardening (#20)
+- clean unused includes + add lint-includes make target & CI gate
+
 # Changelog
 
 ## v0.1.0 (2026-10-06)
