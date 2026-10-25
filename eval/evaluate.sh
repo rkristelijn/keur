@@ -41,16 +41,17 @@ DETAIL="$HISTDIR/run-$TS.json"
 # across the tier's scanners. This scaffold wires the pii + (future) rule engine
 # adapters; more adapters plug in here as they land (T-202).
 detect_rules() {
-  # detect_rules <file> → space-separated rule-IDs (may be empty)
-  local file="$1" rules=""
+  # detect_rules <file> → space-separated rule-IDs (may be empty).
+  # Returns non-zero if the engine is missing or exits non-zero, so a broken
+  # engine is NOT silently scored as "zero detections = clean".
+  local file="$1" rules="" out="" status=0
   # Run the compiled engine directly (ADR-002): bin/keur-rules emits one Finding
-  # JSON line per match; collect the rule ids. This replaced the old
-  # scanners/*.sh shell shims (adapters, not rules — removed).
+  # JSON line per match. This replaced the old scanners/*.sh shims (removed).
   local bin="${KEUR_RULES_BIN:-$KEUR_HOME/bin/keur-rules}"
-  if [[ -x "$bin" ]]; then
-    rules="$("$bin" --files "$file" 2>/dev/null \
-      | sed -n 's/.*"rule":"\([^"]*\)".*/\1/p' | tr '\n' ' ')"
-  fi
+  [[ -x "$bin" ]] || { echo "eval: rules engine not found or not executable: $bin" >&2; return 2; }
+  out="$("$bin" --files "$file" 2>/dev/null)" || status=$?
+  (( status == 0 )) || { echo "eval: rules engine exited $status on $file" >&2; return 1; }
+  rules="$(printf '%s\n' "$out" | sed -n 's/.*"rule":"\([^"]*\)".*/\1/p' | tr '\n' ' ')"
   echo "$rules" | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ' '
 }
 
@@ -69,7 +70,11 @@ for c in json.load(open(sys.argv[1]))["cases"]:
 PY
   file="$CORPUS/$path"
   [[ -f "$file" ]] || continue
-  printf '%s\t%s\n' "$path" "$(detect_rules "$file")" >> "$DETECTED_MAP"
+  if ! detected="$(detect_rules "$file")"; then
+    echo "eval: aborting — rules engine failed on $file (see error above)" >&2
+    exit 1
+  fi
+  printf '%s\t%s\n' "$path" "$detected" >> "$DETECTED_MAP"
 done
 
 # --- score in python -------------------------------------------------------

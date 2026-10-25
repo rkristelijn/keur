@@ -21,13 +21,13 @@ BSN is validated by the *11-proef* (a weighted digit sum mod 11), an IBAN by
 pattern rule alone either misses real values or drowns in false positives (every
 9-digit number looks like a BSN).
 
-Today this capability lives in `scanners/pii.sh` — a shell **adapter** over an
-external `pii-sensitive-scan.sh` that does the 11-proef / mod-97 arithmetic.
-That is three things we have been retiring: a shell shim (ADR-002), an external
-dependency for a core check (ADR-066), and logic that lives outside the engine
-where `keur check` cannot reach it without spawning a process. The adapter is
-dead code; but the *capability* it fronted (checksum-validated PII) is real and
-not yet expressible as a keur rule.
+Until this PR this capability lived in `scanners/pii.sh` — a shell **adapter**
+over an external `pii-sensitive-scan.sh` that did the 11-proef / mod-97
+arithmetic. That was three things we have been retiring: a shell shim (ADR-002),
+an external dependency for a core check (ADR-066), and logic that lived outside
+the engine where `keur check` could not reach it without spawning a process. The
+adapter was removed with this ADR; the *capability* it fronted (checksum-
+validated PII) is real and not yet expressible as a keur rule.
 
 The user's question is the right design: **put the check in C++ and drive it
 from a rule.** keur already does exactly this for base64 (`engine-base64-unwrap`,
@@ -97,4 +97,4 @@ number into its own output.
    (shape + `validate: mod97`), card (`validate: luhn`). Fixtures with valid +
    invalid-checksum cases; a `@proves` test asserts the invalid ones do NOT fire.
 3. Document the engine in `docs/rules-authoring.md`.
-4. Then remove `scanners/` (dead shims) — capability preserved here.
+4. ~~Remove `scanners/` (dead shims)~~ — done in this PR; capability preserved here.

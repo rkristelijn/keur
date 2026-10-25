@@ -326,10 +326,10 @@ tool inventory. Resolution order (later overrides earlier):
 
 1. built-in defaults
 2. global: `$XDG_CONFIG_HOME/keur/keur.toml`
-3. `$KEUR_HOME/config/keur.toml` (installed location)
+3. `$KEUR_HOME/defaults/keur.toml` (installed location)
 4. an explicit `--config <file>`
 
-An explicit `--config` path always wins. See `config/keur.toml` for the full,
+An explicit `--config` path always wins. See `defaults/keur.toml` for the full,
 documented set of defaults.
 
 ### Path-scoped rules (work vs personal, monorepo subtrees)
