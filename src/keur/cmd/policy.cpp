@@ -3,6 +3,7 @@
  * @brief keur policy — explain the resolved policy and thresholds.
  */
 #include "cmd/policy.h"
+#include "util/keur_utils.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -126,10 +127,12 @@ std::string resolve_config(const std::string& hint) {
         if (f.good()) return global_cfg;
     }
 
-    // 4. KEUR_HOME (installed location)
-    const char* keur_home = std::getenv("KEUR_HOME");
-    if (keur_home) {
-        std::string installed = std::string(keur_home) + "/config/keur.toml";
+    // 4. KEUR_HOME (installed location) — $KEUR_HOME if set, else derived from
+    //    the binary location (ADR-063), so the installed config resolves without
+    //    a required env var.
+    std::string keur_home = keur::derive_keur_home();
+    if (!keur_home.empty()) {
+        std::string installed = keur_home + "/config/keur.toml";
         std::ifstream f(installed);
         if (f.good()) return installed;
     }

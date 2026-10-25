@@ -11,7 +11,44 @@
 #include <string>
 #include <vector>
 
+#include "common/platform.h"
+
 namespace keur {
+
+/**
+ * Resolve keur's home directory — the root of a keur installation, holding
+ * `rules/` and `config/`. Resolution (first hit wins):
+ *   1. $KEUR_HOME               explicit override (unchanged behaviour)
+ *   2. derived from the binary  <dir-of-exe>/..  when it looks like an install
+ *      (i.e. the exe sits in <home>/bin/ and <home>/rules or
+ *      <home>/config/keur.toml exists) — so keur finds its own rules with NO
+ *      env var set, the way git locates its support files relative to the
+ *      binary. @see ADR-063.
+ * Returns "" when neither applies (keur then falls back to the global/project
+ * layers only). This makes $KEUR_HOME optional instead of required — fixing the
+ * silent-gate regression where an unset KEUR_HOME loaded zero built-in rules.
+ */
+inline std::string derive_keur_home() {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    // 1. explicit override.
+    if (const char* h = std::getenv("KEUR_HOME")) {
+        if (*h) return h;
+    }
+    // 2. derive from the running binary's location.
+    std::string exe = platform::executable_path();
+    if (exe.empty()) return "";
+    fs::path bin_dir = fs::path(exe).parent_path();            // <...>/bin
+    fs::path home = bin_dir.parent_path();                     // <...>
+    if (home.empty()) return "";
+    // Confirm it really is a keur install, not just any bin/ dir: require a
+    // rules/ dir or a config/keur.toml marker under the candidate home.
+    if (fs::is_directory(home / "rules", ec) ||
+        fs::is_regular_file(home / "config" / "keur.toml", ec)) {
+        return home.string();
+    }
+    return "";
+}
 
 /**
  * JSON-escape a string (backslash, double-quote, newline, tab).
@@ -64,9 +101,12 @@ inline std::string find_project_rules_dir() {
 
 inline std::vector<std::string> rule_dirs() {
     std::vector<std::string> dirs;
-    // 1. built-in
-    if (const char* home = std::getenv("KEUR_HOME"))
-        dirs.push_back(std::string(home) + "/rules");
+    // 1. built-in — $KEUR_HOME if set, else derived from the binary location
+    //    (ADR-063), so built-in rules load with no env var required.
+    {
+        std::string home = derive_keur_home();
+        if (!home.empty()) dirs.push_back(home + "/rules");
+    }
     // 2. global / company: $XDG_CONFIG_HOME/keur/rules (fallback ~/.config)
     {
         std::string global_base;

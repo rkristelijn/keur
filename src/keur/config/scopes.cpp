@@ -11,6 +11,7 @@
 #include <cstdlib>
 
 #include "common/platform.h"
+#include "util/keur_utils.h"
 
 namespace keur::config {
 
@@ -30,7 +31,8 @@ ScopeEnv capture_scope_env(const std::string& explicit_path,
     ScopeEnv env;
     if (const char* x = std::getenv("XDG_CONFIG_HOME")) env.xdg_config_home = x;
     if (const char* h = std::getenv("HOME")) env.home = h;
-    if (const char* k = std::getenv("KEUR_HOME")) env.keur_home = k;
+    // $KEUR_HOME if set, else derived from the binary location (ADR-063).
+    env.keur_home = keur::derive_keur_home();
     env.repo_root = repo_root;
     env.explicit_path = explicit_path;
     return env;

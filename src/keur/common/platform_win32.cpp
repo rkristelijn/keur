@@ -244,6 +244,28 @@ bool path_exists(const std::string& path) {
     return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES;
 }
 
+std::string executable_path() {
+    // GetModuleFileNameW(NULL, ...) returns the full path of the current .exe.
+    // Grow the buffer until it fits (the API truncates + sets ERROR_INSUFFICIENT_BUFFER).
+    std::wstring wbuf(MAX_PATH, L'\0');
+    for (;;) {
+        DWORD n = GetModuleFileNameW(nullptr, wbuf.data(),
+                                     static_cast<DWORD>(wbuf.size()));
+        if (n == 0) return "";
+        if (n < wbuf.size()) { wbuf.resize(n); break; }
+        wbuf.resize(wbuf.size() * 2);  // too small — grow and retry
+    }
+    // UTF-16 → UTF-8 so the rest of keur deals in std::string paths.
+    int len = WideCharToMultiByte(CP_UTF8, 0, wbuf.data(),
+                                  static_cast<int>(wbuf.size()),
+                                  nullptr, 0, nullptr, nullptr);
+    if (len <= 0) return "";
+    std::string out(static_cast<size_t>(len), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wbuf.data(), static_cast<int>(wbuf.size()),
+                        out.data(), len, nullptr, nullptr);
+    return out;
+}
+
 bool write_executable(const std::string& path, const std::string& content) {
     // No POSIX executable bit on Windows; executability is extension-based.
     FILE* f = std::fopen(path.c_str(), "wb");

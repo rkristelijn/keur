@@ -19,6 +19,7 @@
 #include <csignal>
 
 #include <cerrno>
+#include <climits>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -32,6 +33,7 @@
 #include <sys/sysctl.h>
 #include <mach/mach.h>
 #include <mach/mach_host.h>
+#include <mach-o/dyld.h>
 #endif
 
 // The process environment. Declared by <unistd.h> only under certain feature
@@ -219,6 +221,28 @@ bool make_dir(const std::string& path) {
 bool path_exists(const std::string& path) {
     struct stat st{};
     return stat(path.c_str(), &st) == 0;
+}
+
+std::string executable_path() {
+    // macOS: _NSGetExecutablePath gives a path that may contain symlinks / ..,
+    // so resolve it with realpath. Linux: /proc/self/exe is already canonical.
+#ifdef __APPLE__
+    uint32_t size = 0;
+    _NSGetExecutablePath(nullptr, &size);  // query required buffer size
+    if (size == 0) return "";
+    std::string buf(size, '\0');
+    if (_NSGetExecutablePath(buf.data(), &size) != 0) return "";
+    buf.resize(std::strlen(buf.c_str()));
+    char resolved[PATH_MAX];
+    if (realpath(buf.c_str(), resolved)) return std::string(resolved);
+    return buf;
+#else
+    char buf[PATH_MAX];
+    ssize_t n = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+    if (n <= 0) return "";
+    buf[n] = '\0';
+    return std::string(buf);
+#endif
 }
 
 bool write_executable(const std::string& path, const std::string& content) {

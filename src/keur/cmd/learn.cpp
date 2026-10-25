@@ -19,6 +19,7 @@
 #include "cmd/train.h"
 #include "common/platform.h"
 #include "config/ruleset.h"
+#include "util/keur_utils.h"
 #include "rules/rule_engine.h"
 
 namespace keur::cmd {
@@ -46,8 +47,8 @@ std::string explainer_path(const std::string& base_dir, const std::string& id) {
 namespace {
 
 std::string keur_home() {
-  if (const char* h = std::getenv("KEUR_HOME")) return h;
-  return ".";
+  std::string h = keur::derive_keur_home();
+  return h.empty() ? "." : h;
 }
 
 // $XDG_CACHE_HOME/keur/rules, falling back to $HOME/.cache/keur/rules. Empty

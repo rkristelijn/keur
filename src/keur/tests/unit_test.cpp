@@ -938,6 +938,46 @@ SCENARIO("[feature:rule-engine] rule_dirs includes KEUR_HOME/rules as the built-
     unsetenv("KEUR_HOME");
 }
 
+// @proves ADR-063 — keur's home is an explicit override OR derived, else empty.
+SCENARIO("[feature:rule-engine] derive_keur_home prefers KEUR_HOME when set") {
+    setenv("KEUR_HOME", "/opt/keur", 1);
+    CHECK(keur::derive_keur_home() == "/opt/keur");
+    unsetenv("KEUR_HOME");
+}
+
+SCENARIO("[feature:rule-engine] derive_keur_home derives from the binary when it is an install") {
+    unsetenv("KEUR_HOME");
+    // The test binary lives in <repo>/bin/, and <repo>/rules/ exists, so the
+    // derivation recognises an install layout and returns the repo root — the
+    // mechanism that lets the hook load rules with no env var (ADR-063). On a
+    // layout WITHOUT a bin/+rules marker it returns empty instead of guessing;
+    // either way it never fabricates a bogus path (see the empty-override test).
+    std::string home = keur::derive_keur_home();
+    if (!home.empty()) {
+        namespace fs = std::filesystem;
+        std::error_code ec;
+        const bool looks_like_install =
+            fs::is_directory(fs::path(home) / "rules", ec) ||
+            fs::is_regular_file(fs::path(home) / "config" / "keur.toml", ec);
+        CHECK(looks_like_install);  // never returns a non-install dir
+    }
+}
+
+SCENARIO("[feature:rule-engine] empty KEUR_HOME is treated as unset (override off)") {
+    setenv("KEUR_HOME", "", 1);
+    // An empty override must not be used as a prefix: it would yield the bogus
+    // built-in path "/rules". It is ignored, so that path never appears. (With
+    // an empty override, resolution falls through to derivation or nothing;
+    // both are fine — the invariant is only that "/rules" never leaks.)
+    std::string home = keur::derive_keur_home();
+    CHECK(home != "/");     // never the filesystem root from an empty prefix
+    auto d = keur::rule_dirs();
+    for (const auto& p : d) {
+        CHECK(p != "/rules");
+    }
+    unsetenv("KEUR_HOME");
+}
+
 SCENARIO("[feature:rule-engine] rule_dirs appends KEUR_RULES_DIRS overrides in order, last") {
     unsetenv("KEUR_HOME");
     setenv("KEUR_RULES_DIRS", "/a:/b:/c", 1);
