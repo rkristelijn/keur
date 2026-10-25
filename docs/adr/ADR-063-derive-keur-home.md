@@ -23,8 +23,8 @@ The failure this caused is severe and silent: **a git hook runs in a minimal
 environment that does not export `$KEUR_HOME`.** With it unset, `rule_dirs()`
 contributed no built-in layer, so the hook loaded **zero built-in rules** and
 every `keur check` returned PASS — the gate was off, with no error. Proven: the
-same commit carrying a Confluence id + work email BLOCKs when `KEUR_HOME` is set
-and PASSes when it is not. For a security gate, a silent no-op is the worst
+same commit carrying a hardcoded secret BLOCKs when `KEUR_HOME` is set and
+PASSes when it is not. For a security gate, a silent no-op is the worst
 possible default (contra ADR-035: a human or agent should always know the
 state).
 

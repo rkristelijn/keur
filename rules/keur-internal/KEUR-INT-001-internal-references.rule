@@ -1,29 +1,27 @@
-# KEUR-INT-001 — organisation-internal reference must not reach a public repo.
-# @implements ADR-061 (this repo is public; internal trackers/domains are not)
+# KEUR-INT-001 — internal reference (tracker / wiki id) must not reach a public repo.
+# @implements ADR-061
 #
-# keur is a PUBLIC project maintained by someone who also does paid work on
-# internal systems. The easy leak is an internal ticket/wiki id or a work domain
-# pasted into a doc or a commit — harmless-looking, but it exposes an employer's
-# internal taxonomy (Confluence space + page id, ClickUp/FreshService ticket
-# ids) or a private hostname to the world, and it is exactly the kind of thing
-# you only notice AFTER the repo is public.
+# A public repo should not carry the breadcrumbs of a private workspace: an
+# internal ticket id, a wiki page coordinate, or a non-public contact domain
+# pasted into a doc or commit. Harmless-looking, but it links a public project
+# to private infrastructure — and it is the kind of thing you only notice AFTER
+# the repo is public.
 #
 # This BLOCKS (not warns): once it is in a public git history it cannot be
 # unpublished. Catch it at the pre-commit gate, where the fix is a one-line edit
 # before the commit exists, not a history rewrite after the fact.
 #
-# Detection = pattern over text. Each regex is a concrete internal-reference
-# shape seen in this repo's own near-miss (the ADR-061 grounding line that named
-# a real Confluence page + ClickUp task). Generalise the shape, not the literal:
-#   - Confluence space/page coordinate: SPACEKEY/<8+ digit page id>
-#   - ClickUp task id: the 9-char base-36 task slug after the tool name
-#   - internal tracker/wiki/domain names tied to the employer
-# A legitimate mention of the *tool* ("we use Confluence") is fine — the rule
-# fires on an ID or a work-domain, not the bare product name.
+# Detection = pattern over text. Generalise the SHAPE, never a specific name:
+#   - a tracker/wiki coordinate (SPACEKEY/<long numeric page id>)
+#   - a tracker ticket id after a common tool name
+#   - a non-public contact domain, supplied by YOU via a local override rule
+#     (KEUR_RULES_DIRS), so this public rule never hardcodes any one domain.
+# A legitimate mention of a *tool* ("we use a wiki") is fine — the rule fires on
+# an ID shape, not a product name.
 id: KEUR-INT-001
 ilities: [confidentiality]
 maturity: 2
-title: Organisation-internal reference (ticket / wiki id / work domain) in a public repo
+title: Internal reference (tracker / wiki id) in a public repo
 category: pii
 severity: critical
 engine: pattern
@@ -36,10 +34,8 @@ target:
   exclude_paths: rules/ eval/ vendor/ node_modules/ .git/ build/ dist/ tests/fixtures/
 patterns:
   - regex: \b(Confluence|CONF)\s+[A-Z]{2,10}/\d{8,}
-    message: "Confluence space+page id (e.g. 'Confluence PLAT/21744320552') — an internal wiki coordinate. Replace with a generic phrase ('an internal RFC') or a public link. Suppress with keur:ignore KEUR-INT-001 only if this is intentionally public."
+    message: "Wiki space+page coordinate (e.g. 'SPACE/21744320552') — an internal wiki reference. Replace with a generic phrase ('an internal RFC') or a public link. Suppress with keur:ignore KEUR-INT-001 only if this is intentionally public."
   - regex: \b(ClickUp|FreshService|Jira)\s+[0-9a-z]{7,10}\b
-    message: "Internal tracker ticket id (ClickUp/FreshService/Jira). A public repo must not expose an employer's ticket taxonomy — refer to the work generically or link a public issue instead."
-  - regex: (?i)@(theapsgroup|aps-group)\.(com|net|io)\b
-    message: "Internal/work email domain in tracked content. Use a personal/public contact for a public project; keep the work identity out of the repo body."
+    message: "Internal tracker ticket id. A public repo should not expose a private ticket taxonomy — refer to the work generically or link a public issue instead."
 confidence: 0.9
-fix: "Remove the internal reference: replace an internal ticket/wiki id with a generic phrase or a public link, use a personal contact instead of a work email. If a mention is deliberately public and safe, add keur:ignore KEUR-INT-001 on that line with a reason."
+fix: "Remove the internal reference: replace a tracker/wiki id with a generic phrase or a public link. To also block your own non-public contact domain, add a one-line pattern rule in a local KEUR_RULES_DIRS override (keeps your domain out of this public ruleset). If a mention is deliberately public and safe, add keur:ignore KEUR-INT-001 on that line with a reason."
