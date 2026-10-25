@@ -3,8 +3,18 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
   pull_request:
     types: [opened, synchronize, ready_for_review]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -22,14 +32,15 @@ jobs:
   build:
     strategy:
       fail-fast: false
+      # Tiered CI by cost (ADR-041): a PR runs the cheap Linux build only — it
+      # catches ~all logic/portability errors in seconds. The full, expensive
+      # matrix (macOS = ~10x the minutes, Windows/MSYS2 slow to set up) runs on
+      # main, where breadth matters before a release. Pushes to main therefore
+      # still get every platform; PR iteration stays cheap.
       matrix:
-        include:
-          - os: ubuntu-24.04
-            name: linux-amd64
-          - os: macos-14
-            name: macos-arm64
-          - os: windows-latest
-            name: windows-amd64
+        include: ${{ github.ref == 'refs/heads/main'
+          && fromJSON('[{"os":"ubuntu-24.04","name":"linux-amd64"},{"os":"macos-14","name":"macos-arm64"},{"os":"windows-latest","name":"windows-amd64"}]')
+          || fromJSON('[{"os":"ubuntu-24.04","name":"linux-amd64"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -105,6 +116,10 @@ jobs:
   # 32-bit binary behaves correctly (no word-size truncation). @see ADR-006.
   # ────────────────────────────────────────────────────────────────────────
   build-arm32:
+    # QEMU-emulated armhf build — the slowest job (up to 40 min). Breadth, not
+    # depth: run it on main (pre-release breadth) only, not on every PR push
+    # (ADR-041 tiered CI, by cost).
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
