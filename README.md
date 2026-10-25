@@ -42,9 +42,10 @@ standards-grounded guardrail — a copilot for coding and vibe-coding**:
 - **Learns on your own codebase** with a local LLM — **your IP never leaves your
   machine**. → `docs/design/learning-loop.md`
 
-keur is **MIT-licensed and free**. It wraps open-source tools; paying it forward
-is welcome but never required — a good rule (merge request), a donation, or the
-wishlist. The full picture: **`docs/design/vision.md`**.
+keur is **MIT-licensed and free**. It runs on its own RE2 engine out of the box
+and can *optionally* corroborate with proven open-source tools you opt into
+(ADR-066); paying it forward is welcome but never required — a good rule (merge
+request), a donation, or the wishlist. The full picture: **`docs/design/vision.md`**.
 
 ## Why C++
 
