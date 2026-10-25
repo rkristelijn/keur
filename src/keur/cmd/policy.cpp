@@ -132,7 +132,7 @@ std::string resolve_config(const std::string& hint) {
     //    a required env var.
     std::string keur_home = keur::derive_keur_home();
     if (!keur_home.empty()) {
-        std::string installed = keur_home + "/config/keur.toml";
+        std::string installed = keur_home + "/defaults/keur.toml";
         std::ifstream f(installed);
         if (f.good()) return installed;
     }

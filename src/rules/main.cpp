@@ -52,7 +52,7 @@ static std::vector<std::string> rule_dirs() {
       fs::path cand = fs::path(exe).parent_path().parent_path();  // <...>/bin/.. = <...>
       if (!cand.empty() &&
           (fs::is_directory(cand / "rules", ec) ||
-           fs::is_regular_file(cand / "config" / "keur.toml", ec)))
+           fs::is_regular_file(cand / "defaults" / "keur.toml", ec)))
         home = cand.string();
     }
   }

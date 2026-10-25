@@ -3,7 +3,7 @@
 #
 # The release logic lives here (a script), not in the workflow — the workflow is
 # a thin trigger (ADR-044: make/CI orchestrate, scripts implement). Pure-ish:
-# reads git history + config/keur.toml, writes keur.toml + CHANGELOG.md on apply.
+# reads git history + defaults/keur.toml, writes keur.toml + CHANGELOG.md on apply.
 #
 # Subcommands:
 #   bump              Print the next semver (computed from commits since the last
@@ -11,9 +11,9 @@
 #                     release (no releasable commits).
 #   notes [VERSION]   Print Markdown release notes for the commits since the last
 #                     tag, grouped by type.
-#   apply  VERSION    Write VERSION into config/keur.toml and prepend a dated
+#   apply  VERSION    Write VERSION into defaults/keur.toml and prepend a dated
 #                     section to CHANGELOG.md (created if absent).
-#   current           Print the current version from config/keur.toml.
+#   current           Print the current version from defaults/keur.toml.
 #
 # Versioning (SemVer from Conventional Commits since the last vX.Y.Z tag):
 #   - any `feat!`/`fix!`/`BREAKING CHANGE` → major
@@ -25,7 +25,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
-TOML="$ROOT/config/keur.toml"
+TOML="$ROOT/defaults/keur.toml"
 CHANGELOG="$ROOT/CHANGELOG.md"
 
 current_version() {
@@ -111,7 +111,7 @@ apply_version() {
   else
     printf '# Changelog\n\n%s' "$notes" > "$CHANGELOG"
   fi
-  echo "applied v${version} → config/keur.toml + CHANGELOG.md"
+  echo "applied v${version} → defaults/keur.toml + CHANGELOG.md"
 }
 
 case "${1:-}" in
