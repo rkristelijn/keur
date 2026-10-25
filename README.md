@@ -1,5 +1,10 @@
 # keur
 
+[![CI](https://github.com/rkristelijn/keur/actions/workflows/ci.yml/badge.svg)](https://github.com/rkristelijn/keur/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/rkristelijn/keur?sort=semver)](https://github.com/rkristelijn/keur/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg)](https://isocpp.org/)
+
 Deterministic guardrails for AI-generated code — an **anti-slop, vibe-code
 limiter** that runs as a git pre-commit hook.
 
@@ -89,6 +94,14 @@ keur hook --global           # every repo on the machine
 That is the whole setup. From now on every `git commit` is gated.
 
 ### Demo
+
+A hardcoded secret, caught at commit time — the gate blocks it before it ever
+reaches history:
+
+![keur blocks a hardcoded secret at commit time](docs/demo/secret-in-code.gif)
+
+The same gate also blocks committing a `.env` file ([demo](docs/demo/commit-env-file.gif)).
+In plain text:
 
 ```console
 $ echo 'const KEY = "AKIAIOSFODNN7EXAMPLE";' > creds.js && git add creds.js
