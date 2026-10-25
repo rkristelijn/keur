@@ -17,20 +17,25 @@ version = "0.1.0"
 # ─────────────────────────────────────────────────────────────────────────────
 [tiers.pre-commit]
 budget-ms = 3000
-# Fast, deterministic only. Secrets + gap-filler rules over the staged diff.
-scanners = ["gitleaks", "keur-rules"]
+# Fast, deterministic only. keur's own RE2 engine over the staged diff — works
+# with NO external tools installed (ADR-002/ADR-066). External scanners are
+# opt-in: install the tool, then add it here. e.g.:
+#   scanners = ["gitleaks", "keur-rules"]
+scanners = ["keur-rules"]
 ai = false
 
 [tiers.pre-push]
 budget-ms = 30000
-# Add corroborating secrets (trufflehog), deps, SAST, IaC.
-scanners = ["gitleaks", "trufflehog", "trivy", "semgrep", "checkov", "keur-rules"]
+# Opt-in corroboration for push: install the tools, then uncomment. e.g.:
+#   scanners = ["gitleaks", "trufflehog", "trivy", "semgrep", "checkov", "keur-rules"]
+scanners = ["keur-rules"]
 ai = "optional"                                  # off | optional | on
 
 [tiers.ci]
 budget-ms = 0                                    # 0 = unlimited
-# Everything, incl. second-source corroboration (grype, osv-scanner, tfsec).
-scanners = ["gitleaks", "trufflehog", "presidio", "trivy", "grype", "osv-scanner", "semgrep", "checkov", "tfsec", "keur-rules"]
+# Opt-in full set incl. second-source corroboration. e.g.:
+#   scanners = ["gitleaks", "trufflehog", "presidio", "trivy", "grype", "osv-scanner", "semgrep", "checkov", "tfsec", "keur-rules"]
+scanners = ["keur-rules"]
 ai = "on"
 
 # ─────────────────────────────────────────────────────────────────────────────
