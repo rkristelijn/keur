@@ -16,7 +16,7 @@
 # Dependencies: RE2 + abseil (Homebrew on macOS, system packages on Linux).
 
 CXX      ?= c++
-VERSION  := $(shell grep '^version' ../../config/keur.toml 2>/dev/null | head -1 | sed 's/.*=[ ]*//; s/"//g; s/[[:space:]]//g')
+VERSION  := $(shell grep '^version' ../../defaults/keur.toml 2>/dev/null | head -1 | sed 's/.*=[ ]*//; s/"//g; s/[[:space:]]//g')
 VERSION  := $(or $(VERSION),dev)
 
 # -I..     → resolves rules/rule_engine.h  (src/rules/...)
