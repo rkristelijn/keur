@@ -17,11 +17,11 @@ namespace keur {
 
 /**
  * Resolve keur's home directory — the root of a keur installation, holding
- * `rules/` and `config/`. Resolution (first hit wins):
+ * `rules/` and `defaults/`. Resolution (first hit wins):
  *   1. $KEUR_HOME               explicit override (unchanged behaviour)
  *   2. derived from the binary  <dir-of-exe>/..  when it looks like an install
  *      (i.e. the exe sits in <home>/bin/ and <home>/rules or
- *      <home>/config/keur.toml exists) — so keur finds its own rules with NO
+ *      <home>/defaults/keur.toml exists) — so keur finds its own rules with NO
  *      env var set, the way git locates its support files relative to the
  *      binary. @see ADR-063.
  * Returns "" when neither applies (keur then falls back to the global/project
@@ -42,9 +42,9 @@ inline std::string derive_keur_home() {
     fs::path home = bin_dir.parent_path();                     // <...>
     if (home.empty()) return "";
     // Confirm it really is a keur install, not just any bin/ dir: require a
-    // rules/ dir or a config/keur.toml marker under the candidate home.
+    // rules/ dir or a defaults/keur.toml marker under the candidate home.
     if (fs::is_directory(home / "rules", ec) ||
-        fs::is_regular_file(home / "config" / "keur.toml", ec)) {
+        fs::is_regular_file(home / "defaults" / "keur.toml", ec)) {
         return home.string();
     }
     return "";

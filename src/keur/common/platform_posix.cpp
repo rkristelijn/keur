@@ -151,7 +151,11 @@ int capture_bytes_argv(const std::vector<std::string>& argv, std::string& sink) 
 
     posix_spawn_file_actions_t fa;
     posix_spawn_file_actions_init(&fa);
-    // Child: stdout → pipe write end; stderr → /dev/null; close the read end.
+    // Child: stdin ← /dev/null so a tool that reads stdin when it gets no usable
+    // input gets immediate EOF and exits, instead of blocking forever on read()
+    // (which hangs the parent's read() on the pipe — a multi-second stall per
+    // spawned scanner). stdout → pipe write end; stderr → /dev/null; close ends.
+    posix_spawn_file_actions_addopen(&fa, STDIN_FILENO, "/dev/null", O_RDONLY, 0);
     posix_spawn_file_actions_adddup2(&fa, pipefd[1], STDOUT_FILENO);
     posix_spawn_file_actions_addopen(&fa, STDERR_FILENO, "/dev/null", O_WRONLY, 0);
     posix_spawn_file_actions_addclose(&fa, pipefd[0]);

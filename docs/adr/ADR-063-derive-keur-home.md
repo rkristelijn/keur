@@ -39,7 +39,7 @@ Resolve keur's home in this order (first hit wins), everywhere:
 1. **`$KEUR_HOME`** if set and non-empty — an explicit **override**, unchanged.
 2. **Derived from the binary**: take `executable_path()`, go up from
    `<home>/bin/<exe>` to `<home>`, and accept it only if it looks like a real
-   install — `<home>/rules/` exists or `<home>/config/keur.toml` exists. The
+   install — `<home>/rules/` exists or `<home>/defaults/keur.toml` exists. The
    marker check stops a stray `bin/` on `$PATH` from being mistaken for a keur
    install.
 3. Otherwise **empty** — keur falls back to the global and project rule layers

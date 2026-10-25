@@ -85,6 +85,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [064](ADR-064-ai-guidance-layer-arcane.md) | Pair keur's gate with an AI-guidance layer (claude-code-arcane): prevent, don't only block | proposed |
 | [065](ADR-065-async-build-confidence.md) | Keep build-confidence high without a slow gate: fast sync, heavy async | proposed |
 | [066](ADR-066-external-scanners-opt-in.md) | External scanners are opt-in; the default gate is keur's own engine only | proposed |
+| [067](ADR-067-checksum-validation-engine.md) | Checksum-validation engine: the arithmetic a regex can't do, driven by a rule | proposed |
 
 ## Adding an ADR
 

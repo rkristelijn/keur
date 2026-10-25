@@ -52,7 +52,7 @@ std::string find_config_upward(const std::string& start_dir);
 /**
  * Resolve the config path following keur's precedence order:
  *   explicit --config → repo-local (keur.toml walking up from cwd) →
- *   global ($XDG_CONFIG_HOME/keur/keur.toml) → $KEUR_HOME/config/keur.toml.
+ *   global ($XDG_CONFIG_HOME/keur/keur.toml) → $KEUR_HOME/defaults/keur.toml.
  *
  * @param hint  Optional explicit path (from --config flag); takes priority.
  * @returns the path of the first existing file, or the global path as

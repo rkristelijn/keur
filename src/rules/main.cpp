@@ -8,7 +8,7 @@
  *   Rule dirs: KEUR_HOME/rules plus each dir in KEUR_RULES_DIRS (':'-separated).
  *
  * Output: one KEUR Finding JSON object per line on stdout. Same shape the
- * evidence/policy layers already consume from scanners/rules.sh.
+ * evidence/policy layers consume findings from the compiled engine (ADR-002).
  */
 #include <cstdlib>
 #include <filesystem>
@@ -52,7 +52,7 @@ static std::vector<std::string> rule_dirs() {
       fs::path cand = fs::path(exe).parent_path().parent_path();  // <...>/bin/.. = <...>
       if (!cand.empty() &&
           (fs::is_directory(cand / "rules", ec) ||
-           fs::is_regular_file(cand / "config" / "keur.toml", ec)))
+           fs::is_regular_file(cand / "defaults" / "keur.toml", ec)))
         home = cand.string();
     }
   }

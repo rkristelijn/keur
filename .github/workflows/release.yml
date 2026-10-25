@@ -4,7 +4,7 @@ name: Release
 # ONE automation allowed to commit straight to main (no release PR to merge):
 #
 #   1. compute the next version from Conventional Commits (scripts/release.sh)
-#   2. apply it (config/keur.toml + CHANGELOG.md) and commit it to main
+#   2. apply it (defaults/keur.toml + CHANGELOG.md) and commit it to main
 #   3. tag vX.Y.Z
 #   4. build every platform and run the e2e smoke on each
 #   5. publish a GitHub Release with generated notes + the built binaries
@@ -62,7 +62,7 @@ jobs:
         if: steps.v.outputs.skipped == 'false' && inputs.dry_run == true
         run: |
           bash scripts/release.sh apply "${{ steps.v.outputs.version }}"
-          echo "=== config/keur.toml ==="; grep '^version' config/keur.toml
+          echo "=== defaults/keur.toml ==="; grep '^version' defaults/keur.toml
           echo "=== CHANGELOG (head) ==="; sed -n '1,20p' CHANGELOG.md
 
       - name: Commit bump + tag (real release)
@@ -73,7 +73,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           bash scripts/release.sh apply "$VERSION"
-          git add config/keur.toml CHANGELOG.md
+          git add defaults/keur.toml CHANGELOG.md
           git commit -m "chore(release): v${VERSION}"
           git tag -a "v${VERSION}" -m "Release v${VERSION}"
           git push origin HEAD:main

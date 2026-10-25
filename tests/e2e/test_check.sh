@@ -7,12 +7,24 @@ BINARY="$(resolve_binary "${1:-}")"
 [[ -n "$BINARY" ]] || { echo "FAIL: keur binary not found"; exit 1; }
 
 RULES="$(repo_root)/rules"
-export KEUR_RULES_DIRS="$RULES"
+# Isolated install for this test. It proves the SECRET gate (private key →
+# BLOCK) deterministically, so it must not depend on the host: neither the full
+# ~1167-rule corpus nor any external scanner. Build a tiny KEUR_HOME with just
+# the private-key rule and a defaults/keur.toml that runs ONLY keur-rules (the
+# ADR-066 opt-in default) — so dispatch never spawns semgrep/gitleaks (which
+# otherwise fire `semgrep --config auto`, a slow network registry call) and the
+# verdict depends solely on this test's own fixtures.
+KHOME="$(mktemp -d)"
+mkdir -p "$KHOME/rules" "$KHOME/defaults"
+cp "$RULES/security/KEUR-SEC-001-private-key.rule" "$KHOME/rules/"
+printf '[tiers.pre-commit]\nscanners = ["keur-rules"]\n' > "$KHOME/defaults/keur.toml"
+export KEUR_HOME="$KHOME"
+unset KEUR_RULES_DIRS
 
 echo "==> test_check ($BINARY)"
 
 REPO="$(make_temp_repo)"
-trap 'rm -rf "$REPO"' EXIT
+trap 'rm -rf "$REPO" "$KHOME"' EXIT
 
 # 1. Clean staged file → PASS (exit 0)
 (
