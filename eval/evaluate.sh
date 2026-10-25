@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# eval/evaluate.sh — score KEUR's detectors against the immutable keur-eval corpus.
+# eval/evaluate.sh — score KEUR's detectors against the immutable keur-eval corpus.  # keur:ignore SH-QUAL-014 — "eval/" is the dir name in this path, not the shell eval builtin
 #
 # For every case in keur-eval/index.json:
 #   - run the configured scanners over the case file
@@ -43,15 +43,14 @@ DETAIL="$HISTDIR/run-$TS.json"
 detect_rules() {
   # detect_rules <file> → space-separated rule-IDs (may be empty)
   local file="$1" rules=""
-  # PII adapter (proven scanner) → emits rule like "PII-PII" / "PII-SENSITIVE".
-  if [[ -x "$KEUR_HOME/scanners/pii.sh" ]]; then
-    rules="$rules $("$KEUR_HOME/scanners/pii.sh" "$file" 2>/dev/null \
+  # Run the compiled engine directly (ADR-002): bin/keur-rules emits one Finding
+  # JSON line per match; collect the rule ids. This replaced the old
+  # scanners/*.sh shell shims (adapters, not rules — removed).
+  local bin="${KEUR_RULES_BIN:-$KEUR_HOME/bin/keur-rules}"
+  if [[ -x "$bin" ]]; then
+    rules="$("$bin" --files "$file" 2>/dev/null \
       | sed -n 's/.*"rule":"\([^"]*\)".*/\1/p' | tr '\n' ' ')"
   fi
-  # keur-rules engine (M4) will add its rule-IDs here once built.
-  [[ -x "$KEUR_HOME/scanners/rules.sh" ]] && \
-    rules="$rules $("$KEUR_HOME/scanners/rules.sh" "$file" 2>/dev/null \
-      | sed -n 's/.*"rule":"\([^"]*\)".*/\1/p' | tr '\n' ' ')"
   echo "$rules" | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ' '
 }
 

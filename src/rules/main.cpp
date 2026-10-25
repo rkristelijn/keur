@@ -8,7 +8,7 @@
  *   Rule dirs: KEUR_HOME/rules plus each dir in KEUR_RULES_DIRS (':'-separated).
  *
  * Output: one KEUR Finding JSON object per line on stdout. Same shape the
- * evidence/policy layers already consume from scanners/rules.sh.
+ * evidence/policy layers consume findings from the compiled engine (ADR-002).
  */
 #include <cstdlib>
 #include <filesystem>
