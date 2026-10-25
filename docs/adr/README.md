@@ -81,6 +81,8 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [060](ADR-060-declarative-stage-pipeline.md) | Declarative stage-pipeline engine: compose fixed verbs (extract | count | classify) as data | proposed |
 | [061](ADR-061-doc-standards.md) | Root doc-set: audience-indexed chapters, one source of truth per fact, cross-link not copy, and a deterministic drift guard | proposed |
 | [062](ADR-062-ci-distribution-action-and-component.md) | CI distribution: a GitHub composite Action and a GitLab CI/CD standard component | proposed |
+| [063](ADR-063-derive-keur-home.md) | Derive keur's home from the binary, not a required $KEUR_HOME | accepted |
+| [064](ADR-064-ai-guidance-layer-arcane.md) | Pair keur's gate with an AI-guidance layer (claude-code-arcane): prevent, don't only block | proposed |
 
 ## Adding an ADR
 
