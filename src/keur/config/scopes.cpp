@@ -46,7 +46,7 @@ std::string global_config_path(const ScopeEnv& env) {
 
 std::string keur_home_config_path(const ScopeEnv& env) {
     if (env.keur_home.empty()) return "";
-    return platform::path_join(platform::path_join(env.keur_home, "config"),
+    return platform::path_join(platform::path_join(env.keur_home, "defaults"),
                                "keur.toml");
 }
 

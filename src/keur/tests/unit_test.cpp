@@ -958,7 +958,7 @@ SCENARIO("[feature:rule-engine] derive_keur_home derives from the binary when it
         std::error_code ec;
         const bool looks_like_install =
             fs::is_directory(fs::path(home) / "rules", ec) ||
-            fs::is_regular_file(fs::path(home) / "config" / "keur.toml", ec);
+            fs::is_regular_file(fs::path(home) / "defaults" / "keur.toml", ec);
         CHECK(looks_like_install);  // never returns a non-install dir
     }
 }
@@ -1030,7 +1030,7 @@ SCENARIO("[feature:config] resolve_layers orders defaults->global->keur-home->re
     CHECK(layers[1].scope == keur::config::Scope::Global);
     CHECK(layers[1].path == "/xdg/keur/keur.toml");
     CHECK(layers[2].scope == keur::config::Scope::KeurHome);
-    CHECK(layers[2].path == "/kh/config/keur.toml");
+    CHECK(layers[2].path == "/kh/defaults/keur.toml");
     // Repo scope resolves .config/ first (uncluttered-first), then the root.
     CHECK(layers[3].scope == keur::config::Scope::Repo);
     CHECK(layers[3].path == "/repo/.config/keur.toml");
