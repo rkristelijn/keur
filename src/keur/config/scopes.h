@@ -3,7 +3,7 @@
  * @brief Config layer stack — resolve every keur.toml layer and its source.
  *
  * keur config resolves in layers (README "Configuration"): built-in defaults →
- * global ($XDG_CONFIG_HOME/keur/keur.toml) → $KEUR_HOME/config/keur.toml →
+ * global ($XDG_CONFIG_HOME/keur/keur.toml) → $KEUR_HOME/defaults/keur.toml →
  * repo (<git-root>/keur.toml) → an explicit --config path. `cmd/policy.cpp`
  * already collapses this into a single "winning" path via resolve_config();
  * this module exposes the *whole* stack so `keur config list` and the manager

@@ -114,7 +114,7 @@ std::string install_hint(const std::string& scanner_name) {
 }
 
 std::vector<Scanner> default_scanners() {
-    // The proven-tool baseline keur ships with (mirrors config/keur.toml's
+    // The proven-tool baseline keur ships with (mirrors defaults/keur.toml's
     // [scanners.*]). Enabled by default except presidio (opt-in higher-fidelity
     // PII). group/default-action match the shipped template.
     struct Def { const char* name; const char* group; const char* action; bool enabled; };
