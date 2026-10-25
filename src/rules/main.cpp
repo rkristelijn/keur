@@ -11,12 +11,14 @@
  * evidence/policy layers already consume from scanners/rules.sh.
  */
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
 
 #include "rule_engine.h"
 #include "rule/facts.h"
+#include "common/platform.h"
 
 using namespace keur;
 
@@ -37,7 +39,24 @@ static std::string jesc(const std::string& s) {
 
 static std::vector<std::string> rule_dirs() {
   std::vector<std::string> dirs;
-  if (const char* home = std::getenv("KEUR_HOME")) dirs.push_back(std::string(home) + "/rules");
+  // Built-in rules: $KEUR_HOME if set, else derived from this binary's own
+  // location (ADR-063) so `keur-rules` finds its rules with no env var. The
+  // engine reaches the shared platform seam (same as src/keur) for the exe path.
+  std::string home;
+  if (const char* h = std::getenv("KEUR_HOME")) { if (*h) home = h; }
+  if (home.empty()) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    std::string exe = keur::platform::executable_path();
+    if (!exe.empty()) {
+      fs::path cand = fs::path(exe).parent_path().parent_path();  // <...>/bin/.. = <...>
+      if (!cand.empty() &&
+          (fs::is_directory(cand / "rules", ec) ||
+           fs::is_regular_file(cand / "config" / "keur.toml", ec)))
+        home = cand.string();
+    }
+  }
+  if (!home.empty()) dirs.push_back(home + "/rules");
   if (const char* extra = std::getenv("KEUR_RULES_DIRS")) {
     std::string s(extra), cur;
     for (char c : s) {

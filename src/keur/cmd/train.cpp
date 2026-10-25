@@ -19,14 +19,15 @@
 #include "adapters/proc.h"
 #include "common/platform.h"
 #include "learn/monitor.h"
+#include "util/keur_utils.h"
 
 namespace keur::cmd {
 
 namespace {
 
 std::string keur_home() {
-  if (const char* h = std::getenv("KEUR_HOME")) return h;
-  return ".";
+  std::string h = keur::derive_keur_home();
+  return h.empty() ? "." : h;
 }
 
 std::atomic<bool> g_stop{false};

@@ -83,6 +83,14 @@ bool make_dir(const std::string& path);
 /// True if `path` exists (file or directory).
 bool path_exists(const std::string& path);
 
+/// Absolute path of the currently-running executable, with symlinks resolved.
+/// Lets keur locate its own installation (and from there its rules/ and config/)
+/// without a required $KEUR_HOME env var — @see ADR-005, ADR-063. Returns an
+/// empty string if the path cannot be determined.
+///   posix(linux): readlink /proc/self/exe   posix(macOS): _NSGetExecutablePath
+///   win32: GetModuleFileNameW
+std::string executable_path();
+
 /// Write `content` to `path`; on POSIX also mark it executable (0755).
 /// On Windows the executable bit is a no-op (extension-based). Returns success.
 bool write_executable(const std::string& path, const std::string& content);
