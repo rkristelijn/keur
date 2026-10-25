@@ -83,6 +83,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [062](ADR-062-ci-distribution-action-and-component.md) | CI distribution: a GitHub composite Action and a GitLab CI/CD standard component | proposed |
 | [063](ADR-063-derive-keur-home.md) | Derive keur's home from the binary, not a required $KEUR_HOME | accepted |
 | [064](ADR-064-ai-guidance-layer-arcane.md) | Pair keur's gate with an AI-guidance layer (claude-code-arcane): prevent, don't only block | proposed |
+| [065](ADR-065-async-build-confidence.md) | Keep build-confidence high without a slow gate: fast sync, heavy async | proposed |
 
 ## Adding an ADR
 
