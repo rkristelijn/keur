@@ -1,0 +1,59 @@
+# keur — GitHub composite Action (ADR-062).
+#
+# A thin wrapper over the prebuilt binary + install.sh env-contract: it fetches
+# the checksum-verified keur-<os>-<arch> asset via install.sh (honouring
+# KEUR_VERSION / KEUR_BIN_DIR) and runs `keur <args>`. No toolchain, no build.
+#
+# PREREQUISITE (ADR-062): this requires the repo to be PUBLIC with openly
+# downloadable release assets — a CI runner pulls keur-<os>-<arch> + SHA256SUMS
+# anonymously at run time. This sits behind the same "repo public first" gate as
+# the brew/npx channels in ADR-045. Not shippable before that gate is green.
+# See docs/adr/ADR-062-ci-distribution-action-and-component.md.
+
+name: keur
+description: "Deterministic AI-code guardrail — an anti-slop, vibe-code limiter run as a pre-commit/CI gate."
+
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  version:
+    description: "keur release tag to install (maps to KEUR_VERSION). CI should pin a tag for reproducibility."
+    required: false
+    default: latest
+  args:
+    description: "The keur subcommand and arguments to run (e.g. 'check', 'check --tier pre-push', 'scan src/')."
+    required: false
+    default: check
+  working-directory:
+    description: "Directory to run keur in."
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Install keur
+      shell: sh
+      env:
+        KEUR_VERSION: ${{ inputs.version }}
+        KEUR_BIN_DIR: ${{ github.action_path }}/.keur-bin
+      run: |
+        set -eu
+        # Fetch install.sh from the raw URL and run it. The binary is
+        # checksum-verified by install.sh before it is trusted (SCA-030).
+        mkdir -p "$KEUR_BIN_DIR"
+        curl -fsSL \
+          "https://raw.githubusercontent.com/rkristelijn/keur/main/install.sh" \
+          -o "$KEUR_BIN_DIR/install.sh"
+        sh "$KEUR_BIN_DIR/install.sh"
+        # Put the install dir on PATH for subsequent steps.
+        echo "$KEUR_BIN_DIR" >> "$GITHUB_PATH"
+
+    - name: Run keur
+      shell: sh
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -eu
+        keur ${{ inputs.args }}

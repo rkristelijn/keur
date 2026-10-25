@@ -1,0 +1,49 @@
+# keur — GitLab CI/CD component (ADR-062).
+#
+# A thin wrapper over the prebuilt binary + install.sh env-contract: the job
+# fetches the checksum-verified keur-<os>-<arch> asset via install.sh (honouring
+# KEUR_VERSION / KEUR_BIN_DIR) and runs `keur <args>`. No toolchain, no build.
+#
+# Consume it from a pipeline with:
+#   include:
+#     - component: $CI_SERVER_FQDN/rkristelijn/keur/keur@v1
+#       inputs:
+#         args: check
+#
+# PREREQUISITE (ADR-062): this requires the repo to be PUBLIC with openly
+# downloadable release assets — the runner pulls keur-<os>-<arch> + SHA256SUMS
+# anonymously at run time. This sits behind the same "repo public first" gate as
+# the brew/npx channels in ADR-045. Not shippable (CI/CD Catalog) before that
+# gate is green. See docs/adr/ADR-062-ci-distribution-action-and-component.md.
+
+spec:
+  inputs:
+    version:
+      default: latest
+      description: "keur release tag to install (maps to KEUR_VERSION). Pin a tag in CI for reproducibility."
+    stage:
+      default: test
+      description: "Pipeline stage the keur job runs in."
+    args:
+      default: check
+      description: "The keur subcommand and arguments to run (e.g. 'check', 'check --tier pre-push', 'scan src/')."
+---
+"keur":
+  stage: $[[ inputs.stage ]]
+  image: alpine:3.20
+  variables:
+    KEUR_VERSION: "$[[ inputs.version ]]"
+    KEUR_BIN_DIR: "$CI_PROJECT_DIR/.keur-bin"
+  before_script:
+    # alpine is a small POSIX image; add curl + a shell for install.sh.
+    - apk add --no-cache curl bash
+  script:
+    - set -eu
+    # Fetch install.sh from the raw URL and run it. install.sh verifies the
+    # binary checksum before trusting it (SCA-030).
+    - mkdir -p "$KEUR_BIN_DIR"
+    - curl -fsSL "https://raw.githubusercontent.com/rkristelijn/keur/main/install.sh" -o "$KEUR_BIN_DIR/install.sh"
+    - sh "$KEUR_BIN_DIR/install.sh"
+    # Put the install dir on PATH, then run keur.
+    - export PATH="$KEUR_BIN_DIR:$PATH"
+    - keur $[[ inputs.args ]]

@@ -80,6 +80,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [059](ADR-059-generic-rules.md) | Generic rules: a rule that feeds an engine's logic instead of firing on its own | proposed |
 | [060](ADR-060-declarative-stage-pipeline.md) | Declarative stage-pipeline engine: compose fixed verbs (extract | count | classify) as data | proposed |
 | [061](ADR-061-doc-standards.md) | Root doc-set: audience-indexed chapters, one source of truth per fact, cross-link not copy, and a deterministic drift guard | proposed |
+| [062](ADR-062-ci-distribution-action-and-component.md) | CI distribution: a GitHub composite Action and a GitLab CI/CD standard component | proposed |
 
 ## Adding an ADR
 
