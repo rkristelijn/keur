@@ -16,6 +16,8 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <cstdlib>
+#include <cctype>
 
 #include "rules/rule_engine.h"
 #include "cmd/policy.h"
@@ -40,6 +42,133 @@ namespace keur::cmd {
 
 std::vector<std::string> staged_files(const adapters::Git& git) {
     return git.staged_files();
+}
+
+// ---------------------------------------------------------------------------
+// Merge-aware scoping (ADR-068 Decision 2) — pure helpers, table-testable.
+// ---------------------------------------------------------------------------
+
+std::optional<MergeScope> parse_merge_scope(const std::string& value) {
+    // Case-insensitive, trimmed. Unknown/empty → nullopt so the lower config
+    // layer survives (default → keur.toml → env → flag).
+    std::string v;
+    for (char c : value) {
+        if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
+            if (!v.empty()) break;  // trim leading; stop at trailing ws
+            continue;
+        }
+        v += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    if (v == "resolved") return MergeScope::Resolved;
+    if (v == "all")      return MergeScope::All;
+    if (v == "skip")     return MergeScope::Skip;
+    return std::nullopt;
+}
+
+std::string merge_scope_name(MergeScope scope) {
+    switch (scope) {
+        case MergeScope::Resolved: return "resolved";
+        case MergeScope::All:      return "all";
+        case MergeScope::Skip:     return "skip";
+    }
+    return "resolved";
+}
+
+std::optional<MergeScope> parse_merge_scope_toml(const std::string& toml_body) {
+    // Section-aware line scan mirroring parse_scanners/tier_scanners: the
+    // `merge_scope` key only counts while inside [pre_commit]. A bracketed
+    // header that is not [pre_commit] leaves the section, so a stray
+    // `merge_scope =` under another table is ignored.
+    bool in_section = false;
+    size_t pos = 0;
+    auto trim = [](std::string s) {
+        size_t a = s.find_first_not_of(" \t\r\n");
+        if (a == std::string::npos) return std::string();
+        size_t b = s.find_last_not_of(" \t\r\n");
+        return s.substr(a, b - a + 1);
+    };
+    while (pos < toml_body.size()) {
+        size_t nl = toml_body.find('\n', pos);
+        std::string line = (nl == std::string::npos)
+            ? toml_body.substr(pos)
+            : toml_body.substr(pos, nl - pos);
+        pos = (nl == std::string::npos) ? toml_body.size() : nl + 1;
+        std::string t = trim(line);
+        if (t.empty() || t[0] == '#') continue;
+        if (t.front() == '[') {
+            in_section = (t == "[pre_commit]");
+            continue;
+        }
+        if (!in_section) continue;
+        auto eq = t.find('=');
+        if (eq == std::string::npos) continue;
+        if (trim(t.substr(0, eq)) != "merge_scope") continue;
+        // Value: strip quotes + inline comment, then parse.
+        std::string rhs = trim(t.substr(eq + 1));
+        if (!rhs.empty() && rhs.front() == '"') {
+            rhs = rhs.substr(1);
+            auto q = rhs.find('"');
+            if (q != std::string::npos) rhs = rhs.substr(0, q);
+        } else {
+            auto h = rhs.find('#');
+            if (h != std::string::npos) rhs = trim(rhs.substr(0, h));
+        }
+        return parse_merge_scope(rhs);
+    }
+    return std::nullopt;
+}
+
+MergeScope resolve_merge_scope(const std::string& toml_body,
+                               const std::string& env_value,
+                               std::optional<MergeScope> flag_override) {
+    // Layered, same precedence as block-at / KEUR_SCAN_THREADS:
+    //   default (Resolved) → keur.toml [pre_commit] → env → flag.
+    MergeScope scope = MergeScope::Resolved;            // code default
+    if (auto t = parse_merge_scope_toml(toml_body)) scope = *t;   // keur.toml
+    if (auto e = parse_merge_scope(env_value))      scope = *e;   // env one-shot
+    if (flag_override)                              scope = *flag_override;  // flag
+    return scope;
+}
+
+std::optional<MergeScope> resolve_merge_scope_toml_layered(
+    const std::vector<std::string>& bodies_global_to_repo) {
+    // Fold global→repo: a later layer (repo) that sets a recognised value wins
+    // over an earlier one (global); an absent/unrecognised key leaves the lower
+    // layer's value intact. Mirrors config::merge_difficulty's cascade so
+    // merge_scope honours the SAME global→repo stack as every other [section]
+    // key (the TASK B requirement: adjustable at global OR repo scope).
+    std::optional<MergeScope> scope;
+    for (const auto& body : bodies_global_to_repo)
+        if (auto t = parse_merge_scope_toml(body)) scope = *t;
+    return scope;
+}
+
+MergeScope resolve_merge_scope_layered(
+    const std::vector<std::string>& bodies_global_to_repo,
+    const std::string& env_value, std::optional<MergeScope> flag_override) {
+    // Full precedence chain:
+    //   default (Resolved) < global keur.toml < repo keur.toml < env < flag.
+    MergeScope scope = MergeScope::Resolved;                       // code default
+    if (auto t = resolve_merge_scope_toml_layered(bodies_global_to_repo))
+        scope = *t;                                                // global→repo toml
+    if (auto e = parse_merge_scope(env_value)) scope = *e;         // env one-shot
+    if (flag_override)                         scope = *flag_override;  // flag
+    return scope;
+}
+
+std::vector<std::string> select_scoped_files(
+    MergeScope scope, bool merge_in_progress,
+    const std::vector<std::string>& full_staged,
+    const std::vector<std::string>& merge_scoped) {
+    switch (scope) {
+        case MergeScope::All:
+            return full_staged;                 // today's behaviour, always full
+        case MergeScope::Skip:
+            return merge_in_progress ? std::vector<std::string>{} : full_staged;
+        case MergeScope::Resolved:
+        default:
+            return merge_in_progress ? merge_scoped : full_staged;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +272,10 @@ CheckOptions check_parse(const std::vector<std::string>& args) {
             o.ai = args[++i];
         } else if (args[i] == "--config" && i + 1 < args.size()) {
             o.config = args[++i];
+        } else if (args[i] == "--merge-scope" && i + 1 < args.size()) {
+            // One-shot override (ADR-068); an unrecognised value is ignored so
+            // the lower config layers still resolve.
+            o.merge_scope_override = parse_merge_scope(args[++i]);
         }
     }
     return o;
@@ -157,9 +290,46 @@ int check(const CheckOptions& opts, FileSource file_src) {
         (opts.tier == Tier::PrePush) ? "pre-push" : "pre-commit";
 
     // 1. File discovery (injectable — tests pass a lambda). When no source is
-    //    given, fall back to staged_files() over the real git adapter.
+    //    given, apply ADR-068 merge-aware scoping over the real git adapter: on
+    //    a merge commit `git diff --cached` reports the whole merged tree, so
+    //    the resolved `merge_scope` selects the full / conflict-resolved / empty
+    //    set. An injected file_src stays hermetic (tests drive the scope logic
+    //    through the pure helpers), reproducing the pre-ADR-068 behaviour.
     const bool real_hook_run = !file_src;  // no injected source => a real commit
-    if (!file_src) file_src = []() { return staged_files(); };
+    if (!file_src) {
+        // Resolve merge_scope across the FULL config stack (ADR-068 Decision 3):
+        // code default < global keur.toml < repo keur.toml < env < flag. We read
+        // EVERY layer global→repo (config::resolve_layers — the same cascade
+        // [difficulty]/disabled use) rather than only the single winning path,
+        // so a sensible default set in the GLOBAL keur.toml is honoured even when
+        // a repo keur.toml exists but does not set merge_scope. This is the
+        // multi-user requirement: adjustable at global OR repo scope.
+        adapters::Fs fsr;
+        adapters::Git groot;
+        std::string repo_root = groot.run("rev-parse --show-toplevel");
+        config::ScopeEnv senv = config::capture_scope_env(opts.config, repo_root);
+        auto layers = config::resolve_layers(
+            senv, [&fsr](const std::string& p) { return fsr.exists(p); });
+        std::vector<std::string> bodies;  // global→repo (resolve_layers order)
+        for (const auto& ly : layers) {
+            if (!ly.exists || ly.path.empty()) continue;
+            auto rr = fsr.read_file(ly.path);
+            if (rr.ok) bodies.push_back(rr.content);
+        }
+        const char* env = std::getenv("KEUR_MERGE_SCOPE");
+        MergeScope scope = resolve_merge_scope_layered(
+            bodies, env ? std::string(env) : std::string(),
+            opts.merge_scope_override);
+        file_src = [scope]() {
+            adapters::Git g;
+            bool merging = g.merge_in_progress();
+            // Only pay for the second git call when it can change the result.
+            std::vector<std::string> scoped =
+                (merging && scope == MergeScope::Resolved) ? g.merge_scoped_files()
+                                                           : std::vector<std::string>{};
+            return select_scoped_files(scope, merging, g.staged_files(), scoped);
+        };
+    }
     auto files = file_src();
     if (files.empty()) {
         // Not an error: a clean pass must write to stdout. VS Code and some CI

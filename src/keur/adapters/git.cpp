@@ -6,6 +6,7 @@
  */
 #include "adapters/git.h"
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -56,6 +57,82 @@ std::vector<std::string> Git::default_staged_files() {
         }
     }
     if (!cur.empty()) files.push_back(cur);
+    return files;
+}
+
+bool Git::default_merge_in_progress() {
+    // A merge is in progress iff .git/MERGE_HEAD resolves. `rev-parse -q
+    // --verify MERGE_HEAD` prints the hash and exits 0 when it exists, prints
+    // nothing on exit non-zero otherwise. We key off the (non-empty) stdout so
+    // we reuse the same shell-free capture seam as the rest of the adapter —
+    // no direct .git path poking, which keeps it correct under worktrees and a
+    // custom $GIT_DIR. @implements ADR-068
+    return !default_run("rev-parse -q --verify MERGE_HEAD").empty();
+}
+
+namespace {
+// NUL-split a raw `-z` git output buffer into a file list (shared by the merge-
+// scoped query below and staged_files()'s pattern). Drops empty segments.
+std::vector<std::string> split_nul(const std::string& raw) {
+    std::vector<std::string> out;
+    std::string cur;
+    for (char c : raw) {
+        if (c == '\0') {
+            if (!cur.empty()) { out.push_back(cur); cur.clear(); }
+        } else {
+            cur += c;
+        }
+    }
+    if (!cur.empty()) out.push_back(cur);
+    return out;
+}
+}  // namespace
+
+std::vector<std::string> Git::default_merge_scoped_files() {
+    // "What did THIS developer's side contribute to the merge" — the honest
+    // scope for the gate (ADR-068 Decision 2). It is the merge-base THREE-DOT
+    // diff, NOT `--cached --diff-filter=M`.
+    //
+    // WHY three-dot-vs-M (the iteration-1 defect): during a merge the index
+    // holds the full merged tree, so `--cached --diff-filter=M` reports every
+    // path that ended up Modified relative to HEAD — which on a WIDE merge is
+    // every file BOTH sides touched, most of them the incoming side's work that
+    // was already gated on main. Measured on the container-images merge that
+    // motivated ADR-068: `--cached --diff-filter=M` returned 50 files (still
+    // full of other teams' pre-existing findings), whereas the three-dot diff
+    // against the merge-base returned EXACTLY the 9 files the developer changed.
+    // `--diff-filter=M` conflates "both sides touched it" with "I changed it".
+    //
+    // The correct set:
+    //   base   = git merge-base HEAD MERGE_HEAD     (fork point of the 2 parents)
+    //   scoped = git diff --name-only -z base...HEAD (three-dot: HEAD's side's
+    //                                                 additions since the fork)
+    // then INTERSECTED with the staged set so a file in the branch diff but not
+    // actually staged on THIS commit is never scanned, and -z NUL-splitting is
+    // kept to survive filenames with spaces.
+    //
+    // Fail-safe: if MERGE_HEAD or the merge-base cannot be resolved (not a real
+    // merge, shallow clone with no common ancestor, etc.) fall back to the full
+    // staged set rather than crash or silently scan nothing — never under-gate
+    // by accident. @implements ADR-068 (Decision 2)
+    std::string merge_head = default_run("rev-parse -q --verify MERGE_HEAD");
+    if (merge_head.empty()) return default_staged_files();  // not a merge → safe
+
+    std::string base = default_run("merge-base HEAD " + merge_head);
+    if (base.empty()) return default_staged_files();  // no common ancestor → safe
+
+    std::string raw;
+    platform::capture_bytes_argv(
+        {"git", "diff", "--name-only", "-z", base + "...HEAD"}, raw);
+    std::vector<std::string> branch_files = split_nul(raw);
+    if (branch_files.empty()) return default_staged_files();  // nothing resolvable → safe
+
+    // Intersect with the staged set: only files actually part of THIS commit.
+    std::vector<std::string> staged = default_staged_files();
+    std::set<std::string> staged_set(staged.begin(), staged.end());
+    std::vector<std::string> files;
+    for (const auto& f : branch_files)
+        if (staged_set.count(f)) files.push_back(f);
     return files;
 }
 
