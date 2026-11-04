@@ -193,6 +193,19 @@ inline std::vector<keur::RuleFinding> scan_fixture(
     return keur::rules_scan_files(rules, {std::string(td / dest_name)});
 }
 
+// Like scan_fixture, but writes inline `content` instead of copying a fixture.
+// For the many miss/ok rule scenarios that assert on a short hand-written
+// snippet. Leak-safe via TempDir; collapses the repeated create_temp_dir +
+// write_file + rules_scan_files + cleanup_dir shape.
+inline std::vector<keur::RuleFinding> scan_inline(
+        const std::vector<keur::Rule>& rules,
+        const std::string& file_name,
+        const std::string& content) {
+    TempDir td;
+    write_file(td / file_name, content);
+    return keur::rules_scan_files(rules, {std::string(td / file_name)});
+}
+
 // RAII working-directory guard — the cwd analogue of TempDir's Annihilate.
 // A test that drives a real adapter from inside a repo must chdir in, do its
 // work, then chdir back. Doing that by hand has two defects:
