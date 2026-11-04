@@ -87,6 +87,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [066](ADR-066-external-scanners-opt-in.md) | External scanners are opt-in; the default gate is keur's own engine only | proposed |
 | [067](ADR-067-checksum-validation-engine.md) | Checksum-validation engine: the arithmetic a regex can't do, driven by a rule | proposed |
 | [068](ADR-068-batched-external-scanner-invocation.md) | Batched external-scanner invocation + merge-aware scoping for `keur check` on large staged sets | proposed |
+| [069](ADR-069-pre-publish-dryrun-gates.md) | Pre-publish dry-run gates per distribution channel (npm / brew / apt) | proposed |
 
 ## Adding an ADR
 
