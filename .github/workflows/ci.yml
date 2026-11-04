@@ -275,3 +275,80 @@ jobs:
           set -euo pipefail
           bash scripts/formula.sh 0.0.0-ci deadbeef deadbeef > /tmp/keur.rb
           ruby -c /tmp/keur.rb
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Pre-publish dry-run gates (ADR-069). Separate from dist-smoke: that proves
+  # the wrappers BUILD + RUN; these prove the PUBLISH PAYLOAD is correct, per
+  # channel, per concern, as independent jobs so a red one points straight at
+  # the offending channel. npm-dryrun is strict (its failures are real);
+  # brew-audit + deb-lint start advisory (continue-on-error) because lintian /
+  # brew audit are opinionated — promoted to blocking once their output is clean.
+  # ────────────────────────────────────────────────────────────────────────
+
+  # npm — prove the exact publish payload without publishing (strict).
+  npm-dryrun:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: npm publish --dry-run (payload only, no upload)
+        working-directory: packaging/npm
+        run: |
+          set -euo pipefail
+          # --dry-run prints the tarball contents + what WOULD be published,
+          # and exits non-zero on a payload/manifest error — but never uploads.
+          npm publish --dry-run
+          # Assert the tarball is the thin launcher only: no native binary, no
+          # stray repo files leaking into the package.
+          files="$(npm pack --dry-run --json | node -e '
+            const d=JSON.parse(require("fs").readFileSync(0));
+            for (const f of d[0].files) console.log(f.path);
+          ')"
+          echo "$files"
+          echo "$files" | grep -qx "bin/keur.js"        || { echo "missing bin/keur.js"; exit 1; }
+          echo "$files" | grep -qx "lib/fetch-binary.js" || { echo "missing lib/fetch-binary.js"; exit 1; }
+          if echo "$files" | grep -qiE 'keur-(linux|macos|windows)|keur-bin|\.exe$'; then
+            echo "FAIL: a native binary leaked into the npm payload"; exit 1
+          fi
+
+  # brew — Homebrew's own audit/style on the generated formula (advisory).
+  brew-audit:
+    runs-on: macos-14
+    timeout-minutes: 10
+    continue-on-error: true   # advisory until the output is triaged (ADR-069)
+    steps:
+      - uses: actions/checkout@v4
+      - name: brew audit + style on the generated formula
+        run: |
+          set -euo pipefail
+          bash scripts/formula.sh 0.0.0-ci deadbeef deadbeef > ./keur.rb
+          brew audit --formula --strict ./keur.rb || true
+          brew style ./keur.rb || true
+          # Report-only for now: the `|| true` keeps this advisory; the job is
+          # continue-on-error so a finding never blocks a PR (ADR-069 step 2).
+
+  # apt — lintian on the built .deb for Debian packaging policy (advisory).
+  deb-lint:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    continue-on-error: true   # advisory until the output is triaged (ADR-069)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install RE2 + lintian
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libre2-dev libabsl-dev lintian
+      - name: Build keur (binary under test)
+        run: make build
+        working-directory: src/keur
+      - name: Build .deb + lintian
+        run: |
+          set -euo pipefail
+          bash scripts/build-deb.sh 0.0.0-ci bin/keur rules dist
+          # Report-only: lintian is strict about Debian policy; surface findings
+          # without failing the PR until triaged (ADR-069 step 2).
+          lintian --no-tag-display-limit dist/keur_0.0.0-ci_amd64.deb || true
