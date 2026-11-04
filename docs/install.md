@@ -11,15 +11,26 @@ they differ only in how you invoke them. Pick whichever fits your setup.
 
 ## Homebrew (macOS, Linuxbrew)
 
+The formula lives in this repo (not a separate `homebrew-keur` tap), so tap it
+by its URL, then install:
+
 ```bash
+brew tap rkristelijn/keur https://github.com/rkristelijn/keur
 brew install rkristelijn/keur/keur
 ```
 
-This taps the repo and installs the `keur-<os>-<arch>` binary from the latest
-Release; Homebrew verifies the formula's `sha256` against the download. Intel
-macOS runs the arm64 build under Rosetta (there is no separate amd64 asset),
-mirroring `install.sh`. The formula lives at [`Formula/keur.rb`](../Formula/keur.rb)
-and is regenerated from `SHA256SUMS` on every release by `scripts/formula.sh`.
+Recent Homebrew refuses formulae from a non-official tap until you trust it; if
+you see an "untrusted tap" error, run:
+
+```bash
+brew trust rkristelijn/keur     # one-time, then: brew install rkristelijn/keur/keur
+```
+
+This installs the `keur-<os>-<arch>` binary from the latest Release; Homebrew
+verifies the formula's `sha256` against the download. Intel macOS runs the arm64
+build under Rosetta (there is no separate amd64 asset), mirroring `install.sh`.
+The formula lives at [`Formula/keur.rb`](../Formula/keur.rb) and is regenerated
+from `SHA256SUMS` on every release by `scripts/formula.sh`.
 
 ## npx (Node ≥ 18, any OS)
 
