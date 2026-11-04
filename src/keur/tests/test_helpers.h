@@ -177,6 +177,22 @@ class TempDir {
     std::string dir_;
 };
 
+// Stage one fixture file under a neutral name into a private, auto-cleaned
+// TempDir and scan it against `rules`, returning the findings. Collapses the
+// load/stage/scan/cleanup shape that every single-fixture rule scenario repeats
+// (the copy-paste Sonar counts as duplicated new code). The TempDir is torn
+// down on return, so there is no cleanup to forget or leak. The ruleset is a
+// parameter because scenarios load different subsets (all rules, just quality/,
+// the fixtures/ ruleset, …).
+inline std::vector<keur::RuleFinding> scan_fixture(
+        const std::vector<keur::Rule>& rules,
+        const std::string& fixture_rel,
+        const std::string& dest_name) {
+    TempDir td;
+    write_file(td / dest_name, read_file(fixtures_dir() + "/" + fixture_rel));
+    return keur::rules_scan_files(rules, {std::string(td / dest_name)});
+}
+
 // RAII working-directory guard — the cwd analogue of TempDir's Annihilate.
 // A test that drives a real adapter from inside a repo must chdir in, do its
 // work, then chdir back. Doing that by hand has two defects:

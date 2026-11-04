@@ -34,6 +34,7 @@ using keur::test::fixtures_dir;
 using keur::test::keur_rules_dir;
 using keur::test::has_rule;
 using keur::test::stage_fixture;
+using keur::test::scan_fixture;
 using keur::test::FakeFsState;
 using keur::test::make_fake_fs;
 
@@ -81,54 +82,35 @@ SCENARIO("[feature:generic-rules] a generic rule never fires standalone (ADR-059
 SCENARIO("[feature:rule-engine] RSA private key triggers KEUR-SEC-001") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());
-    std::string dir;
-    auto path = stage_fixture("secrets/rsa_key.pem", "id_rsa.pem", dir);
-    auto fs = keur::rules_scan_files(rules, {path});
+    auto fs = scan_fixture(rules, "secrets/rsa_key.pem", "id_rsa.pem");
     CHECK(!fs.empty());
     CHECK(has_rule(fs, "KEUR-SEC-001"));
     for (auto& f : fs)
         if (f.rule_id == "KEUR-SEC-001") CHECK(f.action == "block");
-    cleanup_dir(dir);
 }
 
 SCENARIO("[feature:rule-engine] EC private key triggers KEUR-SEC-001") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());
-    std::string dir;
-    auto path = stage_fixture("secrets/ec_key.pem", "id_ec.pem", dir);
-    auto fs = keur::rules_scan_files(rules, {path});
-    CHECK(has_rule(fs, "KEUR-SEC-001"));
-    cleanup_dir(dir);
+    CHECK(has_rule(scan_fixture(rules, "secrets/ec_key.pem", "id_ec.pem"), "KEUR-SEC-001"));
 }
 
 SCENARIO("[feature:rule-engine] OPENSSH private key triggers KEUR-SEC-001") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());
-    std::string dir;
-    auto path = stage_fixture("secrets/openssh_key.key", "id_ed25519.key", dir);
-    auto fs = keur::rules_scan_files(rules, {path});
-    CHECK(has_rule(fs, "KEUR-SEC-001"));
-    cleanup_dir(dir);
+    CHECK(has_rule(scan_fixture(rules, "secrets/openssh_key.key", "id_ed25519.key"), "KEUR-SEC-001"));
 }
 
 SCENARIO("[feature:rule-engine] clean file produces zero KEUR-SEC-001 findings") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());
-    std::string dir;
-    auto path = stage_fixture("clean/clean.yml", "config.yml", dir);
-    auto fs = keur::rules_scan_files(rules, {path});
-    CHECK(!has_rule(fs, "KEUR-SEC-001"));
-    cleanup_dir(dir);
+    CHECK(!has_rule(scan_fixture(rules, "clean/clean.yml", "config.yml"), "KEUR-SEC-001"));
 }
 
 SCENARIO("[feature:suppress] keur:ignore suppresses KEUR-SEC-001") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());
-    std::string dir;
-    auto path = stage_fixture("secrets/suppressed_key.pem", "sup.pem", dir);
-    auto fs = keur::rules_scan_files(rules, {path});
-    CHECK(!has_rule(fs, "KEUR-SEC-001"));
-    cleanup_dir(dir);
+    CHECK(!has_rule(scan_fixture(rules, "secrets/suppressed_key.pem", "sup.pem"), "KEUR-SEC-001"));
 }
 
 SCENARIO("[feature:rule-engine] custom pattern rule fires on trigger file") {  // @proves engine-pattern
