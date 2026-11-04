@@ -87,7 +87,7 @@ less install.sh && sh install.sh      # installs to ~/.local/bin (no sudo)
 Prefer a package manager? keur is also on **Homebrew**, **npx**, and **apt**:
 
 ```bash
-brew install rkristelijn/keur/keur    # macOS / Linuxbrew
+brew tap rkristelijn/keur https://github.com/rkristelijn/keur && brew install rkristelijn/keur/keur
 npx keur check                        # Node ≥ 18, no install
 sudo apt install ./keur_<version>_amd64.deb   # Debian/Ubuntu (.deb)
 ```
