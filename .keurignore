@@ -22,3 +22,15 @@ VAULT-GDPR_UK
 # it. The company name that used to be in the id was renamed out; what remains
 # is a self-referential test, not a leak. Scope correction (ADR-035/043/046).
 VAULT-WORK
+
+# SEC-BIDI-001 fires on docs/demo/*.gif — those are binary VHS recordings whose
+# image bytes coincidentally contain the U+202x byte sequences. It is a false
+# positive on a binary asset, not a Trojan-Source char in reviewable text. The
+# rule stays active for real source; this suppresses the binary-asset hits only.
+SEC-BIDI-001
+
+# VAULT-GENERIC is a PERSONAL-vault rule from the global ~/.config/keur/rules/
+# layer. On docs/demo/pii-in-code.tape it fires on a DELIBERATE example PII value
+# (jan.devries@acme.com) that the PII demo exists to show — demo fixture, not a
+# leak. Scope correction, same as the other VAULT-* entries above (ADR-035/043).
+VAULT-GENERIC
