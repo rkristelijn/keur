@@ -4,8 +4,9 @@
 #  1. Snapshot of the CURRENT output — demo repos are bare, so keur
 #     adds repo-hygiene findings (KEUR-DOC/PROJ/CFG) around the one the
 #     demo targets. Regenerate after a tape/sandbox cleanup.
-#  2. run.sh replays only `Type "..."` lines; complex escapes may
-#     differ slightly from the rendered GIF. This is ~= the GIF.
+#  2. run.sh runs the tape commands in a shell, so it does NOT catch a
+#     pure render bug (e.g. literal \n from a backtick-printf). That is
+#     a tape bug — fix it in the tape (heredoc), not here.
 # ---------------------------------------------------------------------------
 ══════════════════════════════════════════════════════════
   run: commit-env-file.tape

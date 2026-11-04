@@ -4,32 +4,48 @@
 #  1. Snapshot of the CURRENT output — demo repos are bare, so keur
 #     adds repo-hygiene findings (KEUR-DOC/PROJ/CFG) around the one the
 #     demo targets. Regenerate after a tape/sandbox cleanup.
-#  2. run.sh replays only `Type "..."` lines; complex escapes may
-#     differ slightly from the rendered GIF. This is ~= the GIF.
-# ---------------------------------------------------------------------------
-══════════════════════════════════════════════════════════
-  run: dutch-in-docs.tape
-══════════════════════════════════════════════════════════
-  BLOCK DEMO-NL-001 | block | conf 0.9 | README.md:3 | Dutch text in a doc — this repo's docs are English-only. Translate the prose to English.
-        fix: Write documentation in English. If a Dutch term is intentional (a proper name, a quote), suppress that line with 'keur:ignore DEMO-NL-001'.
-        false positive? add on that line a comment: keur:ignore DEMO-NL-001
-  warn  CLI-A11Y-021 | advisory | conf 0.4 | man | CLI project without man page
-        false positive? add on that line a comment: keur:ignore CLI-A11Y-021
-  warn  KEUR-DOC-001b | warn | conf 0.6 | CONTRIBUTING.md | A CMMI-3 documentation file is missing. A Defined process needs contribution rules (CONTRIBUTING), a disclosure contract (SECURITY), and a versioned change history (CHANGELOG, Keep-a-Changelog format).
-        false positive? add on that line a comment: keur:ignore KEUR-DOC-001b
-  warn  KEUR-QUAL-002 | warn | conf 0.6 | SECURITY.md | No SECURITY.md — add one so people know how to report vulnerabilities responsibly.
-        false positive? add on that line a comment: keur:ignore KEUR-QUAL-002
-  warn  PROJ-002 | advisory | conf 0.4 | CONTRIBUTING.md | Missing CONTRIBUTING.md
-        false positive? add on that line a comment: keur:ignore PROJ-002
-  warn  PROJ-003 | warn | conf 0.6 | SECURITY.md | Missing SECURITY.md
-        false positive? add on that line a comment: keur:ignore PROJ-003
-  warn  PROJ-004 | warn | conf 0.6 | LICENSE | Missing LICENSE file
-        false positive? add on that line a comment: keur:ignore PROJ-004
-KEUR (pre-commit): BLOCK -- blocking finding(s) above; commit stopped
+#  2. run.sh runs the tape commands in a shell, so it does NOT catch a
+#     pure render bug (e.g. literal \n from a bac❯ # Arrange: a repo with a house rule — docs must be English (custom DEMO-NL-001)
+❯ # Act 1: write the README in Dutch and try to commit
+❯ printf '# Project\n\nDeze tool werkt niet zonder een config. Gebruik de volgende stappen.\n' > README.md
+zsh: no such file or directory: README.md
+❯ git add README.md
+fatal: Unable to read current working directory: No such file or directory
+❯ $SB keur check | grep -E 'BLOCK|DEMO-NL-001'
+shell-init: error retrieving current directory: getcwd: cannot access parent directories: No such file or
+directory
+chdir: error retrieving current directory: getcwd: cannot access parent directories: No such file or direc
+tory
+chdir: error retrieving current directory: getcwd: cannot access parent directories: No such file or direc
+tory
+❯ # Act 2: blocked. Ask keur what this rule is and how to fix it
+❯ $SB keur learn DEMO-NL-001
+shell-init: error retrieving current directory: getcwd: cannot access parent directories: No such file or
+directory
+chdir: error retrieving current directory: getcwd: cannot access parent directories: No such file or direc
+tory
+chdir: error retrieving current directory: getcwd: cannot access parent directories: No such file or direc
+tory
 # DEMO-NL-001 — Dutch-language text in documentation (English-only house rule)
 category: quality · severity: warning
-
 (no explainer markdown yet — showing the rule's own fields.
+ Add docs/rules/DEMO-NL-001.md for the full write-up.)
+## Fix
+Write documentation in English. If a Dutch term is intentional (a proper name, a quote), suppress that lin
+e with 'keur:ignore DEMO-NL-001'.
+## Suppress (if a genuine false positive)
+`# keur:ignore DEMO-NL-001`  (or a .keurignore entry — ADR-035)
+❯ # Act 3: translate the prose to English, as keur advised
+❯ printf '# Project\n\nThis tool needs a config file. Follow the steps below.\n' > README.md
+zsh: no such file or directory: README.md
+❯ git add README.md
+fatal: Unable to read current working directory: No such file or directory
+❯ $SB keur check | tail -1
+shell-init: error retrieving current directory: getcwd: cannot access parent directories: No such file or
+directory
+chdir: error retrieving current directory: getcwd: cannot access parent directories: No such file or direc
+tory
+o explainer markdown yet — showing the rule's own fields.
  Add docs/rules/DEMO-NL-001.md for the full write-up.)
 
 ## Fix
