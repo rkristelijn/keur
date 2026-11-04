@@ -213,3 +213,63 @@ jobs:
           git diff --cached --name-only --diff-filter=ACM | sed 's/^/  /'
           bin/keur check --tier pre-commit
           bin/keur check --tier pre-push
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Dogfood the composite Action itself (ADR-062).
+  #
+  # The `dogfood` job above proves the GATE LOGIC by calling the freshly built
+  # `bin/keur`. It does NOT prove that `action.yml` — the thing a consumer puts
+  # behind `uses: rkristelijn/keur@v1` — actually works. This job closes that
+  # gap in two layers:
+  #
+  #   1. tests/e2e/test_action.sh exercises the WRAPPER CONTRACT the Action is
+  #      built on (install.sh fetch + checksum-verify → PATH → keur check/scan),
+  #      independently of GitHub, so the logic is covered by a real e2e test
+  #      (same shape as every other tests/e2e/test_*.sh) rather than inline YAML.
+  #   2. `uses: ./` then runs the Action by its local path, covering the one
+  #      thing the script cannot: GitHub's composite-action resolution + input
+  #      wiring (version/args) end to end.
+  #
+  # Because the repo is public with anonymously downloadable release assets
+  # (keur-<os>-<arch> + SHA256SUMS), both layers fetch the real binary here
+  # exactly as a consumer's runner would — no toolchain, no local build. This is
+  # the "fix + control": a regression in action.yml OR install.sh now fails CI
+  # instead of silently shipping a broken wrapper (ADR-062 was Coverage: none).
+  #
+  # Runs on Linux only; install.sh's OS/arch detection is additionally covered
+  # by the release workflow's per-platform e2e smoke.
+  # ────────────────────────────────────────────────────────────────────────
+  action-dogfood:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # Layer 1 — the wrapper contract as a proper e2e test (install.sh → keur).
+      - name: Wrapper contract (tests/e2e/test_action.sh)
+        run: bash tests/e2e/test_action.sh
+
+      # Layer 2 — the Action itself, by local path, covering `uses:` resolution.
+      # Default invocation: no args → `keur check` (action.yml default); with
+      # nothing staged, check prints PASS / exit 0.
+      - name: Action — default (keur check, nothing staged)
+        uses: ./
+        with:
+          version: latest
+
+      # Explicit args passthrough: prove the `args` input reaches the binary.
+      - name: Action — args passthrough (keur scan rules/)
+        uses: ./
+        with:
+          version: latest
+          args: scan rules/
+
+      # The Action must leave a runnable `keur` on PATH for later steps.
+      - name: Assert keur is on PATH after the Action
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v keur >/dev/null || { echo "FAIL: keur not on PATH after action"; exit 1; }
+          keur version
+          echo "ok — the composite Action installed a runnable keur on PATH."
