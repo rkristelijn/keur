@@ -1,0 +1,3 @@
+
+# Demo recordings are binary — do not scan as text (SEC-BIDI false positives).
+*.gif binary
