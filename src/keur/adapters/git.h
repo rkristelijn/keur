@@ -54,8 +54,10 @@ struct Git {
      * This is the ADR-068 Decision 2 correction of the iteration-1 query
      * `--cached --diff-filter=M`, which on a WIDE merge wrongly returned every
      * file both sides touched (measured: 50 vs the correct 9). Falls back to the
-     * full staged set when MERGE_HEAD / merge-base cannot be resolved (never
-     * crash, never silently scan nothing). NUL-safe, same -z pattern as
+     * full staged set only when MERGE_HEAD / merge-base cannot be resolved (never
+     * crash); a successfully computed EMPTY three-dot diff returns an EMPTY scope
+     * (this side added nothing of its own — the incoming work was already gated),
+     * NOT the full staged set. NUL-safe, same -z pattern as
      * staged_files(). @implements ADR-068
      */
     std::function<std::vector<std::string>()> merge_scoped_files =

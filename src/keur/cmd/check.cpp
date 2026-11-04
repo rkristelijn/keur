@@ -96,18 +96,25 @@ std::optional<MergeScope> parse_merge_scope_toml(const std::string& toml_body) {
         std::string t = trim(line);
         if (t.empty() || t[0] == '#') continue;
         if (t.front() == '[') {
-            in_section = (t == "[pre_commit]");
+            // A table header may carry a trailing comment (`[pre_commit]  # x`).
+            // Strip it before matching so the comment does not defeat the
+            // section check. The header itself never contains a '#'.
+            std::string head = t;
+            auto hc = head.find('#');
+            if (hc != std::string::npos) head = trim(head.substr(0, hc));
+            in_section = (head == "[pre_commit]");
             continue;
         }
         if (!in_section) continue;
         auto eq = t.find('=');
         if (eq == std::string::npos) continue;
         if (trim(t.substr(0, eq)) != "merge_scope") continue;
-        // Value: strip quotes + inline comment, then parse.
+        // Value: strip quotes (single OR double) + inline comment, then parse.
         std::string rhs = trim(t.substr(eq + 1));
-        if (!rhs.empty() && rhs.front() == '"') {
+        if (!rhs.empty() && (rhs.front() == '"' || rhs.front() == '\'')) {
+            char quote = rhs.front();
             rhs = rhs.substr(1);
-            auto q = rhs.find('"');
+            auto q = rhs.find(quote);
             if (q != std::string::npos) rhs = rhs.substr(0, q);
         } else {
             auto h = rhs.find('#');
@@ -121,13 +128,11 @@ std::optional<MergeScope> parse_merge_scope_toml(const std::string& toml_body) {
 MergeScope resolve_merge_scope(const std::string& toml_body,
                                const std::string& env_value,
                                std::optional<MergeScope> flag_override) {
-    // Layered, same precedence as block-at / KEUR_SCAN_THREADS:
-    //   default (Resolved) → keur.toml [pre_commit] → env → flag.
-    MergeScope scope = MergeScope::Resolved;            // code default
-    if (auto t = parse_merge_scope_toml(toml_body)) scope = *t;   // keur.toml
-    if (auto e = parse_merge_scope(env_value))      scope = *e;   // env one-shot
-    if (flag_override)                              scope = *flag_override;  // flag
-    return scope;
+    // Single-body convenience wrapper: the one-layer case of the layered
+    // resolver (default (Resolved) → keur.toml [pre_commit] → env → flag). Kept
+    // as one implementation so the precedence logic lives in exactly one place
+    // (SonarCloud duplication fix) — a one-element body list IS the layered fold.
+    return resolve_merge_scope_layered({toml_body}, env_value, flag_override);
 }
 
 std::optional<MergeScope> resolve_merge_scope_toml_layered(
@@ -169,6 +174,18 @@ std::vector<std::string> select_scoped_files(
         default:
             return merge_in_progress ? merge_scoped : full_staged;
     }
+}
+
+// Does the gate still have work to do when the scoped file set is empty? An
+// empty scope normally short-circuits to PASS, but branch protection
+// (KEUR-BRANCH-001) is a property of the BRANCH, not the staged files — a merge
+// whose resolved scope is empty (this side contributed nothing) is still a
+// direct commit that must be gated. So the early PASS is taken ONLY when there
+// are no files AND no branch finding. Pure: table-testable, and it is the exact
+// ordering guarantee behind Fix 2 (branch protection evaluated BEFORE the
+// empty-scope return). @implements ADR-057
+bool early_pass_on_empty_scope(bool files_empty, bool has_branch_finding) {
+    return files_empty && !has_branch_finding;
 }
 
 // ---------------------------------------------------------------------------
@@ -274,8 +291,12 @@ CheckOptions check_parse(const std::vector<std::string>& args) {
             o.config = args[++i];
         } else if (args[i] == "--merge-scope" && i + 1 < args.size()) {
             // One-shot override (ADR-068); an unrecognised value is ignored so
-            // the lower config layers still resolve.
-            o.merge_scope_override = parse_merge_scope(args[++i]);
+            // the lower config layers still resolve. A value starting with "--"
+            // is almost certainly the NEXT flag (the user forgot the argument),
+            // so reject it rather than swallow a flag as a bogus scope value.
+            const std::string& val = args[++i];
+            if (val.rfind("--", 0) != 0)
+                o.merge_scope_override = parse_merge_scope(val);
         }
     }
     return o;
@@ -284,6 +305,33 @@ CheckOptions check_parse(const std::vector<std::string>& args) {
 // ---------------------------------------------------------------------------
 // Orchestrator
 // ---------------------------------------------------------------------------
+
+// Evaluate branch protection (KEUR-BRANCH-001, ADR-057) over the real adapters:
+// resolve the maturity level from the full config stack and ask
+// branch_protection_finding whether a direct commit to the default branch
+// should warn/block. Extracted so the orchestrator can run it BEFORE the
+// empty-scope early return — a merge whose resolved scope is empty (committer's
+// side added nothing) must still be gated for branch discipline, which is a
+// property of the BRANCH, not of the staged file set. Returns nullopt when no
+// finding applies (off the default branch, level too low, detached HEAD).
+// @implements ADR-057
+std::optional<scan::Finding> evaluate_branch_protection(
+    const adapters::Git& git, adapters::Fs& fs, const std::string& repo_root) {
+    config::ScopeEnv denv = config::capture_scope_env("", repo_root);
+    auto dlayers = config::resolve_layers(
+        denv, [&fs](const std::string& p) { return fs.exists(p); });
+    std::vector<std::pair<std::string, std::string>> dscopes;
+    for (const auto& ly : dlayers)
+        if (ly.exists && !ly.path.empty())
+            dscopes.emplace_back(config::scope_name(ly.scope), ly.path);
+    auto resolved = config::resolve_difficulty_explained(
+        dscopes,
+        [&fs](const std::string& p) { auto rr = fs.read_file(p); return rr.ok ? rr.content : std::string(); },
+        /*default_level=*/1);
+    // Branch discipline is a modifiability/process concern (ADR-039).
+    int level = resolved.vector.level_of("modifiability");
+    return branch_protection_finding(git.current_branch(), git.default_branch(), level);
+}
 
 int check(const CheckOptions& opts, FileSource file_src) {
     const char* tier_str =
@@ -331,14 +379,32 @@ int check(const CheckOptions& opts, FileSource file_src) {
         };
     }
     auto files = file_src();
-    if (files.empty()) {
+
+    // Branch protection (KEUR-BRANCH-001, ADR-057) is evaluated FIRST, before the
+    // empty-scope early return. A merge commit whose resolved scope is empty (this
+    // side contributed no file of its own, or merge_scope=skip) still represents a
+    // direct commit to a branch, and branch discipline is a property of the branch
+    // — not of the staged file set. Running it after the `files.empty()` return
+    // (the pre-fix order) let an empty-scope merge slip past branch protection.
+    // Only on a real hook run: an injected file_src must stay hermetic and not
+    // depend on which branch the suite happens to run on. @implements ADR-057
+    std::optional<scan::Finding> branch_finding;
+    if (real_hook_run) {
+        adapters::Git bgit;
+        adapters::Fs  bfs;
+        std::string broot = bgit.run("rev-parse --show-toplevel");
+        branch_finding = evaluate_branch_protection(bgit, bfs, broot);
+    }
+
+    if (early_pass_on_empty_scope(files.empty(), branch_finding.has_value())) {
         // Not an error: a clean pass must write to stdout. VS Code and some CI
         // treat ANY stderr output from a hook as a failure even on exit 0.
         std::cout << "KEUR (" << tier_str << "): no staged files -- PASS\n";
         return 0;
     }
-    std::cout << "KEUR (" << tier_str << "): scanning "
-              << files.size() << " staged file(s)...\n";
+    if (!files.empty())
+        std::cout << "KEUR (" << tier_str << "): scanning "
+                  << files.size() << " staged file(s)...\n";
 
     // 2. Load the active rule set (resolved dirs minus the disable-list).
     //    Capture the resolved disabled-id set so we can also suppress matching
@@ -420,30 +486,11 @@ int check(const CheckOptions& opts, FileSource file_src) {
 
     auto findings = scan::dispatch_scanners(ctx);
 
-    // Branch protection (KEUR-BRANCH-001, ADR-057): warn/block a direct commit
-    // to the default branch, gated by the resolved maturity level — the same
-    // config stack `keur difficulty` reads. Emitted as a normal Finding so it
-    // runs through the suppression below and can be turned off like any rule.
-    // Only on a real hook run: a test/explicit file_src must stay hermetic and
-    // not depend on which branch the suite happens to run on.
-    if (real_hook_run) {
-        config::ScopeEnv denv = config::capture_scope_env("", repo_root);
-        auto dlayers = config::resolve_layers(
-            denv, [&fs](const std::string& p) { return fs.exists(p); });
-        std::vector<std::pair<std::string, std::string>> dscopes;
-        for (const auto& ly : dlayers)
-            if (ly.exists && !ly.path.empty())
-                dscopes.emplace_back(config::scope_name(ly.scope), ly.path);
-        auto resolved = config::resolve_difficulty_explained(
-            dscopes,
-            [&fs](const std::string& p) { auto rr = fs.read_file(p); return rr.ok ? rr.content : std::string(); },
-            /*default_level=*/1);
-        // Branch discipline is a modifiability/process concern (ADR-039).
-        int level = resolved.vector.level_of("modifiability");
-        if (auto bf = branch_protection_finding(git.current_branch(),
-                                                git.default_branch(), level))
-            findings.push_back(std::move(*bf));
-    }
+    // Branch protection (KEUR-BRANCH-001, ADR-057) was evaluated up front (before
+    // the empty-scope early return) so an empty-scope merge is still gated. Fold
+    // that finding in here so it flows through the SAME suppression below and can
+    // be turned off like any rule.
+    if (branch_finding) findings.push_back(std::move(*branch_finding));
 
     // Repo-level suppression on top of inline `keur:ignore` (ADR-035): the
     // `.keurignore` file (repo root or .config/). Secrets suppress by VALUE

@@ -125,7 +125,15 @@ std::vector<std::string> Git::default_merge_scoped_files() {
     platform::capture_bytes_argv(
         {"git", "diff", "--name-only", "-z", base + "...HEAD"}, raw);
     std::vector<std::string> branch_files = split_nul(raw);
-    if (branch_files.empty()) return default_staged_files();  // nothing resolvable → safe
+    // An EMPTY three-dot diff is a valid, resolved answer — not an unresolvable
+    // state. It means THIS developer's side (base...HEAD) added nothing of its
+    // own to the merge; everything staged is the incoming side's work, which was
+    // already gated on main. Returning the full staged set here would re-gate
+    // exactly the work ADR-068 Decision 2 exists to skip. The only genuinely
+    // unresolvable states (no MERGE_HEAD, no merge-base) already fell back
+    // above; a successfully computed empty diff returns an empty scope cleanly.
+    // @implements ADR-068 (Decision 2)
+    if (branch_files.empty()) return {};
 
     // Intersect with the staged set: only files actually part of THIS commit.
     std::vector<std::string> staged = default_staged_files();

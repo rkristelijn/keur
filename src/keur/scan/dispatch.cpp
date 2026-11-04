@@ -9,6 +9,7 @@
 #include "scan/dispatch.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdio>
 
 #include "common/platform.h"
@@ -128,6 +129,54 @@ bool batches_files(const std::string& scanner) {
     return scanner == "semgrep" || scanner == "shellcheck";
 }
 
+// Conservative ceiling on the total byte length of a single spawn's argv
+// (ADR-068). Batching collapses N per-file spawns into one, but an unbounded
+// argv over a very large staged set overruns the kernel's ARG_MAX and the
+// spawn fails with E2BIG (execve(2)). Typical ARG_MAX is ~256 KiB (macOS) up to
+// ~2 MiB (Linux); 100 KiB sits well under the smallest while still collapsing
+// thousands of normal paths into one or two spawns. @implements KEUR-SCAN-DISPATCH
+constexpr std::size_t kMaxArgvBytes = 100000;
+
+// The fixed, file-independent part of a tool's argv (the binary + flags +
+// optional --config): its byte length is the per-chunk overhead that every
+// chunk pays before any file paths are appended. Measured by building the argv
+// with an empty file list. Pure over the same inputs as build_argv.
+std::size_t base_argv_bytes(const config::Scanner& s, const std::string& tool_config) {
+    std::size_t bytes = 0;
+    for (const auto& a : build_argv(s, tool_config, /*files=*/{}))
+        bytes += a.size() + 1;  // +1 for the NUL terminator each argv slot carries
+    return bytes;
+}
+
+// Split a file list into chunks whose per-spawn argv stays under kMaxArgvBytes.
+// Each chunk's budget is the cap minus the fixed base argv (binary + flags), and
+// each file costs its path length plus one (the argv-slot NUL). A single path
+// that alone exceeds the budget still goes out in a chunk of its own (we never
+// drop a staged file — under-gating is worse than one oversized spawn). Order is
+// preserved, so the concatenated findings are identical to one unbounded spawn
+// before the deterministic sort. @implements KEUR-SCAN-DISPATCH
+std::vector<std::vector<std::string>> chunk_files(const std::vector<std::string>& files,
+                                                  std::size_t base_bytes) {
+    std::vector<std::vector<std::string>> chunks;
+    const std::size_t budget = base_bytes < kMaxArgvBytes ? kMaxArgvBytes - base_bytes : 0;
+    std::vector<std::string> cur;
+    std::size_t cur_bytes = 0;
+    for (const auto& f : files) {
+        const std::size_t cost = f.size() + 1;
+        // Start a new chunk when adding this file would exceed the budget — but
+        // only if the current chunk already holds something (never emit empty).
+        if (!cur.empty() && cur_bytes + cost > budget) {
+            chunks.push_back(std::move(cur));
+            cur.clear();
+            cur_bytes = 0;
+        }
+        cur.push_back(f);
+        cur_bytes += cost;
+    }
+    if (!cur.empty()) chunks.push_back(std::move(cur));
+    return chunks;
+}
+
 std::vector<Finding> map_tool_output(const std::string& scanner, const std::string& out) {
     if (scanner == "gitleaks")   return map_gitleaks_json(out);
     if (scanner == "semgrep")    return map_semgrep_json(out);
@@ -175,7 +224,12 @@ std::vector<Finding> run_adapter(const config::Scanner& s, const DispatchContext
     };
 
     if (batches_files(s.name)) {
-        spawn(build_argv(s, tool_config, files));   // one spawn over all files
+        // One spawn per bounded chunk (ADR-068): collapse N per-file spawns into
+        // as few spawns as the argv byte budget allows, so a huge staged set
+        // never overruns ARG_MAX (E2BIG). The common small commit yields exactly
+        // one chunk — unchanged from the single-spawn path.
+        for (const auto& chunk : chunk_files(files, base_argv_bytes(s, tool_config)))
+            spawn(build_argv(s, tool_config, chunk));
     } else {
         for (const auto& file : files)              // gitleaks: per-file (cheap)
             spawn(build_argv(s, tool_config, {file}));

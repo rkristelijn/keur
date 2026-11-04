@@ -1596,4 +1596,71 @@ SCENARIO("[feature:merge-scope] real git: WIDE merge scopes to only THIS side's 
     CHECK(selected == scoped);
 }
 
+// --- [feature:merge-scope] empty-scope cleanliness (Fix 3 / CodeRabbit) ------
+// When THIS developer's side adds NOTHING of its own since the fork (main did
+// not advance past the merge-base), the three-dot diff base...HEAD is EMPTY.
+// merge_scoped_files() must return an EMPTY scope in that case — the incoming
+// work was already gated on main — and must NOT fall through to the full staged
+// set (the pre-fix bug, which re-gated the entire incoming tree). @proves
+// ADR-068.resolved-empty-scope
+SCENARIO("[feature:merge-scope] real git: no own contribution → empty scope, not full staged") {
+    if (std::system("git --version >/dev/null 2>&1") != 0) return;
+
+    keur::test::TempDir td;
+    REQUIRE(td.valid());
+    const std::string repo = td.path();
+
+    auto run = [&](const std::string& cmd) {
+        std::string full =
+            "cd " + repo + " && "
+            "GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null "
+            "GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t "
+            "GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t "
+            + cmd + " >/dev/null 2>&1";
+        return std::system(full.c_str());
+    };
+
+    REQUIRE(run("git init -q") == 0);
+    REQUIRE(run("git checkout -q -b main") == 0);
+    write_file(repo + "/base.txt", "base\n");
+    REQUIRE(run("git add -A") == 0);
+    REQUIRE(run("git commit -q -m base") == 0);
+
+    // Feature advances (the incoming work); main stays at the fork point, so
+    // this side contributes NOTHING of its own since the merge-base.
+    REQUIRE(run("git checkout -q -b feature") == 0);
+    write_file(repo + "/feat1.txt", "incoming\n");
+    write_file(repo + "/feat2.txt", "incoming\n");
+    REQUIRE(run("git add -A") == 0);
+    REQUIRE(run("git commit -q -m feature") == 0);
+
+    REQUIRE(run("git checkout -q main") == 0);
+    // Non-fast-forward merge leaves MERGE_HEAD present with the full incoming
+    // tree staged, but base...HEAD is empty (main == merge-base).
+    run("git merge --no-commit --no-ff feature");
+
+    char orig[4096];
+    REQUIRE(getcwd(orig, sizeof(orig)) != nullptr);
+    REQUIRE(chdir(repo.c_str()) == 0);
+
+    keur::adapters::Git git;
+    const bool merging = git.merge_in_progress();
+    CHECK(merging);
+    auto full   = git.staged_files();       // the incoming tree (feat1/feat2)
+    auto scoped = git.merge_scoped_files();  // THIS side's own: nothing
+
+    chdir(orig);
+
+    CHECK(full.size() >= 2);                 // incoming work IS staged
+    CHECK(scoped.empty());                   // but THIS side added nothing
+    CHECK(scoped.size() < full.size());      // must NOT fall through to full
+
+    // Selector: resolved + merging + empty scope → scan NOTHING (the incoming
+    // work was already gated on main). This is exactly what lets check.cpp's
+    // empty-scope path reach branch protection without re-gating a wide merge.
+    auto selected = keur::cmd::select_scoped_files(
+        keur::cmd::MergeScope::Resolved, merging, full, scoped);
+    CHECK(selected.empty());
+}
+
 } // TEST_SUITE("integration")

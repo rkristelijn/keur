@@ -43,8 +43,12 @@ ai = "on"
 # On a merge commit `git diff --cached` reports the ENTIRE merged tree, so keur
 # would re-gate work other developers already gated on main. merge_scope picks
 # what THIS committer is responsible for:
-#   resolved  (default) — during a merge, scan only the conflict-resolved files
-#                         (git diff --cached ... HEAD); normal staged set otherwise.
+#   resolved  (default) — during a merge, scan only what THIS side contributed:
+#                         the merge-base three-dot diff (git diff base...HEAD,
+#                         base = git merge-base HEAD MERGE_HEAD) intersected with
+#                         the staged set. If this side added nothing of its own,
+#                         the scope is empty (the incoming work was already gated
+#                         on main). Normal staged set when not merging.
 #   all                 — always scan the full staged set (pre-ADR-068 behaviour;
 #                         use to force-gate a whole merge).
 #   skip                — during a merge, scan nothing (PASS) — the incoming work

@@ -61,16 +61,26 @@ layered config. No adaptive runtime scheduler (see Why-not).
 
 ### 1. Batch external-tool invocation (root fix)
 
-Invoke each external tool **once over the full (filtered) staged file list**
-instead of once per file. gitleaks, semgrep and shellcheck all accept multiple
-paths in a single invocation. `run_adapter` builds one argv with N files; the
-output mapper (`map_*_json`) already carries the file path in each tool's JSON,
-so finding attribution is recovered from the output, not from the invocation.
+Invoke each batchable external tool **once over the full (filtered) staged file
+list** instead of once per file. semgrep and shellcheck accept multiple paths in
+a single invocation and are batched. gitleaks is **not** batched: its `detect
+--no-git --source <path>` takes a single source path (file or dir; no multi-path
+positional form — verified against gitleaks 8.30.1), so it stays per-file. At
+~0.07s/spawn that is cheap, and per-file keeps its scope to exactly the staged
+files rather than widening to a whole directory. For the batched tools,
+`run_adapter` builds one argv with N files; the output mapper (`map_*_json`)
+already carries the file path in each tool's JSON, so finding attribution is
+recovered from the output, not from the invocation.
 
-- Collapses `N × startup` into `1 × startup` per tool. ~60 semgrep spawns (~90s)
-  → one (~1.5s + match).
+- Collapses `N × startup` into `1 × startup` for the batchable tools. ~60
+  semgrep spawns (~90s) → one (~1.5s + match).
 - Determinism preserved: findings are sorted by `(file, line, rule)` after the
   single invocation, identical to the concatenation the per-file loop produced.
+- Argv is bounded: a batched spawn's total argv byte length is capped at a
+  conservative 100 KiB (well under the smallest ARG_MAX, ~256 KiB on macOS), so
+  a very large staged set is split into as few bounded chunks as needed instead
+  of overrunning ARG_MAX and failing `execve` with E2BIG. Chunk order is
+  preserved, so the pre-sort concatenation is unchanged.
 - Scope: the external-tool layer only. keur's internal rule engine is unchanged
   (ADR-024 governs that path).
 
@@ -107,19 +117,19 @@ during a merge — the incoming work was already gated).
 Mirrors the existing config stack (`block-at`, `KEUR_SCAN_THREADS`):
 
 ```toml
-[performance]
-batch = true          # external-tool batching (default on)
-
 [pre_commit]
 merge_scope = "resolved"   # resolved (default) | all | skip
 max_files   = 0            # 0 = no cap; a last-resort guard, not the fix
 ```
 
-- **Default** in code (batch on, merge_scope=resolved).
+Batching itself is not a toggle: it is always on for the batchable tools and is
+made safe by the bounded argv (§1), so there is no `batch`/`KEUR_BATCH` switch to
+wire or document.
+
+- **Default** in code (merge_scope=resolved).
 - **`keur.toml`** overrides per repo.
-- **One-shot override** via env/flag: `KEUR_BATCH=0`, `KEUR_MERGE_SCOPE=all`,
-  `--merge-scope all` — for the one time you want it different (debugging a
-  batched tool, or force-gating a whole merge).
+- **One-shot override** via env/flag: `KEUR_MERGE_SCOPE=all`, `--merge-scope all`
+  — for the one time you want it different (force-gating a whole merge).
 
 ## Why not the alternatives
 

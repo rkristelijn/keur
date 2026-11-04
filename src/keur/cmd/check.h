@@ -196,6 +196,16 @@ std::vector<std::string> select_scoped_files(
     const std::vector<std::string>& merge_scoped);
 
 /**
+ * Decide whether `keur check` may take the early PASS when the scoped file set
+ * is empty. Branch protection (KEUR-BRANCH-001) is a property of the branch, not
+ * of the staged files, so an empty-scope merge that still warrants a branch
+ * finding must NOT short-circuit. Pure: the early PASS is taken ONLY when there
+ * are no files AND no branch finding. This encodes the Fix 2 ordering guarantee
+ * (branch protection evaluated before the empty-scope return). @implements ADR-057
+ */
+bool early_pass_on_empty_scope(bool files_empty, bool has_branch_finding);
+
+/**
  * A FileSource is any callable that returns a list of files to check.
  * Production code passes staged_files; tests pass a lambda with fixed data.
  */
