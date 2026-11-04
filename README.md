@@ -84,6 +84,17 @@ curl -fsSLO https://raw.githubusercontent.com/rkristelijn/keur/main/install.sh
 less install.sh && sh install.sh      # installs to ~/.local/bin (no sudo)
 ```
 
+Prefer a package manager? keur is also on **Homebrew**, **npx**, and **apt**:
+
+```bash
+brew install rkristelijn/keur/keur    # macOS / Linuxbrew
+npx keur check                        # Node ≥ 18, no install
+sudo apt install ./keur_<version>_amd64.deb   # Debian/Ubuntu (.deb)
+```
+
+All channels install the same checksum-verified binary. See
+[`docs/install.md`](docs/install.md) for the full matrix and details.
+
 Then install the hook into your repo (or globally for every repo):
 
 ```bash

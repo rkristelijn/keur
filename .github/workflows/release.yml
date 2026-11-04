@@ -168,10 +168,23 @@ jobs:
           merge-multiple: true
       - name: Generate notes
         run: bash scripts/release.sh notes "${{ needs.prepare.outputs.version }}" > /tmp/notes.md
+
+      # ── apt/deb channel (ADR-045 step 4c): build a .deb from the linux binary
+      #    and ship it as a release asset. `sudo apt install ./keur_<v>_amd64.deb`.
+      - name: Build .deb (apt channel)
+        run: |
+          bash scripts/build-deb.sh \
+            "${{ needs.prepare.outputs.version }}" \
+            dist/keur-linux-amd64 \
+            rules \
+            dist
+
       - name: Checksums (so install.sh can verify the download)
         run: |
           cd dist
-          sha256sum keur-* > SHA256SUMS
+          # Checksum the binaries AND the .deb so every downloadable artifact is
+          # covered by SHA256SUMS.
+          sha256sum keur-* *.deb > SHA256SUMS
           echo "=== SHA256SUMS ==="; cat SHA256SUMS
       - name: Create GitHub Release
         env:
@@ -182,3 +195,48 @@ jobs:
             --notes-file /tmp/notes.md \
             dist/*
           echo "::notice::Published ${{ needs.prepare.outputs.tag }}."
+
+      # ── brew channel (ADR-045 step 4a): regenerate Formula/keur.rb from the
+      #    just-published SHA256SUMS and commit it back to main, so
+      #    `brew install` always points at the matching release + checksums.
+      - name: Update Homebrew formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          V="${{ needs.prepare.outputs.version }}"
+          sha_mac="$(grep ' keur-macos-arm64$' dist/SHA256SUMS | awk '{print $1}')"
+          sha_lin="$(grep ' keur-linux-amd64$' dist/SHA256SUMS | awk '{print $1}')"
+          bash scripts/formula.sh "$V" "$sha_mac" "$sha_lin" > Formula/keur.rb
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- Formula/keur.rb; then
+            git add Formula/keur.rb
+            git commit -m "chore(release): update Homebrew formula to v${V}"
+            git push origin HEAD:main
+            echo "::notice::Formula updated to v${V}."
+          else
+            echo "::notice::Formula already current."
+          fi
+
+      # ── npx channel (ADR-045 step 4b): publish the npm wrapper. The package
+      #    version is synced to the release version; the wrapper lazily fetches
+      #    + checksum-verifies the matching binary on first run (no postinstall).
+      #    Skipped when NPM_TOKEN is not configured, so a release never fails on
+      #    a missing publish credential.
+      - name: Publish npm wrapper
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::notice::NPM_TOKEN not set — skipping npm publish."
+            exit 0
+          fi
+          V="${{ needs.prepare.outputs.version }}"
+          cd packaging/npm
+          # Sync the package version to the release version (source of truth = tag).
+          npm version "$V" --no-git-tag-version --allow-same-version
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
+          npm publish --access public
+          echo "::notice::Published keur@${V} to npm."

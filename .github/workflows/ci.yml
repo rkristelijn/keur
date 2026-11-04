@@ -213,3 +213,65 @@ jobs:
           git diff --cached --name-only --diff-filter=ACM | sed 's/^/  /'
           bin/keur check --tier pre-commit
           bin/keur check --tier pre-push
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Distribution channels smoke (ADR-045: brew / npx / apt).
+  #
+  # The three channels are thin wrappers over the SAME release binary +
+  # SHA256SUMS that install.sh consumes. This job proves each wrapper's build/
+  # fetch logic on a real runner, so a broken channel fails CI instead of a
+  # broken release:
+  #
+  #   apt  — scripts/build-deb.sh builds a .deb from the freshly built binary,
+  #          installs it, and runs `keur version` through the /usr/bin symlink
+  #          (proves the ADR-063 home derivation: rules load with no env setup).
+  #   npx  — the npm wrapper lazily fetches + checksum-verifies the published
+  #          binary and runs it (proves package.json/bin/lib wiring; needs net).
+  #   brew — Ruby syntax of the generated formula (a full `brew install` needs a
+  #          tap + macOS runner; the release workflow handles publication).
+  #
+  # Runs on Linux only.
+  # ────────────────────────────────────────────────────────────────────────
+  dist-smoke:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install RE2
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libre2-dev libabsl-dev
+      - name: Build keur (binary under test for the .deb)
+        run: make build
+        working-directory: src/keur
+
+      # apt/deb — build, install, run via the /usr/bin symlink.
+      - name: apt — build + install + run the .deb
+        run: |
+          set -euo pipefail
+          bash scripts/build-deb.sh 0.0.0-ci bin/keur rules dist
+          sudo apt-get install -y ./dist/keur_0.0.0-ci_amd64.deb
+          # Run via PATH (the /usr/bin/keur symlink → /usr/lib/keur/bin/keur).
+          keur version
+          # Prove the bundled rules resolve (ADR-063): scan exits 0 (never blocks).
+          keur scan /usr/lib/keur/rules >/dev/null
+          sudo apt-get remove -y keur
+
+      # npx — the wrapper fetches + checksum-verifies the published binary.
+      - name: npx — launcher lazily fetches + runs the published binary
+        run: |
+          set -euo pipefail
+          cd packaging/npm
+          node --check bin/keur.js
+          node --check lib/fetch-binary.js
+          # bin/keur.js execs the fetched binary; version proves the whole chain.
+          node bin/keur.js version
+          npm pack --dry-run
+
+      # brew — syntax-check the generated formula (publication = release workflow).
+      - name: brew — generated formula is valid Ruby
+        run: |
+          set -euo pipefail
+          bash scripts/formula.sh 0.0.0-ci deadbeef deadbeef > /tmp/keur.rb
+          ruby -c /tmp/keur.rb
