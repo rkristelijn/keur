@@ -90,6 +90,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [069](ADR-069-pre-publish-dryrun-gates.md) | Pre-publish dry-run gates per distribution channel (npm / brew / apt) | proposed |
 | [070](ADR-070-controls-for-ai-authored-code.md) | Controls for fully AI-authored code: the independent-referee model | proposed |
 | [071](ADR-071-grounded-consistency-warn-layer.md) | Grounded consistency models: a WARN-only corroboration layer, never a gate | proposed |
+| [072](ADR-072-orphan-file-detection.md) | Orphan / unreferenced file detection: the reachability WARN | proposed |
 | [073](ADR-073-hermetic-smoke-and-commit-message-markers.md) | Hermetic e2e smoke for context-dependent rules; commit-message markers deferred | accepted |
 | [078](ADR-078-static-re2-release-binaries.md) | Release binaries link RE2 and Abseil statically | accepted |
 
