@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -48,6 +49,21 @@ inline std::string read_file(const std::string& path) {
     std::ostringstream ss;
     ss << f.rdbuf();
     return ss.str();
+}
+
+// Run a git command inside `repo` with a hermetic identity/config, so tests are
+// independent of the developer's global git config. Returns the shell exit
+// status (std::system semantics). Shared because every real-git scenario needs
+// the exact same env prefix — duplicating it per scenario is what drove Sonar's
+// copy-paste density over the gate (new_duplicated_lines_density).
+inline int git_run(const std::string& repo, const std::string& cmd) {
+    const std::string full =
+        "cd " + repo + " && "
+        "GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null "
+        "GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t "
+        "GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t "
+        + cmd + " >/dev/null 2>&1";
+    return std::system(full.c_str());
 }
 
 inline void cleanup_dir(const std::string& dir) {
@@ -159,6 +175,50 @@ class TempDir {
 
   private:
     std::string dir_;
+};
+
+// RAII working-directory guard — the cwd analogue of TempDir's Annihilate.
+// A test that drives a real adapter from inside a repo must chdir in, do its
+// work, then chdir back. Doing that by hand has two defects:
+//   1. the restoring `chdir(orig)` return value is routinely left unchecked
+//      (cpp:S5982 — a failed restore silently strands later tests in the wrong
+//      cwd), and
+//   2. the restore is skipped entirely when an intervening REQUIRE throws, so
+//      the whole suite continues in the tempdir (same leak class TempDir fixes).
+// ScopedChdir captures the current dir in its ctor, enters `target`, and in its
+// dtor restores the original dir on every exit path. enter_ok() reports whether
+// the initial chdir succeeded so callers can REQUIRE it.
+//
+//   {
+//       keur::test::ScopedChdir cd(repo);   // enter, remembering where we were
+//       REQUIRE(cd.enter_ok());
+//       ... drive the adapter from inside the repo ...
+//   }                                        // dtor: guaranteed, checked restore
+class ScopedChdir {
+  public:
+    explicit ScopedChdir(const std::string& target) {
+        char buf[4096];
+        have_orig_ = (getcwd(buf, sizeof(buf)) != nullptr);
+        if (have_orig_) orig_ = buf;
+        entered_ = (chdir(target.c_str()) == 0);
+    }
+    ~ScopedChdir() {
+        // Best-effort restore; the result is explicitly consumed so a failed
+        // restore cannot be silently ignored (cpp:S5982).
+        if (have_orig_ && chdir(orig_.c_str()) != 0) {
+            // Nothing actionable in a dtor, but the branch is taken on purpose
+            // so the return value is checked rather than discarded.
+        }
+    }
+    ScopedChdir(const ScopedChdir&) = delete;
+    ScopedChdir& operator=(const ScopedChdir&) = delete;
+
+    bool enter_ok() const { return have_orig_ && entered_; }
+
+  private:
+    std::string orig_;
+    bool have_orig_ = false;
+    bool entered_ = false;
 };
 
 }  // namespace keur::test

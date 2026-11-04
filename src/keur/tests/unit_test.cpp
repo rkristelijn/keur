@@ -336,11 +336,9 @@ SCENARIO("[feature:check] a PASS writes to stdout, not stderr") {  // @proves ho
 }
 
 SCENARIO("[feature:check] staged_files returns empty outside a git repo") {
-    char orig[4096];
-    REQUIRE(getcwd(orig, sizeof(orig)) != nullptr);
-    chdir("/tmp");
+    keur::test::ScopedChdir cd("/tmp");
+    REQUIRE(cd.enter_ok());
     CHECK(keur::cmd::staged_files().empty());
-    chdir(orig);
 }
 
 // --- [feature:merge-scope] --------------------------------------------------

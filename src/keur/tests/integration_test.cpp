@@ -1469,17 +1469,7 @@ SCENARIO("[feature:merge-scope] real git: WIDE merge scopes to only THIS side's 
     REQUIRE(td.valid());
     const std::string repo = td.path();
 
-    auto run = [&](const std::string& cmd) {
-        // Run inside the throwaway repo with a hermetic identity/config so the
-        // test is independent of the developer's global git config.
-        std::string full =
-            "cd " + repo + " && "
-            "GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null "
-            "GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t "
-            "GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t "
-            + cmd + " >/dev/null 2>&1";
-        return std::system(full.c_str());
-    };
+    auto run = [&](const std::string& cmd) { return keur::test::git_run(repo, cmd); };
 
     REQUIRE(run("git init -q") == 0);
     REQUIRE(run("git checkout -q -b main") == 0);
@@ -1531,38 +1521,43 @@ SCENARIO("[feature:merge-scope] real git: WIDE merge scopes to only THIS side's 
         REQUIRE(run("git add shared" + std::to_string(i) + ".txt") == 0);
     }
 
-    // Drive the REAL git adapter from inside the repo.
-    char orig[4096];
-    REQUIRE(getcwd(orig, sizeof(orig)) != nullptr);
-    REQUIRE(chdir(repo.c_str()) == 0);
+    // Drive the REAL git adapter from inside the repo. Capture state WHILE still
+    // cwd'd in (after chdir back these would hit the outer repo); ScopedChdir
+    // restores the original cwd on block exit — checked, and even if a REQUIRE
+    // throws. Declared outside the block so the captures outlive the cwd scope.
+    bool merging = false;
+    std::vector<std::string> full;
+    std::vector<std::string> scoped;
+    {
+        keur::test::ScopedChdir cd(repo);
+        REQUIRE(cd.enter_ok());
 
-    keur::adapters::Git git;
+        keur::adapters::Git git;
 
-    // Merge detection must fire (MERGE_HEAD present). Capture state WHILE still
-    // cwd'd into the merge repo — after chdir back these would hit the outer repo.
-    const bool merging = git.merge_in_progress();
-    CHECK(merging);
+        // Merge detection must fire (MERGE_HEAD present).
+        merging = git.merge_in_progress();
+        CHECK(merging);
 
-    // Full staged set: the merge's staged tree relative to HEAD — shared1..5
-    // (all five differ after the merge) + feat1/feat2 = 7 files. own1/own2 were
-    // committed on main BEFORE the merge, so they are in HEAD and the merge does
-    // not re-stage them. This 7-file set is what the old code wrongly scanned,
-    // and what `--diff-filter=M` would still over-include (shared4/shared5 were
-    // Modified by the incoming side). base...HEAD also names own1/own2 (this
-    // side's commits), so the staged-set INTERSECTION is what drops them.
-    auto full = git.staged_files();
+        // Full staged set: the merge's staged tree relative to HEAD — shared1..5
+        // (all five differ after the merge) + feat1/feat2 = 7 files. own1/own2
+        // were committed on main BEFORE the merge, so they are in HEAD and the
+        // merge does not re-stage them. This 7-file set is what the old code
+        // wrongly scanned, and what `--diff-filter=M` would still over-include
+        // (shared4/shared5 were Modified by the incoming side). base...HEAD also
+        // names own1/own2 (this side's commits), so the staged-set INTERSECTION
+        // is what drops them.
+        full = git.staged_files();
 
-    // Merge-scoped set: ONLY THIS side's contribution that is actually part of
-    // the merge's staged tree. The staged tree during a merge is what the merge
-    // CHANGES relative to HEAD (main's tip) — so own1/own2, already committed on
-    // main before the merge, are in HEAD and NOT re-staged by it. What remains
-    // of THIS side's work in the merge is the three conflict resolutions
-    // (shared1..shared3 = base...HEAD ∩ staged). The other side's files
-    // (shared4/shared5 modified only by feature, feat1/feat2 added by feature)
-    // are NOT this developer's responsibility and must be excluded.
-    auto scoped = git.merge_scoped_files();
-
-    chdir(orig);
+        // Merge-scoped set: ONLY THIS side's contribution that is actually part
+        // of the merge's staged tree. The staged tree during a merge is what the
+        // merge CHANGES relative to HEAD (main's tip) — so own1/own2, already
+        // committed on main before the merge, are in HEAD and NOT re-staged by
+        // it. What remains of THIS side's work in the merge is the three conflict
+        // resolutions (shared1..shared3 = base...HEAD ∩ staged). The other side's
+        // files (shared4/shared5 modified only by feature, feat1/feat2 added by
+        // feature) are NOT this developer's responsibility and must be excluded.
+        scoped = git.merge_scoped_files();
+    }
 
     // Full set = everything the merge stages relative to HEAD: shared1..5
     // (all five differ from main's tip after the merge) + feat1/feat2 = 7.
@@ -1610,15 +1605,7 @@ SCENARIO("[feature:merge-scope] real git: no own contribution → empty scope, n
     REQUIRE(td.valid());
     const std::string repo = td.path();
 
-    auto run = [&](const std::string& cmd) {
-        std::string full =
-            "cd " + repo + " && "
-            "GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null "
-            "GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t "
-            "GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t "
-            + cmd + " >/dev/null 2>&1";
-        return std::system(full.c_str());
-    };
+    auto run = [&](const std::string& cmd) { return keur::test::git_run(repo, cmd); };
 
     REQUIRE(run("git init -q") == 0);
     REQUIRE(run("git checkout -q -b main") == 0);
@@ -1639,17 +1626,22 @@ SCENARIO("[feature:merge-scope] real git: no own contribution → empty scope, n
     // tree staged, but base...HEAD is empty (main == merge-base).
     run("git merge --no-commit --no-ff feature");
 
-    char orig[4096];
-    REQUIRE(getcwd(orig, sizeof(orig)) != nullptr);
-    REQUIRE(chdir(repo.c_str()) == 0);
+    // Capture adapter state from inside the repo; ScopedChdir restores the
+    // original cwd on block exit (checked, exception-safe). Captures are
+    // declared outside so they outlive the cwd scope.
+    bool merging = false;
+    std::vector<std::string> full;
+    std::vector<std::string> scoped;
+    {
+        keur::test::ScopedChdir cd(repo);
+        REQUIRE(cd.enter_ok());
 
-    keur::adapters::Git git;
-    const bool merging = git.merge_in_progress();
-    CHECK(merging);
-    auto full   = git.staged_files();       // the incoming tree (feat1/feat2)
-    auto scoped = git.merge_scoped_files();  // THIS side's own: nothing
-
-    chdir(orig);
+        keur::adapters::Git git;
+        merging = git.merge_in_progress();
+        CHECK(merging);
+        full   = git.staged_files();       // the incoming tree (feat1/feat2)
+        scoped = git.merge_scoped_files();  // THIS side's own: nothing
+    }
 
     CHECK(full.size() >= 2);                 // incoming work IS staged
     CHECK(scoped.empty());                   // but THIS side added nothing
