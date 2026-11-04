@@ -1,0 +1,42 @@
+{
+  "name": "keur",
+  "version": "0.2.0",
+  "description": "Deterministic AI-code guardrail — an anti-slop, vibe-code limiter that runs as a git pre-commit hook. npx wrapper around the prebuilt keur binary.",
+  "keywords": [
+    "git-hook",
+    "pre-commit",
+    "secrets",
+    "sast",
+    "ai",
+    "guardrail",
+    "linter",
+    "security"
+  ],
+  "homepage": "https://github.com/rkristelijn/keur",
+  "bugs": "https://github.com/rkristelijn/keur/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rkristelijn/keur.git",
+    "directory": "packaging/npm"
+  },
+  "license": "MIT",
+  "bin": {
+    "keur": "bin/keur.js"
+  },
+  "files": [
+    "bin/keur.js",
+    "lib/fetch-binary.js"
+  ],
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
