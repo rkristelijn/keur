@@ -6,7 +6,7 @@
 
 Proposed · 2026-11-04 · Coverage: none
 · Relates to: ADR-001 (native RE2 engine — the deterministic referee), ADR-009
-(rules are data, the engine is dumb — new detection is a `.rule`, not engine
+(rules are data, the engine stays simple — new detection is a `.rule`, not engine
 logic), ADR-004 (staged path to semantic analysis — the layer that catches
 logic-not-pattern slop), ADR-056 (orchestrate clang-tidy semantic checks — the
 parked semantic gate this ADR argues to promote), ADR-032 (trustworthy ground
@@ -143,7 +143,7 @@ diff) is the live implementation of C7 for code. This ADR's job is to name the
   control traces to a measured AI failure mode and an independence guarantee, so
   a reviewer (human or AI) can see *which* slop each gate stops and which gaps
   remain open.
-- **Positive**: the gaps become a backlog, not a blind spot. C4 and C5 in
+- **Positive**: the gaps become a backlog, not a hidden risk. C4 and C5 in
   particular are concrete, cheap, and close the two most AI-specific holes
   (slopsquatting, self-confirming tests).
 - **Positive**: it hardens keur's own `train` loop against the exact

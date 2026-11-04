@@ -16,7 +16,7 @@ same local-only pattern), ADR-035 (self-explaining findings)
 
 ## Context
 
-A recurring, reasonable question: *can't a small model simply read text
+A recurring, reasonable question: *can't a small model just read text
 (markdown, an ADR, a commit message) and tell us whether it is nonsense?* The
 honest answer requires separating three things a "small model" could do, because
 only one of them is safe to adopt and the other two quietly break keur's thesis
