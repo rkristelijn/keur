@@ -4,8 +4,8 @@
 #
 # Authored by action-ai (dist-channels domain). Works against the public v0.2.0
 # release today (pre-release safe). Asserts on `keur version`, not install.sh's
-# slot-echo (the '0.1.0' there is ruis from a stale local keur; the installed
-# binary is correct — see the KEUR_VERSION build-stamp finding).
+# slot-echo. XDG_CONFIG_HOME is isolated to a temp dir so `keur version`
+# shows the binary's real version (0.2.0), not the renderer's global config.
 
 Output install-curl.gif
 
@@ -30,6 +30,8 @@ Enter
 Type "rm -rf /tmp/demo && mkdir -p /tmp/demo && cd /tmp/demo"
 Enter
 Type "export KEUR_BIN_DIR=/tmp/demo/bin"
+Enter
+Type "export XDG_CONFIG_HOME=/tmp/demo/xdg"
 Enter
 Type "clear"
 Enter

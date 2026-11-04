@@ -71,6 +71,10 @@ for why, and the demo tips. Roadmap + "vs other tools" per demo:
 
 ## Adding a demo
 
+> **Before you start:** read [`../demo-authoring.md`](../demo-authoring.md)
+> — the gotchas (heredoc vs printf, syntax-highlighting breaking heredocs,
+> fixtures + `cat`, PII, golden output) that will otherwise bite you.
+
 1. Copy `TEMPLATE.tape` to `docs/demo/<feature>.tape`. Keep it short: `Hide`/
    `Show` skips setup, trimmed `Sleep` turns a wait into a second or two.
 2. Fill in the three AAA phases and add a `@shows <concept-id>` marker (a rule
