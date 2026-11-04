@@ -8,7 +8,11 @@
 #
 # Hermetic + PII-free: Arrange sets HOME/XDG to a neutral /tmp path (no username,
 # no machine config) and runs keur from PATH (rules resolved relative to the
-# binary, ADR-063). File written via heredoc so newlines are real.
+# binary, ADR-063). The test files are pre-staged FIXTURES copied in during the
+# hidden Arrange and shown with `cat` — NOT typed via a live heredoc. A heredoc
+# whose body has ()'{}| breaks under zsh-syntax-highlighting (the file silently
+# isn't created → "No such file"); fixtures + cat sidestep that entirely.
+# See docs/demo-authoring.md.
 
 Output ai-slop-fake-test.gif
 
@@ -21,7 +25,11 @@ Set Padding 20
 Set TypingSpeed 42ms
 
 # --- Arrange (hidden): neutral isolated env + disposable repo ---------------
+# Stage the fixtures BEFORE sourcing highlighting / entering the demo dir, so
+# the files exist without typing a heredoc on screen.
 Hide
+Type "mkdir -p /tmp/demo-fixtures && cp fixtures/ai-slop-fake.test.js fixtures/ai-slop-real.test.js /tmp/demo-fixtures/"
+Enter
 Type "export HOME=/tmp/demo-home XDG_CONFIG_HOME=/tmp/demo-home/.config XDG_CACHE_HOME=/tmp/demo-home/.cache"
 Enter
 Type "rm -rf /tmp/demo-home /tmp/demo && mkdir -p /tmp/demo-home/.config /tmp/demo && cd /tmp/demo"
@@ -48,19 +56,11 @@ Sleep 1400ms
 Type "# Act 1: the 'test' — it runs green but verifies nothing"
 Enter
 Sleep 1s
-Type "cat > config.test.js <<'EOF'"
+Type "cp /tmp/demo-fixtures/ai-slop-fake.test.js config.test.js"
 Enter
-Type "test('parses the config', () => {"
+Type "cat config.test.js"
 Enter
-Type "  const result = parseConfig(raw);"
-Enter
-Type "  expect(result).toBeTruthy();"
-Enter
-Type "});"
-Enter
-Type "EOF"
-Enter
-Sleep 600ms
+Sleep 1500ms
 Type "keur scan config.test.js | grep SLOP-107"
 Enter
 Sleep 3000ms
@@ -77,19 +77,11 @@ Sleep 3500ms
 Type "# Act 3: assert the actual value, as keur advised"
 Enter
 Sleep 1200ms
-Type "cat > config.test.js <<'EOF'"
+Type "cp /tmp/demo-fixtures/ai-slop-real.test.js config.test.js"
 Enter
-Type "test('parses the config', () => {"
+Type "cat config.test.js"
 Enter
-Type "  const result = parseConfig(raw);"
-Enter
-Type "  expect(result.port).toBe(8080);"
-Enter
-Type "});"
-Enter
-Type "EOF"
-Enter
-Sleep 600ms
+Sleep 1500ms
 Type "keur scan config.test.js | grep -c SLOP-107"
 Enter
 Sleep 2500ms
