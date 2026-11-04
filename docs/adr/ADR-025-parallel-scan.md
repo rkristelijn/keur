@@ -1,7 +1,7 @@
 # ADR-025 — Parallel `keur scan` across cores (deterministic, `scan` only)
 
 @id ADR-025
-**Status**: proposed · **Date**: 2026-09-23 · **Coverage**: none · **Relates to**: ADR-001 (RE2 — thread-safe for matching, the enabler), ADR-002 (single binary — threads, not processes), ADR-024 (CPU reduction — the work we parallelise), ADR-005 (platform abstraction — threading lives behind the seam)
+**Status**: proposed · **Date**: 2026-09-23 · **Coverage**: none · **Relates to**: ADR-001 (RE2 — thread-safe for matching, the enabler), ADR-002 (single binary — threads, not processes), ADR-024 (CPU reduction — the work we parallelise), ADR-005 (platform abstraction — threading lives behind the seam), ADR-068 (batched external-scanner invocation — addresses the large-staged-set case this ADR's "`keur check` stays small & serial" assumption does not cover)
 
 ## Context
 

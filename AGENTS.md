@@ -28,6 +28,15 @@ Simple, proven tricks over complexity. 80% fit is enough. Be honest about limits
 
 ## Non-negotiables
 
+- **English only.** All code, identifiers, comments, commit messages, ADRs and
+  docs are written in English — no exceptions, regardless of the language the
+  request came in.
+- **Follow the existing structure; don't invent a parallel one.** Read these
+  before adding anything: `CONTRIBUTING.md` (layout + build + conventions),
+  `docs/design/architecture.md` (the layers: `cmd/` orchestrators, `adapters/`
+  I/O edge, `scan/` dispatch, `rules/` data, `config/` resolution, `common/`
+  platform seam), and `docs/adr/` (the why). New code goes in the layer that
+  already owns that responsibility.
 - **Test-first for engine/core changes.** Characterise with tests, refactor,
   tests stay green, then extend. Run `cd src/keur && make test` — must be green.
 - **Traceability (ADR-010):** annotate with `@id` (declare a concept),
@@ -39,6 +48,23 @@ Simple, proven tricks over complexity. 80% fit is enough. Be honest about limits
   in `rule/engines.cpp` (ADR-014), not loadable modules (ADR-002).
 - **Rules are data; the engine is dumb (ADR-009).** New detection = a `.rule`,
   not engine logic.
+
+## Handling review findings (quick win vs ADR)
+
+When a review (CodeRabbit, SonarCloud, a human) raises a finding, triage it by
+effort before touching code — this keeps fixes and design decisions separate:
+
+- **Quick win** → fix it now **and** add the control that prevents its return in
+  the same change (fix + control, never just the fix). A pattern-detectable
+  anti-pattern becomes a `.rule`; a logic bug gets a `@proves` test.
+- **Not a quick win** (heavy lift, cross-cutting, or a semantic/design change) →
+  write an **ADR** capturing the decision, and for the MR at hand apply only the
+  minimal fix the reviewer asked for. Don't smuggle a design change into a
+  bugfix PR.
+
+Rule of thumb: if you can state the fix *and* its control in one sentence and it
+touches one layer, it's a quick win. If it changes a definition, an interface,
+or spans languages/layers, it's an ADR.
 
 ## After a change
 

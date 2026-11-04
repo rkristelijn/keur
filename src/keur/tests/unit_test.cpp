@@ -254,6 +254,22 @@ SCENARIO("[feature:check] branch_protection — off the default branch never fir
     CHECK_FALSE(keur::cmd::branch_protection_finding("main", "", 5).has_value());
 }
 
+SCENARIO("[feature:check] empty scope with a branch finding does NOT early-pass") {  // @proves ADR-057.empty-scope-still-gated
+    // Fix 2: branch protection (KEUR-BRANCH-001) is a property of the branch, not
+    // the staged files. A merge whose resolved scope is EMPTY (this side added
+    // nothing) must still be gated — so when there is a branch finding, the empty
+    // -scope early PASS is NOT taken. This is the exact ordering the bug violated
+    // (branch protection ran AFTER the empty-file return, so it was skipped).
+    using keur::cmd::early_pass_on_empty_scope;
+    // Empty scope + branch finding → MUST NOT early-pass (gate must run).
+    CHECK_FALSE(early_pass_on_empty_scope(/*files_empty=*/true, /*has_branch_finding=*/true));
+    // Empty scope + no branch finding → early-pass is correct (truly nothing).
+    CHECK(early_pass_on_empty_scope(/*files_empty=*/true, /*has_branch_finding=*/false));
+    // Non-empty scope → never an early pass regardless of the branch finding.
+    CHECK_FALSE(early_pass_on_empty_scope(/*files_empty=*/false, /*has_branch_finding=*/false));
+    CHECK_FALSE(early_pass_on_empty_scope(/*files_empty=*/false, /*has_branch_finding=*/true));
+}
+
 SCENARIO("[feature:check] cmd_check_parse defaults") {
     auto o = keur::cmd::check_parse({});
     CHECK(o.tier == keur::cmd::Tier::PreCommit);
@@ -320,16 +336,202 @@ SCENARIO("[feature:check] a PASS writes to stdout, not stderr") {  // @proves ho
 }
 
 SCENARIO("[feature:check] staged_files returns empty outside a git repo") {
-    char orig[4096];
-    REQUIRE(getcwd(orig, sizeof(orig)) != nullptr);
-    chdir("/tmp");
+    // A fresh private tempdir (mkdtemp, 0700) that is NOT a git repo. Using a
+    // hardcoded world-writable path like /tmp here trips cpp:S5443; TempDir is
+    // both safe and sufficient — the point is only "not inside a repo".
+    keur::test::TempDir td;
+    REQUIRE(td.valid());
+    keur::test::ScopedChdir cd(td.path());
+    REQUIRE(cd.enter_ok());
     CHECK(keur::cmd::staged_files().empty());
-    chdir(orig);
 }
 
-// --- [feature:dispatch] -----------------------------------------------------
-// Scanner dispatch (ADR-019): resolve repo-local tool config, map proven-tool
-// JSON to Findings, and orchestrate enabled scanners over injected seams.
+// --- [feature:merge-scope] --------------------------------------------------
+// Merge-aware scoping (ADR-068 Decision 2): on a merge commit git stages the
+// whole merged tree; keur must gate only what THIS commit resolves. The scope
+// selector + config resolver are pure, so they are table-tested here; the git
+// seam (merge_in_progress / merge_scoped_files) is exercised via a fake Git.
+
+SCENARIO("[feature:merge-scope] not merging → resolved == full staged set") {  // @proves ADR-068.resolved-passthrough
+    // The critical invariant: with no merge in progress, `resolved` must be a
+    // byte-identical passthrough of the full staged list — zero behaviour
+    // change off the merge path.
+    std::vector<std::string> full = {"a.cpp", "dir/b with space.py", "c.sh"};
+    std::vector<std::string> scoped = {"only.cpp"};  // must be ignored
+    auto out = keur::cmd::select_scoped_files(
+        keur::cmd::MergeScope::Resolved, /*merge_in_progress=*/false, full, scoped);
+    CHECK(out == full);
+}
+
+SCENARIO("[feature:merge-scope] merging + resolved → only the merge-scoped files") {  // @proves ADR-068.resolved
+    // A fake Git reports a merge in progress and DISTINCT full-vs-scoped lists;
+    // resolved must select the scoped (conflict-resolved) set, not the 84-file
+    // incoming tree.
+    keur::adapters::Git git;
+    git.merge_in_progress  = []() { return true; };
+    git.staged_files       = []() { return std::vector<std::string>{
+        "incoming1.cpp", "incoming2.cpp", "resolved.cpp", "incoming3.cpp"}; };
+    git.merge_scoped_files = []() { return std::vector<std::string>{"resolved.cpp"}; };
+
+    auto out = keur::cmd::select_scoped_files(
+        keur::cmd::MergeScope::Resolved, git.merge_in_progress(),
+        git.staged_files(), git.merge_scoped_files());
+    CHECK(out == std::vector<std::string>{"resolved.cpp"});
+    CHECK(out.size() < git.staged_files().size());  // not the whole tree
+}
+
+SCENARIO("[feature:merge-scope] merge_scope=all → full staged set even during a merge") {  // @proves ADR-068.all
+    // `all` reproduces the pre-ADR-068 behaviour: whole merged tree, always.
+    std::vector<std::string> full = {"i1.cpp", "i2.cpp", "resolved.cpp"};
+    std::vector<std::string> scoped = {"resolved.cpp"};
+    auto out = keur::cmd::select_scoped_files(
+        keur::cmd::MergeScope::All, /*merge_in_progress=*/true, full, scoped);
+    CHECK(out == full);
+}
+
+SCENARIO("[feature:merge-scope] merge_scope=skip → empty/PASS during a merge") {  // @proves ADR-068.skip
+    std::vector<std::string> full = {"i1.cpp", "i2.cpp"};
+    std::vector<std::string> scoped = {"resolved.cpp"};
+    // During a merge: nothing to gate (incoming work already gated on main).
+    auto during = keur::cmd::select_scoped_files(
+        keur::cmd::MergeScope::Skip, /*merge_in_progress=*/true, full, scoped);
+    CHECK(during.empty());
+    // Off a merge: skip falls back to the full staged set (normal gating).
+    auto normal = keur::cmd::select_scoped_files(
+        keur::cmd::MergeScope::Skip, /*merge_in_progress=*/false, full, scoped);
+    CHECK(normal == full);
+}
+
+SCENARIO("[feature:merge-scope] parse_merge_scope — values + unknown") {
+    using keur::cmd::MergeScope;
+    CHECK(keur::cmd::parse_merge_scope("resolved") == MergeScope::Resolved);
+    CHECK(keur::cmd::parse_merge_scope("ALL")      == MergeScope::All);  // case-insensitive
+    CHECK(keur::cmd::parse_merge_scope(" skip ")   == MergeScope::Skip); // trimmed
+    CHECK_FALSE(keur::cmd::parse_merge_scope("").has_value());
+    CHECK_FALSE(keur::cmd::parse_merge_scope("bogus").has_value());
+}
+
+SCENARIO("[feature:merge-scope] parse_merge_scope_toml — only under [pre_commit]") {
+    using keur::cmd::MergeScope;
+    // Under the right section (quoted + inline comment).
+    CHECK(keur::cmd::parse_merge_scope_toml(
+              "[pre_commit]\nmerge_scope = \"all\"  # one-shot\n") == MergeScope::All);
+    // A merge_scope under a DIFFERENT table is ignored (section-aware).
+    CHECK_FALSE(keur::cmd::parse_merge_scope_toml(
+                    "[policy]\nmerge_scope = \"skip\"\n").has_value());
+    // Absent entirely → nullopt (default survives).
+    CHECK_FALSE(keur::cmd::parse_merge_scope_toml("[pre_commit]\n").has_value());
+}
+
+SCENARIO("[feature:merge-scope] resolve order — default < keur.toml < env < flag") {  // @proves ADR-068.layering
+    using keur::cmd::MergeScope;
+    const std::string toml = "[pre_commit]\nmerge_scope = \"all\"\n";
+    // 1. default when nothing set.
+    CHECK(keur::cmd::resolve_merge_scope("", "", std::nullopt) == MergeScope::Resolved);
+    // 2. keur.toml beats the default.
+    CHECK(keur::cmd::resolve_merge_scope(toml, "", std::nullopt) == MergeScope::All);
+    // 3. env beats keur.toml.
+    CHECK(keur::cmd::resolve_merge_scope(toml, "skip", std::nullopt) == MergeScope::Skip);
+    // 4. flag beats env (and everything below).
+    CHECK(keur::cmd::resolve_merge_scope(toml, "skip", MergeScope::Resolved)
+          == MergeScope::Resolved);
+    // An unrecognised env value does NOT clobber the lower layer (keur.toml wins).
+    CHECK(keur::cmd::resolve_merge_scope(toml, "garbage", std::nullopt) == MergeScope::All);
+}
+
+SCENARIO("[feature:merge-scope] global→repo cascade — repo keur.toml overrides global") {  // @proves ADR-068.global-vs-repo
+    using keur::cmd::MergeScope;
+    using V = std::vector<std::string>;
+    const std::string global_all  = "[pre_commit]\nmerge_scope = \"all\"\n";
+    const std::string repo_skip   = "[pre_commit]\nmerge_scope = \"skip\"\n";
+    const std::string no_scope    = "[policy]\nlevel = 3\n";  // sets nothing relevant
+
+    // 1. Only global sets it → global value wins over the code default.
+    CHECK(keur::cmd::resolve_merge_scope_toml_layered(V{global_all}) == MergeScope::All);
+    // 2. Global AND repo set it → the LATER (repo) layer wins (global→repo order).
+    CHECK(keur::cmd::resolve_merge_scope_toml_layered(V{global_all, repo_skip})
+          == MergeScope::Skip);
+    // 3. Global sets it, repo does NOT → the absent repo key does not clobber
+    //    the global value (this is the TASK B gap: a repo keur.toml exists but
+    //    is silent on merge_scope, so the global default must still apply).
+    CHECK(keur::cmd::resolve_merge_scope_toml_layered(V{global_all, no_scope})
+          == MergeScope::All);
+    // 4. Neither layer sets it → nullopt so the code default survives.
+    CHECK_FALSE(keur::cmd::resolve_merge_scope_toml_layered(V{no_scope}).has_value());
+    CHECK_FALSE(keur::cmd::resolve_merge_scope_toml_layered(V{}).has_value());
+}
+
+SCENARIO("[feature:merge-scope] layered resolve order — default < global < repo < env < flag") {  // @proves ADR-068.layering-full
+    using keur::cmd::MergeScope;
+    using V = std::vector<std::string>;
+    const std::string global_all = "[pre_commit]\nmerge_scope = \"all\"\n";
+    const std::string repo_skip  = "[pre_commit]\nmerge_scope = \"skip\"\n";
+
+    // default (no layer, no env, no flag).
+    CHECK(keur::cmd::resolve_merge_scope_layered(V{}, "", std::nullopt) == MergeScope::Resolved);
+    // global beats default.
+    CHECK(keur::cmd::resolve_merge_scope_layered(V{global_all}, "", std::nullopt) == MergeScope::All);
+    // repo beats global.
+    CHECK(keur::cmd::resolve_merge_scope_layered(V{global_all, repo_skip}, "", std::nullopt)
+          == MergeScope::Skip);
+    // env beats repo.
+    CHECK(keur::cmd::resolve_merge_scope_layered(V{global_all, repo_skip}, "all", std::nullopt)
+          == MergeScope::All);
+    // flag beats env (and everything below).
+    CHECK(keur::cmd::resolve_merge_scope_layered(V{global_all, repo_skip}, "all",
+                                                 MergeScope::Resolved) == MergeScope::Resolved);
+    // An unrecognised env value does not clobber the repo layer.
+    CHECK(keur::cmd::resolve_merge_scope_layered(V{global_all, repo_skip}, "garbage", std::nullopt)
+          == MergeScope::Skip);
+}
+
+SCENARIO("[feature:merge-scope] --merge-scope flag parses into CheckOptions") {
+    auto o = keur::cmd::check_parse({"--merge-scope", "skip"});
+    REQUIRE(o.merge_scope_override.has_value());
+    CHECK(*o.merge_scope_override == keur::cmd::MergeScope::Skip);
+    // No flag → no override (lower layers resolve).
+    CHECK_FALSE(keur::cmd::check_parse({}).merge_scope_override.has_value());
+}
+
+// --- [feature:merge-scope] parse robustness (Fix 4 / CodeRabbit) ------------
+// Three small parser hardenings, each with a @proves test.
+
+SCENARIO("[feature:merge-scope] toml — trailing comment on the [pre_commit] header is accepted") {
+    // @proves ADR-068.header-comment
+    // A table header may carry a trailing comment; it must still be recognised
+    // as [pre_commit] so the merge_scope under it is honoured.
+    using keur::cmd::MergeScope;
+    CHECK(keur::cmd::parse_merge_scope_toml(
+              "[pre_commit]  # pre-commit scope\nmerge_scope = \"all\"\n")
+          == MergeScope::All);
+    // And a commented OTHER header still does not leak into [pre_commit].
+    CHECK_FALSE(keur::cmd::parse_merge_scope_toml(
+                    "[policy]  # not here\nmerge_scope = \"skip\"\n").has_value());
+}
+
+SCENARIO("[feature:merge-scope] flag — a value starting with -- is rejected (not swallowed)") {
+    // @proves ADR-068.flag-guard
+    // `--merge-scope --tier` (user forgot the value) must NOT consume "--tier"
+    // as a bogus scope; the override stays unset so lower layers resolve.
+    auto o = keur::cmd::check_parse({"--merge-scope", "--tier"});
+    CHECK_FALSE(o.merge_scope_override.has_value());
+    // A real value still parses normally.
+    auto ok = keur::cmd::check_parse({"--merge-scope", "all"});
+    REQUIRE(ok.merge_scope_override.has_value());
+    CHECK(*ok.merge_scope_override == keur::cmd::MergeScope::All);
+}
+
+SCENARIO("[feature:merge-scope] toml — single-quoted merge_scope value is accepted") {
+    // @proves ADR-068.single-quote
+    // TOML permits literal (single-quoted) strings; keur.toml authors use them,
+    // so merge_scope = 'all' must resolve the same as "all".
+    using keur::cmd::MergeScope;
+    CHECK(keur::cmd::parse_merge_scope_toml(
+              "[pre_commit]\nmerge_scope = 'all'\n") == MergeScope::All);
+    CHECK(keur::cmd::parse_merge_scope_toml(
+              "[pre_commit]\nmerge_scope = 'skip'\n") == MergeScope::Skip);
+}
+
 
 SCENARIO("[feature:dispatch] resolve_tool_config — prefers repo root over .config/") {
     // Both exist; root wins (the tool's documented default location).
@@ -521,6 +723,236 @@ SCENARIO("[feature:dispatch] map_shellcheck_json — error level blocks, warning
     CHECK(out[1].action == "block");   // a hard error blocks
     CHECK(out[1].file == "y.sh");
     CHECK(out[1].line == 9);
+}
+
+// ADR-068 Decision 1 — batched external-tool invocation. One spawn per
+// batchable tool over the whole (filtered) staged list, findings attributed
+// per-file from the tool's own JSON, output sorted deterministically.
+
+SCENARIO("[feature:dispatch] ADR-068 map_semgrep_json — attributes findings across 3 files") {
+    // @proves KEUR-SCAN-DISPATCH.semgrep
+    // One semgrep --json document from a single batched spawn over 3 files:
+    // each result carries its own "path", so attribution comes from the output.
+    const std::string sample = R"({
+      "results": [
+        {"check_id":"r.a","path":"src/a.js","start":{"line":3},"extra":{"severity":"ERROR","message":"a"}},
+        {"check_id":"r.b","path":"src/b.py","start":{"line":9},"extra":{"severity":"WARNING","message":"b"}},
+        {"check_id":"r.c","path":"src/c.go","start":{"line":1},"extra":{"severity":"INFO","message":"c"}}
+      ],
+      "errors": []
+    })";
+    auto out = keur::scan::map_semgrep_json(sample);
+    REQUIRE(out.size() == 3);
+    CHECK(out[0].file == "src/a.js"); CHECK(out[0].line == 3);  CHECK(out[0].rule == "r.a");
+    CHECK(out[1].file == "src/b.py"); CHECK(out[1].line == 9);  CHECK(out[1].rule == "r.b");
+    CHECK(out[2].file == "src/c.go"); CHECK(out[2].line == 1);  CHECK(out[2].rule == "r.c");
+}
+
+SCENARIO("[feature:dispatch] ADR-068 map_shellcheck_json — attributes findings across 3 files") {
+    // @proves KEUR-SCAN-DISPATCH.shellcheck
+    const std::string sample = R"({
+      "comments": [
+        {"file":"a.sh","line":2,"level":"warning","code":2034,"message":"unused"},
+        {"file":"b.sh","line":5,"level":"error","code":1009,"message":"parse"},
+        {"file":"c.sh","line":7,"level":"info","code":2086,"message":"quote"}
+      ]
+    })";
+    auto out = keur::scan::map_shellcheck_json(sample);
+    REQUIRE(out.size() == 3);
+    CHECK(out[0].file == "a.sh"); CHECK(out[0].rule == "SC2034");
+    CHECK(out[1].file == "b.sh"); CHECK(out[1].rule == "SC1009");
+    CHECK(out[2].file == "c.sh"); CHECK(out[2].rule == "SC2086");
+}
+
+SCENARIO("[feature:dispatch] ADR-068 map_gitleaks_json — attributes findings across 3 files") {
+    // @proves KEUR-SCAN-DISPATCH.gitleaks
+    const std::string sample = R"([
+      {"RuleID":"k1","Description":"d1","File":"a.js","StartLine":1},
+      {"RuleID":"k2","Description":"d2","File":"b.py","StartLine":2},
+      {"RuleID":"k3","Description":"d3","File":"c.go","StartLine":3}
+    ])";
+    auto out = keur::scan::map_gitleaks_json(sample);
+    REQUIRE(out.size() == 3);
+    CHECK(out[0].file == "a.js"); CHECK(out[0].rule == "k1");
+    CHECK(out[1].file == "b.py"); CHECK(out[1].rule == "k2");
+    CHECK(out[2].file == "c.go"); CHECK(out[2].rule == "k3");
+}
+
+SCENARIO("[feature:dispatch] ADR-068 batching — semgrep spawns ONCE over N files") {
+    // @proves KEUR-SCAN-DISPATCH.semgrep
+    // A fake Proc counts spawns and records the argv. 3 staged files must
+    // produce exactly ONE capture_argv call with all 3 files appended.
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js", "b.py", "c.go"};
+    keur::config::Scanner se; se.name = "semgrep"; se.bin = "semgrep";
+    se.enabled = true; se.on_path = true;
+    ctx.scanners = {se};
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+    int spawns = 0;
+    std::vector<std::string> seen_argv;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>& argv) {
+        ++spawns; seen_argv = argv;
+        keur::adapters::ProcResult r;
+        r.stdout_text = R"({"results":[
+          {"check_id":"r1","path":"a.js","start":{"line":1},"extra":{"severity":"ERROR","message":"m"}},
+          {"check_id":"r2","path":"c.go","start":{"line":2},"extra":{"severity":"INFO","message":"m"}}
+        ],"errors":[]})";
+        return r;
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    CHECK(spawns == 1);  // NOT 3 — one batched spawn
+    // All three files were appended to the single argv.
+    auto in_argv = [&](const std::string& f) {
+        for (const auto& a : seen_argv) if (a == f) return true; return false;
+    };
+    CHECK(in_argv("a.js")); CHECK(in_argv("b.py")); CHECK(in_argv("c.go"));
+    // Findings still attributed per-file from the batched output.
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].file == "a.js");
+    CHECK(out[1].file == "c.go");
+}
+
+SCENARIO("[feature:dispatch] ADR-068 batching — shellcheck spawns ONCE over N shell files") {
+    // @proves KEUR-SCAN-DISPATCH.shellcheck
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.sh", "b.sh", "c.sh"};
+    keur::config::Scanner sc; sc.name = "shellcheck"; sc.bin = "shellcheck";
+    sc.enabled = true; sc.on_path = true;
+    ctx.scanners = {sc};
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+    int spawns = 0;
+    std::vector<std::string> seen_argv;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>& argv) {
+        ++spawns; seen_argv = argv;
+        keur::adapters::ProcResult r;
+        r.stdout_text = R"({"comments":[
+          {"file":"a.sh","line":1,"level":"warning","code":2034,"message":"m"},
+          {"file":"c.sh","line":2,"level":"error","code":1009,"message":"m"}
+        ]})";
+        return r;
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    CHECK(spawns == 1);  // NOT 3
+    auto in_argv = [&](const std::string& f) {
+        for (const auto& a : seen_argv) if (a == f) return true; return false;
+    };
+    CHECK(in_argv("a.sh")); CHECK(in_argv("b.sh")); CHECK(in_argv("c.sh"));
+    REQUIRE(out.size() == 2);
+    CHECK(out[0].file == "a.sh");
+    CHECK(out[1].file == "c.sh");
+}
+
+SCENARIO("[feature:dispatch] ADR-068 batching — gitleaks stays PER-FILE (single --source)") {
+    // @proves KEUR-SCAN-DISPATCH.gitleaks
+    // gitleaks detect --source takes a single path, so it is NOT batched: 3
+    // files → 3 spawns, each with exactly one --source file.
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"a.js", "b.py", "c.go"};
+    keur::config::Scanner gl; gl.name = "gitleaks"; gl.bin = "gitleaks";
+    gl.enabled = true; gl.on_path = true;
+    ctx.scanners = {gl};
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+    int spawns = 0;
+    std::vector<std::string> sources;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>& argv) {
+        ++spawns;
+        for (size_t i = 0; i + 1 < argv.size(); ++i)
+            if (argv[i] == "--source") sources.push_back(argv[i + 1]);
+        return keur::adapters::ProcResult{};
+    };
+    keur::scan::dispatch_scanners(ctx);
+    CHECK(spawns == 3);                  // one per file — gitleaks cannot batch
+    REQUIRE(sources.size() == 3);
+    CHECK(sources[0] == "a.js");
+    CHECK(sources[1] == "b.py");
+    CHECK(sources[2] == "c.go");
+}
+
+SCENARIO("[feature:dispatch] ADR-068 determinism — findings sorted by (file,line,rule)") {
+    // @proves KEUR-SCAN-DISPATCH
+    // A batched semgrep run emits findings in tool order (here: out of order);
+    // dispatch must re-impose a total (file,line,rule) order so batched output
+    // is byte-identical to the old per-file concatenation.
+    keur::scan::DispatchContext ctx;
+    ctx.files = {"z.js", "a.js", "m.js"};
+    keur::config::Scanner se; se.name = "semgrep"; se.bin = "semgrep";
+    se.enabled = true; se.on_path = true;
+    ctx.scanners = {se};
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+    ctx.proc.capture_argv = [](const std::vector<std::string>&) {
+        keur::adapters::ProcResult r;
+        // Deliberately unsorted: z.js:5, a.js:9(rule b), a.js:9(rule a), m.js:2.
+        r.stdout_text = R"({"results":[
+          {"check_id":"r.z","path":"z.js","start":{"line":5},"extra":{"severity":"ERROR","message":"m"}},
+          {"check_id":"r.b","path":"a.js","start":{"line":9},"extra":{"severity":"ERROR","message":"m"}},
+          {"check_id":"r.a","path":"a.js","start":{"line":9},"extra":{"severity":"ERROR","message":"m"}},
+          {"check_id":"r.m","path":"m.js","start":{"line":2},"extra":{"severity":"ERROR","message":"m"}}
+        ],"errors":[]})";
+        return r;
+    };
+    auto out = keur::scan::dispatch_scanners(ctx);
+    REQUIRE(out.size() == 4);
+    // a.js before m.js before z.js; within a.js:9, rule "r.a" before "r.b".
+    CHECK(out[0].file == "a.js"); CHECK(out[0].rule == "r.a");
+    CHECK(out[1].file == "a.js"); CHECK(out[1].rule == "r.b");
+    CHECK(out[2].file == "m.js");
+    CHECK(out[3].file == "z.js");
+}
+
+SCENARIO("[feature:dispatch] ADR-068 argv bound — a huge staged set spawns in MULTIPLE bounded chunks") {
+    // @proves KEUR-SCAN-DISPATCH
+    // The batched build_argv once passed ALL files in ONE argv with no size
+    // bound — a large staged set overruns ARG_MAX and execve fails E2BIG (the
+    // SonarCloud 'Security Rating D on new code' cause). run_adapter must now
+    // chunk the file list so each spawn's total argv byte length stays under the
+    // conservative 100 KiB bound, spawning once per chunk. Feed many long paths
+    // and assert (a) more than one spawn happens, (b) every spawn's argv is under
+    // the bound, (c) findings are still attributed per file across the chunks.
+    keur::scan::DispatchContext ctx;
+    // 400 paths of ~400 bytes each ≈ 160 KB of file bytes — comfortably over the
+    // 100 KB per-spawn bound, so it MUST split into multiple chunks.
+    std::vector<std::string> files;
+    const std::string long_dir(380, 'd');
+    for (int i = 0; i < 400; ++i)
+        files.push_back("src/" + long_dir + "/f" + std::to_string(i) + ".py");
+    ctx.files = files;
+    keur::config::Scanner se; se.name = "semgrep"; se.bin = "semgrep";
+    se.enabled = true; se.on_path = true;
+    ctx.scanners = {se};
+    ctx.exists = [](const std::string&) { return false; };
+    ctx.project_local_enabled = false;
+
+    int spawns = 0;
+    size_t max_argv_bytes = 0;
+    ctx.proc.capture_argv = [&](const std::vector<std::string>& argv) {
+        ++spawns;
+        size_t bytes = 0;
+        std::string first_file;
+        for (const auto& a : argv) {
+            bytes += a.size() + 1;
+            if (first_file.empty() && a.rfind("src/", 0) == 0) first_file = a;
+        }
+        if (bytes > max_argv_bytes) max_argv_bytes = bytes;
+        // Attribute one finding to the first file of THIS chunk, so we can prove
+        // findings survive across chunk boundaries (per-file attribution).
+        keur::adapters::ProcResult r;
+        r.stdout_text = std::string(R"({"results":[{"check_id":"r","path":")") +
+            first_file + R"(","start":{"line":1},"extra":{"severity":"ERROR","message":"m"}}],"errors":[]})";
+        return r;
+    };
+
+    auto out = keur::scan::dispatch_scanners(ctx);
+
+    CHECK(spawns > 1);                         // bounded → more than one chunk
+    CHECK(max_argv_bytes <= 100000);           // every spawn stayed under the bound
+    // One finding per chunk (first file of each), so findings count == spawns and
+    // each is attributed to a real staged file — attribution survives chunking.
+    CHECK(static_cast<int>(out.size()) == spawns);
+    for (const auto& f : out) CHECK(f.file.rfind("src/", 0) == 0);
 }
 
 SCENARIO("[feature:dispatch] dispatch — shellcheck only runs on shell files") {

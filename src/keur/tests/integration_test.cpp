@@ -21,6 +21,7 @@
 #include "cmd/check.h"
 #include "cmd/hook.h"
 #include "cmd/scan.h"
+#include "adapters/git.h"
 #include "test_helpers.h"
 
 using keur::test::create_temp_dir;
@@ -33,6 +34,8 @@ using keur::test::fixtures_dir;
 using keur::test::keur_rules_dir;
 using keur::test::has_rule;
 using keur::test::stage_fixture;
+using keur::test::scan_fixture;
+using keur::test::scan_inline;
 using keur::test::FakeFsState;
 using keur::test::make_fake_fs;
 
@@ -80,54 +83,35 @@ SCENARIO("[feature:generic-rules] a generic rule never fires standalone (ADR-059
 SCENARIO("[feature:rule-engine] RSA private key triggers KEUR-SEC-001") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());
-    std::string dir;
-    auto path = stage_fixture("secrets/rsa_key.pem", "id_rsa.pem", dir);
-    auto fs = keur::rules_scan_files(rules, {path});
+    auto fs = scan_fixture(rules, "secrets/rsa_key.pem", "id_rsa.pem");
     CHECK(!fs.empty());
     CHECK(has_rule(fs, "KEUR-SEC-001"));
     for (auto& f : fs)
         if (f.rule_id == "KEUR-SEC-001") CHECK(f.action == "block");
-    cleanup_dir(dir);
 }
 
 SCENARIO("[feature:rule-engine] EC private key triggers KEUR-SEC-001") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());
-    std::string dir;
-    auto path = stage_fixture("secrets/ec_key.pem", "id_ec.pem", dir);
-    auto fs = keur::rules_scan_files(rules, {path});
-    CHECK(has_rule(fs, "KEUR-SEC-001"));
-    cleanup_dir(dir);
+    CHECK(has_rule(scan_fixture(rules, "secrets/ec_key.pem", "id_ec.pem"), "KEUR-SEC-001"));
 }
 
 SCENARIO("[feature:rule-engine] OPENSSH private key triggers KEUR-SEC-001") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());
-    std::string dir;
-    auto path = stage_fixture("secrets/openssh_key.key", "id_ed25519.key", dir);
-    auto fs = keur::rules_scan_files(rules, {path});
-    CHECK(has_rule(fs, "KEUR-SEC-001"));
-    cleanup_dir(dir);
+    CHECK(has_rule(scan_fixture(rules, "secrets/openssh_key.key", "id_ed25519.key"), "KEUR-SEC-001"));
 }
 
 SCENARIO("[feature:rule-engine] clean file produces zero KEUR-SEC-001 findings") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());
-    std::string dir;
-    auto path = stage_fixture("clean/clean.yml", "config.yml", dir);
-    auto fs = keur::rules_scan_files(rules, {path});
-    CHECK(!has_rule(fs, "KEUR-SEC-001"));
-    cleanup_dir(dir);
+    CHECK(!has_rule(scan_fixture(rules, "clean/clean.yml", "config.yml"), "KEUR-SEC-001"));
 }
 
 SCENARIO("[feature:suppress] keur:ignore suppresses KEUR-SEC-001") {
     auto rules = keur::rules_load(keur_rules_dir());
     REQUIRE(!rules.empty());
-    std::string dir;
-    auto path = stage_fixture("secrets/suppressed_key.pem", "sup.pem", dir);
-    auto fs = keur::rules_scan_files(rules, {path});
-    CHECK(!has_rule(fs, "KEUR-SEC-001"));
-    cleanup_dir(dir);
+    CHECK(!has_rule(scan_fixture(rules, "secrets/suppressed_key.pem", "sup.pem"), "KEUR-SEC-001"));
 }
 
 SCENARIO("[feature:rule-engine] custom pattern rule fires on trigger file") {  // @proves engine-pattern
@@ -204,30 +188,17 @@ SCENARIO("[feature:rule-engine] skip_binary opts a pattern rule out of binary co
 SCENARIO("[feature:rule-engine] KEUR-QUAL-014 fires on a bash script without strict mode") {  // @proves KEUR-QUAL-014
     auto rules = keur::rules_load(keur_rules_dir() + "/quality");
     REQUIRE(!rules.empty());
-    std::string dir = create_temp_dir();
-    // No `set -euo pipefail` → absence rule fires.
-    write_file(dir + "/no_strict.sh", "#!/usr/bin/env bash\necho hi\n");
-    auto miss = keur::rules_scan_files(rules, {dir + "/no_strict.sh"});
-    CHECK(has_rule(miss, "KEUR-QUAL-014"));
-    // Strict mode present → no finding.
-    write_file(dir + "/has_strict.sh", "#!/usr/bin/env bash\nset -euo pipefail\necho hi\n");
-    auto ok = keur::rules_scan_files(rules, {dir + "/has_strict.sh"});
-    CHECK(!has_rule(ok, "KEUR-QUAL-014"));
-    cleanup_dir(dir);
+    // No `set -euo pipefail` → absence rule fires; present → no finding.
+    CHECK(has_rule(scan_inline(rules, "no_strict.sh", "#!/usr/bin/env bash\necho hi\n"), "KEUR-QUAL-014"));
+    CHECK(!has_rule(scan_inline(rules, "has_strict.sh", "#!/usr/bin/env bash\nset -euo pipefail\necho hi\n"), "KEUR-QUAL-014"));
 }
 
 SCENARIO("[feature:rule-engine] KEUR-QUAL-012 fires on curl without a timeout") {  // @proves KEUR-QUAL-012
     auto rules = keur::rules_load(keur_rules_dir() + "/quality");
     REQUIRE(!rules.empty());
-    std::string dir = create_temp_dir();
-    write_file(dir + "/no_timeout.sh", "#!/usr/bin/env bash\ncurl https://example.com/x\n");
-    auto miss = keur::rules_scan_files(rules, {dir + "/no_timeout.sh"});
-    CHECK(has_rule(miss, "KEUR-QUAL-012"));
-    // A timeout flag on the same line suppresses via exclude:.
-    write_file(dir + "/has_timeout.sh", "#!/usr/bin/env bash\ncurl --max-time 30 https://example.com/x\n");
-    auto ok = keur::rules_scan_files(rules, {dir + "/has_timeout.sh"});
-    CHECK(!has_rule(ok, "KEUR-QUAL-012"));
-    cleanup_dir(dir);
+    // No timeout → fires; a --max-time flag on the same line suppresses via exclude:.
+    CHECK(has_rule(scan_inline(rules, "no_timeout.sh", "#!/usr/bin/env bash\ncurl https://example.com/x\n"), "KEUR-QUAL-012"));
+    CHECK(!has_rule(scan_inline(rules, "has_timeout.sh", "#!/usr/bin/env bash\ncurl --max-time 30 https://example.com/x\n"), "KEUR-QUAL-012"));
 }
 
 // --- path-derived engine (ADR-020) ------------------------------------------
@@ -1449,6 +1420,209 @@ SCENARIO("[feature:rule-engine] composite all/any/not combines leaf rules") {  /
     for (auto& f : f2) if (f.rule_id == "COMP-1") comp_good++;
     CHECK(comp_good == 0);  // not(B) is false because B fired
     cleanup_dir(dir);
+}
+
+// --- [feature:merge-scope] real-git scoping (closes the iteration-1 gap) -----
+// The pure selector tests (unit suite) run a FAKE Git, so they cannot catch a
+// wrong git invocation inside default_merge_scoped_files(). This test builds a
+// REAL 2-parent WIDE merge (both sides modify several SHARED files, and THIS
+// side also adds its own) and drives the REAL git adapter end to end. It is the
+// exact defect class ADR-068 Decision 2 fixes: it FAILS with
+// `--cached --diff-filter=M` (which returns every file BOTH sides touched) and
+// PASSES only with the merge-base three-dot diff (base...HEAD = THIS side's own
+// contribution). @proves ADR-068.resolved-realgit
+SCENARIO("[feature:merge-scope] real git: WIDE merge scopes to only THIS side's contribution") {
+    // git must be on PATH for this to mean anything; skip cleanly if not.
+    if (std::system("git --version >/dev/null 2>&1") != 0) return;
+
+    keur::test::TempDir td;
+    REQUIRE(td.valid());
+    const std::string repo = td.path();
+
+    auto run = [&](const std::string& cmd) { return keur::test::git_run(repo, cmd); };
+
+    REQUIRE(run("git init -q") == 0);
+    REQUIRE(run("git checkout -q -b main") == 0);
+
+    // Base commit on main: five shared files BOTH sides will touch, plus a base
+    // file so the tree is non-empty.
+    for (int i = 1; i <= 5; ++i)
+        write_file(repo + "/shared" + std::to_string(i) + ".txt", "base\n");
+    write_file(repo + "/base.txt", "base\n");
+    REQUIRE(run("git add -A") == 0);
+    REQUIRE(run("git commit -q -m base") == 0);
+
+    // Feature branch (the INCOMING work — already gated on its way to main):
+    // modifies ALL five shared files (shared1..shared5) and adds two of its own
+    // (feat1, feat2). None of this is THIS developer's responsibility on the
+    // merge commit.
+    REQUIRE(run("git checkout -q -b feature") == 0);
+    for (int i = 1; i <= 5; ++i)
+        write_file(repo + "/shared" + std::to_string(i) + ".txt",
+                   "feature-change " + std::to_string(i) + "\n");
+    write_file(repo + "/feat1.txt", "incoming\n");
+    write_file(repo + "/feat2.txt", "incoming\n");
+    REQUIRE(run("git add -A") == 0);
+    REQUIRE(run("git commit -q -m feature") == 0);
+
+    // Back on main — THIS developer's own contribution since the fork: modify
+    // only shared1..shared3 (conflicting with feature on those three) and add
+    // two brand-new files (own1, own2). shared4/shared5 are left untouched on
+    // THIS side, so they come in cleanly from feature.
+    REQUIRE(run("git checkout -q main") == 0);
+    for (int i = 1; i <= 3; ++i)
+        write_file(repo + "/shared" + std::to_string(i) + ".txt",
+                   "main-change " + std::to_string(i) + "\n");
+    write_file(repo + "/own1.txt", "mine\n");
+    write_file(repo + "/own2.txt", "mine\n");
+    REQUIRE(run("git add -A") == 0);
+    REQUIRE(run("git commit -q -m main-edit") == 0);
+
+    // Merge feature → conflicts on shared1..shared3 (both sides changed them);
+    // shared4/shared5 + feat1/feat2 merge cleanly from feature.
+    // --no-commit leaves the merge in progress with MERGE_HEAD present; a
+    // non-zero exit here is expected (the conflict).
+    run("git merge --no-commit --no-ff feature");
+
+    // Resolve the three conflicts — THIS commit's decisions.
+    for (int i = 1; i <= 3; ++i) {
+        write_file(repo + "/shared" + std::to_string(i) + ".txt",
+                   "resolved " + std::to_string(i) + "\n");
+        REQUIRE(run("git add shared" + std::to_string(i) + ".txt") == 0);
+    }
+
+    // Drive the REAL git adapter from inside the repo. Capture state WHILE still
+    // cwd'd in (after chdir back these would hit the outer repo); ScopedChdir
+    // restores the original cwd on block exit — checked, and even if a REQUIRE
+    // throws. Declared outside the block so the captures outlive the cwd scope.
+    bool merging = false;
+    std::vector<std::string> full;
+    std::vector<std::string> scoped;
+    {
+        keur::test::ScopedChdir cd(repo);
+        REQUIRE(cd.enter_ok());
+
+        keur::adapters::Git git;
+
+        // Merge detection must fire (MERGE_HEAD present).
+        merging = git.merge_in_progress();
+        CHECK(merging);
+
+        // Full staged set: the merge's staged tree relative to HEAD — shared1..5
+        // (all five differ after the merge) + feat1/feat2 = 7 files. own1/own2
+        // were committed on main BEFORE the merge, so they are in HEAD and the
+        // merge does not re-stage them. This 7-file set is what the old code
+        // wrongly scanned, and what `--diff-filter=M` would still over-include
+        // (shared4/shared5 were Modified by the incoming side). base...HEAD also
+        // names own1/own2 (this side's commits), so the staged-set INTERSECTION
+        // is what drops them.
+        full = git.staged_files();
+
+        // Merge-scoped set: ONLY THIS side's contribution that is actually part
+        // of the merge's staged tree. The staged tree during a merge is what the
+        // merge CHANGES relative to HEAD (main's tip) — so own1/own2, already
+        // committed on main before the merge, are in HEAD and NOT re-staged by
+        // it. What remains of THIS side's work in the merge is the three conflict
+        // resolutions (shared1..shared3 = base...HEAD ∩ staged). The other side's
+        // files (shared4/shared5 modified only by feature, feat1/feat2 added by
+        // feature) are NOT this developer's responsibility and must be excluded.
+        scoped = git.merge_scoped_files();
+    }
+
+    // Full set = everything the merge stages relative to HEAD: shared1..5
+    // (all five differ from main's tip after the merge) + feat1/feat2 = 7.
+    // own1/own2 are already in HEAD, so the merge does not stage them. This is
+    // the over-broad set the old code scanned.
+    CHECK(full.size() == 7);
+
+    std::set<std::string> scoped_set(scoped.begin(), scoped.end());
+    // THIS side's conflict resolutions MUST be present.
+    CHECK(scoped_set.count("shared1.txt") == 1);
+    CHECK(scoped_set.count("shared2.txt") == 1);
+    CHECK(scoped_set.count("shared3.txt") == 1);
+    // The OTHER side's files MUST be absent — THIS is the defect class. With
+    // `--cached --diff-filter=M` shared4/shared5 (Modified by the incoming
+    // merge) would wrongly appear; with the merge-base three-dot diff
+    // (base...HEAD = what main's side changed since the fork) they do not,
+    // because this side never touched shared4/shared5.
+    CHECK(scoped_set.count("shared4.txt") == 0);
+    CHECK(scoped_set.count("shared5.txt") == 0);
+    CHECK(scoped_set.count("feat1.txt") == 0);
+    CHECK(scoped_set.count("feat2.txt") == 0);
+    // Exactly THIS side's three files (the staged subset of base...HEAD),
+    // strictly smaller than the merged tree. A `--diff-filter=M` query would
+    // instead return 5 (shared1..5) — the exact regression this guards against.
+    CHECK(scoped.size() == 3);
+    CHECK(scoped.size() < full.size());
+
+    // And the selector wires it through: resolved + merging → the scoped set.
+    auto selected = keur::cmd::select_scoped_files(
+        keur::cmd::MergeScope::Resolved, merging, full, scoped);
+    CHECK(selected == scoped);
+}
+
+// --- [feature:merge-scope] empty-scope cleanliness (Fix 3 / CodeRabbit) ------
+// When THIS developer's side adds NOTHING of its own since the fork (main did
+// not advance past the merge-base), the three-dot diff base...HEAD is EMPTY.
+// merge_scoped_files() must return an EMPTY scope in that case — the incoming
+// work was already gated on main — and must NOT fall through to the full staged
+// set (the pre-fix bug, which re-gated the entire incoming tree). @proves
+// ADR-068.resolved-empty-scope
+SCENARIO("[feature:merge-scope] real git: no own contribution → empty scope, not full staged") {
+    if (std::system("git --version >/dev/null 2>&1") != 0) return;
+
+    keur::test::TempDir td;
+    REQUIRE(td.valid());
+    const std::string repo = td.path();
+
+    auto run = [&](const std::string& cmd) { return keur::test::git_run(repo, cmd); };
+
+    REQUIRE(run("git init -q") == 0);
+    REQUIRE(run("git checkout -q -b main") == 0);
+    write_file(repo + "/base.txt", "base\n");
+    REQUIRE(run("git add -A") == 0);
+    REQUIRE(run("git commit -q -m base") == 0);
+
+    // Feature advances (the incoming work); main stays at the fork point, so
+    // this side contributes NOTHING of its own since the merge-base.
+    REQUIRE(run("git checkout -q -b feature") == 0);
+    write_file(repo + "/feat1.txt", "incoming\n");
+    write_file(repo + "/feat2.txt", "incoming\n");
+    REQUIRE(run("git add -A") == 0);
+    REQUIRE(run("git commit -q -m feature") == 0);
+
+    REQUIRE(run("git checkout -q main") == 0);
+    // Non-fast-forward merge leaves MERGE_HEAD present with the full incoming
+    // tree staged, but base...HEAD is empty (main == merge-base).
+    run("git merge --no-commit --no-ff feature");
+
+    // Capture adapter state from inside the repo; ScopedChdir restores the
+    // original cwd on block exit (checked, exception-safe). Captures are
+    // declared outside so they outlive the cwd scope.
+    bool merging = false;
+    std::vector<std::string> full;
+    std::vector<std::string> scoped;
+    {
+        keur::test::ScopedChdir cd(repo);
+        REQUIRE(cd.enter_ok());
+
+        keur::adapters::Git git;
+        merging = git.merge_in_progress();
+        CHECK(merging);
+        full   = git.staged_files();       // the incoming tree (feat1/feat2)
+        scoped = git.merge_scoped_files();  // THIS side's own: nothing
+    }
+
+    CHECK(full.size() >= 2);                 // incoming work IS staged
+    CHECK(scoped.empty());                   // but THIS side added nothing
+    CHECK(scoped.size() < full.size());      // must NOT fall through to full
+
+    // Selector: resolved + merging + empty scope → scan NOTHING (the incoming
+    // work was already gated on main). This is exactly what lets check.cpp's
+    // empty-scope path reach branch protection without re-gating a wide merge.
+    auto selected = keur::cmd::select_scoped_files(
+        keur::cmd::MergeScope::Resolved, merging, full, scoped);
+    CHECK(selected.empty());
 }
 
 } // TEST_SUITE("integration")

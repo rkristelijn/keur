@@ -33,6 +33,29 @@ enum class Tier { PreCommit, PrePush };
 enum class Verdict { Pass, Warn, Block };
 
 /**
+ * Merge-aware scoping for `keur check` (ADR-068 Decision 2). On a merge commit
+ * `git diff --cached` reports the ENTIRE merged tree, re-gating work other devs
+ * already gated on main. This knob chooses what keur is responsible for:
+ *   - Resolved (default): during a merge scan only the conflict-resolved files;
+ *                         otherwise the normal staged set.
+ *   - All: always scan the full staged set (today's behaviour, reproduces the
+ *          pre-ADR-068 output — used to force-gate a whole merge).
+ *   - Skip: during a merge scan nothing (PASS) — the incoming work was gated.
+ * @implements ADR-068
+ */
+enum class MergeScope { Resolved, All, Skip };
+
+/**
+ * Parse a merge_scope value ("resolved"|"all"|"skip", case-insensitive). An
+ * empty or unrecognised value yields nullopt so callers keep the lower layer's
+ * value (default → keur.toml → env/flag resolve in that order). @implements ADR-068
+ */
+std::optional<MergeScope> parse_merge_scope(const std::string& value);
+
+/** Human-readable name of a MergeScope ("resolved"|"all"|"skip"). */
+std::string merge_scope_name(MergeScope scope);
+
+/**
  * Aggregated scanner signals fed into the policy engine.
  * Boolean flags so adding new scanner types doesn't change the interface.
  */
@@ -47,6 +70,9 @@ struct CheckOptions {
     Tier        tier   = Tier::PreCommit;
     std::string ai     = "off";
     std::string config;
+    // One-shot merge-scope override from --merge-scope (highest precedence,
+    // above env and keur.toml). nullopt = no flag given. @implements ADR-068
+    std::optional<MergeScope> merge_scope_override;
 };
 
 // ---------------------------------------------------------------------------
@@ -110,6 +136,74 @@ std::string format_finding_line(const std::string& rule, const std::string& acti
  * @param git  adapters::Git adapter (defaults to the real git CLI).
  */
 std::vector<std::string> staged_files(const adapters::Git& git = adapters::Git{});
+
+/**
+ * Resolve the effective merge_scope following keur's config stack, same order
+ * as block-at / KEUR_SCAN_THREADS:
+ *   code default (Resolved) → `[pre_commit] merge_scope` in keur.toml →
+ *   env KEUR_MERGE_SCOPE → --merge-scope flag (flag_override).
+ * Each later layer wins only when it provides a recognised value. Pure: the
+ * toml body and env value are passed in, so it is unit-testable without I/O.
+ * @implements ADR-068
+ */
+MergeScope resolve_merge_scope(const std::string& toml_body,
+                               const std::string& env_value,
+                               std::optional<MergeScope> flag_override);
+
+/**
+ * Read `[pre_commit] merge_scope` from a keur.toml body. Returns nullopt when
+ * the key is absent (so the default survives). Section-aware: the key only
+ * counts under [pre_commit]. @implements ADR-068
+ */
+std::optional<MergeScope> parse_merge_scope_toml(const std::string& toml_body);
+
+/**
+ * Fold the `[pre_commit] merge_scope` key across the config layer stack in
+ * GLOBAL→REPO order (same cascade keur uses for [difficulty] / disabled, via
+ * config::resolve_layers): each later body that sets a recognised value wins,
+ * so repo keur.toml overrides global keur.toml, and an absent key never
+ * clobbers a lower layer. Returns nullopt when NO layer sets it (the code
+ * default then survives). Pure: bodies are passed in global→repo order, so it
+ * is unit-testable without I/O. @implements ADR-068
+ */
+std::optional<MergeScope> resolve_merge_scope_toml_layered(
+    const std::vector<std::string>& bodies_global_to_repo);
+
+/**
+ * Resolve the effective merge_scope across the FULL config stack and overrides,
+ * same precedence as other keur config:
+ *   code default (Resolved) < global keur.toml < repo keur.toml
+ *     < KEUR_MERGE_SCOPE env < --merge-scope flag.
+ * `bodies_global_to_repo` is the [pre_commit]-bearing keur.toml bodies in
+ * global→repo order (from config::resolve_layers). Pure (no I/O). @implements ADR-068
+ */
+MergeScope resolve_merge_scope_layered(
+    const std::vector<std::string>& bodies_global_to_repo,
+    const std::string& env_value, std::optional<MergeScope> flag_override);
+
+/**
+ * Select the file list for a check run given the resolved scope and the git
+ * state. Pure over the three inputs (merge-in-progress + the two file lists),
+ * so the scope logic is table-testable without a repo:
+ *   - All:      always full_staged.
+ *   - Resolved: merge_scoped when a merge is in progress, else full_staged.
+ *   - Skip:     empty when a merge is in progress, else full_staged.
+ * @implements ADR-068
+ */
+std::vector<std::string> select_scoped_files(
+    MergeScope scope, bool merge_in_progress,
+    const std::vector<std::string>& full_staged,
+    const std::vector<std::string>& merge_scoped);
+
+/**
+ * Decide whether `keur check` may take the early PASS when the scoped file set
+ * is empty. Branch protection (KEUR-BRANCH-001) is a property of the branch, not
+ * of the staged files, so an empty-scope merge that still warrants a branch
+ * finding must NOT short-circuit. Pure: the early PASS is taken ONLY when there
+ * are no files AND no branch finding. This encodes the Fix 2 ordering guarantee
+ * (branch protection evaluated before the empty-scope return). @implements ADR-057
+ */
+bool early_pass_on_empty_scope(bool files_empty, bool has_branch_finding);
 
 /**
  * A FileSource is any callable that returns a list of files to check.

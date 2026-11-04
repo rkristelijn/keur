@@ -1,7 +1,7 @@
 # ADR-024 — Scan CPU reduction: combined-regex (`RE2::Set`) + file-level literal pre-filter
 
 @id ADR-024
-**Status**: proposed · **Date**: 2026-09-23 · **Coverage**: none · **Relates to**: ADR-001 (the RE2 line engine this optimises), ADR-007 (pattern `exclude` — interacts with combined matching), ADR-014 (engine registry — where combined matching plugs in), ADR-025 (parallel scan — the complementary lever)
+**Status**: proposed · **Date**: 2026-09-23 · **Coverage**: none · **Relates to**: ADR-001 (the RE2 line engine this optimises), ADR-007 (pattern `exclude` — interacts with combined matching), ADR-014 (engine registry — where combined matching plugs in), ADR-025 (parallel scan — the complementary lever), ADR-068 (batched external-scanner invocation — the same spawn-cost lever, but for the external-tool layer in `keur check`, not the internal RE2 engine)
 
 ## Context
 
