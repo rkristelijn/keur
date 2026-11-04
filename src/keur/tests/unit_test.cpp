@@ -336,7 +336,12 @@ SCENARIO("[feature:check] a PASS writes to stdout, not stderr") {  // @proves ho
 }
 
 SCENARIO("[feature:check] staged_files returns empty outside a git repo") {
-    keur::test::ScopedChdir cd("/tmp");
+    // A fresh private tempdir (mkdtemp, 0700) that is NOT a git repo. Using a
+    // hardcoded world-writable path like /tmp here trips cpp:S5443; TempDir is
+    // both safe and sufficient — the point is only "not inside a repo".
+    keur::test::TempDir td;
+    REQUIRE(td.valid());
+    keur::test::ScopedChdir cd(td.path());
     REQUIRE(cd.enter_ok());
     CHECK(keur::cmd::staged_files().empty());
 }
