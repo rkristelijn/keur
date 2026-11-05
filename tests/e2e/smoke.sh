@@ -44,6 +44,33 @@ check() {  # check "<label>" <expected_exit> "<must-contain>" -- <cmd...>
   fi
 }
 
+# keur is a LOCAL commit-hook, not a CI gate: some of its rules are properties
+# of the git context the committer sits in, not of the binary. The clearest
+# example is KEUR-BRANCH-001 (ADR-057) — "don't commit directly to the default
+# branch" — which BLOCKS when `keur check` runs on `main` at a managed maturity
+# level. keur's OWN repo is level 5, and CI checks `main` out as a real branch,
+# so running `keur check` from the repo root makes the binary enforce keur's own
+# branch discipline against the test harness and exit 1 (ADR-073). That is
+# correct product behaviour, wrong thing to assert here: the `check (no stage)`
+# smoke must verify a binary PROPERTY ("nothing staged -> PASS"), independent of
+# which branch CI happens to check out. So we run it in a hermetic sandbox: a
+# throwaway git repo on a feature branch, with HOME/XDG isolated so neither
+# keur's own keur.toml nor the runner's global config leaks in.
+SANDBOX=""
+make_sandbox() {  # prints the sandbox repo path on stdout
+  local sb; sb="$(mktemp -d)"
+  SANDBOX="$sb"
+  (
+    cd "$sb" || exit 1
+    git init -q -b feature/smoke-check
+    git config user.email smoke@keur.test
+    git config user.name  "keur smoke"
+  )
+  printf '%s' "$sb"
+}
+cleanup_sandbox() { [[ -n "$SANDBOX" && -d "$SANDBOX" ]] && rm -rf "$SANDBOX"; }
+trap cleanup_sandbox EXIT
+
 echo "==> keur smoke test ($BIN)"
 
 # 1. version — prints a version string, exit 0.
@@ -54,8 +81,13 @@ check "help"             0 "scan" -- "$BIN" help
 check "policy explain"   0 "block-at" -- "$BIN" policy explain
 # 4. scan — runs the rule engine over a directory, exit 0 (scan never blocks).
 check "scan (self)"      0 "" -- "$BIN" scan "$ROOT/rules"
-# 5. check — with nothing staged it prints PASS and exits 0.
-check "check (no stage)" 0 "PASS" -- "$BIN" check
+# 5. check — with nothing staged it prints PASS and exits 0. Run in a hermetic
+#    sandbox (feature branch + isolated HOME/XDG) so branch discipline and the
+#    runner's global config cannot turn this binary-property check into a BLOCK.
+SB="$(make_sandbox)"
+check "check (no stage)" 0 "PASS" -- \
+  env -i PATH="$PATH" HOME="$SB/home" XDG_CONFIG_HOME="$SB/home/.config" \
+  sh -c 'cd "$1" && exec "$2" check' _ "$SB" "$BIN"
 
 echo ""
 echo "  Smoke: $PASS passed, $FAIL failed"
