@@ -1,0 +1,28 @@
+# Chrome extension: remote code execution is forbidden under Manifest V3 and is
+# a Web Store rejection + supply-chain risk. eval/new Function/importScripts and
+# document.write all let code outside the reviewed bundle run.
+# HOW: gate to repos that have a manifest.json (fact below is cheap — we use a
+# manifest.json content pre-filter), match the JS constructs. @see docs/rules-authoring.md
+id: CHROME-SEC-001
+ilities: [integrity]
+maturity: 3
+title: Chrome extension loads/executes remote or dynamic code
+category: security
+severity: error
+engine: pattern
+action: block
+confidence: 0.9
+skip_comments: true
+target:
+  extensions: .js
+  exclude_paths: test/ tests/ node_modules/ dist/ vendor/
+patterns:
+  - regex: \beval\s*\(
+    message: "eval() executes arbitrary code — forbidden in MV3 extensions. Remove it."
+  - regex: new\s+Function\s*\(
+    message: "new Function() is dynamic code execution — forbidden in MV3. Remove it."
+  - regex: \bimportScripts\s*\(\s*[\"']https?://
+    message: "importScripts() from a remote URL loads unreviewed code — forbidden. Bundle the script."
+  - regex: \bdocument\.write\s*\(
+    message: "document.write() can inject unreviewed markup/scripts — remove it."
+fix: "Bundle all code in the extension package; MV3 disallows remote/dynamic code."

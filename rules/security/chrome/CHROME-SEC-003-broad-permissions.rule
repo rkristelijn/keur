@@ -1,0 +1,22 @@
+# Chrome extension: over-broad host permissions. <all_urls> or *://*/* grants
+# the extension access to every site the user visits — a privacy red flag and a
+# frequent Web Store rejection. Prefer activeTab or specific host patterns.
+# Targets manifest.json specifically. @see docs/rules-authoring.md
+id: CHROME-SEC-003
+ilities: [confidentiality]
+maturity: 3
+title: Chrome extension requests over-broad host permissions
+category: security
+severity: warning
+engine: pattern
+action: warn
+confidence: 0.7
+target:
+  filenames: manifest.json
+  content_contains: permissions
+patterns:
+  - regex: <all_urls>
+    message: "<all_urls> host permission — access to every site. Scope to specific hosts or use activeTab."
+  - regex: \"\\*://\\*/\\*\"
+    message: "*://*/* host permission — effectively all sites. Scope it down or use activeTab."
+fix: "Replace with activeTab or specific match patterns (e.g. https://example.com/*)."
