@@ -25,6 +25,10 @@ patterns:
     message: "here-string '<<<' is bash-only, not available in BusyBox/Alpine sh — use 'set -- $var', printf | read, or a pipe"
   - regex: sort\s+-V\b
     message: "sort -V (version sort) is not in BusyBox — use a numeric comparison function"
+  - regex: \bexport\s+-f\b
+    message: "export -f (exporting functions) is bash-only, not in BusyBox/Alpine sh — restructure without exported functions"
+  - regex: (^|[^v])/usr/bin/(grep|wc|tr|sed|awk|cut|sort|find|head|tail|cat|xargs)\b
+    message: "hardcoded /usr/bin/<tool> path — on Alpine these live in /bin and the absolute path fails (exit 127). Use the bare command name (resolved via PATH) or 'command <tool>'"
   - regex: grep\s+-c\b
     message: "grep -c may not be available in all BusyBox builds — use 'grep | wc -l' as fallback"
   - regex: \[\[\s+.*\s+=~\s+
