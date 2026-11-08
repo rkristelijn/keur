@@ -1,0 +1,27 @@
+id: SH-QUAL-016
+ilities: [correctness, analysability]
+source: keur
+maturity: 3
+action: warn
+title: Broken command substitution inside a shell test
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/
+patterns:
+  # A `[ -x "..." ]` test whose operand starts with a non-'$' character yet
+  # contains a piped command and a closing ')' before the test ends — the
+  # hallmark of a mangled command substitution where a bad edit dropped the
+  # leading '$(', leaving a dangling 'cmd ... )' inside the test. Some sh builds
+  # don't error on this; the test then silently evaluates a literal, so a guard
+  # that should gate a block becomes always-true (or always-false).
+  # Fires on:     [ -n "20 20 printf %s "" | tr -d " ")" ]
+  # Silent on:    [ -n "$(printf %s "$VAR" | tr -d ' ')" ]   (proper $())
+  #               [ "$(ls | wc -l)" -gt 0 ]                   (operand is $())
+  #               [ -n "$VAR" ]                               (no pipe at all)
+  - regex: \[\s+-[a-z]\s+"[^$].*\s\|\s.*\)"\s*\]
+    message: "Shell test operand pipes a command and has a dangling ')' but doesn't start with '$(' — looks like a broken command substitution (a mangled edit dropped the '$('). The test silently evaluates a literal instead of running the command. Restore '$( ... )', e.g. [ -n \"$(printf %s \"$VAR\" | tr -d ' ')\" ], then confirm with 'bash -n'."
+fix: "Wrap the piped command in a proper substitution: [ -n \"$(cmd | ...)\" ] (note the leading '$('). Run 'bash -n script.sh' or shellcheck to confirm the test parses."
