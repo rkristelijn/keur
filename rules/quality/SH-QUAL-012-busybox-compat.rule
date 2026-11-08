@@ -13,12 +13,18 @@ target:
 patterns:
   - regex: grep\s+--include
     message: "grep --include is not supported in BusyBox/Alpine — use find + grep instead"
+  - regex: grep\s+--exclude
+    message: "grep --exclude is not supported in BusyBox/Alpine — use find + grep instead"
   - regex: grep\s+-P\b
     message: "grep -P (Perl regex) is not available in BusyBox — use grep -E for extended regex"
   - regex: \bmapfile\b
     message: "mapfile/readarray is bash 4+ only, not available in BusyBox ash — use 'while IFS= read -r'"
   - regex: \breadarray\b
     message: "readarray is bash 4+ only, not available in BusyBox ash — use 'while IFS= read -r'"
+  - regex: <<<
+    message: "here-string '<<<' is bash-only, not available in BusyBox/Alpine sh — use 'set -- $var', printf | read, or a pipe"
+  - regex: sort\s+-V\b
+    message: "sort -V (version sort) is not in BusyBox — use a numeric comparison function"
   - regex: grep\s+-c\b
     message: "grep -c may not be available in all BusyBox builds — use 'grep | wc -l' as fallback"
   - regex: \[\[\s+.*\s+=~\s+
