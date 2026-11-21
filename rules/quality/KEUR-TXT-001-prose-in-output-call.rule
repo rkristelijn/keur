@@ -1,0 +1,42 @@
+# keur quality — human prose passed straight to an output call (ADR-074, ADR-073
+# category 5). Messages, warnings, status lines and report text belong in a message
+# catalog and are rendered by a reporter adapter; code emits a code plus parameters.
+#
+# "Prose" = a literal with at least three words (letters, two or more each),
+# where printf-style specifiers (%8.1f, %s, %zu) count as separators, so
+# "store write %8.1f ms (encrypted)" is prose and "%s: %d\n" is not. Single tokens
+# ("ok", "--version"), data output (print(json.dumps(x)), echo "$VAR") and format-only
+# strings do not match.
+#
+# Excluded paths: the places where text legitimately lives or is rendered —
+# reporter/, messages/, locale/, i18n/ — plus tests, vendor and generated code.
+# A repo with a different reporter directory overrides exclude_paths.
+#
+# Fixtures: tests/fixtures/inline-text/{positive,negative}
+# @implements ADR-074 ADR-073
+id: KEUR-TXT-001
+ilities: [analysability, modifiability, adaptability]
+source: keur
+maturity: 3
+action: warn
+title: Human prose literal passed to an output call
+category: quality
+severity: warning
+engine: pattern
+confidence: 0.7
+skip_comments: true
+target:
+  extensions: .c .cc .cpp .cxx .h .hh .hpp .hxx .m .mm .py .js .jsx .mjs .cjs .ts .tsx .sh .bash .zsh
+  exclude_paths: test/ tests/ spec/ vendor/ node_modules/ build/ dist/ _generated. reporter/ messages/ locale/ i18n/
+patterns:
+  - regex: \b(?:std::)?(?:printf|puts|perror)\s*\(\s*"[^"]*?[A-Za-z]{2,}(?:[\s,:;.()/'-]|%[-+ #0-9.]*[a-zA-Z]+)+[A-Za-z]{2,}(?:[\s,:;.()/'-]|%[-+ #0-9.]*[a-zA-Z]+)+[A-Za-z]{2,}
+    message: "Prose in printf/puts. Emit a diagnostic or label code with parameters and let the reporter render the text from the message catalog (ADR-074)."
+  - regex: \b(?:std::)?fprintf\s*\(\s*[\w:]+\s*,\s*"[^"]*?[A-Za-z]{2,}(?:[\s,:;.()/'-]|%[-+ #0-9.]*[a-zA-Z]+)+[A-Za-z]{2,}(?:[\s,:;.()/'-]|%[-+ #0-9.]*[a-zA-Z]+)+[A-Za-z]{2,}
+    message: "Prose in fprintf. Errors and warnings are diagnostics: a stable code (AREA-NNN) plus parameters, with the text in the catalog (ADR-074)."
+  - regex: \b(?:std::)?(?:cout|cerr|clog)\b[^;]*?<<\s*"[^"]*?[A-Za-z]{2,}(?:[\s,:;.()/'-]|%[-+ #0-9.]*[a-zA-Z]+)+[A-Za-z]{2,}(?:[\s,:;.()/'-]|%[-+ #0-9.]*[a-zA-Z]+)+[A-Za-z]{2,}
+    message: "Prose streamed to cout/cerr. Render it through the reporter from the message catalog instead (ADR-074)."
+  - regex: \b(?:console\.(?:log|warn|error|info)|print|sys\.std(?:out|err)\.write)\s*\(\s*f?["'\x60][^"'\x60]*?[A-Za-z]{2,}(?:[\s,:;.()/-]|%[-+ #0-9.]*[a-zA-Z]+)+[A-Za-z]{2,}(?:[\s,:;.()/-]|%[-+ #0-9.]*[a-zA-Z]+)+[A-Za-z]{2,}
+    message: "Prose in a print/console call. Use message keys and a reporter, so text is reviewable, translatable and searchable by code (ADR-074)."
+  - regex: ^\s*(?:echo|printf)\s+(?:-[a-zA-Z]+\s+)*["'][^"']*?[A-Za-z]{2,}(?:[\s,:;.()/-]|%[-+ #0-9.]*[a-zA-Z]+)+[A-Za-z]{2,}(?:[\s,:;.()/-]|%[-+ #0-9.]*[a-zA-Z]+)+[A-Za-z]{2,}
+    message: "Prose in echo/printf. In a script that is more than glue, keep user-facing text in one messages file and print by key (ADR-074)."
+fix: "Define the message once in the catalog (e.g. messages/en/diagnostics.toml: code, severity, text with {params}, fix) and emit it by code with parameters; the reporter renders text/JSON/SARIF. For a deliberate one-off (a debug print), add on that line: keur:ignore KEUR-TXT-001 <reason>."
