@@ -11,6 +11,10 @@
 ══════════════════════════════════════════════════════════
   run: ai-slop-fake-test.tape
 ══════════════════════════════════════════════════════════
+test('parses the config', () => {
+  const result = parseConfig(raw);
+  expect(result).toBeTruthy();
+});
 keur scan: 15 finding(s) in config.test.js
 {"source":"keur-rules","rule":"SLOP-107","title":"Weak test assertion (toBeTruthy, toBeDefined, != null)","category":"quality","severity":"warning","action":"advisory","confidence":0.4,"deterministic":true,"file":"config.test.js","line":3,"message":"Weak assertion — toBeTruthy passes for any non-falsy value, use specific matcher"}
 # SLOP-107 — Weak test assertion (toBeTruthy, toBeDefined, != null)
@@ -24,6 +28,10 @@ Use precise assertions: toEqual(expected), toHaveProperty('key', value), toMatch
 
 ## Suppress (if a genuine false positive)
 `# keur:ignore SLOP-107`  (or a .keurignore entry — ADR-035)
+test('parses the config', () => {
+  const result = parseConfig(raw);
+  expect(result.port).toBe(8080);
+});
 keur scan: 15 finding(s) in config.test.js
 0
 
