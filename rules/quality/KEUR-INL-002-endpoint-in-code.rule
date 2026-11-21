@@ -1,0 +1,45 @@
+# keur quality — an API endpoint embedded in code: a URL with an API path, a
+# query string, or a path segment glued onto a variable to build a request URL
+# (ADR-073 category 4, docs/research/inline-code.md, KEUR-INL-002).
+#
+# Why: endpoints, paths and query parameters change when the vendor changes,
+# not when the code changes. In a config-driven client (loods catalog, kooiaapi
+# provider.toml) they are data; in code they force a rebuild and hide the API
+# contract from review. The spike S-3 shapes are the positive corpus.
+#
+# What it is NOT: file-system paths (/dev/null, /tmp/…, files with an extension),
+# includes, comments, and regex syntax like "(?:". Each pattern is anchored on a
+# quote so prose and comments do not match; system directories and file names are
+# excluded per pattern.
+#
+# Fixtures: tests/fixtures/inline-endpoint/{positive,negative}
+# @implements ADR-073
+id: KEUR-INL-002
+ilities: [analysability, modifiability, adaptability]
+source: keur
+maturity: 3
+action: warn
+title: API endpoint, path or query string embedded in code
+category: quality
+severity: warning
+engine: pattern
+confidence: 0.75
+skip_comments: true
+target:
+  extensions: .c .cc .cpp .cxx .h .hh .hpp .hxx .m .mm .swift .rs .go .java .kt .kts .scala .cs .py .rb .php .js .jsx .mjs .cjs .ts .tsx .lua .pl .r .dart .sh .bash .zsh .ps1
+  exclude_paths: test/ tests/ spec/ dist/ target/ build/ vendor/ node_modules/ _generated.
+patterns:
+  # query string: ?name=value, but not JMESPath filters ([?Key=='x']) or ==
+  - regex: ["'\x60][^"'\x60\s]*[^\[\s"'\x60\\]\?[A-Za-z_][\w%\[\].-]*=([^=]|$)
+    message: "Query string inside a string literal (?name=…). Query parameters are part of the API contract: declare them in config (e.g. a provider query's params) and let the client build the URL."
+  - regex: ["'\x60]([^"'\x60\s]*://[^"'\x60\s/]+)?[^"'\x60\s]*/(api|rest|graphql|v[0-9]{1,2})(/|["'\x60?])
+    message: "API URL or API path inside a string literal (/api/, /rest/, /v2/, /graphql). Base URLs and paths belong in config (a provider definition), not in code."
+  # a path segment appended to a URL-ish variable (base, url, endpoint, api, host);
+  # home + "/rules" is a file path and does not match
+  - regex: (?i)(url|uri|base|endpoint|api|host)\w*\)?\s*\+\s*["'\x60]/[A-Za-z][\w-]*(/["'\x60]|["'\x60])
+    exclude: (["'\x60]/(tmp|usr|dev|var|etc|opt|home|proc|sys|bin|lib|Users|Library|private|mnt|Volumes)[/"'\x60]|\+\s*["'\x60]/[\w/-]*\.[A-Za-z0-9]{1,5}["'\x60])
+    message: "URL path segment glued onto a variable (base + \"/team/\" + id). Building request paths in code hides the endpoint; declare the path template in config (e.g. path = \"/team/{team_id}/task\") and substitute parameters there."
+  # HTTP call with a literal URL: the call parenthesis is required ("--fetch" is a flag)
+  - regex: (\b(http_get|http_post|fetch|requests\.(get|post|put|delete)|axios\.(get|post|put|delete))\s*\(\s*["'\x60]|CURLOPT_URL\s*,\s*["'\x60])
+    message: "HTTP call with a literal URL argument. Resolve the URL from config instead of passing a literal."
+fix: "Move the endpoint to config: base URL, path template with {placeholders}, and query params as data (in loods/kooiaapi: catalog/<category>/<provider>/provider.toml). Code then asks for a named query and substitutes parameters. Deliberate exception (e.g. a health-check URL in a test helper): keur:ignore KEUR-INL-002 <reason>."
