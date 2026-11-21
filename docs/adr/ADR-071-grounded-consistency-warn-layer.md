@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed · 2026-11-04 · Coverage: none
+Proposed · 2026-11-04 · **Coverage**: none
 · Relates to: ADR-070 (controls for AI-authored code — this ADR answers its open
 question "can a model judge text?" for the semantic/doc classes C2/C6/C8),
 ADR-001 (deterministic RE2 engine — the invariant this must not break),
