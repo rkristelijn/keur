@@ -1,18 +1,39 @@
+# keur quality — inline SQL: an SQL statement embedded as a string literal in
+# host-language code (ADR-073 category 7, docs/research/inline-code.md).
+#
+# Rewritten 2026-11-21 (was a cpm import that only saw multi-clause SQL on one line
+# in a handful of languages; it found 0 of 13 statements in the loods spike S-3 and
+# the fixture set). Now: any single statement shape (SELECT…FROM, INSERT INTO,
+# UPDATE…SET, DELETE FROM, DDL, PRAGMA) that STARTS a quoted literal, in every
+# host language including C/C++/shell, plus blocks explicitly tagged as SQL
+# (C++ raw string R"SQL(…)", heredoc <<'SQL'). Multi-line literals whose first
+# line is SQL are QUAL-030b (multiline engine).
+#
+# Why the shape is anchored: "select a task from the list" is prose; "SELECT id,
+# name FROM users" is SQL. The SELECT branch requires a column list (`*`,
+# `count(…)`, `a, b.c`) directly before FROM, and every branch must start right
+# after a quote, so comments, enum tokens ("UPDATE") and prose do not match.
+# .sql files are never targeted: SQL in its own file is the goal.
+#
+# Fixtures: tests/fixtures/inline-sql/{positive,negative}
+# @implements ADR-073
 id: QUAL-030
-ilities: [analysability]
-source: cpm
-maturity: 4
-action: advisory
-title: Inline SQL antipattern
+ilities: [analysability, modifiability]
+source: keur
+maturity: 3
+action: warn
+title: Inline SQL statement in host-language code
 category: quality
-severity: info
+severity: warning
 engine: pattern
+confidence: 0.8
+skip_comments: true
 target:
-  extensions: .ts .js .tsx .jsx .py .java .kt .cs .go .rb .php .rs
-  exclude_paths: test/ tests/ spec/ dist/ target/ migrations/
+  extensions: .c .cc .cpp .cxx .h .hh .hpp .hxx .m .mm .swift .rs .go .java .kt .kts .scala .cs .py .rb .php .js .jsx .mjs .cjs .ts .tsx .lua .pl .r .dart .sh .bash .zsh .ps1
+  exclude_paths: test/ tests/ spec/ dist/ target/ build/ vendor/ node_modules/ migrations/ _generated.
 patterns:
-  - regex: (?:SELECT|INSERT INTO|UPDATE|DELETE FROM)\s+\w+.*(?:SELECT|INSERT INTO|UPDATE|DELETE FROM|WHERE|JOIN|GROUP BY|ORDER BY|HAVING).*(?:WHERE|JOIN|GROUP BY|ORDER BY|HAVING)
-    message: "Complex multi-clause SQL inline in code — extract to a named query, view, or query builder"
-  - regex: (?:CREATE TABLE|ALTER TABLE|DROP TABLE|CREATE INDEX)
-    message: "DDL statement inline in code — extract to migration files"
-fix: "Extract complex SQL to named constants, repository methods, or migration files"
+  - regex: (?i)["'\x60]\s*(select\s+(\*|distinct\b|count\s*\([^)]*\)|[\w.]+(\s*,\s*[\w.]+)*)\s+from\s+[\w."]+|insert\s+(or\s+\w+\s+)?into\s+[\w."]+\s*(\(|values\b|select\b)|update\s+[\w."]+\s+set\s+[\w."]+\s*=|delete\s+from\s+[\w."]+|(create|alter|drop)\s+(temp(orary)?\s+)?(unique\s+)?(table|index|view|trigger)\b|pragma\s+\w+\s*(=|\(|;|["'\x60]))
+    message: "SQL statement inline in a string literal. SQL is its own language (ADR-073 category 7): keep it in a .sql file so it can be linted, reviewed and changed without touching code, and refer to it by name. C/C++: embed the .sql files at build time (generated header); other languages: a named query/repository method, or a migration for DDL."
+  - regex: (R"(SQL|sql|Sql)\(|<<-?\s*["']?(SQL|EOSQL|ENDSQL|sql)["']?\s*$)
+    message: "Block explicitly tagged as SQL (raw string R\"SQL(…)\" or heredoc <<'SQL') inside code. Move it to a .sql file and embed or load it by name (ADR-073 category 7)."
+fix: "Move the statement to its own .sql file (e.g. sql/insert_snapshot.sql) and reference it by name: in C/C++ through a header generated from the .sql files at build time, elsewhere through a named query, repository method or migration. If this literal is deliberately inline (a one-off diagnostic), add on that line: keur:ignore QUAL-030 <reason>."

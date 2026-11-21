@@ -86,6 +86,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [065](ADR-065-async-build-confidence.md) | Keep build-confidence high without a slow gate: fast sync, heavy async | proposed |
 | [066](ADR-066-external-scanners-opt-in.md) | External scanners are opt-in; the default gate is keur's own engine only | proposed |
 | [067](ADR-067-checksum-validation-engine.md) | Checksum-validation engine: the arithmetic a regex can't do, driven by a rule | proposed |
+| [073](ADR-073-text-vocabulary-formats-reference-data.md) | Text, vocabulary and formats: nine categories, normalised reference data, and what keur checks | proposed |
 
 ## Adding an ADR
 

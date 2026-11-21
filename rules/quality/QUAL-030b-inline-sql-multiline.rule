@@ -1,0 +1,32 @@
+# keur quality — inline SQL in a MULTI-LINE literal: a string that opens on one
+# line (Python triple quote, JS/TS template literal, C++ raw string with any
+# delimiter, shell heredoc) and whose content starts with an SQL statement on the
+# next lines. Companion of QUAL-030, which handles single-line literals and blocks
+# explicitly tagged as SQL (those are excluded here, so one block = one finding).
+#
+# Same anchored shapes as QUAL-030 (SELECT needs a column list before FROM), so a
+# docstring like """Select the user from the list""" does not match.
+#
+# Fixtures: tests/fixtures/inline-sql/{positive,negative}
+# @implements ADR-073
+id: QUAL-030b
+ilities: [analysability, modifiability]
+source: keur
+maturity: 3
+action: warn
+title: Inline SQL statement in a multi-line string literal
+category: quality
+severity: warning
+engine: multiline
+within: window
+window: 3
+confidence: 0.8
+skip_comments: true
+target:
+  extensions: .c .cc .cpp .cxx .h .hh .hpp .hxx .m .mm .swift .rs .go .java .kt .kts .scala .cs .py .rb .php .js .jsx .mjs .cjs .ts .tsx .lua .pl .r .dart .sh .bash .zsh .ps1
+  exclude_paths: test/ tests/ spec/ dist/ target/ build/ vendor/ node_modules/ migrations/ _generated.
+patterns:
+  - regex: (?is)("""|'''|\x60|R"[A-Za-z_]{0,16}\(|<<-?\s*["']?\w+["']?)[ \t]*\n\s*(select\s+(\*|distinct\b|count\s*\([^)]*\)|[\w.]+(\s*,\s*[\w.]+)*)\s+from\b|insert\s+(or\s+\w+\s+)?into\s+[\w."]+|update\s+[\w."]+\s+set\b|delete\s+from\b|(create|alter|drop)\s+(temp(orary)?\s+)?(unique\s+)?(table|index|view|trigger)\b|pragma\s+\w+|with\s+\w+\s+as\s*\()
+    exclude: (R"(SQL|sql|Sql)\(|<<-?\s*["']?(SQL|EOSQL|ENDSQL|sql)["']?[ \t]*\n)
+    message: "Multi-line string literal that contains an SQL statement. Keep SQL in a .sql file and refer to it by name (ADR-073 category 7); in C/C++ embed the .sql files at build time through a generated header."
+fix: "Move the statement to its own .sql file and reference it by name (generated header in C/C++, named query or repository method elsewhere, migration for DDL). Deliberate exception: keur:ignore QUAL-030b <reason> on the opening line."
