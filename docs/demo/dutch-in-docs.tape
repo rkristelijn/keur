@@ -7,6 +7,9 @@
 # ESLint/Prettier can't express. ~10 lines of .rule, same gate + explainer as
 # the built-ins.
 #
+# NOTE: the regex has no backslashes on purpose. A quoted heredoc keeps `\\b` literal,
+# so a typed `\\b` never matched and the demo silently showed no BLOCK.
+#
 # Hermetic + PII-free: neutral /tmp HOME/XDG, keur from PATH. The custom rule is
 # copied into the demo's own .keur/rules (a path keur discovers by walking up
 # from the repo — ADR), so no machine path is typed.
@@ -59,7 +62,7 @@ Type "  extensions: .md"
 Enter
 Type "patterns:"
 Enter
-Type "  - regex: (?i)\\b(het|een|niet|werkt|deze|zijn|voor|met|gebruik|volgende)\\b"
+Type "  - regex: (?i)(^|[^a-z])(het|een|niet|werkt|deze|zijn|voor|met|gebruik|volgende)([^a-z]|$)"
 Enter
 Type "    message: Dutch text in a doc — this repo's docs are English-only."
 Enter
