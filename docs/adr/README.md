@@ -92,6 +92,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [071](ADR-071-grounded-consistency-warn-layer.md) | Grounded consistency models: a WARN-only corroboration layer, never a gate | proposed |
 | [072](ADR-072-orphan-file-detection.md) | Orphan / unreferenced file detection: the reachability WARN | proposed |
 | [073](ADR-073-hermetic-smoke-and-commit-message-markers.md) | Hermetic e2e smoke for context-dependent rules; commit-message markers deferred | accepted |
+| [073](ADR-073-text-vocabulary-formats-reference-data.md) | Text, vocabulary and formats: nine categories, normalised reference data, and what keur checks | proposed |
 | [078](ADR-078-static-re2-release-binaries.md) | Release binaries link RE2 and Abseil statically | accepted |
 
 ## Adding an ADR
