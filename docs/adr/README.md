@@ -87,6 +87,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [066](ADR-066-external-scanners-opt-in.md) | External scanners are opt-in; the default gate is keur's own engine only | proposed |
 | [067](ADR-067-checksum-validation-engine.md) | Checksum-validation engine: the arithmetic a regex can't do, driven by a rule | proposed |
 | [073](ADR-073-text-vocabulary-formats-reference-data.md) | Text, vocabulary and formats: nine categories, normalised reference data, and what keur checks | proposed |
+| [074](ADR-074-diagnostics-and-messages-as-data.md) | Diagnostics and messages as data: codes in code, text in a catalog, rendering in an adapter | proposed |
 
 ## Adding an ADR
 
