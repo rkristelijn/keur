@@ -61,6 +61,33 @@ emit() {
   bash run.sh "$tape" 2>&1 | sed 's/\x1b\[[0-9;]*m//g; s/\x1b\[[HJ]//g'
 }
 
+# --- Content checks: a snapshot that merely exists proves nothing -------------
+# A golden file can be perfectly "current" and still record a failed run (a
+# vanished sandbox dir, a rule that never matched). Two cheap guards, applied
+# when generating AND when checking:
+#   1. no shell/run error markers in the output;
+#   2. every id the tape promises with `# @shows <ID>...` has a real VERDICT
+#      line (a JSON finding or a "BLOCK|warn <ID> |" line), not just a mention in
+#      an explainer, which is how a rule that never fired used to slip through.
+RUN_ERRORS='no such file or directory|getcwd|cannot access parent|unable to read current working|shell-init|command not found|vhs render produced no'
+
+shown_ids() {
+  sed -nE 's/^#[[:space:]]*@shows[[:space:]]+(.*)$/\1/p' "$1" | head -1
+}
+
+# Print a problem per line for a snapshot file; print nothing when it is sound.
+snapshot_problems() {
+  local tape="$1" file="$2" id
+  if grep -qiE "$RUN_ERRORS" "$file"; then
+    echo "contains run errors ($(grep -ciE "$RUN_ERRORS" "$file") line(s)): a failed run, not a demo"
+  fi
+  for id in $(shown_ids "$tape"); do
+    if ! grep -qE "\"rule\":\"$id\"|^[[:space:]]*(BLOCK|block|warn|WARN|info|advisory)[[:space:]]+$id([[:space:]]|$)" "$file"; then
+      echo "no verdict line for @shows $id: the demo does not show what it claims"
+    fi
+  done
+}
+
 rc=0
 for tape in "${tapes[@]}"; do
   [[ -f "$tape" ]] || { echo "gen-golden: no such tape: $tape" >&2; rc=2; continue; }
@@ -79,10 +106,20 @@ for tape in "${tapes[@]}"; do
     else
       echo "gen-golden: ok — $out current"
     fi
+    problems="$(snapshot_problems "$tape" "$tmp")"
+    if [[ -n "$problems" ]]; then
+      echo "gen-golden: BAD — $out: ${problems//$'\n'/; }" >&2
+      rc=1
+    fi
     rm -f "$tmp"
   else
     emit "$tape" > "$out"
     echo "gen-golden: wrote $out"
+    problems="$(snapshot_problems "$tape" "$out")"
+    if [[ -n "$problems" ]]; then
+      echo "gen-golden: BAD — $out: ${problems//$'\n'/; }" >&2
+      rc=1
+    fi
   fi
 done
 exit "$rc"
