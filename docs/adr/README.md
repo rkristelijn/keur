@@ -93,6 +93,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [072](ADR-072-orphan-file-detection.md) | Orphan / unreferenced file detection: the reachability WARN | proposed |
 | [073](ADR-073-hermetic-smoke-and-commit-message-markers.md) | Hermetic e2e smoke for context-dependent rules; commit-message markers deferred | accepted |
 | [073](ADR-073-text-vocabulary-formats-reference-data.md) | Text, vocabulary and formats: nine categories, normalised reference data, and what keur checks | proposed |
+| [074](ADR-074-diagnostics-and-messages-as-data.md) | Diagnostics and messages as data: codes in code, text in a catalog, rendering in an adapter | proposed |
 | [078](ADR-078-static-re2-release-binaries.md) | Release binaries link RE2 and Abseil statically | accepted |
 
 ## Adding an ADR

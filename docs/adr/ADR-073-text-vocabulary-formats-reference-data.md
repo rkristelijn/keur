@@ -114,6 +114,15 @@ to extract literals; `cross-reference` (ADR-022) for "value ⊆ reference pack".
 Inline categories 3, 4 and 7 are covered by the rules proposed in
 `docs/research/inline-code.md` (extended `QUAL-030` and `QUAL-065`,
 `KEUR-INL-001` to `KEUR-INL-005`). Category 8 is covered by the existing secret rules.
+How human text (category 5) and codes (category 2) are emitted — diagnostics with
+codes, a catalog and a reporter adapter — is decided in ADR-074.
+
+**Implemented so far** (branch `feat/inline-sql-rules`, 2026-11-21):
+
+| Category | Rule | Fixtures | Calibration |
+|----------|------|----------|-------------|
+| 7 embedded SQL | `QUAL-030` (rewritten), `QUAL-030b` (multiline) | `tests/fixtures/inline-sql` | 13/13 positive, 0 negative |
+| 4 endpoints in code | `KEUR-INL-002` | `tests/fixtures/inline-endpoint` | 11/11 positive lines, 0 negative |
 
 ### 5. Maturity mapping (CMMI-aligned, ADR-026 and ADR-061)
 
