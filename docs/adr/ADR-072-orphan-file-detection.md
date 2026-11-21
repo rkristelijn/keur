@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed · 2026-11-04 · Coverage: none
+Proposed · 2026-11-04 · **Coverage**: none
 · Relates to: ADR-070 (controls for AI-authored code — this is a new control for
 the "leftover scratch / abandoned file" failure mode AI agents and humans both
 cause), ADR-010 / ADR-022 (annotrace + cross-reference engine — this is the same

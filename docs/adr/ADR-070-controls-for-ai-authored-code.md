@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed · 2026-11-04 · Coverage: none
+Proposed · 2026-11-04 · **Coverage**: none
 · Relates to: ADR-001 (native RE2 engine — the deterministic referee), ADR-009
 (rules are data, the engine stays simple — new detection is a `.rule`, not engine
 logic), ADR-004 (staged path to semantic analysis — the layer that catches
