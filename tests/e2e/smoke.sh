@@ -57,16 +57,17 @@ check() {  # check "<label>" <expected_exit> "<must-contain>" -- <cmd...>
 # throwaway git repo on a feature branch, with HOME/XDG isolated so neither
 # keur's own keur.toml nor the runner's global config leaks in.
 SANDBOX=""
-make_sandbox() {  # prints the sandbox repo path on stdout
-  local sb; sb="$(mktemp -d)"
-  SANDBOX="$sb"
+make_sandbox() {  # sets SANDBOX; call directly, not in $(...) (a subshell loses it)
+  SANDBOX="$(mktemp -d)"
   (
-    cd "$sb" || exit 1
+    cd "$SANDBOX" || exit 1
+    # Inherited GIT_DIR/GIT_WORK_TREE would make git init/config act on the
+    # caller's repository instead of the sandbox.
+    unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
     git init -q -b feature/smoke-check
     git config user.email smoke@keur.test
     git config user.name  "keur smoke"
   )
-  printf '%s' "$sb"
 }
 cleanup_sandbox() { [[ -n "$SANDBOX" && -d "$SANDBOX" ]] && rm -rf "$SANDBOX"; }
 trap cleanup_sandbox EXIT
@@ -84,7 +85,8 @@ check "scan (self)"      0 "" -- "$BIN" scan "$ROOT/rules"
 # 5. check — with nothing staged it prints PASS and exits 0. Run in a hermetic
 #    sandbox (feature branch + isolated HOME/XDG) so branch discipline and the
 #    runner's global config cannot turn this binary-property check into a BLOCK.
-SB="$(make_sandbox)"
+make_sandbox
+SB="$SANDBOX"
 check "check (no stage)" 0 "PASS" -- \
   env -i PATH="$PATH" HOME="$SB/home" XDG_CONFIG_HOME="$SB/home/.config" \
   sh -c 'cd "$1" && exec "$2" check' _ "$SB" "$BIN"
