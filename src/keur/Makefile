@@ -57,7 +57,9 @@ ifdef STATIC_RE2
     RE2_LDFLAGS = -Wl,--start-group $(STATIC_ARCHIVES) -Wl,--end-group \
                   -static-libstdc++ -static-libgcc -pthread
     ifeq ($(OS),Windows_NT)
-      RE2_LDFLAGS += -static
+      # Abseil's symbolizer uses dbghelp and its RNG uses bcrypt; with the shared
+      # DLL these came along implicitly. Both are Windows system libraries.
+      RE2_LDFLAGS += -static -ldbghelp -lbcrypt -ladvapi32
     endif
   endif
 else
