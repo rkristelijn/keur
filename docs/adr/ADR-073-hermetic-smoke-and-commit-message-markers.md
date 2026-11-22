@@ -38,7 +38,7 @@ direct commit to a branch, and branch discipline is a property of the *branch*,
 not of the staged file set.
 
 The problem is not the engine — it is **where the smoke test ran the binary**.
-keur is a **local git commit/push hook, not a CI gate.** Several of its rules are
+keur is a **local git commit/push hook and a CI gate** (`docs/ci-action.md`). Several of its rules are
 properties of the git context a committer sits in. KEUR-BRANCH-001 is the clearest
 example: on keur's own repo — held to maturity level 5 (ADR-026), where branch
 protection escalates from WARN to BLOCK — a direct commit to the default branch
@@ -117,8 +117,10 @@ is deferred for concrete reasons:
   become a universal `--no-verify` that silently defeats the gate keur exists to
   be). It should not be smuggled in as a CI build-fix.
 - **Existing escape hatch.** A committer who genuinely must commit to the default
-  branch already has `keur:ignore KEUR-BRANCH-001` and `[rules] disabled`
-  (ADR-035). The marker idea's value is *ergonomics* (per-commit, intent-scoped),
+  branch already has a `KEUR-BRANCH-001` line in `.keurignore` or `[rules] disabled`
+  in keur.toml (ADR-035). An inline `keur:ignore` marker does **not** work here: the
+  finding has no source line and is added after the file scan
+  (`tests/e2e/test_branch_suppression.sh` pins this). The marker idea's value is *ergonomics* (per-commit, intent-scoped),
   not a missing capability.
 
 If pursued later, the shape worth exploring is a **pre-push-tier** marker that is
