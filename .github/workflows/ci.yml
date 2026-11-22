@@ -285,24 +285,6 @@ jobs:
   # brew audit are opinionated — promoted to blocking once their output is clean.
   # ────────────────────────────────────────────────────────────────────────
 
-  # TEMPORARY (remove before merge): which hosted macOS labels are available and
-  # arm64. macos-14 now fails with "configuration not supported".
-  macos-probe:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-15, macos-latest, macos-26]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
-    continue-on-error: true
-    steps:
-      - name: arch + OS + toolchain
-        run: |
-          echo "label=${{ matrix.os }} arch=$(uname -m)"
-          sw_vers
-          clang --version | head -1
-          brew --version | head -1
-
   # npm — prove the exact publish payload without publishing (strict).
   npm-dryrun:
     runs-on: ubuntu-24.04
