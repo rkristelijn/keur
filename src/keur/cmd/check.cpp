@@ -218,8 +218,8 @@ bool finding_blocks(const std::string& action, const std::string& confidence,
 // maturity exactly like a rule (ADR-026): warn from level >= 2 (developing),
 // block from level >= 4 (managed). Below 2, or off the default branch, no
 // finding. Emitting it as a normal Finding with a rule id means it flows through
-// the SAME suppression (`[rules] disabled`, `keur:ignore KEUR-BRANCH-001`) as
-// any rule — so a repo that does not want it can simply turn it off.
+// the repo-level suppression (`[rules] disabled`, `.keurignore`) as any rule.
+// It has no source line, so an inline `keur:ignore` cannot reach it.
 // @id KEUR-BRANCH-001 @implements ADR-057
 std::optional<scan::Finding> branch_protection_finding(
     const std::string& current_branch, const std::string& default_branch, int level) {
@@ -240,8 +240,8 @@ std::optional<scan::Finding> branch_protection_finding(
     f.line = 0;
     f.message = "Committing directly to the default branch '" + default_branch +
         "'. Work on a feature branch and open a merge/pull request so changes "
-        "are reviewed before they land. (Disable with keur:ignore KEUR-BRANCH-001 "
-        "or [rules] disabled if your workflow commits to the default branch.)";
+        "are reviewed before they land. (Disable with a KEUR-BRANCH-001 line in "
+        ".keurignore or [rules] disabled if your workflow commits to the default branch.)";
     f.fix = "git switch -c <feature-branch>, commit there, then open an MR/PR.";
     return f;
 }

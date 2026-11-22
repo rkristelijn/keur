@@ -46,9 +46,11 @@ check flow.
   branch discipline is a process/maintainability concern), read from the same
   config stack `keur difficulty` uses.
 - check.cpp emits it as a normal `scan::Finding` with rule id **KEUR-BRANCH-001**
-  right after the scanners, BEFORE the suppression pass — so `[rules] disabled`,
-  `keur:ignore KEUR-BRANCH-001`, and the keurignore file all silence it exactly
-  like any rule (ADR-035). The verdict is still the one pure policy path
+  right after the scanners, BEFORE the repo-level suppression pass — so
+  `[rules] disabled` and the keurignore file silence it like any rule (ADR-035).
+  An inline `keur:ignore` does not: the finding has no source line and is added
+  after the file scan, where inline markers are applied
+  (`tests/e2e/test_branch_suppression.sh`). The verdict is still the one pure policy path
   (ADR-014): the finding feeds `policy_evaluate` like every other.
 
 ## Why these thresholds
@@ -76,7 +78,7 @@ nag about branches.
   neither can suppress or set `init.defaultBranch`.
 - keur now blocks its own direct commits to `main` at level 5 (confirmed). That
   is the intended behaviour; day-to-day work moves to feature branches + MRs. A
-  deliberate exception uses `keur:ignore KEUR-BRANCH-001` or `--no-verify`.
+  deliberate exception uses a `KEUR-BRANCH-001` line in `.keurignore` or `--no-verify`.
 
 ## Alternatives considered
 
