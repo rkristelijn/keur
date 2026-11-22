@@ -39,7 +39,7 @@ jobs:
       # still get every platform; PR iteration stays cheap.
       matrix:
         include: ${{ github.ref == 'refs/heads/main'
-          && fromJSON('[{"os":"ubuntu-24.04","name":"linux-amd64"},{"os":"macos-14","name":"macos-arm64"},{"os":"windows-latest","name":"windows-amd64"}]')
+          && fromJSON('[{"os":"ubuntu-24.04","name":"linux-amd64"},{"os":"macos-15","name":"macos-arm64"},{"os":"windows-latest","name":"windows-amd64"}]')
           || fromJSON('[{"os":"ubuntu-24.04","name":"linux-amd64"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
@@ -285,6 +285,24 @@ jobs:
   # brew audit are opinionated — promoted to blocking once their output is clean.
   # ────────────────────────────────────────────────────────────────────────
 
+  # TEMPORARY (remove before merge): which hosted macOS labels are available and
+  # arm64. macos-14 now fails with "configuration not supported".
+  macos-probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-latest, macos-26]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: arch + OS + toolchain
+        run: |
+          echo "label=${{ matrix.os }} arch=$(uname -m)"
+          sw_vers
+          clang --version | head -1
+          brew --version | head -1
+
   # npm — prove the exact publish payload without publishing (strict).
   npm-dryrun:
     runs-on: ubuntu-24.04
@@ -316,7 +334,7 @@ jobs:
 
   # brew — Homebrew's own audit/style on the generated formula (advisory).
   brew-audit:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 10
     continue-on-error: true   # advisory until the output is triaged (ADR-069)
     steps:
