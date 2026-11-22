@@ -20,6 +20,18 @@ sudo apt install libre2-dev libabsl-dev
 The Makefile resolves RE2 and abseil via `brew --prefix` on macOS and falls back
 to system paths on Linux. Override with `RE2_PREFIX` / `ABSL_PREFIX` if needed.
 
+### Self-contained build (what the release ships)
+
+The default build links the system's shared RE2, which is fine for development.
+Release binaries link RE2 and Abseil **statically** from pinned source (ADR-078),
+so they run on machines without them. To build exactly that locally:
+
+```bash
+scripts/build-static-deps.sh                          # once; cached in .deps/static
+make -C src/keur build STATIC_RE2="$PWD/.deps/static"
+scripts/check-binary-deps.sh bin/keur                 # fails if re2/absl is still dynamic
+```
+
 ## Build
 
 ```bash
