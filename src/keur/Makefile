@@ -40,10 +40,32 @@ endif
 PLATFORM_OBJ = $(BINDIR)/keur_platform.o
 
 # RE2 + abseil
-RE2_PREFIX  ?= $(shell brew --prefix re2  2>/dev/null || echo /usr)
-ABSL_PREFIX ?= $(shell brew --prefix abseil 2>/dev/null || echo /usr)
-RE2_CFLAGS   = -I$(RE2_PREFIX)/include -I$(ABSL_PREFIX)/include
-RE2_LDFLAGS  = -L$(RE2_PREFIX)/lib -L$(ABSL_PREFIX)/lib -lre2
+# Default (local dev): link the package manager's shared libre2.
+# Release / self-contained (ADR-078): `make STATIC_RE2=<prefix>` links the static archives
+# built by scripts/build-static-deps.sh into the binary, so it runs on a machine
+# without (or with a different) re2/abseil (issue #36). scripts/check-binary-deps.sh
+# proves the result has no dynamic re2/abseil dependency. @implements ADR-078
+ifdef STATIC_RE2
+  RE2_CFLAGS  = -I$(STATIC_RE2)/include
+  STATIC_ARCHIVES = $(STATIC_RE2)/lib/libre2.a $(sort $(wildcard $(STATIC_RE2)/lib/libabsl_*.a))
+  ifeq ($(shell uname -s),Darwin)
+    # ld64 rescans archives, so order does not matter; libc++ is part of macOS.
+    RE2_LDFLAGS = $(STATIC_ARCHIVES) -framework CoreFoundation
+  else
+    # GNU ld needs a group to resolve the abseil archives' cross-references;
+    # libstdc++/libgcc go in too, so the binary needs only libc (and pthread).
+    RE2_LDFLAGS = -Wl,--start-group $(STATIC_ARCHIVES) -Wl,--end-group \
+                  -static-libstdc++ -static-libgcc -pthread
+    ifeq ($(OS),Windows_NT)
+      RE2_LDFLAGS += -static
+    endif
+  endif
+else
+  RE2_PREFIX  ?= $(shell brew --prefix re2  2>/dev/null || echo /usr)
+  ABSL_PREFIX ?= $(shell brew --prefix abseil 2>/dev/null || echo /usr)
+  RE2_CFLAGS   = -I$(RE2_PREFIX)/include -I$(ABSL_PREFIX)/include
+  RE2_LDFLAGS  = -L$(RE2_PREFIX)/lib -L$(ABSL_PREFIX)/lib -lre2
+endif
 
 BINDIR = ../../bin
 BIN    = $(BINDIR)/keur
@@ -196,8 +218,17 @@ render/logo_generated.cpp: $(REPO_ROOT)/scripts/gen-logo.sh $(LOGO_PNG) $(LOGO_C
 logo: render/logo_generated.cpp ## Regenerate the baked braille logo (needs ffmpeg+node)
 # (logo_generated.o and report.o are compiled by the generic foreach rules.)
 
-$(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(RE2_LDFLAGS)
+# Relink when the RE2 link mode changes (shared <-> STATIC_RE2): the objects do
+# not change, so without this make would keep the previous binary. The stamp is
+# rewritten only when the flags differ, so a normal rebuild stays incremental.
+RE2_LINK_STAMP = $(BINDIR)/.re2-link-flags
+$(RE2_LINK_STAMP): FORCE | $(BINDIR)
+	@echo '$(RE2_LDFLAGS)' | cmp -s - $@ || echo '$(RE2_LDFLAGS)' > $@
+.PHONY: FORCE
+FORCE:
+
+$(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ) $(RE2_LINK_STAMP)
+	$(CXX) $(CXXFLAGS) $(filter-out $(RE2_LINK_STAMP),$^) -o $@ $(RE2_LDFLAGS)
 	@echo "built $(BIN) (version $(VERSION))"
 
 ## ---- Test binary ----------------------------------------------------------
@@ -207,8 +238,8 @@ $(BIN): $(MAIN_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
 $(BINDIR)/%.o: tests/%.cpp tests/test_helpers.h ../../vendor/doctest.h | $(BINDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -I../rules $(RE2_CFLAGS) -DKEUR_TEST_ROOT='"$(REPO_ROOT)"' -c $< -o $@
 
-$(TEST_BIN): $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(RE2_LDFLAGS)
+$(TEST_BIN): $(TEST_OBJ) $(IMPL_OBJS) $(RULES_OBJ) $(TOKENIZER_OBJ) $(PLATFORM_OBJ) $(RE2_LINK_STAMP)
+	$(CXX) $(CXXFLAGS) $(filter-out $(RE2_LINK_STAMP),$^) -o $@ $(RE2_LDFLAGS)
 	@echo "built $(TEST_BIN)"
 
 ## ---- Test tiers -----------------------------------------------------------

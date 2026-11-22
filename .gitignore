@@ -60,3 +60,6 @@ eval/__pycache__/
 /keur.toml
 keur.toml.bak
 *.tmp
+
+# static RE2/Abseil built by scripts/build-static-deps.sh (issue #36)
+.deps/
