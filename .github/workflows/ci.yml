@@ -46,17 +46,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ── Dependencies: RE2 + abseil per platform ──────────────────────────
-      - name: Install RE2 (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libre2-dev libabsl-dev
-
-      - name: Install RE2 (macOS)
-        if: runner.os == 'macOS'
-        run: brew install re2 abseil
-
+      # ── Dependencies: RE2 + Abseil built STATIC from pinned source ───────
+      # Same build as the release, so this job proves what users download. No
+      # package-manager re2/abseil is installed: the build must not need them
+      # (issue #36). Cached per OS and per pinned version (the script's hash).
       - name: Setup MSYS2 (Windows)
         if: runner.os == 'Windows'
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e  # v2
@@ -66,18 +59,32 @@ jobs:
           install: >-
             make
             mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-re2
-            mingw-w64-ucrt-x86_64-abseil-cpp
+            mingw-w64-ucrt-x86_64-cmake
+
+      - name: Cache static RE2/Abseil
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .deps/static
+          key: static-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/build-static-deps.sh') }}
+
+      - name: Build static RE2/Abseil (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: bash scripts/build-static-deps.sh
+
+      - name: Build static RE2/Abseil (Windows / MSYS2)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: bash scripts/build-static-deps.sh
 
       # ── Build (POSIX shells on Linux/macOS) ──────────────────────────────
       - name: Build (Linux/macOS)
         if: runner.os != 'Windows'
-        run: make build
+        run: make build STATIC_RE2="$PWD/../../.deps/static"
         working-directory: src/keur
 
       - name: Test (Linux/macOS)
         if: runner.os != 'Windows'
-        run: make test
+        run: make test STATIC_RE2="$PWD/../../.deps/static"
         working-directory: src/keur
 
       # ── Build on Windows via the MSYS2/UCRT64 toolchain ──────────────────
@@ -85,12 +92,22 @@ jobs:
       - name: Build (Windows / MSYS2)
         if: runner.os == 'Windows'
         shell: msys2 {0}
-        run: make build
+        run: make build STATIC_RE2="$PWD/../../.deps/static"
         working-directory: src/keur
 
       # ── Post-compile e2e smoke test of the essential subcommands ─────────
       # This is the real "does the binary work" gate: version, policy, scan,
       # check. On Windows we run the same smoke through the MSYS2 shell.
+      # The binary must not load RE2/Abseil at runtime (issue #36).
+      - name: Self-contained binary (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: bash scripts/check-binary-deps.sh bin/keur
+
+      - name: Self-contained binary (Windows / MSYS2)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: bash scripts/check-binary-deps.sh bin/keur.exe
+
       - name: Smoke test (Linux/macOS)
         if: runner.os != 'Windows'
         run: bash tests/e2e/smoke.sh bin/keur
@@ -238,12 +255,16 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Install RE2
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libre2-dev libabsl-dev
+      - name: Cache static RE2/Abseil
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .deps/static
+          key: static-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/build-static-deps.sh') }}
+      - name: Build static RE2/Abseil
+        run: bash scripts/build-static-deps.sh
+      # The released .deb ships the static binary; test that one (issue #36).
       - name: Build keur (binary under test for the .deb)
-        run: make build
+        run: make build STATIC_RE2="$PWD/../../.deps/static"
         working-directory: src/keur
 
       # apt/deb — build, install, run via the /usr/bin symlink.
@@ -259,6 +280,10 @@ jobs:
           sudo apt-get remove -y keur
 
       # npx — the wrapper fetches + checksum-verifies the published binary.
+      # TEMPORARY (issue #36): the PUBLISHED v0.2.0 binary still links libre2
+      # dynamically. Remove this step once a statically linked release is out.
+      - name: npx — runtime lib for the pre-#36 published binary
+        run: sudo apt-get update && sudo apt-get install -y libre2-10
       - name: npx — launcher lazily fetches + runs the published binary
         run: |
           set -euo pipefail
@@ -338,12 +363,19 @@ jobs:
     continue-on-error: true   # advisory until the output is triaged (ADR-069)
     steps:
       - uses: actions/checkout@v4
-      - name: Install RE2 + lintian
+      - name: Install lintian
         run: |
           sudo apt-get update
-          sudo apt-get install -y libre2-dev libabsl-dev lintian
+          sudo apt-get install -y lintian
+      - name: Cache static RE2/Abseil
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .deps/static
+          key: static-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/build-static-deps.sh') }}
+      - name: Build static RE2/Abseil
+        run: bash scripts/build-static-deps.sh
       - name: Build keur (binary under test)
-        run: make build
+        run: make build STATIC_RE2="$PWD/../../.deps/static"
         working-directory: src/keur
       - name: Build .deb + lintian
         run: |

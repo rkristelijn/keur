@@ -102,12 +102,9 @@ jobs:
         with:
           ref: ${{ inputs.dry_run == true && github.ref || needs.prepare.outputs.tag }}
 
-      - name: Install RE2 (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libre2-dev libabsl-dev
-      - name: Install RE2 (macOS)
-        if: runner.os == 'macOS'
-        run: brew install re2 abseil
+      # RE2 + Abseil are built STATIC from pinned, checksum-verified source and
+      # linked into the binary, so the release runs without (or with another)
+      # re2/abseil on the user's machine (issue #36). No package-manager re2.
       - name: Setup MSYS2 (Windows)
         if: runner.os == 'Windows'
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e  # v2
@@ -115,20 +112,39 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-re2 mingw-w64-ucrt-x86_64-abseil-cpp
+            make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake
+      - name: Cache static RE2/Abseil
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .deps/static
+          key: static-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/build-static-deps.sh') }}
+      - name: Build static RE2/Abseil (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: bash scripts/build-static-deps.sh
+      - name: Build static RE2/Abseil (Windows/MSYS2)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: bash scripts/build-static-deps.sh
 
       - name: Build (Linux/macOS)
         if: runner.os != 'Windows'
-        run: make build
+        run: make build STATIC_RE2="$PWD/../../.deps/static"
         working-directory: src/keur
+      - name: Self-contained binary (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: bash scripts/check-binary-deps.sh bin/keur
       - name: e2e smoke (Linux/macOS)
         if: runner.os != 'Windows'
         run: bash tests/e2e/smoke.sh bin/keur
       - name: Build (Windows/MSYS2)
         if: runner.os == 'Windows'
         shell: msys2 {0}
-        run: make build
+        run: make build STATIC_RE2="$PWD/../../.deps/static"
         working-directory: src/keur
+      - name: Self-contained binary (Windows/MSYS2)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: bash scripts/check-binary-deps.sh bin/keur.exe
       - name: e2e smoke (Windows/MSYS2)
         if: runner.os == 'Windows'
         shell: msys2 {0}
