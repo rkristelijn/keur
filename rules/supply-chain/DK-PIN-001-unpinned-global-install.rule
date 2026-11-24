@@ -13,11 +13,14 @@
 # followed by `@`, not whitespace. A line continuation `\` or `&&` is not a token
 # start, so `pnpm@1 yarn@1 \` is clean.
 #
-# `^[^#]*` keeps a Dockerfile comment (`# RUN npm install -g x`) out: skip_comments
-# does not know Dockerfile comments, so the pattern itself refuses a leading `#`.
+# The line must be a RUN instruction or an indented continuation line, and no `#`
+# may come before the install: a Dockerfile comment (`# RUN npm install -g x`) and
+# metadata (`LABEL description="npm install -g nx"`) are not installs. skip_comments
+# does not know Dockerfile comments, so the pattern carries this itself.
 #
 # Limits (80% fit): flags between `-g` and the packages (`-g --unsafe-perm x`)
 # and the `npm i x -g` order are not seen (false negative, never a false positive).
+# Packages on continuation lines are DK-PIN-002 (multiline engine).
 #
 # @see docs/rules-authoring.md (RE2: no lookaround), ADR-026 (maturity).
 id: DK-PIN-001
@@ -34,8 +37,8 @@ target:
   extensions: .dockerfile
   exclude_paths: test/ tests/ vendor/ node_modules/
 patterns:
-  - regex: ^[^#]*\b(npm|pnpm)\s+(install|i|add)\s+(-g|--global)\s+(@?[A-Za-z0-9][A-Za-z0-9._/-]*@[^\s\\&;|]+\s+)*@?[A-Za-z0-9][A-Za-z0-9._/-]*(\s|$)
+  - regex: ^(?:\s*RUN\s+|\s+)[^#]*\b(npm|pnpm)\s+(install|i|add)\s+(-g|--global)\s+(@?[A-Za-z0-9][A-Za-z0-9._/-]*@[^\s\\&;|]+\s+)*@?[A-Za-z0-9][A-Za-z0-9._/-]*(\s|$)
     message: "global install without a version: pin every package (pkg@x.y.z) so the image build is reproducible"
-  - regex: ^[^#]*\byarn\s+global\s+add\s+(@?[A-Za-z0-9][A-Za-z0-9._/-]*@[^\s\\&;|]+\s+)*@?[A-Za-z0-9][A-Za-z0-9._/-]*(\s|$)
+  - regex: ^(?:\s*RUN\s+|\s+)[^#]*\byarn\s+global\s+add\s+(@?[A-Za-z0-9][A-Za-z0-9._/-]*@[^\s\\&;|]+\s+)*@?[A-Za-z0-9][A-Za-z0-9._/-]*(\s|$)
     message: "yarn global add without a version: pin every package (pkg@x.y.z) so the image build is reproducible"
 fix: "Add an exact version to each package, e.g. RUN npm install -g pnpm@12.21.0 yarn@1.22.22, and let Renovate bump it."

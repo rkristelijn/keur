@@ -1413,9 +1413,50 @@ SCENARIO("[feature:rule-engine] DK-PIN-001 flags an unpinned global install, not
         "    && pnpm --version\n"
         "RUN npm install -g @scope/tool@2.0.1 || true\n"
         "RUN yarn global add typescript@5.6.3\n"
-        "# RUN npm install -g nx   (a comment is not an install)\n");
+        "# RUN npm install -g nx   (a comment is not an install)\n"
+        "LABEL description=\"Use npm install -g nx to install Nx\"\n"      // metadata, not an install
+        "LABEL usage=\"yarn global add typescript\"\n");
     auto g = keur::rules_scan_files(rules, {good});
     CHECK(!has_rule(g, "DK-PIN-001"));
+    CHECK(!has_rule(g, "DK-PIN-002"));
+    cleanup_dir(dir);
+}
+
+// DK-PIN-002: Docker joins backslash-continued lines into one RUN, so a bare
+// package on a continuation line is still an unpinned install (multiline engine).
+// @proves DK-PIN-002
+SCENARIO("[feature:rule-engine] DK-PIN-002 sees unpinned packages on continuation lines") {
+    auto rules = keur::rules_load(repo_root() + "/rules/supply-chain");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    // One case per file: the engine reports one finding per window (8 lines).
+    REQUIRE(::mkdir((dir + "/a").c_str(), 0755) == 0);
+    REQUIRE(::mkdir((dir + "/b").c_str(), 0755) == 0);
+    write_file(dir + "/a/Dockerfile",
+        "FROM node:24-alpine\n"
+        "RUN npm install -g pnpm@12.21.0 \\\n"   // line 2: continues ...
+        "    yarn\n");                              // ... with a bare package
+    write_file(dir + "/b/Dockerfile",
+        "FROM node:24-alpine\n"
+        "RUN npm install -g \\\n"                 // line 2: packages start on the next line
+        "    nx@24.0.6 \\\n"
+        "    turbo\n");
+    for (const char* sub : {"/a/Dockerfile", "/b/Dockerfile"}) {
+        std::vector<int> lines;
+        for (auto& x : keur::rules_scan_files(rules, {dir + sub})) if (x.rule_id == "DK-PIN-002") lines.push_back(x.line);
+        CHECK_MESSAGE(lines == std::vector<int>{2}, sub);
+    }
+    std::string sub = dir + "/ok";
+    REQUIRE(::mkdir(sub.c_str(), 0755) == 0);
+    std::string good = sub + "/Dockerfile";
+    write_file(good,
+        "FROM node:24-alpine\n"
+        "RUN npm install -g pnpm@12.21.0 \\\n"
+        "    yarn@1.22.22 \\\n"
+        "    && pnpm --version\n"
+        "RUN npm install -g \\\n"
+        "    nx@24.0.6\n");
+    CHECK(!has_rule(keur::rules_scan_files(rules, {good}), "DK-PIN-002"));
     cleanup_dir(dir);
 }
 
@@ -1435,6 +1476,9 @@ SCENARIO("[feature:rule-engine] NODE-LOCK-001 flags two lockfiles in one dir, no
     write_file(dir + "/npm-pair/npm-shrinkwrap.json", "{}\n");
     write_file(dir + "/apps/a/pnpm-lock.yaml", "lockfileVersion: '9.0'\n");  // monorepo: one per package
     write_file(dir + "/apps/b/yarn.lock", "\n");
+    REQUIRE(::mkdir((dir + "/bun-pair").c_str(), 0755) == 0);   // legacy bun.lockb next to bun.lock: one PM
+    write_file(dir + "/bun-pair/bun.lock", "{}\n");
+    write_file(dir + "/bun-pair/bun.lockb", "x");
     auto f = keur::rules_scan_dir(rules, dir);
     std::vector<std::string> dirs;
     for (auto& x : f) if (x.rule_id == "NODE-LOCK-001") dirs.push_back(x.file);
