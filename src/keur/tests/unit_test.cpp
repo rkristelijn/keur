@@ -2792,6 +2792,15 @@ SCENARIO("[feature:rule-engine] facts readers derive langs/frameworks/versions")
     CHECK(d.runtimes["node"] == "18-alpine");
     CHECK(d.frameworks.count("docker") == 1);
 
+    // A browser-extension manifest (manifest_version) marks a Chrome extension;
+    // a PWA web-app manifest (no manifest_version) does not.
+    keur::Facts ext;
+    keur::facts_read_manifest_json("{\n  \"manifest_version\": 3,\n  \"name\": \"x\"\n}\n", ext);
+    CHECK(ext.frameworks.count("chrome-extension") == 1);
+    keur::Facts pwa;
+    keur::facts_read_manifest_json("{\"name\": \"app\", \"start_url\": \"/\", \"display\": \"standalone\"}", pwa);
+    CHECK(pwa.frameworks.count("chrome-extension") == 0);
+
     CHECK(keur::facts_lang_for_ext(".ts") == "ts");
     CHECK(keur::facts_lang_for_ext(".go") == "go");
     CHECK(keur::facts_lang_for_ext(".unknown") == "");

@@ -1,0 +1,22 @@
+# Chrome extension: Manifest V2 is end-of-life. The Web Store no longer accepts
+# MV2 and Chrome is removing support. A new/maintained extension must be MV3.
+# @see docs/rules-authoring.md
+id: CHROME-SEC-004
+ilities: [analysability]
+maturity: 3
+title: Chrome extension still on Manifest V2 (end-of-life)
+category: security
+severity: error
+engine: pattern
+action: block
+confidence: 0.9
+# requires: derived chrome-extension fact = a manifest.json with manifest_version
+requires:
+  framework: chrome-extension
+target:
+  filenames: manifest.json
+  content_contains: manifest_version
+patterns:
+  - regex: \"manifest_version\"\s*:\s*2\b
+    message: "manifest_version 2 is end-of-life and rejected by the Web Store. Migrate to MV3."
+fix: "Migrate to Manifest V3 (service_worker background, action API, declarativeNetRequest)."

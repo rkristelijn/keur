@@ -422,6 +422,73 @@ SCENARIO("[feature:rule-engine] absence rule does NOT fire when header present")
     cleanup_dir(dir);
 }
 
+// The Chrome rules apply to browser extensions only: gated on the derived
+// chrome-extension fact (manifest.json with manifest_version), so a plain JS
+// repo with DOM-HTML sinks / remote-script patterns is not reviewed as an extension.
+// @proves CHROME-SEC-001 CHROME-SEC-002
+SCENARIO("[feature:rule-engine] Chrome rules fire in an extension repo, not in a plain JS repo") {
+    auto rules = keur::rules_load(repo_root() + "/rules/security/chrome");
+    REQUIRE(!rules.empty());
+    const std::string js =
+        "document.getElementById('x').inner" "HTML = userInput;\n"  // split: the literal is a fixture
+        "const s = document.createElement('script'); s.src = 'https://cdn.example.invalid/x.js';\n"
+        "document.head.appendChild(s);\n"
+        "eval(code);\n";
+    std::string plain = create_temp_dir();
+    write_file(plain + "/app.js", js);
+    write_file(plain + "/package.json", "{\"name\": \"web\"}\n");
+    auto f1 = keur::rules_scan_dir(rules, plain);
+    for (const char* id : {"CHROME-SEC-001", "CHROME-SEC-002"}) CHECK_MESSAGE(!has_rule(f1, id), id);
+    std::string ext = create_temp_dir();
+    write_file(ext + "/app.js", js);
+    write_file(ext + "/manifest.json", "{\n  \"manifest_version\": 3,\n  \"name\": \"ext\"\n}\n");
+    auto f2 = keur::rules_scan_dir(rules, ext);
+    CHECK(has_rule(f2, "CHROME-SEC-001"));
+    CHECK(has_rule(f2, "CHROME-SEC-002"));
+    cleanup_dir(plain);
+    cleanup_dir(ext);
+}
+
+// CHROME-SEC-002/003/005 precision: reads are not assignments, a wildcard host
+// permission matches, 'wasm-unsafe-eval' and the documented sandbox CSP are clean.
+// @proves CHROME-SEC-002 CHROME-SEC-003 CHROME-SEC-005
+SCENARIO("[feature:rule-engine] Chrome rules: comparisons, wildcard hosts and CSP context") {
+    auto rules = keur::rules_load(repo_root() + "/rules/security/chrome");
+    REQUIRE(!rules.empty());
+    auto ids_at = [&](const std::string& path, const char* id) {
+        std::vector<int> v;
+        for (auto& x : keur::rules_scan_files(rules, {path})) if (x.rule_id == id) v.push_back(x.line);
+        return v;
+    };
+    std::string dir = create_temp_dir();
+    write_file(dir + "/manifest.json", "{\n  \"manifest_version\": 3\n}\n");  // the chrome-extension fact
+    std::string js = dir + "/a.js";
+    write_file(js,
+        "if (el.inner" "HTML === \"\") {}\n"     // 1: comparison, quiet
+        "if (el.outer" "HTML == x) {}\n"          // 2: comparison, quiet
+        "el.inner" "HTML = html;\n"               // 3: assignment, flag
+        "el.inner" "HTML =\n");                   // 4: assignment at line end, flag
+    std::string man = dir + "/sub/manifest.json";
+    REQUIRE(::mkdir((dir + "/sub").c_str(), 0755) == 0);
+    write_file(man,
+        "{\n"
+        "  \"manifest_version\": 3,\n"
+        "  \"host_permissions\": [\"*://*/*\"],\n"                                                          // 3: wildcard, flag 003
+        "  \"content_security_policy\": {\n"
+        "    \"extension_pages\": \"script-src 'self' 'wasm-unsafe-eval'; object-src 'self'\",\n"            // 5: wasm, quiet
+        "    \"sandbox\": \"sandbox allow-scripts; script-src 'self' 'unsafe-inline' 'unsafe-eval'\"\n"     // 6: sandbox, quiet
+        "  }\n"
+        "}\n");
+    std::string bad = dir + "/bad/manifest.json";
+    REQUIRE(::mkdir((dir + "/bad").c_str(), 0755) == 0);
+    write_file(bad, "{\n  \"manifest_version\": 3,\n  \"content_security_policy\": {\n    \"extension_pages\": \"script-src 'self' 'unsafe-eval'\"\n  }\n}\n");
+    CHECK(ids_at(js, "CHROME-SEC-002") == std::vector<int>{3, 4});
+    CHECK(ids_at(man, "CHROME-SEC-003") == std::vector<int>{3});
+    CHECK(ids_at(man, "CHROME-SEC-005").empty());
+    CHECK(ids_at(bad, "CHROME-SEC-005") == std::vector<int>{4});
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] rules_scan_dir flags multiple key files") {
     // Stage 3 key fixtures into a neutral tempdir, then scan the dir.
     auto rules = keur::rules_load(keur_rules_dir());

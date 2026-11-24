@@ -52,6 +52,35 @@ and can *optionally* corroborate with proven open-source tools you opt into
 (ADR-066); paying it forward is welcome but never required — a good rule (merge
 request), a donation, or the wishlist. The full picture: **`docs/design/vision.md`**.
 
+## How keur differs
+
+keur is not a linter, not a test runner, not husky. It sits in the **gap
+between git and your native tools**, and it judges on **patterns and repo
+structure, not deep language semantics**. That position is the whole point: it
+catches a class of problems no single-language tool is even looking at.
+
+- **A language-independent anti-slop gate.** One tool, every language, every
+  file — a Dockerfile, a YAML, a shell script, a `.py` and a README in one pass.
+  Where ESLint/clippy/flake8 each own the deep semantics of *one* language, keur
+  matches patterns (RE2) across all of them. It is the right tool for
+  cross-cutting problems and the *wrong* tool for "is this type correct" — that
+  is tsc's job, and keur defers to it (ADR-066).
+- **The gap between git and language-specific tools.** keur fires at the one
+  moment those tools don't: the commit/push. ESLint knows your language, jest
+  runs your tests, husky runs your hooks — keur is the gate *between git and all
+  of them*, catching what none of them look at.
+- **Cross-file / cross-folder reasoning.** A per-file linter sees one file; keur
+  reads the whole repo — a directory that
+  outgrew its responsibility (KEUR-QUAL-006), path-scoped rules per subtree
+  (ADR-043), composite rules over facts (ADR-009). Planned: orphaned or
+  unreferenced docs (ADR-072, proposed).
+- **AI-slop, specifically.** Syntactically valid but hollow output no linter
+  flags: fake tests that assert nothing (size-only / `toBeTruthy`), AI filler
+  headers, TODOs with no issue, NIH reimplementations, always-true comparisons.
+
+The whole positioning, with a tool-by-tool comparison table:
+**`docs/design/why-keur-vs-other-tools.md`**.
+
 ## Why C++
 
 A pre-commit hook runs on every commit, so it must be **sub-second** — slow it

@@ -1,0 +1,28 @@
+# Chrome extension: a content_security_policy that allows unsafe-eval or
+# unsafe-inline defeats the purpose of the CSP and is disallowed in MV3.
+# @see docs/rules-authoring.md
+id: CHROME-SEC-005
+ilities: [integrity]
+maturity: 3
+title: Chrome extension CSP allows unsafe-eval / unsafe-inline
+category: security
+severity: error
+engine: pattern
+action: block
+confidence: 0.85
+# requires: derived chrome-extension fact = a manifest.json with manifest_version
+requires:
+  framework: chrome-extension
+target:
+  filenames: manifest.json
+  content_contains: content_security_policy
+patterns:
+  # Only the extension-page policy (MV3 "extension_pages", or the MV2 string form),
+  # never "sandbox": Chrome's documented sandbox CSP allows both tokens. The value
+  # is matched up to its closing quote, and the token must be the complete quoted
+  # source ('unsafe-eval'), so the permitted 'wasm-unsafe-eval' is not a hit.
+  - regex: \"(?:extension_pages|content_security_policy)\"\s*:\s*\"[^\"]*'unsafe-eval'
+    message: "CSP 'unsafe-eval' on extension pages allows dynamic code execution — disallowed in MV3. Remove it."
+  - regex: \"(?:extension_pages|content_security_policy)\"\s*:\s*\"[^\"]*'unsafe-inline'
+    message: "CSP 'unsafe-inline' on extension pages allows inline scripts (XSS risk) — remove it; move scripts to files."
+fix: "Remove unsafe-eval/unsafe-inline; use external script files and hashes/nonces if needed."

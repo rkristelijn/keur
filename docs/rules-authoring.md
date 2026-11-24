@@ -528,3 +528,18 @@ cpm-compatible, an existing cpm rule corpus can be reused by pointing
 3. Add a scenario in `src/keur/keur_test.cpp` (see the skip_comments /
    block-absence integration tests) asserting the exact findings.
 4. `cd src/keur && make test` — all rule tests green.
+
+## Domain rule-packs
+
+Rules for a specific ecosystem live in a subfolder under their category, so the
+pack is discoverable and testable as a unit. Example: **Chrome extensions** in
+`rules/security/chrome/` (CHROME-SEC-001..005) covers the pattern-matchable
+pitfalls — remote/dynamic code (`eval`/`new Function`/`importScripts`/
+`document.write`), `innerHTML` DOM-XSS sinks, over-broad host permissions
+(`<all_urls>`), Manifest V2 (end-of-life), and unsafe CSP
+(`unsafe-eval`/`unsafe-inline`). Proven by `tests/e2e/test_chrome_rules.sh`
+(`@proves CHROME-SEC-001..005`): one violating fixture that must trigger every
+rule, one clean fixture that must trigger none. Semantic pitfalls a pattern
+engine cannot see reliably (permissions wider than the code actually uses,
+message-passing without sender validation) are left to a SAST tool
+(Opengrep/Semgrep) and human review — keur owns the deterministic pattern layer.

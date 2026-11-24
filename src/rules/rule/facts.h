@@ -51,6 +51,10 @@ void facts_read_pom_xml(const std::string& content, Facts& out);
 /** composer.json (PHP): require map -> frameworks+versions; require.php -> runtimes[php]. */
 void facts_read_composer_json(const std::string& content, Facts& out);
 
+/** manifest.json: a browser-extension manifest (has "manifest_version") -> framework
+ *  "chrome-extension". A PWA web-app manifest has no manifest_version and is ignored. */
+void facts_read_manifest_json(const std::string& content, Facts& out);
+
 /** Map a file extension (with dot, e.g. ".ts") to a language name, or "" if unknown. */
 std::string facts_lang_for_ext(const std::string& ext);
 
