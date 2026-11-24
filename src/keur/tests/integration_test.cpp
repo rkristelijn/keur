@@ -8,6 +8,7 @@
  * scenarios. Shared helpers come from test_helpers.h; this file keeps them
  * unqualified via `using`.
  */
+#include <algorithm>
 #include <sys/stat.h>
 
 #include <cstdlib>
@@ -447,6 +448,31 @@ SCENARIO("[feature:rule-engine] Chrome rules fire in an extension repo, not in a
     CHECK(has_rule(f2, "CHROME-SEC-002"));
     cleanup_dir(plain);
     cleanup_dir(ext);
+
+// KEUR-SEC-006: a non-literal command into keur's shell sinks, also through a
+// pointer (proc->run) and not hidden by an unqualified import of platform::run.
+// @proves KEUR-SEC-006
+SCENARIO("[feature:rule-engine] KEUR-SEC-006 sees pointer calls and imported platform sinks") {
+    auto rules = keur::rules_load(repo_root() + "/rules/security");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    REQUIRE(::mkdir((dir + "/cmd").c_str(), 0755) == 0);
+    std::string f = dir + "/cmd/x.cpp";
+    write_file(f,
+        "void a(Proc* proc, const std::string& cmd) { proc->run(cmd); }\n"         // 1: pointer, flag
+        "void b(Proc* proc) { proc->run(\"git --version\"); }\n"                   // 2: literal, ok
+        "using platform::run;\n"                                                   // 3: import, flag
+        "using namespace platform;\n"                                              // 4: import, flag
+        "void c(const std::string& cmd) { platform::capture(cmd); }\n"             // 5: qualified, flag
+        "int d(const std::string& u) { return fetch::run(u); }\n"                  // 6: other run(), ok
+        "void e(Git* git, const std::string& a) { git->run(a); }\n"                // 7: git adapter, ok
+        "void g(Proc& proc, const std::string& cmd) { proc.capture(cmd); }\n");    // 8: dot, flag
+    auto fs = keur::rules_scan_files(rules, {f});
+    std::vector<int> lines;
+    for (auto& x : fs) if (x.rule_id == "KEUR-SEC-006") lines.push_back(x.line);
+    std::sort(lines.begin(), lines.end());  // findings arrive per pattern
+    CHECK(lines == std::vector<int>{1, 3, 4, 5, 8});
+    cleanup_dir(dir);
 }
 
 SCENARIO("[feature:rule-engine] rules_scan_dir flags multiple key files") {
