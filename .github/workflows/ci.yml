@@ -223,6 +223,11 @@ jobs:
             exit 0
           fi
           echo "Gating diff: ${base}..HEAD"
+          # Detach HEAD first. On a push to main, actions/checkout leaves the
+          # branch 'main' checked out, so KEUR-BRANCH-001 (ADR-057) would block
+          # a commit that already landed through a reviewed PR. The gate judges
+          # the diff, not the branch; a PR checkout is detached already.
+          git checkout -q --detach
           # Move the index to the base so this change's files show up as staged;
           # the worktree stays at HEAD. keur check reads git diff --cached.
           git reset --soft "$base"
