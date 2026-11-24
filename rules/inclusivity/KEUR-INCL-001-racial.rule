@@ -5,6 +5,8 @@ maturity: 5
 title: Non-inclusive terminology (racial/slavery)
 category: inclusivity
 severity: error
+# @implements ADR-079: action warn, confidence is below the default block-at 0.85 (block never fired).
+action: warn
 engine: pattern
 skip_strings: false
 target:

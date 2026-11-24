@@ -15,7 +15,8 @@ title: Potential SQL injection via template-literal interpolation
 category: sqli
 severity: critical
 engine: pattern
-action: block
+# @implements ADR-079: action warn, confidence is below the default block-at 0.85 (block never fired).
+action: warn
 # skip_comments intentionally OFF: keur's skip_comments blanks matched
 # code on .ts/.js (verified 2026-09-26, same bug that killed SEC-038).
 target:

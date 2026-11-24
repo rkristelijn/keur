@@ -13,7 +13,8 @@ title: NestJS insecure server configuration
 category: security
 severity: error
 engine: pattern
-action: block
+# @implements ADR-079: action warn, confidence is below the default block-at 0.85 (block never fired).
+action: warn
 skip_comments: true
 target:
   extensions: .ts .js

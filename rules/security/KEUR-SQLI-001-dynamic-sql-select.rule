@@ -9,7 +9,8 @@ title: Potential SQL injection via dynamically built query
 category: sqli
 severity: critical
 engine: pattern
-action: block
+# @implements ADR-079: action warn, confidence is below the default block-at 0.85 (block never fired).
+action: warn
 target:
   extensions: .js .php .rb .py .ts .go .java
 patterns:

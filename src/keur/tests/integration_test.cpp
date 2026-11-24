@@ -23,6 +23,7 @@
 #include "cmd/check.h"
 #include "cmd/hook.h"
 #include "cmd/scan.h"
+#include "cmd/policy.h"
 #include "adapters/git.h"
 #include "test_helpers.h"
 
@@ -1970,4 +1971,57 @@ SCENARIO("[feature:rule-engine] MUI migration rules flag the bad lines and stay 
     }
     // UI-MIS-023 is name-based: without an @mui mention another library's PaperProps never fires.
     CHECK(!has_rule(scan_inline(rules, "c.jsx", "<Modal PaperProps={{}} />;\n"), "UI-MIS-023"));
+}
+
+// ── ADR-079: a block rule must be able to block ─────────────────────────────
+// A rule whose effective action is `block` but whose confidence is below the
+// default block-at never blocks: the policy downgrades every finding to a
+// warning while the output still says "block". 13 shipped rules were in that
+// state (KEUR-SEC-007 among them). This keeps the class from coming back:
+// either raise the confidence (with evidence) or say `action: warn`.
+
+// @proves ADR-079
+SCENARIO("[feature:rule-engine] every shipped block rule clears the default block-at") {
+    const double block_at = keur::cmd::PolicySettings{}.block_at;
+    const std::vector<std::string> dirs = {"composite", "generics", "inclusivity", "keur-internal",
+                                           "quality", "secrets", "security", "supply-chain"};
+    std::vector<std::string> unreachable;
+    size_t checked = 0;
+    for (const auto& d : dirs) {
+        for (const auto& r : keur::rules_load(repo_root() + "/rules/" + d)) {
+            if (keur::detail::default_action(r) != "block") continue;
+            ++checked;
+            if (std::stod(keur::detail::default_conf(r)) < block_at) unreachable.push_back(r.id);
+        }
+    }
+    CHECK(checked > 100);  // the scan really saw the shipped rule set
+    // Joined, so a failure names every offender: raise its confidence (with
+    // evidence) or declare `action: warn`.
+    std::string offenders;
+    for (const auto& id : unreachable) offenders += (offenders.empty() ? "" : " ") + id;
+    CHECK(offenders == std::string());
+}
+
+// @proves KEUR-SEC-007
+SCENARIO("[feature:rule-engine] KEUR-SEC-007 blocks a hardcoded credential, not tests or .example files") {
+    auto rules = keur::rules_load(repo_root() + "/rules/secrets");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    // Assembled at runtime so this source file itself holds no credential-shaped literal.
+    const std::string value = std::string("wJalrXUtnFEMI") + "/K7MDENG/bPxRfiCY";
+    write_file(dir + "/config.js", "const AWS_SECRET_ACCESS_KEY = '" + value + "';\n");
+    auto f = keur::rules_scan_files(rules, {dir + "/config.js"});
+    bool blocks = false;
+    for (const auto& x : f)
+        if (x.rule_id == "KEUR-SEC-007" && x.action == "block" && std::stod(x.confidence) >= keur::cmd::PolicySettings{}.block_at)
+            blocks = true;
+    CHECK(blocks);
+
+    REQUIRE(::mkdir((dir + "/tests").c_str(), 0755) == 0);
+    write_file(dir + "/tests/login.test.js", "const password = '" + value + "';\n");
+    write_file(dir + "/.env.example", "API_KEY='your-api-key-goes-here'\n");
+    auto quiet = keur::rules_scan_files(rules, {dir + "/tests/login.test.js", dir + "/.env.example"});
+    CHECK(!has_rule(quiet, "KEUR-SEC-007"));
+    cleanup_dir(dir);
 }

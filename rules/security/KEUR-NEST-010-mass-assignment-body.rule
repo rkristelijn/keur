@@ -9,6 +9,8 @@ id: KEUR-NEST-010
 title: Mass assignment — @Body() spread into a persisted object (NestJS)
 category: security
 severity: error
+# @implements ADR-079: action warn, confidence is below the default block-at 0.85 (block never fired).
+action: warn
 engine: multiline
 window: 14
 skip_comments: true

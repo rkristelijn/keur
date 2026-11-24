@@ -12,7 +12,8 @@ severity: error
 engine: multiline
 within: window
 window: 4
-action: block
+# @implements ADR-079: action warn, confidence is below the default block-at 0.85 (block never fired).
+action: warn
 target:
   extensions: .yml .yaml
 patterns:
