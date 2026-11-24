@@ -448,6 +448,7 @@ SCENARIO("[feature:rule-engine] Chrome rules fire in an extension repo, not in a
     CHECK(has_rule(f2, "CHROME-SEC-002"));
     cleanup_dir(plain);
     cleanup_dir(ext);
+}
 
 // KEUR-SEC-006: a non-literal command into keur's shell sinks, also through a
 // pointer (proc->run) and not hidden by an unqualified import of platform::run.
