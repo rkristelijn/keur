@@ -1,0 +1,40 @@
+# The continuation-line sibling of DK-PIN-001. Docker joins backslash-continued
+# lines into one instruction, so
+#
+#     RUN npm install -g pnpm@12.21.0 \
+#         yarn
+#
+# installs an unpinned `yarn`, but no single physical line shows it (the first has
+# no bare package, the second no install command). The multiline engine matches
+# the install line plus its continuation lines in one window and reports at the
+# install line.
+#
+# HOW: after `-g`/`--global` (or `yarn global add`), pinned tokens may end the line
+# with `\`; continuation lines may hold more pinned tokens and end with `\`; then a
+# BARE token (no `@` after its first character) must follow. A line that only
+# continues with `&& ...` is not a package list, so `pnpm@1 \ && pnpm --version`
+# stays quiet. RUN or an indented line, no `#` before the install (see DK-PIN-001).
+#
+# Limits: a package list longer than the window (8 lines) is not followed, and the
+# engine reports one finding per window (a second unpinned RUN within 8 lines of
+# the first is covered by the first finding).
+#
+# @see DK-PIN-001, docs/rules-authoring.md (multiline engine).
+id: DK-PIN-002
+ilities: [integrity, reliability-maturity]
+maturity: 2
+title: Unpinned global npm/pnpm/yarn install on a continuation line in a Dockerfile
+category: supply-chain
+severity: error
+engine: multiline
+within: window
+window: 8
+action: block
+target:
+  filenames: Dockerfile Dockerfile.dev Dockerfile.prod
+  extensions: .dockerfile
+  exclude_paths: test/ tests/ vendor/ node_modules/
+patterns:
+  - regex: ^(?:\s*RUN\s+|\s+)[^#\n]*(?:\b(?:npm|pnpm)\s+(?:install|i|add)\s+(?:-g|--global)|\byarn\s+global\s+add)(?:\s+@?[A-Za-z0-9][A-Za-z0-9._/-]*@[^\s\\&;|]+)*\s*\\\n(?:\s*(?:@?[A-Za-z0-9][A-Za-z0-9._/-]*@[^\s\\&;|]+\s*)*\\\n)*\s*(?:@?[A-Za-z0-9][A-Za-z0-9._/-]*@[^\s\\&;|]+\s+)*@?[A-Za-z0-9][A-Za-z0-9._/-]*(?:\s|$)
+    message: "global install continues on the next line with a package without a version: pin every package (pkg@x.y.z) so the image build is reproducible"
+fix: "Add an exact version to each package on every continuation line, e.g. RUN npm install -g pnpm@12.21.0 \\ yarn@1.22.22."

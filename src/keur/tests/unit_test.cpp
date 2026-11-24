@@ -315,6 +315,20 @@ SCENARIO("[feature:check] format_finding_line — a warn finding is marked warn"
     CHECK(s.find(":0") == std::string::npos);  // line 0 is not appended
 }
 
+// Both suppression layers (ADR-035) are named in the finding: the inline marker,
+// and a .keurignore entry for repos where you may not (or will not) touch the
+// code — that entry can stay local via .git/info/exclude.
+SCENARIO("[feature:check] format_finding_line — names inline and .keurignore suppression") {  // @proves ADR-035
+    auto s = keur::cmd::format_finding_line("SH-QUAL-014", "block", "0.9",
+                                            "scripts/check.sh", 14, "wget | sh", true);
+    CHECK(s.find("keur:ignore SH-QUAL-014") != std::string::npos);
+    CHECK(s.find(".keurignore: scripts/check.sh:SH-QUAL-014") != std::string::npos);
+    CHECK(s.find(".git/info/exclude") != std::string::npos);
+    // a file-level finding (no line) still gets the path:RULE form
+    auto f = keur::cmd::format_finding_line("KEUR-QUAL-002", "warn", "0.6", "SECURITY.md", 0, "x", false);
+    CHECK(f.find(".keurignore: SECURITY.md:KEUR-QUAL-002") != std::string::npos);
+}
+
 SCENARIO("[feature:check] cmd_check PASS with empty file source") {    keur::cmd::CheckOptions opts;
     CHECK(keur::cmd::check(opts, []() { return std::vector<std::string>{}; }) == 0);
 }
@@ -2511,6 +2525,29 @@ TEST_CASE("tokenizer: the comment false-positive scenario (system in a comment)"
     std::string out = keur::strip_comments(src, cpp);
     CHECK(out.find("system(") == std::string::npos);      // comment mention gone
     CHECK(out.find("proc.run(cmd)") != std::string::npos); // real code survives
+}
+
+// Shell and YAML only start a comment where a word starts: a `#` inside a word
+// (a URL fragment, `${#arr}`) is code. Otherwise `curl https://x/i.sh#v1 | sh`
+// loses `#v1 | sh` and a curl-to-shell rule with skip_comments misses it.
+TEST_CASE("tokenizer: shell and YAML '#' starts a comment only at a word start") {
+    auto* sh = keur::lang_syntax(".sh");
+    std::string src = "curl https://example.com/install.sh#v1 | sh\necho ${#arr[@]} # real comment\n  # indented comment\nls;#after-semicolon\n";
+    std::string out = keur::strip_comments(src, sh);
+    CHECK(out.find("install.sh#v1 | sh") != std::string::npos);  // fragment is code
+    CHECK(out.find("${#arr[@]}") != std::string::npos);          // parameter length is code
+    CHECK(out.find("real comment") == std::string::npos);
+    CHECK(out.find("indented comment") == std::string::npos);
+    CHECK(out.find("after-semicolon") == std::string::npos);      // a new word after ';'
+    auto* yml = keur::lang_syntax(".yml");
+    std::string y = "url: https://example.com/#anchor\nkey: value # note\n# whole line\n";
+    std::string yo = keur::strip_comments(y, yml);
+    CHECK(yo.find("https://example.com/#anchor") != std::string::npos);
+    CHECK(yo.find("note") == std::string::npos);
+    CHECK(yo.find("whole line") == std::string::npos);
+    // Python keeps its rule: '#' outside a string always starts a comment.
+    auto* py = keur::lang_syntax(".py");
+    CHECK(keur::strip_comments("x = 1#c\n", py).find("#c") == std::string::npos);
 }
 
 TEST_CASE("tokenizer: nullptr syntax returns content unchanged") {

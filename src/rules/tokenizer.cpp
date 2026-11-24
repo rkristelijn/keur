@@ -3,7 +3,8 @@
  * @brief Language-aware tokenizer — single-pass state machine.
  *
  * Adopted from cpm (https://github.com/rkristelijn/cpm) src/analysis/tokenizer.cpp.
- * Wrapped in namespace keur; logic unchanged. See util/tokenizer.h.
+ * Wrapped in namespace keur. One change from cpm: in shell and YAML a `#` starts a
+ * comment only at a word start (a `#` inside a word is code). See util/tokenizer.h.
  * @implements ADR-004.stage1
  */
 #include "tokenizer.h"
@@ -58,6 +59,24 @@ static bool is_string_delim(char c, const char delims[4]) {
   return false;
 }
 
+// Shell and YAML start a `#` comment only where a word starts (line start, after
+// whitespace, or after a shell separator). A `#` inside a word is code: a URL
+// fragment (`install.sh#v1`), `${#arr}`, a YAML `https://x/#anchor`. Other `#`
+// languages (Python, Ruby, TOML, HCL) treat any `#` outside a string as a comment.
+static bool has_word_start_hash(const LangSyntax* syntax) {
+  for (int j = 0; j < 8 && syntax->extensions[j]; j++)
+    for (const char* ext : {".sh", ".bash", ".yml", ".yaml"})
+      if (std::strcmp(syntax->extensions[j], ext) == 0) return true;
+  return false;
+}
+
+static bool is_word_start(const std::string& s, size_t pos) {
+  if (pos == 0) return true;
+  const char prev = s[pos - 1];
+  return prev == ' ' || prev == '\t' || prev == '\n' || prev == '\r' || prev == ';' || prev == '&' ||
+         prev == '|' || prev == '(';
+}
+
 static std::string strip_impl(const std::string& content, const LangSyntax* syntax, bool strip_strings) {
   if (!syntax) return content;
 
@@ -74,6 +93,7 @@ static std::string strip_impl(const std::string& content, const LangSyntax* synt
   for (int j = 0; j < 8 && syntax->extensions[j]; j++) {
     if (std::strcmp(syntax->extensions[j], ".php") == 0) { php_hash = true; break; }
   }
+  const bool word_hash = has_word_start_hash(syntax);
 
   size_t i = 0;
   while (i < len) {
@@ -94,7 +114,8 @@ static std::string strip_impl(const std::string& content, const LangSyntax* synt
           i += block_start_len;
           continue;
         }
-        if (syntax->line_comment && match_at(content, i, syntax->line_comment)) {
+        if (syntax->line_comment && match_at(content, i, syntax->line_comment) &&
+            (!word_hash || is_word_start(content, i))) {
           state = State::LINE_COMMENT;
           for (size_t k = 0; k < line_comment_len; k++) out[i + k] = ' ';
           i += line_comment_len;
@@ -238,6 +259,7 @@ std::vector<Literal> extract_literals(const std::string& content, const LangSynt
   for (int j = 0; j < 8 && syntax->extensions[j]; j++) {
     if (std::strcmp(syntax->extensions[j], ".php") == 0) { php_hash = true; break; }
   }
+  const bool word_hash = has_word_start_hash(syntax);
 
   State state = State::NORMAL;
   char string_delim = 0;
@@ -270,7 +292,8 @@ std::vector<Literal> extract_literals(const std::string& content, const LangSynt
           i += block_start_len;
           continue;
         }
-        if (syntax->line_comment && match_at(content, i, syntax->line_comment)) {
+        if (syntax->line_comment && match_at(content, i, syntax->line_comment) &&
+            (!word_hash || is_word_start(content, i))) {
           state = State::LINE_COMMENT;
           i += line_comment_len;
           continue;

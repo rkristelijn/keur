@@ -1,0 +1,44 @@
+# A global package-manager install in a Dockerfile without a version installs
+# whatever is "latest" at build time: two builds of the same Dockerfile get
+# different tools, and a compromised release lands silently. Pin every package
+# (`npm install -g pnpm@12.21.0 yarn@1.22.22`).
+#
+# A repo-local pin guard (one script in one repo) only protects that repo;
+# as a rule every repo with keur gets it.
+#
+# HOW the regex works without lookaround (RE2): after `-g`/`--global`, zero or
+# more PINNED tokens (`name@version`, scoped `@s/n@v` too) are consumed, then a
+# BARE token (no `@` after its first character) must follow and be followed by
+# whitespace or end of line. A pinned token cannot be read as bare because it is
+# followed by `@`, not whitespace. A line continuation `\` or `&&` is not a token
+# start, so `pnpm@1 yarn@1 \` is clean.
+#
+# The line must be a RUN instruction or an indented continuation line, and no `#`
+# may come before the install: a Dockerfile comment (`# RUN npm install -g x`) and
+# metadata (`LABEL description="npm install -g nx"`) are not installs. skip_comments
+# does not know Dockerfile comments, so the pattern carries this itself.
+#
+# Limits (80% fit): flags between `-g` and the packages (`-g --unsafe-perm x`)
+# and the `npm i x -g` order are not seen (false negative, never a false positive).
+# Packages on continuation lines are DK-PIN-002 (multiline engine).
+#
+# @see docs/rules-authoring.md (RE2: no lookaround), ADR-026 (maturity).
+id: DK-PIN-001
+ilities: [integrity, reliability-maturity]
+maturity: 2
+title: Unpinned global npm/pnpm/yarn install in a Dockerfile
+category: supply-chain
+severity: error
+engine: pattern
+action: block
+skip_comments: true
+target:
+  filenames: Dockerfile Dockerfile.dev Dockerfile.prod
+  extensions: .dockerfile
+  exclude_paths: test/ tests/ vendor/ node_modules/
+patterns:
+  - regex: ^(?:\s*RUN\s+|\s+)[^#]*\b(npm|pnpm)\s+(install|i|add)\s+(-g|--global)\s+(@?[A-Za-z0-9][A-Za-z0-9._/-]*@[^\s\\&;|]+\s+)*@?[A-Za-z0-9][A-Za-z0-9._/-]*(\s|$)
+    message: "global install without a version: pin every package (pkg@x.y.z) so the image build is reproducible"
+  - regex: ^(?:\s*RUN\s+|\s+)[^#]*\byarn\s+global\s+add\s+(@?[A-Za-z0-9][A-Za-z0-9._/-]*@[^\s\\&;|]+\s+)*@?[A-Za-z0-9][A-Za-z0-9._/-]*(\s|$)
+    message: "yarn global add without a version: pin every package (pkg@x.y.z) so the image build is reproducible"
+fix: "Add an exact version to each package, e.g. RUN npm install -g pnpm@12.21.0 yarn@1.22.22, and let Renovate bump it."
