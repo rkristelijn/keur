@@ -76,8 +76,9 @@ control. It is the inbound-edge mirror of `doc-coverage.sh`'s dead-link
    `CONTRIBUTING.md`, `AGENTS.md`, `CHANGELOG.md`, the ADR index
    (`docs/adr/README.md`), `docs/design/vision.md`. Anything a root can reach,
    transitively, is referenced.
-3. **A tracked file with no inbound edge and not reachable from a root is an
-   orphan candidate → WARN**, with a self-explaining message (ADR-035): "no
+3. **A tracked file not reachable from a root is an orphan candidate → WARN**,
+   even when other unreachable files link to it (two orphans that link to each
+   other are still both orphans), with a self-explaining message (ADR-035): "no
    inbound reference — leftover scratch, or link it from where it belongs."
 
 Hard constraints, each a direct consequence of the context:
@@ -90,8 +91,9 @@ Hard constraints, each a direct consequence of the context:
   marked in `.keurignore` (ADR-046) — the same allowlist mechanism, no new
   concept. That turns "intentional orphan" into an explicit, reviewable choice
   rather than recurring noise.
-- **Conservative edge extraction.** The dead-link half already parses these
-  reference forms; reuse it. Under-linking (missing an exotic reference form)
+- **Conservative edge extraction.** The dead-link half parses only `@implements`,
+  `@see` and `@external` tags for declared IDs. Markdown link, `href` and file-path
+  extraction is new work. Under-linking (missing an exotic reference form)
   produces a false-positive WARN, which is cheap — a glance — and is *why* this
   is WARN, not BLOCK. The measured 11 above are *candidates*, not proven dead
   weight.

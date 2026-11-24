@@ -31,8 +31,9 @@ a YAML file and a .py, in one pass, at the one moment that matters: the commit.
 
 Consequence: keur is the right tool for cross-cutting, cross-language,
 process-level problems. It is the **wrong** tool for "is this TypeScript type
-correct" — that's tsc's job, and keur happily defers to it (ADR-066: optionally
-corroborate with the real tools you opt into).
+correct" — that's tsc's job, and keur happily defers to it. ADR-066 makes external
+scanners opt-in; the wired adapters are gitleaks, semgrep and shellcheck. To gate on
+tsc, add a project-local check.
 
 ## vs. the tools people already have
 
