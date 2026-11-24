@@ -32,7 +32,7 @@ patterns:
   - regex: \bfrom\s+["']@mui/material/(Grid2|Unstable_Grid2)["']
     message: "Grid2 was renamed to Grid in MUI v7: import Grid from '@mui/material/Grid'"
   - regex: (\bimport\s[^;]*\bGridLegacy\b[^;]*\bfrom\s+["']@mui/material["']|\bfrom\s+["']@mui/material/GridLegacy["'])
-    message: "GridLegacy was removed in MUI v9: migrate to Grid (npx @mui/codemod@latest v7.0.0/grid-props <path>)"
+    message: "GridLegacy was removed in MUI v9: change the import to Grid first, then run npx @mui/codemod@latest v7.0.0/grid-props <path> (it does not rewrite GridLegacy imports)"
   - regex: (\bimport\s[^;]*\b(Hidden|PigmentHidden)\b[^;]*\bfrom\s+["']@mui/material["']|\bfrom\s+["']@mui/material/(Hidden|PigmentHidden)["'])
     message: "Hidden was removed in MUI v7: use sx={{ display: { xs: 'none', md: 'block' } }} or useMediaQuery"
   - regex: \bexperimentalStyled\b[^;]*\bfrom\s+["']@mui/
