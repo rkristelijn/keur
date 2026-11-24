@@ -320,9 +320,9 @@ SCENARIO("[feature:check] format_finding_line — a warn finding is marked warn"
 // code — that entry can stay local via .git/info/exclude.
 SCENARIO("[feature:check] format_finding_line — names inline and .keurignore suppression") {  // @proves ADR-035
     auto s = keur::cmd::format_finding_line("SH-QUAL-014", "block", "0.9",
-                                            "scripts/check-pinned.sh", 14, "wget | sh", true);
+                                            "scripts/check.sh", 14, "wget | sh", true);
     CHECK(s.find("keur:ignore SH-QUAL-014") != std::string::npos);
-    CHECK(s.find(".keurignore: scripts/check-pinned.sh:SH-QUAL-014") != std::string::npos);
+    CHECK(s.find(".keurignore: scripts/check.sh:SH-QUAL-014") != std::string::npos);
     CHECK(s.find(".git/info/exclude") != std::string::npos);
     // a file-level finding (no line) still gets the path:RULE form
     auto f = keur::cmd::format_finding_line("KEUR-QUAL-002", "warn", "0.6", "SECURITY.md", 0, "x", false);

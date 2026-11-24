@@ -1354,7 +1354,7 @@ SCENARIO("[feature:rule-engine] NODE-PIN-001 is satisfied by engines.node (one-l
     CHECK(!has_rule(f2, "NODE-PIN-001"));
     cleanup_dir(d2);
 }
-// Rules from the standard-components pnpm/yarn review (2026-11-24).
+// Rules for package-manager hygiene (pinned global installs, one lockfile per dir).
 // SH-QUAL-014 / SCA-063 blocked a commit on a COMMENT that documents a
 // curl|sh check; with skip_comments the comment is quiet, real code still fires.
 // @proves SH-QUAL-014 SCA-063

@@ -1,12 +1,10 @@
 # More than one JS lockfile in one directory means two package managers claim
 # the same project: CI picks one (or guesses), the developer uses the other, and
-# the installed versions differ. The standard pipeline component
-# (lang-typescript-tooling pull-dependencies) stops on this in CI; this rule
-# says it at commit time instead.
+# the installed versions differ. A CI install step that detects this fails
+# late; this rule says it at commit time instead.
 #
 # npm-shrinkwrap.json is deliberately NOT a target: npm allows it next to
-# package-lock.json (the shrinkwrap wins), so that pair counts as one npm lockfile
-# (review by Mike on standard-component-environment-providers!12, 2026-11-24).
+# package-lock.json (the shrinkwrap wins), so that pair counts as one npm lockfile.
 # bun.lock and bun.lockb share the stem "bun" and count as one unit.
 #
 # Engine max-dir-files groups the matched files PER DIRECTORY and runs on the full

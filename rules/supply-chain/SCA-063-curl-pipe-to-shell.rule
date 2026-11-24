@@ -6,7 +6,7 @@ title: Piping curl/wget to shell execution
 category: supply-chain
 severity: warning
 engine: pattern
-# Comments that describe the pattern are not the pattern (container-images!109).
+# Comments that describe the pattern are not the pattern.
 skip_comments: true
 target:
   extensions: .sh .bash .yml .yaml

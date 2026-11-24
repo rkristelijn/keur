@@ -3,9 +3,8 @@
 # different tools, and a compromised release lands silently. Pin every package
 # (`npm install -g pnpm@12.21.0 yarn@1.22.22`).
 #
-# Ported from container-images scripts/check-pinned.sh PIN-004 so every repo
-# with keur gets it, not only the one that carries the script
-# (standard-component-environment-providers!12 review, 2026-11-24).
+# A repo-local pin guard (one script in one repo) only protects that repo;
+# as a rule every repo with keur gets it.
 #
 # HOW the regex works without lookaround (RE2): after `-g`/`--global`, zero or
 # more PINNED tokens (`name@version`, scoped `@s/n@v` too) are consumed, then a
