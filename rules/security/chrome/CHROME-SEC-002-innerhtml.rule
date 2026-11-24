@@ -19,9 +19,10 @@ target:
   extensions: .js
   exclude_paths: test/ tests/ node_modules/ dist/ vendor/
 patterns:
-  - regex: \.innerHTML\s*=
+  # '=' not followed by '=' (RE2 has no lookahead): assignment, never a == / === read.
+  - regex: \.innerHTML\s*=([^=]|$)
     message: "innerHTML assignment — XSS sink if the value is ever attacker-influenced (tab title/URL/storage). Use textContent."
-  - regex: \.outerHTML\s*=
+  - regex: \.outerHTML\s*=([^=]|$)
     message: "outerHTML assignment — XSS sink. Use textContent or build nodes explicitly."
   - regex: \.insertAdjacentHTML\s*\(
     message: "insertAdjacentHTML — XSS sink. Build DOM nodes instead."

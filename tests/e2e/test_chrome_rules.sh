@@ -40,7 +40,7 @@ for id in CHROME-SEC-001 CHROME-SEC-002 CHROME-SEC-003 CHROME-SEC-004 CHROME-SEC
 done
 
 # --- clean fixture: none of the five may fire --------------------------------
-GOOD="$(mktemp -d)"
+GOOD="$(mktemp -d)" || { fail "clean fixture: mktemp failed" ""; summary; exit 1; }
 cat > "$GOOD/manifest.json" <<'JSON'
 {
   "manifest_version": 3,
@@ -53,8 +53,13 @@ element.textContent = tab.title;
 chrome.tabs.query({}, (tabs) => { tabs.length; });
 JS
 
+[[ -s "$GOOD/manifest.json" && -s "$GOOD/background.js" ]] || fail "clean fixture was not created" "$GOOD"
 OUT_GOOD="$(KEUR_RULES_DIRS="$RULES" "$BINARY" scan "$GOOD" 2>/dev/null)"
-if echo "$OUT_GOOD" | grep -q '"rule":"CHROME-SEC-'; then
+SCAN_RC=$?
+# A failed scan must not pass as "no findings": an empty result only counts when the scan succeeded.
+if [[ $SCAN_RC -ne 0 ]]; then
+  fail "clean-fixture scan exited $SCAN_RC" "$OUT_GOOD"
+elif echo "$OUT_GOOD" | grep -q '"rule":"CHROME-SEC-'; then
   fail "chrome rules false-positive on clean fixture" "$(echo "$OUT_GOOD" | grep 'CHROME-SEC-')"
 else
   ok "no CHROME-SEC findings on clean fixture"
