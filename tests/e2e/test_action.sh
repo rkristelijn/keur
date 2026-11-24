@@ -59,7 +59,17 @@ fi
 # releases: once a statically linked release is published, the skip no longer
 # applies and a binary that cannot start fails this test again.
 PRE_STATIC_RELEASES="0.1.0 0.2.0"
-installed="$(sed -n 's/.*install: done — *//p' "$INSTALL_LOG" | tail -1)"
+# The version must come from outside the binary: install.sh asks the binary
+# itself, which is exactly what fails here. A pinned KEUR_VERSION wins;
+# otherwise follow the /releases/latest redirect to /releases/tag/vX.Y.Z.
+if [[ "$KEUR_VERSION" == "latest" ]]; then
+  installed="$(curl -fsSI -o /dev/null -w '%{redirect_url}' \
+    "https://github.com/rkristelijn/keur/releases/latest" 2>/dev/null)"
+  installed="${installed##*/}"
+else
+  installed="$KEUR_VERSION"
+fi
+installed="${installed#v}"
 if ! "$KEUR_BIN_DIR/keur" --version >/dev/null 2>&1; then
   case " $PRE_STATIC_RELEASES " in
     *" $installed "*)
