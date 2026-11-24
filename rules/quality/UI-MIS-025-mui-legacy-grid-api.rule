@@ -1,0 +1,32 @@
+# Since MUI v7 `Grid` is the former Grid2: items no longer take `item`, and the
+# breakpoint props xs..xl were replaced by `size` (size={{ xs: 12, md: 6 }}).
+# v9 also dropped direction="column" on Grid (use Stack for vertical layouts).
+#
+# `\sitem(\s|/|>)` matches the bare boolean prop only, so `items=`, `data-item`
+# and `itemProp` stay quiet. Breakpoints are matched as `xs={` / `md="` so
+# a prop named `xsmall` or text content never matches.
+#
+# @external eslint-plugin-mui:mui-no-legacy-grid
+# @see https://mui.com/material-ui/migration/upgrade-to-grid-v2/
+id: UI-MIS-025
+ilities: [modifiability]
+source: eslint-plugin-mui
+maturity: 3
+action: advisory
+title: Legacy Grid API on MUI Grid (item, xs..xl, direction column)
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .tsx .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui"
+patterns:
+  - regex: <Grid2?\s([^>]*\s)?item(\s|/|>)
+    message: "Grid has no `item` prop since MUI v7: remove it (codemod: npx @mui/codemod@latest v7.0.0/grid-props <path>)"
+  - regex: <Grid2?\s([^>]*\s)?(xs|sm|md|lg|xl)=[{"']
+    message: "Grid breakpoint props were replaced by size in MUI v7: size={{ xs: 12, md: 6 }}"
+  - regex: <Grid2?\s([^>]*\s)?direction=\{?["']column
+    message: "Grid no longer supports direction=\"column\" (MUI v9): use <Stack> for vertical layouts"
+fix: "<Grid item xs={12} md={6}> becomes <Grid size={{ xs: 12, md: 6 }}>; vertical layouts use <Stack>."
