@@ -40,9 +40,7 @@ using keur::test::scan_inline;
 using keur::test::FakeFsState;
 using keur::test::make_fake_fs;
 
-// =====================================================================    cleanup_dir(dir);
-}
-
+// ============================================================================
 // TEST_SUITE: integration — real rule engine + real fixture files
 // ============================================================================
 
@@ -475,7 +473,9 @@ SCENARIO("[feature:rule-engine] KEUR-SEC-006 sees pointer calls and imported pla
     for (auto& x : fs) if (x.rule_id == "KEUR-SEC-006") lines.push_back(x.line);
     std::sort(lines.begin(), lines.end());  // findings arrive per pattern
     CHECK(lines == std::vector<int>{1, 3, 4, 5, 8});
-=======
+    cleanup_dir(dir);
+}
+
 // CHROME-SEC-002/003/005 precision: reads are not assignments, a wildcard host
 // permission matches, 'wasm-unsafe-eval' and the documented sandbox CSP are clean.
 // @proves CHROME-SEC-002 CHROME-SEC-003 CHROME-SEC-005
