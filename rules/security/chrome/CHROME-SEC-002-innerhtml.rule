@@ -12,6 +12,9 @@ engine: pattern
 action: warn
 confidence: 0.6
 skip_comments: true
+# requires: derived chrome-extension fact = a manifest.json with manifest_version
+requires:
+  framework: chrome-extension
 target:
   extensions: .js
   exclude_paths: test/ tests/ node_modules/ dist/ vendor/

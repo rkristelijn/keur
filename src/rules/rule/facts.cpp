@@ -9,7 +9,7 @@
  */
 #include "rule/facts.h"
 
-#include <dirent.h>
+#include <dirent.h>  // keur:ignore KEUR-PORT-002 pre-existing tree walk; moving it to the platform layer is separate (ADR-005)
 #include <sys/stat.h>
 
 #include <cctype>
@@ -202,6 +202,11 @@ void facts_read_pom_xml(const std::string& content, Facts& out) {
   }
 }
 
+void facts_read_manifest_json(const std::string& content, Facts& out) {
+  // The key, not a value: "manifest_version" only exists in extension manifests.
+  if (content.find("\"manifest_version\"") != std::string::npos) out.frameworks.insert("chrome-extension");
+}
+
 void facts_read_composer_json(const std::string& content, Facts& out) {
   out.langs.insert("php");
   out.frameworks.insert("composer");
@@ -252,6 +257,7 @@ void walk_facts(const std::string& dir, Facts& out, int depth) {
     else if (name == "go.mod") facts_read_go_mod(slurp(), out);
     else if (name == "pom.xml") facts_read_pom_xml(slurp(), out);
     else if (name == "composer.json") facts_read_composer_json(slurp(), out);
+    else if (name == "manifest.json") facts_read_manifest_json(slurp(), out);
     else if (name == "Dockerfile" || ends_with_(name, ".Dockerfile") ||
              name == "dockerfile") facts_read_dockerfile(slurp(), out);
   }

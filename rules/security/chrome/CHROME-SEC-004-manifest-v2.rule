@@ -10,6 +10,9 @@ severity: error
 engine: pattern
 action: block
 confidence: 0.9
+# requires: derived chrome-extension fact = a manifest.json with manifest_version
+requires:
+  framework: chrome-extension
 target:
   filenames: manifest.json
   content_contains: manifest_version
