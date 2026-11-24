@@ -70,9 +70,10 @@ catches a class of problems no single-language tool is even looking at.
   runs your tests, husky runs your hooks — keur is the gate *between git and all
   of them*, catching what none of them look at.
 - **Cross-file / cross-folder reasoning.** A per-file linter sees one file; keur
-  reads the whole repo — orphaned/unreferenced docs (ADR-072), a directory that
+  reads the whole repo — a directory that
   outgrew its responsibility (KEUR-QUAL-006), path-scoped rules per subtree
-  (ADR-043), composite rules over facts (ADR-009).
+  (ADR-043), composite rules over facts (ADR-009). Planned: orphaned or
+  unreferenced docs (ADR-072, proposed).
 - **AI-slop, specifically.** Syntactically valid but hollow output no linter
   flags: fake tests that assert nothing (size-only / `toBeTruthy`), AI filler
   headers, TODOs with no issue, NIH reimplementations, always-true comparisons.

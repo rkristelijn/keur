@@ -81,8 +81,9 @@ context:
    an ADR body vs. the research/ADRs it cites; a doc section vs. the chapter it
    summarises (ADR-061); a PR description vs. its own diff. If there is no
    explicit source to bind to, the check does not run.
-3. **Local + opt-in (ADR-066 slot).** It runs on-device (the `train` loop
-   already runs a local Ollama model — your IP never leaves the machine) and is
+3. **Local by default + opt-in (ADR-066 slot).** It runs on-device by default (the
+   `train` loop uses the local Ollama endpoint unless `OLLAMA_URL` is set; a remote
+   `OLLAMA_URL` sends the prompts off the machine) and is
    off by default. It is corroboration a user turns on, not a hidden dependency,
    consistent with "keur's own engine is the product; everything else is an
    opt-in corroboration layer."
