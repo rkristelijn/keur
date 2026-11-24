@@ -20,6 +20,6 @@ target:
 patterns:
   - regex: <all_urls>
     message: "<all_urls> host permission — access to every site. Scope to specific hosts or use activeTab."
-  - regex: \"\\*://\\*/\\*\"
+  - regex: \"\*://\*/\*\"
     message: "*://*/* host permission — effectively all sites. Scope it down or use activeTab."
 fix: "Replace with activeTab or specific match patterns (e.g. https://example.com/*)."
