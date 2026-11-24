@@ -72,3 +72,5 @@ or spans languages/layers, it's an ADR.
 2. `eval/doc-coverage.sh` — no new dead links or untraced concepts.
 3. If you added an engine: one entry in `rule/engines.cpp`, a `@proves` test,
    and document it in `docs/rules-authoring.md`.
+4. If you added or renamed an ADR: `bash scripts/gen-adr-index.sh` (CI's dogfood
+   job fails on a stale `docs/adr/README.md`).
