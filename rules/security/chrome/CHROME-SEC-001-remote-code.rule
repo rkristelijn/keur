@@ -1,8 +1,8 @@
 # Chrome extension: remote code execution is forbidden under Manifest V3 and is
 # a Web Store rejection + supply-chain risk. eval/new Function/importScripts and
 # document.write all let code outside the reviewed bundle run.
-# HOW: gate to repos that have a manifest.json (fact below is cheap — we use a
-# manifest.json content pre-filter), match the JS constructs. @see docs/rules-authoring.md
+# HOW: gated on the derived chrome-extension fact (a manifest.json with
+# manifest_version, facts.cpp), so plain JS repos are not checked; match the JS constructs. @see docs/rules-authoring.md
 id: CHROME-SEC-001
 ilities: [integrity]
 maturity: 3
@@ -13,6 +13,9 @@ engine: pattern
 action: block
 confidence: 0.9
 skip_comments: true
+# requires: derived chrome-extension fact = a manifest.json with manifest_version
+requires:
+  framework: chrome-extension
 target:
   extensions: .js
   exclude_paths: test/ tests/ node_modules/ dist/ vendor/

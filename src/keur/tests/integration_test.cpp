@@ -422,6 +422,33 @@ SCENARIO("[feature:rule-engine] absence rule does NOT fire when header present")
     cleanup_dir(dir);
 }
 
+// The Chrome rules apply to browser extensions only: gated on the derived
+// chrome-extension fact (manifest.json with manifest_version), so a plain JS
+// repo with DOM-HTML sinks / remote-script patterns is not reviewed as an extension.
+// @proves CHROME-SEC-001 CHROME-SEC-002
+SCENARIO("[feature:rule-engine] Chrome rules fire in an extension repo, not in a plain JS repo") {
+    auto rules = keur::rules_load(repo_root() + "/rules/security/chrome");
+    REQUIRE(!rules.empty());
+    const std::string js =
+        "document.getElementById('x').inner" "HTML = userInput;\n"  // split: the literal is a fixture
+        "const s = document.createElement('script'); s.src = 'https://cdn.example.invalid/x.js';\n"
+        "document.head.appendChild(s);\n"
+        "eval(code);\n";
+    std::string plain = create_temp_dir();
+    write_file(plain + "/app.js", js);
+    write_file(plain + "/package.json", "{\"name\": \"web\"}\n");
+    auto f1 = keur::rules_scan_dir(rules, plain);
+    for (const char* id : {"CHROME-SEC-001", "CHROME-SEC-002"}) CHECK_MESSAGE(!has_rule(f1, id), id);
+    std::string ext = create_temp_dir();
+    write_file(ext + "/app.js", js);
+    write_file(ext + "/manifest.json", "{\n  \"manifest_version\": 3,\n  \"name\": \"ext\"\n}\n");
+    auto f2 = keur::rules_scan_dir(rules, ext);
+    CHECK(has_rule(f2, "CHROME-SEC-001"));
+    CHECK(has_rule(f2, "CHROME-SEC-002"));
+    cleanup_dir(plain);
+    cleanup_dir(ext);
+}
+
 SCENARIO("[feature:rule-engine] rules_scan_dir flags multiple key files") {
     // Stage 3 key fixtures into a neutral tempdir, then scan the dir.
     auto rules = keur::rules_load(keur_rules_dir());
