@@ -25,8 +25,15 @@ action: block
 # plus tests/vendor/generated. This is a small allowlist of real deviations, not
 # duplication: the positive rule itself is fully dynamic.
 # @implements ADR-020 ADR-003
+# Scope (2026-11-21): this is a keur-internal invariant, but rules load for every
+# repo that runs keur. content_contains limits it to files that are keur code
+# (they mention the keur namespace), so another C++ project with its own layer
+# dirs (e.g. loods tools/embed/) is not told to use `namespace keur::<dir>`.
+# Trade-off: a keur layer file with NO namespace at all is not caught here; the
+# compiler and review catch that case.
 target:
   extensions: .cpp .h
+  content_contains: namespace keur
   exclude_paths: common/ util/ main.cpp _test.cpp keur_test.cpp test/ tests/ vendor/ ../rules/ rules/
 path_capture: '([a-z_]+)/[a-z0-9_]+\.(cpp|h)$'
 derived_template: 'namespace keur::\1'

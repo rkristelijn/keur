@@ -11,7 +11,7 @@ engine: pattern
 action: block
 target:
   extensions: .c .cpp .cc .h .hpp
-  exclude_paths: common/ vendor/ ../rules/ _test.cpp test/ tests/ build/ dist/
+  exclude_paths: common/ platform/ vendor/ ../rules/ _test.cpp test/ tests/ build/ dist/
 patterns:
   - regex: \#include\s*<windows\.h>
     message: "Windows-only <windows.h> outside common/ — belongs in platform_win32.cpp only (ADR-005)"

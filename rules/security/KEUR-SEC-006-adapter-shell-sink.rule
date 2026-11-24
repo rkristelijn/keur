@@ -56,8 +56,17 @@ patterns:
   #      passed to it cannot reach a shell. @see adapters/git.cpp, KEUR-SEC-006.
   # A concatenation that merely starts with a literal (run("'" + home + "'"))
   # is NOT excluded — it still carries interpolated input into a shell sink.
-  - regex: \b(?:platform::(?:run|capture|capture_bytes)|(?:\w+\.)?(?:run|capture))\s*\(
-    exclude: (?:\bgit\.(?:run|capture)\s*\(|\b(?:platform::(?:run|capture|capture_bytes)|(?:\w+\.)?(?:run|capture))\s*\(\s*"(?:[^"\\]|\\.)*"\s*\))
+  # A sink is platform::run/capture or a method call on an object (proc.run(…),
+  # Proc::run(…)). A bare run( — a function definition or another namespace's
+  # run(), e.g. fetch::run in loods — is not a shell sink (fixed 2026-11-21).
+  # Object calls include pointer members (proc->run, CodeRabbit on #40/#39).
+  - regex: \b(?:platform::(?:run|capture|capture_bytes)|Proc::(?:run|capture)|\w+(?:\.|->)(?:run|capture))\s*\(
+    exclude: (?:\bgit(?:\.|->)(?:run|capture)\s*\(|\b(?:platform::(?:run|capture|capture_bytes)|(?:\w+(?:\.|->))?(?:run|capture))\s*\(\s*"(?:[^"\\]|\\.)*"\s*\))
     message: "Non-literal command passed to a keur shell sink (Proc::run/.capture or platform::run/capture) — the command was constructed and may carry shell metacharacters (CWE-78). Assemble arguments as an argv vector (Proc::run_argv -> platform::run_argv, posix_spawn/CreateProcess, no /bin/sh), not an interpolated shell string. Reserve the string form for fixed literals. @see KEUR-SEC-006, ADR-003, ADR-005"
+  # An unqualified import (using platform::run; run(cmd);) hides the sink from the
+  # pattern above, which cannot see imports (per-line). Flag the import instead:
+  # call the sinks qualified (platform::run) so this control keeps seeing them.
+  - regex: \busing\s+(?:platform::(?:run|capture|capture_bytes)\b|namespace\s+(?:keur::)?platform\b)
+    message: "Unqualified import of keur's platform shell sinks hides them from KEUR-SEC-006 (a later bare run(cmd) is not seen). Call platform::run / platform::capture qualified. @see KEUR-SEC-006"
 confidence: 0.85
 fix: "Replace the interpolated shell string with a shell-free argv call: add an argv-vector primitive to the process adapter (Proc::run_argv routing to platform::run_argv, implemented with posix_spawn / CreateProcess and no shell) and pass the command as a vector of arguments. Reserve Proc::run/.capture(string) for fixed literal commands with zero interpolated input. See ADR-003, ADR-005, and KEUR-SEC-006."
