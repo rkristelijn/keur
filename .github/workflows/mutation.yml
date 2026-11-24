@@ -1,0 +1,59 @@
+name: Mutation
+
+# ──────────────────────────────────────────────────────────────────────────
+# Mutation testing (ADR-070 control C5: "AI-written tests prove AI assumptions,
+# not truth"). mull injects deliberate faults (arithmetic / logic / comparison
+# flips, per mull.yml); a healthy test suite "kills" them by failing. Surviving
+# mutants are gaps — exactly the hidden risk when both the code and its tests
+# came from the same generator.
+#
+# Deliberately NOT part of ci.yml (ADR-041 tiered CI, by cost): mutation is slow
+# and toolchain-fragile (mull-runner + the exact clang-18 IR-frontend plugin).
+# Hanging it on every PR would drag that install into the fast PR loop. Instead
+# it runs on a nightly schedule against main and on-demand via workflow_dispatch
+# — the C5 control exists without polluting PR iteration.
+#
+# Advisory by nature: the run reports the mutation score + surviving mutants for
+# triage and never gates a merge. Promote to a required check once the surviving
+# -mutant list is clean (the ADR-069 advisory→blocking discipline).
+# ──────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    - cron: '0 3 * * *'        # nightly at 03:00 UTC, against the default branch
+  workflow_dispatch:            # manual, on-demand run from the Actions tab
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mutate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install RE2 + the mull toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libre2-dev libabsl-dev clang-18
+          # mull's runner + the IR-frontend pass plugin the Makefile's `mutate`
+          # target expects, from apt (no piped curl|bash — ADR-070's own supply
+          # -chain stance, SCA-063). If the package is unavailable on this
+          # runner the next step reports it rather than crashing.
+          sudo apt-get install -y mull-18 \
+            || echo "mull toolchain unavailable on this runner — the mutate step will report it"
+
+      - name: Run mutation testing (reports score + surviving mutants)
+        run: |
+          set -uo pipefail
+          # The Makefile target exits non-zero if mull/plugin are missing or if
+          # the mutation score is below threshold. This job is advisory, so we
+          # surface the result without failing the workflow; a scheduled red
+          # here is a signal to triage, not a merge blocker.
+          make mutate || echo "mutate exited non-zero (advisory — see log for surviving mutants or missing toolchain)"
+        working-directory: src/keur
