@@ -35,7 +35,9 @@ target:
 patterns:
   - regex: \b(Confluence|CONF)\s+[A-Z]{2,10}/\d{8,}
     message: "Wiki space+page coordinate (e.g. 'SPACE/21744320552') — an internal wiki reference. Replace with a generic phrase ('an internal RFC') or a public link. Suppress with keur:ignore KEUR-INT-001 only if this is intentionally public."
-  - regex: \b(ClickUp|FreshService|Jira)\s+[0-9a-z]{7,10}\b
+  # An id contains a digit (ClickUp 86abc12de, FreshService #12345); a plain word
+  # after a product name ("ClickUp tickets") is prose, not an id (fixed 2026-11-21).
+  - regex: \b(ClickUp|FreshService|Jira)\s+#?[a-z]{0,9}[0-9][a-z0-9]{3,9}\b
     message: "Internal tracker ticket id. A public repo should not expose a private ticket taxonomy — refer to the work generically or link a public issue instead."
 confidence: 0.9
 fix: "Remove the internal reference: replace a tracker/wiki id with a generic phrase or a public link. To also block your own non-public contact domain, add a one-line pattern rule in a local KEUR_RULES_DIRS override (keeps your domain out of this public ruleset). If a mention is deliberately public and safe, add keur:ignore KEUR-INT-001 on that line with a reason."

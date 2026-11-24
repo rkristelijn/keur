@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
+#include <string_view>
 
 namespace keur {
 
@@ -88,6 +89,70 @@ void parse_stage_row(const std::string& row, PipelineStage& st) {
   } else {
     st.arg = unquote(rest);
   }
+}
+
+// ADR-014 §3: the rule-file schema for scalar fields, as data. One row per key;
+// a new field is one new row, the parse loop does not change.
+using FieldSetter = void (*)(Rule&, const std::string&);
+struct RuleField {
+  std::string_view key;
+  FieldSetter set;
+};
+
+bool is_yes(const std::string& v) { return v == "true" || v == "yes"; }
+
+// ADR-039: inline array `[a, b]` or a bare scalar `security`.
+std::vector<std::string> parse_ilities(const std::string& val) {
+  std::string v = val;
+  if (v.size() >= 2 && v.front() == '[' && v.back() == ']') v = v.substr(1, v.size() - 2);
+  for (char& ch : v) if (ch == ',') ch = ' ';
+  return split_ws(v);
+}
+
+constexpr RuleField kRuleFields[] = {
+    {"id", [](Rule& r, const std::string& v) { r.id = v; }},
+    {"title", [](Rule& r, const std::string& v) { r.title = v; }},
+    {"category", [](Rule& r, const std::string& v) { r.category = v; }},
+    {"severity", [](Rule& r, const std::string& v) { r.severity = v; }},
+    {"engine", [](Rule& r, const std::string& v) { r.engine = v; }},
+    {"action", [](Rule& r, const std::string& v) { r.action = v; }},
+    {"confidence", [](Rule& r, const std::string& v) { r.confidence = v; }},
+    {"fix", [](Rule& r, const std::string& v) { r.fix = v; }},
+    {"source", [](Rule& r, const std::string& v) { r.source = v; }},
+    {"message", [](Rule& r, const std::string& v) { r.message = v; }},
+    {"block_inner", [](Rule& r, const std::string& v) { r.block_inner = v; }},
+    {"block_trigger", [](Rule& r, const std::string& v) { r.block_trigger = v; }},
+    {"min_count", [](Rule& r, const std::string& v) { r.min_count = std::atoi(v.c_str()); }},
+    {"maturity", [](Rule& r, const std::string& v) { r.maturity = std::atoi(v.c_str()); }},  // @id KEUR-MATURITY.parse — maturity band (ADR-026)
+    {"ilities", [](Rule& r, const std::string& v) { r.ilities = parse_ilities(v); }},
+    {"ility", [](Rule& r, const std::string& v) { r.ilities = parse_ilities(v); }},
+    {"within", [](Rule& r, const std::string& v) { r.within = v; }},
+    {"window", [](Rule& r, const std::string& v) { r.window = std::atoi(v.c_str()); }},
+    {"path_capture", [](Rule& r, const std::string& v) { r.path_capture = v; }},
+    {"derived_template", [](Rule& r, const std::string& v) { r.derived_template = v; }},
+    {"extract", [](Rule& r, const std::string& v) { r.extract = v; }},
+    {"capture", [](Rule& r, const std::string& v) { r.capture = std::atoi(v.c_str()); }},
+    {"case", [](Rule& r, const std::string& v) { r.name_case = v; }},         // filename-case engine
+    {"scope", [](Rule& r, const std::string& v) { r.name_scope = v; }},       // filename | dirname
+    {"allow", [](Rule& r, const std::string& v) { r.name_allow = split_ws(v); }},  // exempt names
+    {"skip_comments", [](Rule& r, const std::string& v) { r.skip_comments = is_yes(v); }},
+    {"skip_strings", [](Rule& r, const std::string& v) { r.skip_strings = is_yes(v); }},
+    {"skip_emoji", [](Rule& r, const std::string& v) { r.skip_emoji = is_yes(v); }},
+    {"skip_binary", [](Rule& r, const std::string& v) { r.skip_binary = is_yes(v); }},
+    {"extensions", [](Rule& r, const std::string& v) { r.target.extensions = split_ws(v); }},
+    {"filenames", [](Rule& r, const std::string& v) { r.target.filenames = split_ws(v); }},
+    {"exclude_paths", [](Rule& r, const std::string& v) { r.target.exclude_paths = split_ws(v); }},
+    {"content_contains", [](Rule& r, const std::string& v) { r.target.content_contains = v; }},
+    {"generic", [](Rule& r, const std::string& v) { r.generic = is_yes(v); }},  // ADR-059
+    {"report", [](Rule& r, const std::string& v) { r.report = v; }},            // ADR-060
+};
+
+// Query: the table row for `key`, or nullptr. Linear scan: ~35 rows, called
+// once per rule-file line, faster than hashing at this size.
+const RuleField* find_rule_field(const std::string& key) {
+  for (const auto& f : kRuleFields)
+    if (f.key == key) return &f;
+  return nullptr;
 }
 
 }  // namespace
@@ -235,50 +300,12 @@ Rule rule_parse(const std::string& path) {
         val.back() == val.front())
       val = val.substr(1, val.size() - 2);
 
-    if (key == "id") rule.id = val;
-    else if (key == "title") rule.title = val;
-    else if (key == "category") rule.category = val;
-    else if (key == "severity") rule.severity = val;
-    else if (key == "engine") rule.engine = val;
-    else if (key == "action") rule.action = val;
-    else if (key == "confidence") rule.confidence = val;
-    else if (key == "fix") rule.fix = val;
-    else if (key == "source") rule.source = val;
-    else if (key == "message") rule.message = val;
-    else if (key == "block_inner") rule.block_inner = val;
-    else if (key == "block_trigger") rule.block_trigger = val;
-    else if (key == "min_count") rule.min_count = std::atoi(val.c_str());
-    else if (key == "maturity") rule.maturity = std::atoi(val.c_str());  // @id KEUR-MATURITY.parse — maturity band (ADR-026)
-    else if (key == "ilities" || key == "ility") {
-      // ADR-039: inline array `[a, b]` or a bare scalar `security`. Strip the
-      // brackets if present, split on commas and/or whitespace, trim each.
-      std::string v = val;
-      if (v.size() >= 2 && v.front() == '[' && v.back() == ']') v = v.substr(1, v.size() - 2);
-      for (char& ch : v) if (ch == ',') ch = ' ';
-      rule.ilities = split_ws(v);
-    }
-    else if (key == "within") rule.within = val;
-    else if (key == "window") rule.window = std::atoi(val.c_str());
-    else if (key == "path_capture") rule.path_capture = val;
-    else if (key == "derived_template") rule.derived_template = val;
-    else if (key == "extract") rule.extract = val;
-    else if (key == "capture") rule.capture = std::atoi(val.c_str());
-    else if (key == "case") rule.name_case = val;                 // filename-case engine
-    else if (key == "scope") rule.name_scope = val;               // filename | dirname
-    else if (key == "allow") rule.name_allow = split_ws(val);     // exempt names
-    else if (key == "skip_comments") rule.skip_comments = (val == "true" || val == "yes");
-    else if (key == "skip_strings") rule.skip_strings = (val == "true" || val == "yes");
-    else if (key == "skip_emoji") rule.skip_emoji = (val == "true" || val == "yes");
-    else if (key == "skip_binary") rule.skip_binary = (val == "true" || val == "yes");
-    else if (key == "extensions") rule.target.extensions = split_ws(val);
-    else if (key == "filenames") rule.target.filenames = split_ws(val);
-    else if (key == "exclude_paths") rule.target.exclude_paths = split_ws(val);
-    else if (key == "content_contains") rule.target.content_contains = val;
+    // ADR-014 §3: scalar fields dispatch through the kRuleFields table; only the
+    // keys that switch parser state stay as a short, closed chain.
+    if (const RuleField* f = find_rule_field(key)) f->set(rule, val);
     else if (key == "patterns") { in_patterns = true; cur = {}; }
     else if (key == "requires") { in_requires = true; }
     else if (key == "composite") { in_composite = true; }
-    else if (key == "generic") rule.generic = (val == "true" || val == "yes");  // ADR-059
-    else if (key == "report") rule.report = val;                                 // ADR-060
     else if (key == "classes") { in_classes = true; }                            // ADR-058/059
     else if (key == "stages") { in_stages = true; }                              // ADR-060
   }

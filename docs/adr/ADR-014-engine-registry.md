@@ -102,3 +102,21 @@ table or registry", making the rule self-guarding (like `KEUR-PORT-*`).
   registry with behaviour identical (tests stay green), then add `count`.
 - Boundary held: engines are strategy objects in the binary, not loadable
   modules. keur stays one fast artifact.
+
+## Follow-up (2026-11-21)
+
+- **§3 implemented.** `parse.cpp` field dispatch had grown from 17 to 38 branches;
+  it is now the `kRuleFields` table (`key → setter`). The five keys that switch
+  parser state (`patterns`, `requires`, `composite`, `classes`, `stages`) stay a
+  short, closed chain, as §1 prescribes. Unit, integration and e2e suites pass, and
+  scan output is identical to the previous binary on loods, tuigram, kooiaapi and
+  all keur fixtures.
+- **`KEUR-QUAL-001` beyond C++.** The pattern now covers C `strcmp` chains, JS/TS
+  `===`, Python `elif`, shell `elif [`, Ruby `elsif`, and Go/Java/C#/Rust/PHP.
+  Threshold stays 8 at maturity 3. **`KEUR-QUAL-001b`** adds the same check at
+  **4** for maturity 5, where dispatch-by-string belongs in a table earlier.
+  Fixtures: `tests/fixtures/literal-dispatch`.
+- **Known limitation.** The `count` engine counts per file, so several short,
+  closed chains in one file add up (parse.cpp still reports 15 across five small
+  chains). Next step: a per-chain scope (`within: chain` — consecutive `else if`
+  lines), the "per-block later" from §4.
