@@ -272,6 +272,11 @@ std::string format_finding_line(const std::string& rule, const std::string& acti
     if (!fix.empty()) out += "\n        fix: " + fix;
     if (!rule.empty()) {
         out += "\n        false positive? add on that line a comment: keur:ignore " + rule;
+        // The second layer (ADR-035): no change to the code, e.g. in a repo you do
+        // not own. The entry can stay local: list .keurignore in .git/info/exclude.
+        if (!file.empty())
+            out += "\n        or, without touching the code, add to .keurignore: " + file + ":" + rule +
+                   "  (keep it local: add .keurignore to .git/info/exclude)";
     }
     return out;
 }

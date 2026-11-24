@@ -315,6 +315,20 @@ SCENARIO("[feature:check] format_finding_line — a warn finding is marked warn"
     CHECK(s.find(":0") == std::string::npos);  // line 0 is not appended
 }
 
+// Both suppression layers (ADR-035) are named in the finding: the inline marker,
+// and a .keurignore entry for repos where you may not (or will not) touch the
+// code — that entry can stay local via .git/info/exclude.
+SCENARIO("[feature:check] format_finding_line — names inline and .keurignore suppression") {  // @proves ADR-035
+    auto s = keur::cmd::format_finding_line("SH-QUAL-014", "block", "0.9",
+                                            "scripts/check-pinned.sh", 14, "wget | sh", true);
+    CHECK(s.find("keur:ignore SH-QUAL-014") != std::string::npos);
+    CHECK(s.find(".keurignore: scripts/check-pinned.sh:SH-QUAL-014") != std::string::npos);
+    CHECK(s.find(".git/info/exclude") != std::string::npos);
+    // a file-level finding (no line) still gets the path:RULE form
+    auto f = keur::cmd::format_finding_line("KEUR-QUAL-002", "warn", "0.6", "SECURITY.md", 0, "x", false);
+    CHECK(f.find(".keurignore: SECURITY.md:KEUR-QUAL-002") != std::string::npos);
+}
+
 SCENARIO("[feature:check] cmd_check PASS with empty file source") {    keur::cmd::CheckOptions opts;
     CHECK(keur::cmd::check(opts, []() { return std::vector<std::string>{}; }) == 0);
 }
