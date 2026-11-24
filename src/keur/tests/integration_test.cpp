@@ -1354,6 +1354,89 @@ SCENARIO("[feature:rule-engine] NODE-PIN-001 is satisfied by engines.node (one-l
     CHECK(!has_rule(f2, "NODE-PIN-001"));
     cleanup_dir(d2);
 }
+// Rules from the standard-components pnpm/yarn review (2026-11-24).
+// SH-QUAL-014 / SCA-063 blocked a commit on a COMMENT that documents a
+// curl|sh check; with skip_comments the comment is quiet, real code still fires.
+// @proves SH-QUAL-014 SCA-063
+SCENARIO("[feature:rule-engine] SH-QUAL-014 and SCA-063 ignore curl|sh in a comment, not in code") {
+    auto rules = keur::rules_load(repo_root() + "/rules/security");
+    auto sc = keur::rules_load(repo_root() + "/rules/supply-chain");
+    rules.insert(rules.end(), sc.begin(), sc.end());
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    std::string doc = dir + "/check.sh";
+    write_file(doc, "#!/usr/bin/env bash\n#   PIN-005  curl|wget ... | sh|bash  - remote installer to a shell\necho ok\n");
+    auto quiet = keur::rules_scan_files(rules, {doc});
+    CHECK(!has_rule(quiet, "SH-QUAL-014"));
+    CHECK(!has_rule(quiet, "SCA-063"));
+    std::string code = dir + "/install.sh";
+    write_file(code, "#!/usr/bin/env bash\ncurl -fsSL https://example.invalid/i.sh | bash\n");
+    auto loud = keur::rules_scan_files(rules, {code});
+    CHECK(has_rule(loud, "SH-QUAL-014"));
+    CHECK(has_rule(loud, "SCA-063"));
+    cleanup_dir(dir);
+}
+
+// DK-PIN-001: a global npm/pnpm/yarn install in a Dockerfile must pin every package.
+// @proves DK-PIN-001
+SCENARIO("[feature:rule-engine] DK-PIN-001 flags an unpinned global install, not a pinned one") {
+    auto rules = keur::rules_load(repo_root() + "/rules/supply-chain");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    std::string bad = dir + "/Dockerfile";
+    write_file(bad,
+        "FROM node:24-alpine\n"
+        "RUN npm install -g nx\n"                      // line 2: bare
+        "RUN npm install -g pnpm@12.21.0 yarn \\\n"   // line 3: second package bare
+        "    && yarn --version\n"
+        "RUN yarn global add typescript\n");           // line 5: bare
+    auto f = keur::rules_scan_files(rules, {bad});
+    std::vector<int> lines;
+    for (auto& x : f) if (x.rule_id == "DK-PIN-001") lines.push_back(x.line);
+    CHECK(lines == std::vector<int>{2, 3, 5});
+
+    std::string sub = dir + "/ok";
+    REQUIRE(::mkdir(sub.c_str(), 0755) == 0);
+    std::string good = sub + "/Dockerfile";
+    write_file(good,
+        "FROM node:24-alpine\n"
+        "RUN npm install -g npm@12.2.3\n"
+        "RUN npm install -g pnpm@12.21.0 yarn@1.22.22 \\\n"
+        "    && pnpm --version\n"
+        "RUN npm install -g @scope/tool@2.0.1 || true\n"
+        "RUN yarn global add typescript@5.6.3\n"
+        "# RUN npm install -g nx   (a comment is not an install)\n");
+    auto g = keur::rules_scan_files(rules, {good});
+    CHECK(!has_rule(g, "DK-PIN-001"));
+    cleanup_dir(dir);
+}
+
+// NODE-LOCK-001: more than one JS lockfile in one directory; npm-shrinkwrap.json
+// next to package-lock.json is valid npm and does not count twice.
+// @proves NODE-LOCK-001
+SCENARIO("[feature:rule-engine] NODE-LOCK-001 flags two lockfiles in one dir, not the npm pair or a monorepo") {
+    auto rules = keur::rules_load(repo_root() + "/rules/supply-chain");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    for (const char* d : {"/mixed", "/npm-pair", "/apps", "/apps/a", "/apps/b"})
+        REQUIRE(::mkdir((dir + d).c_str(), 0755) == 0);
+    write_file(dir + "/mixed/package-lock.json", "{}\n");
+    write_file(dir + "/mixed/yarn.lock", "\n");
+    write_file(dir + "/npm-pair/package-lock.json", "{}\n");
+    write_file(dir + "/npm-pair/npm-shrinkwrap.json", "{}\n");
+    write_file(dir + "/apps/a/pnpm-lock.yaml", "lockfileVersion: '9.0'\n");  // monorepo: one per package
+    write_file(dir + "/apps/b/yarn.lock", "\n");
+    auto f = keur::rules_scan_dir(rules, dir);
+    std::vector<std::string> dirs;
+    for (auto& x : f) if (x.rule_id == "NODE-LOCK-001") dirs.push_back(x.file);
+    REQUIRE(dirs.size() == 1);
+    CHECK(dirs[0].find("mixed") != std::string::npos);
+    cleanup_dir(dir);
+}
+
 SCENARIO("[feature:rule-engine] requires: prunes a rule when facts don't satisfy it") {  // @proves ADR-009.requires
     // A rule requiring framework=express must NOT fire in a repo whose package.json
     // has no express; the same rule MUST fire when express is present.

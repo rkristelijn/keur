@@ -7,6 +7,9 @@ title: Dangerous shell patterns
 category: security
 severity: error
 engine: pattern
+# A rule DOCUMENTED in a comment (e.g. "PIN-005 curl|wget ... | sh") is not the act;
+# only real code should block (found on container-images!109, 2026-11-24).
+skip_comments: true
 target:
   extensions: .sh .bash
   exclude_paths: test/ tests/
