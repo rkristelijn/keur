@@ -1,0 +1,30 @@
+# More than one JS lockfile in one directory means two package managers claim
+# the same project: CI picks one (or guesses), the developer uses the other, and
+# the installed versions differ. A CI install step that detects this fails
+# late; this rule says it at commit time instead.
+#
+# npm-shrinkwrap.json is deliberately NOT a target: npm allows it next to
+# package-lock.json (the shrinkwrap wins), so that pair counts as one npm lockfile.
+# bun.lock and bun.lockb share the stem "bun" and count as one unit.
+#
+# Engine max-dir-files groups the matched files PER DIRECTORY and runs on the full
+# repo fileset in the hook (ADR-052), so a monorepo with one package manager per
+# package is fine, and the pair is found even when only one lockfile is staged.
+#
+# @see docs/rules-authoring.md (max-dir-files), ADR-052 (file-level scope).
+id: NODE-LOCK-001
+ilities: [reliability-maturity, integrity]
+maturity: 2
+title: More than one JS lockfile in one directory
+category: supply-chain
+severity: error
+engine: max-dir-files
+action: block
+min_count: 1
+target:
+  filenames: package-lock.json pnpm-lock.yaml yarn.lock bun.lock bun.lockb
+  exclude_paths: node_modules/ .git/ vendor/
+patterns:
+  - regex: more than one lockfile
+    message: "more than one JS lockfile in this directory (package-lock.json, pnpm-lock.yaml, yarn.lock, bun.lock): keep the one of the package manager you use and delete the others"
+fix: "Delete the lockfiles of the package managers you do not use, and set \"packageManager\" in package.json so tools and CI agree."

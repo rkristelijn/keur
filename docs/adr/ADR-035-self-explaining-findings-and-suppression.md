@@ -71,6 +71,7 @@ Every BLOCK/WARN line now prints, in addition to rule/file/line/message:
 BLOCK KEUR-CMDI-003 | block | conf 0.85 | vuln.py:3 | <message> (CWE-78)
         fix: <the rule's fix: field — the remediation>
         false positive? add on that line a comment: keur:ignore KEUR-CMDI-003
+        or, without touching the code, add to .keurignore: vuln.py:KEUR-CMDI-003  (keep it local: add .keurignore to .git/info/exclude)
 ```
 
 - The `fix:` field already existed on every rule but never reached output; it is

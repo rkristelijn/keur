@@ -115,6 +115,7 @@ std::optional<scan::Finding> branch_protection_finding(
  *   "<mark> <rule> | <action> | conf <c> | <file>:<line> | <message>"
  *   "        fix: <fix>"                              (if the rule ships a fix)
  *   "        false positive? add on that line: keur:ignore <rule>"
+ *   "        or, without touching the code, add to .keurignore: <file>:<rule> ..."
  * A blocked commit must tell a human OR an AI exactly what to fix and how to
  * suppress a genuine false positive — so nobody reaches for --no-verify
  * (README/vision). Pure — table-testable.
