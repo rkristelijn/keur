@@ -1,0 +1,28 @@
+# Since MUI v7 the packages use the package.json `exports` field: only one level
+# below the package is public (`@mui/material/styles`, `@mui/material/Button`).
+# Anything deeper (`@mui/material/styles/createTheme`) was always private API
+# and now fails to resolve in bundlers and Node, so the build breaks.
+#
+# Scoped to the core packages; MUI X (`@mui/x-date-pickers/AdapterDayjs`) and
+# `@mui/material-nextjs/v15-appRouter` are one level and stay quiet.
+#
+# @external eslint-plugin-mui:mui-no-deep-imports
+# @see https://mui.com/material-ui/migration/upgrade-to-v7/#package-layout-updated
+id: UI-MIS-017
+ilities: [modifiability]
+source: eslint-plugin-mui
+maturity: 3
+action: warn
+title: MUI import more than one level deep (private path, broken since v7)
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .tsx .jsx .ts .js .mjs
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui/"
+patterns:
+  - regex: ["']@mui/(material|system|lab|joy|icons-material|utils|styled-engine)/[^"'/\s]+/[^"'\s]+["']
+    message: "deep MUI import: since v7 only one level is public, import from the entry point (e.g. import { createTheme } from '@mui/material/styles')"
+fix: "Import from the public entry point: '@mui/material/styles/createTheme' becomes import { createTheme } from '@mui/material/styles'."

@@ -1,0 +1,31 @@
+# Named imports from the @mui/icons-material barrel make the dev server load
+# the whole icon package: MUI measures them as up to 6x slower in development
+# than default path imports (`import Delete from '@mui/icons-material/Delete'`).
+# Production bundles tree-shake either way, so this is a dev-speed rule.
+#
+# Keyed on the module specifier, so it also catches the closing line of a
+# multi-line import (`} from '@mui/icons-material';`). A path import has a `/`
+# after the package name and never matches.
+#
+# Mirror of the ESLint rule prefer-path-imports (keur ADR: rules are data; the
+# JSX/AST-level checks stay in the plugin).
+# @external eslint-plugin-mui:mui-prefer-path-imports
+# @see https://mui.com/material-ui/guides/minimizing-bundle-size/
+id: UI-MIS-016
+ilities: [time-behaviour]
+source: eslint-plugin-mui
+maturity: 3
+action: advisory
+title: MUI icons imported from the barrel instead of by path
+category: quality
+severity: info
+engine: pattern
+skip_comments: true
+target:
+  extensions: .tsx .jsx .ts .js .mjs
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui/icons-material"
+patterns:
+  - regex: \bfrom\s+["']@mui/icons-material["']
+    message: "named imports from '@mui/icons-material' are up to 6x slower in dev: import each icon by path, e.g. import Delete from '@mui/icons-material/Delete'"
+fix: "import Delete from '@mui/icons-material/Delete'; or run npx @mui/codemod@latest v5.0.0/path-imports <path>"

@@ -1,0 +1,30 @@
+# MUI v9 removed the deprecated `*Props` / `*Component` / `componentsProps`
+# props on ~40 components in favour of `slots` / `slotProps`
+# (PaperProps becomes slotProps.paper, TransitionComponent becomes slots.transition, ...).
+#
+# Name-based: keur cannot see which component a JSX attribute belongs to, so
+# the list holds only names that are MUI-specific; generic names that other
+# libraries use (`components`, `inputProps`, `InputProps`) are left to the
+# ESLint rule, which resolves the component from its import. Gated on files
+# that mention "@mui".
+#
+# @external eslint-plugin-mui:mui-prefer-slot-props
+# @see https://mui.com/material-ui/migration/upgrade-to-v9/#deprecated-apis-removed-breaking
+id: UI-MIS-023
+ilities: [modifiability]
+source: eslint-plugin-mui
+maturity: 3
+action: advisory
+title: MUI deprecated *Props / *Component prop (use slots / slotProps)
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .tsx .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui"
+patterns:
+  - regex: \s(PaperProps|PaperComponent|TransitionComponent|TransitionProps|BackdropComponent|BackdropProps|componentsProps|MenuListProps|InputLabelProps|FormHelperTextProps|ListboxComponent|ListboxProps|PopperComponent|PopperProps|primaryTypographyProps|secondaryTypographyProps|titleTypographyProps|subheaderTypographyProps|TabIndicatorProps|TabScrollButtonProps|ScrollButtonComponent|StepIconComponent|StepIconProps|SlideProps|SwipeAreaProps|ChipProps|LinearProgressProps|ClickAwayListenerProps|ContentProps|IconContainerComponent|backIconButtonProps|nextIconButtonProps)=\{
+    message: "this prop was removed in MUI v9: move it into slots / slotProps (e.g. PaperProps becomes slotProps={{ paper: ... }}); codemod: npx @mui/codemod@latest deprecations/<component>-props <path>"
+fix: "Use the slot API: <Dialog slotProps={{ paper: { elevation: 3 } }} slots={{ transition: Fade }} />. eslint-plugin-mui prefer-slot-props autofixes most cases."

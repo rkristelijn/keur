@@ -1,0 +1,44 @@
+# Imports that fail on current MUI because the export was removed or moved:
+# - Grid2 / Unstable_Grid2: renamed to Grid in v7 (same component)
+# - GridLegacy: removed in v9; Hidden / PigmentHidden: removed in v7
+# - experimentalStyled: removed in v7, use styled
+# - @mui/lab components that moved to @mui/material in v7
+#
+# Single-line imports only (keur matches per line); a multi-line import is a
+# false negative, never a false positive. The source is part of every pattern,
+# so a same-named export of another library (`Hidden` from a UI kit) is quiet.
+#
+# @external eslint-plugin-mui:mui-no-removed-imports
+# @external eslint-plugin-mui:mui-no-moved-imports
+# @see https://mui.com/material-ui/migration/upgrade-to-v7/
+# @see https://mui.com/material-ui/migration/upgrade-to-v9/
+id: UI-MIS-018
+ilities: [modifiability]
+source: eslint-plugin-mui
+maturity: 3
+action: warn
+title: MUI import of a removed or moved export
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .tsx .jsx .ts .js .mjs
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui/"
+patterns:
+  - regex: \bimport\s[^;]*\b(Grid2|Unstable_Grid2)\b[^;]*\bfrom\s+["']@mui/material["']
+    message: "Grid2 was renamed to Grid in MUI v7: import { Grid } from '@mui/material'"
+  - regex: \bfrom\s+["']@mui/material/(Grid2|Unstable_Grid2)["']
+    message: "Grid2 was renamed to Grid in MUI v7: import Grid from '@mui/material/Grid'"
+  - regex: (\bimport\s[^;]*\bGridLegacy\b[^;]*\bfrom\s+["']@mui/material["']|\bfrom\s+["']@mui/material/GridLegacy["'])
+    message: "GridLegacy was removed in MUI v9: change the import to Grid first, then run npx @mui/codemod@latest v7.0.0/grid-props <path> (it does not rewrite GridLegacy imports)"
+  - regex: (\bimport\s[^;]*\b(Hidden|PigmentHidden)\b[^;]*\bfrom\s+["']@mui/material["']|\bfrom\s+["']@mui/material/(Hidden|PigmentHidden)["'])
+    message: "Hidden was removed in MUI v7: use sx={{ display: { xs: 'none', md: 'block' } }} or useMediaQuery"
+  - regex: \bexperimentalStyled\b[^;]*\bfrom\s+["']@mui/
+    message: "experimentalStyled was removed in MUI v7: use styled from '@mui/material/styles'"
+  - regex: \bfrom\s+["']@mui/lab/(Alert|AlertTitle|Autocomplete|AvatarGroup|Pagination|PaginationItem|Rating|Skeleton|SpeedDial|SpeedDialAction|SpeedDialIcon|ToggleButton|ToggleButtonGroup|usePagination)["']
+    message: "this component moved from @mui/lab to @mui/material in v7: import it from '@mui/material/<Name>'"
+  - regex: \bimport\s[^;]*\b(Alert|AlertTitle|Autocomplete|AvatarGroup|Pagination|PaginationItem|Rating|Skeleton|SpeedDial|SpeedDialAction|SpeedDialIcon|ToggleButton|ToggleButtonGroup|usePagination)\b[^;]*\bfrom\s+["']@mui/lab["']
+    message: "component moved from @mui/lab to @mui/material in v7 (npx @mui/codemod@latest v7.0.0/lab-removed-components <path>)"
+fix: "Use the v7+ export: Grid2 to Grid, experimentalStyled to styled, @mui/lab Alert/Autocomplete/... to @mui/material; replace Hidden with sx display or useMediaQuery."

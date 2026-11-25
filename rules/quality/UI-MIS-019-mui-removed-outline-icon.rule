@@ -1,0 +1,31 @@
+# MUI v9 removed 23 legacy `*Outline` icons. Adding a "d" does NOT always give
+# the same icon (ErrorOutline is an outlined circle, ErrorOutlined a filled one):
+# most map to `<Name>OutlineOutlined`, some to `<Name>Outlined`, ModeEditOutline
+# to ModeEdit, PeopleOutline has no identical replacement.
+#
+# `\b` after the name keeps the surviving variants quiet: ErrorOutlineOutlined,
+# InfoOutlined and InfoOutlineRounded do not match (no word boundary).
+# The exact per-icon replacement is in the ESLint rule's data table (autofix).
+#
+# @external eslint-plugin-mui:mui-no-removed-icons
+# @see https://mui.com/material-ui/migration/upgrade-to-v9/#material-icons
+id: UI-MIS-019
+ilities: [modifiability]
+source: eslint-plugin-mui
+maturity: 3
+action: warn
+title: MUI *Outline icon removed in v9
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .tsx .jsx .ts .js .mjs
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui/icons-material"
+patterns:
+  - regex: \bfrom\s+["']@mui/icons-material/(AddCircle|ChatBubble|CheckCircle|Delete|Done|Error|Help|Mail|PauseCircle|Person|PieChart|PlayCircle|RemoveCircle|Star|Work|DriveFileMove|Info|LabelImportant|Lightbulb|Lock|Workspaces|ModeEdit|People)Outline["']
+    message: "this *Outline icon was removed in MUI v9: use <Name>OutlineOutlined (or <Name>Outlined where no OutlineOutlined exists) for the same look"
+  - regex: \bimport\s[^;]*\b(AddCircle|ChatBubble|CheckCircle|Delete|Done|Error|Help|Mail|PauseCircle|Person|PieChart|PlayCircle|RemoveCircle|Star|Work|DriveFileMove|Info|LabelImportant|Lightbulb|Lock|Workspaces|ModeEdit|People)Outline\b[^;]*\bfrom\s+["']@mui/icons-material["']
+    message: "this *Outline icon was removed in MUI v9: use <Name>OutlineOutlined (or <Name>Outlined where no OutlineOutlined exists) for the same look"
+fix: "ErrorOutline to ErrorOutlineOutlined, InfoOutline to InfoOutlined, ModeEditOutline to ModeEdit; eslint-plugin-mui no-removed-icons autofixes all of them."

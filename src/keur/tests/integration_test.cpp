@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <sys/stat.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <set>
 #include <string>
@@ -1853,3 +1854,120 @@ SCENARIO("[feature:merge-scope] real git: no own contribution → empty scope, n
 }
 
 } // TEST_SUITE("integration")
+
+// ── MUI v7 / v9 migration rules (UI-MIS-016..019, 023..025) ────────────────
+// Mirrors of eslint-plugin-mui rules (that repo's ADR-006). Table-driven
+// (ADR-014: the list grows and only the data differs). Each row scans one bad
+// file (exact expected lines) and one good file that must stay quiet:
+// surviving variants, other libraries, commented-out code.
+
+namespace {
+struct MuiRuleCase {
+    const char* id;
+    const char* file_ext;
+    const char* bad;
+    std::vector<int> bad_lines;
+    const char* good;
+};
+
+std::vector<int> mui_lines(const std::vector<keur::RuleFinding>& f, const std::string& id) {
+    std::vector<int> lines;
+    for (const auto& x : f) if (x.rule_id == id) lines.push_back(x.line);
+    std::sort(lines.begin(), lines.end());
+    lines.erase(std::unique(lines.begin(), lines.end()), lines.end());
+    return lines;
+}
+
+const std::vector<MuiRuleCase>& mui_rule_cases() {
+    static const std::vector<MuiRuleCase> cases = {
+        {"UI-MIS-016", ".jsx",
+         "import { Delete } from '@mui/icons-material';\n"            // 1
+         "import {\n  Add,\n} from \"@mui/icons-material\";\n",       // 4: closing line of a multi-line import
+         {1, 4},
+         "import Delete from '@mui/icons-material/Delete';\n"
+         "// import { Delete } from '@mui/icons-material';\n"},
+        {"UI-MIS-017", ".tsx",
+         "import createTheme from '@mui/material/styles/createTheme';\n"   // 1
+         "import Close from '@mui/icons-material/esm/Close';\n"            // 2
+         "const m = import('@mui/system/styleFunctionSx/x');\n",           // 3
+         {1, 2, 3},
+         "import { createTheme } from '@mui/material/styles';\n"
+         "import Button from '@mui/material/Button';\n"
+         "import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';\n"
+         "import { GridApiPro } from '@mui/x-data-grid-pro/models/gridApiPro';\n"
+         "import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';\n"},
+        {"UI-MIS-018", ".jsx",
+         "import { Grid2, Box } from '@mui/material';\n"                     // 1
+         "import G from '@mui/material/Unstable_Grid2';\n"                    // 2
+         "import { GridLegacy as Grid } from '@mui/material';\n"              // 3
+         "import Hidden from '@mui/material/Hidden';\n"                       // 4
+         "import { experimentalStyled } from '@mui/material/styles';\n"      // 5
+         "import Alert from '@mui/lab/Alert';\n"                              // 6
+         "import { TabContext, Rating } from '@mui/lab';\n",                  // 7
+         {1, 2, 3, 4, 5, 6, 7},
+         "import { Grid, Box } from '@mui/material';\n"
+         "import Grid from '@mui/material/Grid';\n"
+         "import Grid2Docs from './Grid2Docs';\n"
+         "import { Hidden } from 'my-ui-kit';\n"
+         "import { styled } from '@mui/material/styles';\n"
+         "import { TabContext, LoadingButton } from '@mui/lab';\n"
+         "import Alert from '@mui/material/Alert';\n"},
+        {"UI-MIS-019", ".jsx",
+         "import ErrorOutline from '@mui/icons-material/ErrorOutline';\n"     // 1
+         "import { InfoOutline, Add } from '@mui/icons-material';\n"          // 2
+         "import X from '@mui/icons-material/PeopleOutline';\n",              // 3
+         {1, 2, 3},
+         "import E from '@mui/icons-material/ErrorOutlineOutlined';\n"
+         "import I from '@mui/icons-material/InfoOutlined';\n"
+         "import R from '@mui/icons-material/InfoOutlineRounded';\n"
+         "import { DeleteOutlineSharp } from '@mui/icons-material';\n"},
+        {"UI-MIS-023", ".jsx",
+         "import Dialog from '@mui/material/Dialog';\n"
+         "<Dialog PaperProps={{ elevation: 3 }} />;\n"                         // 2
+         "<Tooltip title=\"x\" TransitionComponent={Fade}><b /></Tooltip>;\n"  // 3
+         "<ListItemText primaryTypographyProps={{ variant: 'h6' }} />;\n",    // 4
+         {2, 3, 4},
+         "import Dialog from '@mui/material/Dialog';\n"
+         "<Dialog slotProps={{ paper: { elevation: 3 } }} slots={{ transition: Fade }} />;\n"
+         "<Markdown components={{ a: Link }} />;\n"},
+        {"UI-MIS-024", ".jsx",
+         "import Box from '@mui/material/Box';\n"
+         "<Box mt={2} />;\n"                                                   // 2
+         "<Stack alignItems=\"center\" spacing={2} />;\n"                     // 3
+         "<Typography fontWeight=\"bold\">t</Typography>;\n",                 // 4
+         {2, 3, 4},
+         "import Box from '@mui/material/Box';\n"
+         "<Box sx={{ mt: 2 }} component=\"img\" width={100} />;\n"
+         "<Stack spacing={2} direction=\"row\" />;\n"
+         "<Typography color=\"text.secondary\" variant=\"h1\">t</Typography>;\n"
+         "<Boxed mt={2} />;\n"},
+        {"UI-MIS-025", ".jsx",
+         "import Grid from '@mui/material/Grid';\n"
+         "<Grid item>x</Grid>;\n"                                              // 2
+         "<Grid xs={12} />;\n"                                                 // 3: breakpoint as first prop
+         "<Grid container direction=\"column\" />;\n",                        // 4
+         {2, 3, 4},
+         "import Grid from '@mui/material/Grid';\n"
+         "<Grid size={{ xs: 12, md: 6 }} items={list} data-item=\"x\">x</Grid>;\n"
+         "<Grid container direction=\"row-reverse\" spacing={2} />;\n"
+         "<Stack direction=\"column\" />;\n"
+         "<GridItem item />;\n"},
+    };
+    return cases;
+}
+}  // namespace
+
+// @proves UI-MIS-016 UI-MIS-017 UI-MIS-018 UI-MIS-019 UI-MIS-023 UI-MIS-024 UI-MIS-025
+SCENARIO("[feature:rule-engine] MUI migration rules flag the bad lines and stay quiet on the good file") {
+    auto rules = keur::rules_load(repo_root() + "/rules/quality");
+    REQUIRE(!rules.empty());
+    for (const auto& c : mui_rule_cases()) {
+        const std::string rule_id = c.id;
+        CAPTURE(rule_id);
+        const std::string ext = c.file_ext;
+        CHECK(mui_lines(scan_inline(rules, std::string("bad") + ext, c.bad), rule_id) == c.bad_lines);
+        CHECK(!has_rule(scan_inline(rules, std::string("good") + ext, c.good), rule_id));
+    }
+    // UI-MIS-023 is name-based: without an @mui mention another library's PaperProps never fires.
+    CHECK(!has_rule(scan_inline(rules, "c.jsx", "<Modal PaperProps={{}} />;\n"), "UI-MIS-023"));
+}

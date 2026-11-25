@@ -1,0 +1,30 @@
+# MUI v9 removed System props from Box, Stack, Typography, Grid, Link and
+# DialogContentText: <Box mt={2}> must become <Box sx={{ mt: 2 }}>. Left in,
+# the prop is forwarded to the DOM element instead of being styled.
+#
+# The list leaves out props that the components own or that are valid HTML
+# attributes on a rendered element (color on Typography/Link, width/height on
+# <Box component="img">, spacing/direction on Stack/Grid). `[^>]*` keeps the
+# match inside one opening tag on one line; an attribute after an arrow
+# function (`=>`) is not seen (false negative).
+#
+# @external eslint-plugin-mui:mui-no-system-props
+# @see https://mui.com/material-ui/migration/upgrade-to-v9/#system-props
+id: UI-MIS-024
+ilities: [modifiability]
+source: eslint-plugin-mui
+maturity: 3
+action: advisory
+title: MUI System prop on a component (removed in v9, use sx)
+category: quality
+severity: warning
+engine: pattern
+skip_comments: true
+target:
+  extensions: .tsx .jsx
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+  content_contains: "@mui"
+patterns:
+  - regex: <(Box|Stack|Typography|Grid|Link|DialogContentText)\s[^>]*\b(m|mt|mr|mb|ml|mx|my|p|pt|pr|pb|pl|px|py|bgcolor|fontWeight|fontSize|textAlign|alignItems|justifyContent|flexDirection|flexWrap|flexGrow|gap|rowGap|columnGap|borderRadius|boxShadow|zIndex)=
+    message: "System props were removed in MUI v9: move it into sx, e.g. <Box sx={{ mt: 2 }}> (codemod: npx @mui/codemod@latest v9.0.0/system-props <path>)"
+fix: "Move style props into sx: <Box mt={2} bgcolor=\"grey.100\"> becomes <Box sx={{ mt: 2, bgcolor: 'grey.100' }}>."
