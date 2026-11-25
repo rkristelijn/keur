@@ -41,7 +41,9 @@ VAULT-GDPR_NL
 rules/security/SEC-BIDI-001-trojan-source-control-chars.rule:SEC-BIDI-001
 
 # VAULT-GENERIC is a PERSONAL-vault rule from the global ~/.config/keur/rules/
-# layer. On docs/demo/pii-in-code.tape it fires on a DELIBERATE example PII value
-# (jan.devries@acme.com) that the PII demo exists to show — demo fixture, not a
-# leak. Scope correction, same as the other VAULT-* entries above (ADR-035/043).
+# layer, not a shipped keur rule, and CI never loads it. Here it fires on
+# deliberate example values: the PII demo (docs/demo/pii-in-code.tape) and the
+# example hosts, CIDRs and addresses that rule files document (rules/security/*,
+# the generated catalog). Measured 2026-11-25: 12 files, none personal data.
+# Repo-wide, like the other VAULT-* entries: a scope correction (ADR-035/043).
 VAULT-GENERIC
