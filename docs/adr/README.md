@@ -95,6 +95,7 @@ the engine stays minimal) and **ADR-010** (traceability).
 | [073](ADR-073-text-vocabulary-formats-reference-data.md) | Text, vocabulary and formats: nine categories, normalised reference data, and what keur checks | proposed |
 | [074](ADR-074-diagnostics-and-messages-as-data.md) | Diagnostics and messages as data: codes in code, text in a catalog, rendering in an adapter | proposed |
 | [078](ADR-078-static-re2-release-binaries.md) | Release binaries link RE2 and Abseil statically | accepted |
+| [079](ADR-079-block-rules-must-reach-block-at.md) | A block rule must be able to block | accepted |
 
 ## Adding an ADR
 

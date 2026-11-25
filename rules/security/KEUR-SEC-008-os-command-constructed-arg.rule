@@ -9,6 +9,8 @@ maturity: 2
 title: OS command execution with a constructed (non-literal) argument
 category: cmdi
 severity: critical
+# @implements ADR-079: action warn, confidence is below the default block-at 0.85 (block never fired).
+action: warn
 engine: pattern
 skip_comments: true
 target:

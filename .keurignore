@@ -22,3 +22,11 @@ VAULT-GDPR_UK
 # it. The company name that used to be in the id was renamed out; what remains
 # is a self-referential test, not a leak. Scope correction (ADR-035/043/046).
 VAULT-WORK
+
+# VAULT-GDPR_NL is the Dutch sibling of VAULT-GDPR_UK: a PERSONAL-vault rule from
+# the global ~/.config/keur/rules/ layer that scans prose for GDPR/PII terms. On
+# this public tool repo it hits ordinary English words in rule comments that are
+# already public on main (seen when ADR-079 touched rules/secrets and
+# rules/security). That is a false positive, not personal data; scoping it off is
+# a scope correction, same as VAULT-GDPR_UK above (ADR-035/043). loods does the same.
+VAULT-GDPR_NL

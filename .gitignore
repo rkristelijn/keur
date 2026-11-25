@@ -27,6 +27,8 @@ eval/history/**/*.raw
 bin/keur
 bin/keur-rules
 bin/keur-test
+# Build stamp: the RE2 link flags of the last link (src/keur/Makefile)
+bin/.re2-link-flags
 *.o
 # generated at build time from the .rule files (scripts/gen-catalog.sh)
 src/keur/manager/catalog_generated.cpp

@@ -11,6 +11,8 @@ id: KEUR-NODE-010
 title: Path traversal — fs read on path.join(base, user input) (Node/TS)
 category: security
 severity: error
+# @implements ADR-079: action warn, confidence is below the default block-at 0.85 (block never fired).
+action: warn
 engine: multiline
 window: 8
 skip_comments: true

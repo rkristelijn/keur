@@ -178,8 +178,10 @@ bool rule_matches_file(const Rule& rule, const std::string& rel) {
     }
     if (!match) return false;
   }
+  // Anchor at the root so a "/x" entry also matches a root-level path.
+  const std::string anchored = "/" + rel;
   for (auto& ex : rule.target.exclude_paths)
-    if (rel.find(ex) != std::string::npos) return false;
+    if (anchored.find(ex) != std::string::npos) return false;
   return true;
 }
 

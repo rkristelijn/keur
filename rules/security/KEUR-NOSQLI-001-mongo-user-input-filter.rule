@@ -18,7 +18,8 @@ title: NoSQL injection — user input in a MongoDB query filter
 category: sqli
 severity: critical
 engine: pattern
-action: block
+# @implements ADR-079: action warn, confidence is below the default block-at 0.85 (block never fired).
+action: warn
 target:
   extensions: .js .ts .mjs
 patterns:

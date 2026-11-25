@@ -23,6 +23,7 @@
 #include "cmd/check.h"
 #include "cmd/hook.h"
 #include "cmd/scan.h"
+#include "cmd/policy.h"
 #include "adapters/git.h"
 #include "test_helpers.h"
 
@@ -1853,7 +1854,6 @@ SCENARIO("[feature:merge-scope] real git: no own contribution → empty scope, n
     CHECK(selected.empty());
 }
 
-} // TEST_SUITE("integration")
 
 // ── MUI v7 / v9 migration rules (UI-MIS-016..019, 023..025) ────────────────
 // Mirrors of eslint-plugin-mui rules (that repo's ADR-006). Table-driven
@@ -1971,3 +1971,115 @@ SCENARIO("[feature:rule-engine] MUI migration rules flag the bad lines and stay 
     // UI-MIS-023 is name-based: without an @mui mention another library's PaperProps never fires.
     CHECK(!has_rule(scan_inline(rules, "c.jsx", "<Modal PaperProps={{}} />;\n"), "UI-MIS-023"));
 }
+
+// ── ADR-079: a block rule must be able to block ─────────────────────────────
+// A rule whose effective action is `block` but whose confidence is below the
+// default block-at never blocks: the policy downgrades every finding to a
+// warning while the output still says "block". 13 shipped rules were in that
+// state (KEUR-SEC-007 among them). This keeps the class from coming back:
+// either raise the confidence (with evidence) or say `action: warn`.
+
+// @proves ADR-079
+SCENARIO("[feature:rule-engine] every shipped block rule clears the default block-at") {
+    const double block_at = keur::cmd::PolicySettings{}.block_at;
+    const std::vector<std::string> dirs = {"composite", "generics", "inclusivity", "keur-internal",
+                                           "quality", "secrets", "security", "supply-chain"};
+    std::vector<std::string> unreachable;
+    size_t checked = 0;
+    for (const auto& d : dirs) {
+        for (const auto& r : keur::rules_load(repo_root() + "/rules/" + d)) {
+            if (keur::detail::default_action(r) != "block") continue;
+            ++checked;
+            if (std::stod(keur::detail::default_conf(r)) < block_at) unreachable.push_back(r.id);
+        }
+    }
+    CHECK(checked > 100);  // the scan really saw the shipped rule set
+    // Joined, so a failure names every offender: raise its confidence (with
+    // evidence) or declare `action: warn`.
+    std::string offenders;
+    for (const auto& id : unreachable) offenders += (offenders.empty() ? "" : " ") + id;
+    CHECK(offenders == std::string());
+}
+
+// @proves KEUR-SEC-007
+SCENARIO("[feature:rule-engine] KEUR-SEC-007 blocks a hardcoded credential, not tests or .example files") {
+    auto rules = keur::rules_load(repo_root() + "/rules/secrets");
+    REQUIRE(!rules.empty());
+    std::string dir = create_temp_dir();
+    REQUIRE(!dir.empty());
+    // Assembled at runtime so this source file itself holds no credential-shaped literal.
+    const std::string value = std::string("wJalrXUtnFEMI") + "/K7MDENG/bPxRfiCY";
+    write_file(dir + "/config.js", "const AWS_SECRET_ACCESS_KEY = '" + value + "';\n");
+    auto f = keur::rules_scan_files(rules, {dir + "/config.js"});
+    bool blocks = false;
+    for (const auto& x : f)
+        if (x.rule_id == "KEUR-SEC-007" && x.action == "block" && std::stod(x.confidence) >= keur::cmd::PolicySettings{}.block_at)
+            blocks = true;
+    CHECK(blocks);
+
+    REQUIRE(::mkdir((dir + "/tests").c_str(), 0755) == 0);
+    write_file(dir + "/tests/login.test.js", "const password = '" + value + "';\n");
+    write_file(dir + "/.env.example", "API_KEY='your-api-key-goes-here'\n");
+    auto quiet = keur::rules_scan_files(rules, {dir + "/tests/login.test.js", dir + "/.env.example"});
+    CHECK(!has_rule(quiet, "KEUR-SEC-007"));
+
+    // Co-located tests (next to the source, not under tests/) stay quiet too:
+    // JS/TS .test./.spec., Go _test.go, Python test_*.py.
+    REQUIRE(::mkdir((dir + "/src").c_str(), 0755) == 0);
+    std::vector<std::string> colocated;
+    for (const char* name : {"login.test.ts", "login.spec.js", "auth_test.go", "test_auth.py"}) {
+        std::string path = dir + "/src/" + name;
+        write_file(path, "password = '" + value + "'\n");
+        colocated.push_back(path);
+    }
+    CHECK(!has_rule(keur::rules_scan_files(rules, colocated), "KEUR-SEC-007"));
+    // ...but a source file whose name merely contains "test" still blocks.
+    write_file(dir + "/src/latest.js", "const token = '" + value + "';\n");
+    CHECK(has_rule(keur::rules_scan_files(rules, {dir + "/src/latest.js"}), "KEUR-SEC-007"));
+    cleanup_dir(dir);
+}
+
+// A directory walk hands root-level files over with a bare relative path
+// ("test_auth.py"), so a "/test_"-style exclusion must also match at the root
+// (exclusions are matched against "/" + rel). And a value that is a runtime
+// reference (env var, CI secret, template) is not a committed credential.
+// @proves KEUR-SEC-007
+SCENARIO("[feature:rule-engine] KEUR-SEC-007 skips root-level tests and runtime references") {
+    auto rules = keur::rules_load(repo_root() + "/rules/secrets");
+    REQUIRE(!rules.empty());
+    const std::string value = std::string("wJalrXUtnFEMI") + "/K7MDENG/bPxRfiCY";
+
+    std::string root = create_temp_dir();
+    REQUIRE(!root.empty());
+    write_file(root + "/test_auth.py", "password = '" + value + "'\n");
+    CHECK(!has_rule(keur::rules_scan_dir(rules, root), "KEUR-SEC-007"));
+    write_file(root + "/latest_auth.py", "password = '" + value + "'\n");
+    CHECK(has_rule(keur::rules_scan_dir(rules, root), "KEUR-SEC-007"));
+    cleanup_dir(root);
+
+    for (const char* ref : {"\"${DB_PASSWORD_VALUE}\"", "\"$DB_PASSWORD_VALUE\"",
+                            "'{{ secrets.DB_PASSWORD }}'", "\"#{ENV['DB_PASSWORD']}\""})
+        CHECK_MESSAGE(!has_rule(scan_inline(rules, "config.yml", std::string("pass" "word: ") + ref + "\n"),
+                                "KEUR-SEC-007"), ref);
+    // A literal, and a hash that merely starts with '$', still match.
+    CHECK(has_rule(scan_inline(rules, "config.yml", "password: \"" + value + "\"\n"), "KEUR-SEC-007"));
+    const std::string hash = std::string("$2b$12$") + "abcdefghijklmnopqrstuv";  // split: no literal in source
+    CHECK(has_rule(scan_inline(rules, "config.yml", "password: \"" + hash + "\"\n"), "KEUR-SEC-007"));
+    // The reference check is tied to the matched value, not the line: a runtime
+    // reference elsewhere on the line does not hide a literal credential.
+    CHECK(has_rule(scan_inline(rules, "c.js", std::string("const pass" "word = \"") + value +
+                                                 "\"; const foo = \"${TOKEN_VALUE}\";\n"), "KEUR-SEC-007"));
+
+    // An explicit "./" path is normalised before the exclusions are matched.
+    std::string cwd = create_temp_dir();
+    REQUIRE(!cwd.empty());
+    write_file(cwd + "/test_credentials.py", "password = '" + value + "'\n");
+    {
+        keur::test::ScopedChdir in(cwd);
+        REQUIRE(in.enter_ok());
+        CHECK(!has_rule(keur::rules_scan_files(rules, {"./test_credentials.py"}), "KEUR-SEC-007"));
+    }
+    cleanup_dir(cwd);
+}
+
+} // TEST_SUITE("integration")
