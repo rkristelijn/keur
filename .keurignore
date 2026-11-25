@@ -30,3 +30,20 @@ VAULT-WORK
 # rules/security). That is a false positive, not personal data; scoping it off is
 # a scope correction, same as VAULT-GDPR_UK above (ADR-035/043). loods does the same.
 VAULT-GDPR_NL
+
+# SEC-BIDI-001 fires on docs/demo/*.gif — those are binary VHS recordings whose
+# image bytes coincidentally contain the U+202x byte sequences. It is a false
+# positive on a binary asset, not a Trojan-Source char in reviewable text. The
+# rule stays active for real source; this suppresses the binary-asset hits only.
+# Scoped by path (a bare rule id would silence it in EVERY file): the demo GIFs,
+# and the rule's own file, which contains the characters as its test examples.
+.gif:SEC-BIDI-001
+rules/security/SEC-BIDI-001-trojan-source-control-chars.rule:SEC-BIDI-001
+
+# VAULT-GENERIC is a PERSONAL-vault rule from the global ~/.config/keur/rules/
+# layer, not a shipped keur rule, and CI never loads it. Here it fires on
+# deliberate example values: the PII demo (docs/demo/pii-in-code.tape) and the
+# example hosts, CIDRs and addresses that rule files document (rules/security/*,
+# the generated catalog). Measured 2026-11-25: 12 files, none personal data.
+# Repo-wide, like the other VAULT-* entries: a scope correction (ADR-035/043).
+VAULT-GENERIC

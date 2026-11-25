@@ -1,0 +1,27 @@
+# DEMO-NL-001 — a CUSTOM rule (not shipped with keur): flag Dutch prose in docs.
+# Ships inside the demo dir so the tape is self-contained; load it by pointing
+# KEUR_RULES_DIRS at docs/demo/rules (the sandbox passes it through).
+#
+# The point of the demo: your ESLint/Prettier/flake8 cannot do this. keur lets a
+# team add a project-specific rule in ~10 lines that plugs into the SAME gate,
+# verdict model and `keur learn` explainer as the built-in rules. English-only
+# docs is a common house rule for shared/open repos; this enforces it.
+id: DEMO-NL-001
+ilities: [analysability]
+maturity: 1
+title: Dutch-language text in documentation (English-only house rule)
+category: quality
+severity: warning
+engine: pattern
+action: block
+confidence: 0.9
+target:
+  extensions: .md
+  exclude_paths: vendor/ node_modules/ .git/
+patterns:
+  # Common Dutch function words that don't collide with English (so not "met"). Word-boundary
+  # anchored, case-insensitive. Deliberately small + high-signal to avoid false
+  # positives on loanwords (data, via, …).
+  - regex: (?i)\b(het|een|niet|werkt|deze|zijn|voor|gebruik|installeren|volgende)\b
+    message: "Dutch text in a doc — this repo's docs are English-only. Translate the prose to English."
+fix: "Write documentation in English. If a Dutch term is intentional (a proper name, a quote), suppress that line with 'keur:ignore DEMO-NL-001'."

@@ -14,6 +14,8 @@ Set TypingSpeed 45ms
 
 # --- Arrange (hidden): clean neutral shell, disposable repo in /tmp ---------
 Hide
+Type "unset KEUR_RULES_DIRS"
+Enter
 Type "setopt interactive_comments"
 Enter
 Type "source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
@@ -22,7 +24,7 @@ Type "export CLICOLOR_FORCE=1 CLICOLOR=1"
 Enter
 Type "PROMPT='%F{green}❯%f '"
 Enter
-Type "rm -rf /tmp/demo && mkdir -p /tmp/demo && cd /tmp/demo"
+Type "rm -rf /tmp/demo-secret-in-code && mkdir -p /tmp/demo-secret-in-code && cd /tmp/demo-secret-in-code"
 Enter
 Type "git init -q && git config color.ui always"
 Enter
@@ -46,6 +48,7 @@ Enter
 Sleep 500ms
 Type "git commit -m 'add config'"
 Enter
+Wait@30s /❯\s*$/
 Sleep 2800ms
 
 # --- Assert: flagged, the secret belongs in a secret store ------------------

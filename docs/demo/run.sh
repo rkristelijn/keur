@@ -22,10 +22,10 @@ run_one() {
     echo "══════════════════════════════════════════════════════════"
     echo "  run: $(basename "$tape")"
     echo "══════════════════════════════════════════════════════════"
-    # Extract the typed text from each `Type "..."` or `Type `...`` line.
+    # Extract the typed text from each `Type "..."`, `Type `...`` or `Type '...'` line.
     # sed pulls the content between the first pair of quotes/backticks.
     local script
-    script=$(sed -nE 's/^Type "(.*)"$/\1/p; s/^Type `(.*)`$/\1/p' "$tape")
+    script=$(sed -nE 's/^Type "(.*)"$/\1/p; s/^Type `(.*)`$/\1/p; s/^Type '"'"'(.*)'"'"'$/\1/p' "$tape")
     # Run the whole thing in one zsh so cd/exports/setopt persist between lines,
     # exactly like the recorded session. interactive_comments so the # labels
     # are shells comments, not errors (the same setopt the tape sets).

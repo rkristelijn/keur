@@ -29,6 +29,8 @@ Set TypingSpeed 45ms
 # grey, the natural way (no personal dotfiles, no PII). A disposable repo in
 # /tmp so no username leaks into any path. git colour forced on for the demo.
 Hide
+Type "unset KEUR_RULES_DIRS"
+Enter
 Type "setopt interactive_comments"
 Enter
 Type "source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
@@ -37,7 +39,7 @@ Type "export CLICOLOR_FORCE=1 CLICOLOR=1"
 Enter
 Type "PROMPT='%F{green}❯%f '"
 Enter
-Type "rm -rf /tmp/demo && mkdir -p /tmp/demo && cd /tmp/demo"
+Type "rm -rf /tmp/demo-NAME && mkdir -p /tmp/demo-NAME && cd /tmp/demo-NAME"
 Enter
 Type "git init -q && git config color.ui always"
 Enter
