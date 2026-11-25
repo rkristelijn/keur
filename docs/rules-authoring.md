@@ -40,8 +40,10 @@ required. `severity` drives the default `action`/`confidence`:
 critical/error → block/0.9, warning → warn/0.6, else advisory/0.4.
 
 A `block` rule must have a confidence of at least the default `block-at` (0.85);
-otherwise the policy downgrades every finding to a warning while the output still
-says "block". If you cannot show the precision for 0.85+, declare `action: warn`.
+otherwise, under the default policy, every finding is downgraded to a warning
+while the output still says "block". A repo with a lower `block-at` (say 0.75)
+would let such a rule block, but shipped rules are judged against the default.
+If you cannot show the precision for 0.85+, declare `action: warn`.
 An integration scenario enforces this for every shipped rule (ADR-079).
 
 ## RE2 rules (the regex engine)

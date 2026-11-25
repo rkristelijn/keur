@@ -2023,5 +2023,19 @@ SCENARIO("[feature:rule-engine] KEUR-SEC-007 blocks a hardcoded credential, not 
     write_file(dir + "/.env.example", "API_KEY='your-api-key-goes-here'\n");
     auto quiet = keur::rules_scan_files(rules, {dir + "/tests/login.test.js", dir + "/.env.example"});
     CHECK(!has_rule(quiet, "KEUR-SEC-007"));
+
+    // Co-located tests (next to the source, not under tests/) stay quiet too:
+    // JS/TS .test./.spec., Go _test.go, Python test_*.py.
+    REQUIRE(::mkdir((dir + "/src").c_str(), 0755) == 0);
+    std::vector<std::string> colocated;
+    for (const char* name : {"login.test.ts", "login.spec.js", "auth_test.go", "test_auth.py"}) {
+        std::string path = dir + "/src/" + name;
+        write_file(path, "password = '" + value + "'\n");
+        colocated.push_back(path);
+    }
+    CHECK(!has_rule(keur::rules_scan_files(rules, colocated), "KEUR-SEC-007"));
+    // ...but a source file whose name merely contains "test" still blocks.
+    write_file(dir + "/src/latest.js", "const token = '" + value + "';\n");
+    CHECK(has_rule(keur::rules_scan_files(rules, {dir + "/src/latest.js"}), "KEUR-SEC-007"));
     cleanup_dir(dir);
 }
