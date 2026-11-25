@@ -2065,6 +2065,21 @@ SCENARIO("[feature:rule-engine] KEUR-SEC-007 skips root-level tests and runtime 
     CHECK(has_rule(scan_inline(rules, "config.yml", "password: \"" + value + "\"\n"), "KEUR-SEC-007"));
     const std::string hash = std::string("$2b$12$") + "abcdefghijklmnopqrstuv";  // split: no literal in source
     CHECK(has_rule(scan_inline(rules, "config.yml", "password: \"" + hash + "\"\n"), "KEUR-SEC-007"));
+    // The reference check is tied to the matched value, not the line: a runtime
+    // reference elsewhere on the line does not hide a literal credential.
+    CHECK(has_rule(scan_inline(rules, "c.js", std::string("const pass" "word = \"") + value +
+                                                 "\"; const foo = \"${TOKEN_VALUE}\";\n"), "KEUR-SEC-007"));
+
+    // An explicit "./" path is normalised before the exclusions are matched.
+    std::string cwd = create_temp_dir();
+    REQUIRE(!cwd.empty());
+    write_file(cwd + "/test_credentials.py", "password = '" + value + "'\n");
+    {
+        keur::test::ScopedChdir in(cwd);
+        REQUIRE(in.enter_ok());
+        CHECK(!has_rule(keur::rules_scan_files(rules, {"./test_credentials.py"}), "KEUR-SEC-007"));
+    }
+    cleanup_dir(cwd);
 }
 
 } // TEST_SUITE("integration")
