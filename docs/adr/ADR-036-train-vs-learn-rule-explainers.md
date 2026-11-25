@@ -72,7 +72,7 @@ is always useful, and a missing markdown degrades gracefully.
 Each `docs/rules/<RULE-ID>.md` is a small, uniform doc (a template ships in
 `docs/rules/_TEMPLATE.md`):
 
-```markdown
+````markdown
 # KEUR-CMDI-003 — OS command injection via os.popen family
 category: cmdi · severity: critical · CWE-78
 
@@ -102,7 +102,7 @@ subprocess.run(["ls","-la"])   # argv vector, no shell
 
 - CWE-78, OWASP …
 
-```text
+````
 
 The BLOCK output (ADR-035) gains one line pointing here:
 `learn more: keur learn KEUR-CMDI-003`.

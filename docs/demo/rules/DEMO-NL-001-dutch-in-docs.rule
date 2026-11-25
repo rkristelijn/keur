@@ -8,7 +8,7 @@
 # docs is a common house rule for shared/open repos; this enforces it.
 id: DEMO-NL-001
 ilities: [analysability]
-maturity: 2
+maturity: 1
 title: Dutch-language text in documentation (English-only house rule)
 category: quality
 severity: warning
@@ -19,9 +19,9 @@ target:
   extensions: .md
   exclude_paths: vendor/ node_modules/ .git/
 patterns:
-  # Common Dutch function words that don't collide with English. Word-boundary
+  # Common Dutch function words that don't collide with English (so not "met"). Word-boundary
   # anchored, case-insensitive. Deliberately small + high-signal to avoid false
   # positives on loanwords (data, via, …).
-  - regex: (?i)\b(het|een|niet|werkt|deze|zijn|voor|met|gebruik|installeren|volgende)\b
+  - regex: (?i)\b(het|een|niet|werkt|deze|zijn|voor|gebruik|installeren|volgende)\b
     message: "Dutch text in a doc — this repo's docs are English-only. Translate the prose to English."
 fix: "Write documentation in English. If a Dutch term is intentional (a proper name, a quote), suppress that line with 'keur:ignore DEMO-NL-001'."

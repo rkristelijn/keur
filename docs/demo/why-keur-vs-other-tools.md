@@ -18,7 +18,7 @@ it catches a class of problems no single-language tool is even looking at.
         ▼
    native tools (ESLint, flake8, clang, jest, …)
    deep single-language semantics
-```text
+```
 
 ## The dividing line: pattern/structure vs. language semantics
 

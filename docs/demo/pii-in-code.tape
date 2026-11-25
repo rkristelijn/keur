@@ -22,9 +22,11 @@ Set TypingSpeed 45ms
 
 # --- Arrange (hidden): neutral isolated env + disposable repo ---------------
 Hide
-Type "export HOME=/tmp/demo-home XDG_CONFIG_HOME=/tmp/demo-home/.config XDG_CACHE_HOME=/tmp/demo-home/.cache"
+Type "unset KEUR_RULES_DIRS"
 Enter
-Type "rm -rf /tmp/demo-home /tmp/demo && mkdir -p /tmp/demo-home/.config /tmp/demo && cd /tmp/demo"
+Type "export HOME=/tmp/demo-pii-in-code-home XDG_CONFIG_HOME=/tmp/demo-pii-in-code-home/.config XDG_CACHE_HOME=/tmp/demo-pii-in-code-home/.cache"
+Enter
+Type "rm -rf /tmp/demo-pii-in-code-home /tmp/demo-pii-in-code && mkdir -p /tmp/demo-pii-in-code-home/.config /tmp/demo-pii-in-code && cd /tmp/demo-pii-in-code"
 Enter
 Type "setopt interactive_comments"
 Enter

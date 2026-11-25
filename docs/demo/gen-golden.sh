@@ -40,8 +40,7 @@ if [[ $# -gt 0 ]]; then
 else
   tapes=()
   for t in *.tape; do
-    skip_tape "$t" && continue
-    tapes+=("$t")
+    tapes+=("$t")   # skipped tapes still get the isolation check below
   done
 fi
 
@@ -88,9 +87,47 @@ snapshot_problems() {
   done
 }
 
+# 3. a tape works only in its OWN /tmp/demo-<name> dirs. Tapes that shared one
+#    /tmp/demo removed each other's working dir when rendered together, which
+#    recorded "no such file or directory" into a GIF (pii-in-code, dutch-in-docs).
+tape_isolation_problems() {
+  local tape="$1" name
+  name="$(basename "$tape" .tape)"
+  [[ "$name" == "TEMPLATE" ]] && name="NAME"
+  grep -oE '/tmp/demo[-A-Za-z0-9_]*' "$tape" | sort -u | while read -r dir; do
+    case "$dir" in
+      "/tmp/demo-$name"|"/tmp/demo-$name-"*) ;;
+      *) echo "uses shared dir $dir: use /tmp/demo-$name (each tape owns its dirs)" ;;
+    esac
+  done
+}
+
+# 4. a tape that runs the gate must WAIT for its verdict before typing on. With
+#    a fixed Sleep, a slow render typed the next line into keur's output (seen in
+#    dutch-in-docs). `Wait /❯/` waits until the prompt is back on the last line,
+#    i.e. the command finished, however long its output is.
+tape_wait_problems() {
+  awk '
+    /^Type .*(keur check|git commit)/ { pending = NR; next }
+    pending && /^Wait/ { pending = 0; next }
+    pending && /^Type / { printf "line %d runs the gate without a Wait for its verdict; ", pending; pending = 0 }
+    END { if (pending) printf "line %d runs the gate without a Wait for its verdict; ", pending }
+  ' "$1"
+}
+
 rc=0
 for tape in "${tapes[@]}"; do
   [[ -f "$tape" ]] || { echo "gen-golden: no such tape: $tape" >&2; rc=2; continue; }
+  waits="$(tape_wait_problems "$tape")"
+  if [[ -n "$waits" ]]; then
+    echo "gen-golden: BAD — $tape: ${waits%; }" >&2
+    rc=1
+  fi
+  isolation="$(tape_isolation_problems "$tape")"
+  if [[ -n "$isolation" ]]; then
+    echo "gen-golden: BAD — $tape: ${isolation//$'\n'/; }" >&2
+    rc=1
+  fi
   if skip_tape "$tape"; then
     echo "gen-golden: skip $tape (not a golden-output demo — see header)"
     continue
@@ -99,7 +136,10 @@ for tape in "${tapes[@]}"; do
   out="${name}.out.txt"
   if [[ "$CHECK" -eq 1 ]]; then
     tmp="$(mktemp)"
-    emit "$tape" > "$tmp"
+    if ! emit "$tape" > "$tmp"; then
+      echo "gen-golden: BAD — $out: capture failed (run.sh or sed exited non-zero)" >&2
+      rc=1; rm -f "$tmp"; continue
+    fi
     if ! diff -q "$out" "$tmp" >/dev/null 2>&1; then
       echo "gen-golden: STALE — $out differs from a fresh run (run ./gen-golden.sh)" >&2
       rc=1
@@ -113,7 +153,11 @@ for tape in "${tapes[@]}"; do
     fi
     rm -f "$tmp"
   else
-    emit "$tape" > "$out"
+    if ! emit "$tape" > "$out.tmp"; then
+      echo "gen-golden: BAD — $out: capture failed (run.sh or sed exited non-zero); kept the old snapshot" >&2
+      rc=1; rm -f "$out.tmp"; continue
+    fi
+    mv "$out.tmp" "$out"
     echo "gen-golden: wrote $out"
     problems="$(snapshot_problems "$tape" "$out")"
     if [[ -n "$problems" ]]; then

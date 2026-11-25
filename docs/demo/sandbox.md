@@ -48,7 +48,7 @@ the host's tuned one.
 docs/demo/sandbox.sh keur scan <path>     # any keur command, hermetically
 docs/demo/sandbox.sh keur check
 KEUR_BIN=/path/to/keur docs/demo/sandbox.sh keur version   # pin the binary
-```text
+```
 
 Mechanism: `env -i` wipes the environment, then re-adds only a controlled set
 (clean temp HOME/XDG, KEUR_HOME at the repo, a minimal PATH). See the script.

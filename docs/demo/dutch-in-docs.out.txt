@@ -11,8 +11,11 @@
 ══════════════════════════════════════════════════════════
   run: dutch-in-docs.tape
 ══════════════════════════════════════════════════════════
-keur scan: 9 finding(s) in README.md
-{"source":"keur-rules","rule":"DEMO-NL-001","title":"Dutch-language text in documentation (English-only house rule)","category":"quality","severity":"warning","action":"block","confidence":0.9,"deterministic":true,"file":"README.md","line":2,"message":"Dutch text in a doc — this repo's docs are English-only."}
+KEUR (pre-commit): scanning 2 staged file(s)...
+  BLOCK DEMO-NL-001 | block | conf 0.9 | README.md:2 | Dutch text in a doc — this repo's docs are English-only. Translate the prose to English.
+        fix: Write documentation in English. If a Dutch term is intentional (a proper name, a quote), suppress that line with 'keur:ignore DEMO-NL-001'.
+        false positive? add on that line a comment: keur:ignore DEMO-NL-001
+KEUR (pre-commit): BLOCK -- blocking finding(s) above; commit stopped
 # DEMO-NL-001 — Dutch-language text in documentation (English-only house rule)
 category: quality · severity: warning
 
@@ -20,10 +23,10 @@ category: quality · severity: warning
  Add docs/rules/DEMO-NL-001.md for the full write-up.)
 
 ## Fix
-Write documentation in English.
+Write documentation in English. If a Dutch term is intentional (a proper name, a quote), suppress that line with 'keur:ignore DEMO-NL-001'.
 
 ## Suppress (if a genuine false positive)
 `# keur:ignore DEMO-NL-001`  (or a .keurignore entry — ADR-035)
-keur scan: 8 finding(s) in README.md
-0
+KEUR (pre-commit): scanning 2 staged file(s)...
+KEUR (pre-commit): PASS
 

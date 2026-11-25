@@ -22,7 +22,7 @@ cd "$HERE"
 #   - a literal "$HOME/" or "~/" TYPED into a tape (expands to the real home
 #     in the recording unless HOME is already a throwaway temp)
 # RFC-safe demo placeholders (/tmp/demo, $CLEAN inside sandbox.sh) are allowed.
-leak_re='(/Users/|/home/[a-z]|\$HOME/|~/)'
+leak_re='(/Users/|/home/[^/[:space:]]|\$HOME/|~/)'   # any home-dir name, not only lowercase
 
 files=()
 if [[ $# -gt 0 ]]; then
@@ -35,16 +35,25 @@ fi
 
 rc=0
 for f in "${files[@]}"; do
-  [[ -f "$f" ]] || continue
+  # A requested file we cannot inspect must FAIL the gate, never pass as clean.
+  if [[ ! -f "$f" || ! -r "$f" ]]; then
+    echo "check-pii: cannot inspect $f (missing or unreadable)" >&2
+    rc=2; continue
+  fi
   # sandbox.sh legitimately sets HOME=$CLEAN; it is the isolation tool, not a
   # demo surface — skip it. Everything else is scanned.
   [[ "$f" == "sandbox.sh" ]] && continue
   # Only inspect lines a GIF/txt would actually show: TYPE'd commands in tapes,
   # and every line of an .out.txt snapshot.
   if [[ "$f" == *.tape ]]; then
-    hits="$(grep -nE '^[[:space:]]*Type ' "$f" | grep -nE "$leak_re" || true)"
+    hits="$(grep -nE '^[[:space:]]*Type ' "$f" | grep -nE "$leak_re")"; st=$?
   else
-    hits="$(grep -nE "$leak_re" "$f" || true)"
+    hits="$(grep -nE "$leak_re" "$f")"; st=$?
+  fi
+  # grep: 0 = match, 1 = no match, >1 = error (that is not "clean").
+  if [[ "$st" -gt 1 ]]; then
+    echo "check-pii: grep failed on $f" >&2
+    rc=2; continue
   fi
   if [[ -n "$hits" ]]; then
     echo "check-pii: LEAK in $f —" >&2

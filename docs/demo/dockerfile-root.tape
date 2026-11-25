@@ -21,9 +21,11 @@ Set TypingSpeed 42ms
 
 # --- Arrange (hidden): neutral isolated env + disposable repo ---------------
 Hide
-Type "export HOME=/tmp/demo-home XDG_CONFIG_HOME=/tmp/demo-home/.config XDG_CACHE_HOME=/tmp/demo-home/.cache"
+Type "unset KEUR_RULES_DIRS"
 Enter
-Type "rm -rf /tmp/demo-home /tmp/demo && mkdir -p /tmp/demo-home/.config /tmp/demo && cd /tmp/demo"
+Type "export HOME=/tmp/demo-dockerfile-root-home XDG_CONFIG_HOME=/tmp/demo-dockerfile-root-home/.config XDG_CACHE_HOME=/tmp/demo-dockerfile-root-home/.cache"
+Enter
+Type "rm -rf /tmp/demo-dockerfile-root-home /tmp/demo-dockerfile-root && mkdir -p /tmp/demo-dockerfile-root-home/.config /tmp/demo-dockerfile-root && cd /tmp/demo-dockerfile-root"
 Enter
 Type "setopt interactive_comments"
 Enter

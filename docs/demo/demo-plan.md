@@ -15,8 +15,10 @@ a hook". These proposed demos tell that fuller story.
 ## Priority list (short, each with the "vs custom" edge)
 
 ### 1. install — first contact + supply-chain hygiene
-- Arrange: clean machine, no keur. Act: run install.sh. Assert: checksum
-  verified, keur on PATH, git hook installed.
+- Arrange: clean machine, no keur. Act: run install.sh, put its bin dir on
+  PATH, then run `keur hook --install` in a repo (install.sh installs only the
+  binary; it does not touch PATH or install a hook). Assert: checksum verified,
+  keur on PATH, the hook stub present in `.git/hooks/pre-commit`.
 - Shows: fetch -> SHA256 verify -> hook stub (`exec keur check`).
 - vs custom: a hand-rolled hook is a copy-pasted script with no integrity
   check and no versioning. keur ships a verified, versioned binary that

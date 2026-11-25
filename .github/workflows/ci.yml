@@ -204,6 +204,11 @@ jobs:
       - name: Self-check (ADR index is in sync)
         run: bash scripts/gen-adr-index.sh --check
 
+      # A closing code fence with a language (```text) reopens the block and
+      # renders the rest of the doc as code. Parity-dependent, so not a .rule.
+      - name: Self-check (Markdown code fences close cleanly)
+        run: bash scripts/check-md-fences.sh
+
       # ── The real gate: keur check over this change's own diff ────────────
       # Stage the diff against its base, then run the hook's command verbatim.
       - name: Gate own diff (keur check, pre-commit + pre-push)

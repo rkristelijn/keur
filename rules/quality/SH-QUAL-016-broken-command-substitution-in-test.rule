@@ -1,5 +1,5 @@
 id: SH-QUAL-016
-ilities: [correctness, analysability]
+ilities: [reliability-maturity, analysability]
 source: keur
 maturity: 3
 action: warn
@@ -22,6 +22,9 @@ patterns:
   # Silent on:    [ -n "$(printf %s "$VAR" | tr -d ' ')" ]   (proper $())
   #               [ "$(ls | wc -l)" -gt 0 ]                   (operand is $())
   #               [ -n "$VAR" ]                               (no pipe at all)
-  - regex: \[\s+-[a-z]\s+"[^$].*\s\|\s.*\)"\s*\]
+  # The operand text before the pipe must not contain "$(": a complete
+  # substitution after a prefix (e.g. "/tmp/$(cmd | tr ...)") is valid code.
+  #               [ -f "/tmp/$(printf %s "$n" | tr ' ' '_')" ]  (prefix + proper $())
+  - regex: \[\s+-[a-z]\s+"(?:[^$]|\$[^(])+\s\|\s.*\)"\s*\]
     message: "Shell test operand pipes a command and has a dangling ')' but doesn't start with '$(' — looks like a broken command substitution (a mangled edit dropped the '$('). The test silently evaluates a literal instead of running the command. Restore '$( ... )', e.g. [ -n \"$(printf %s \"$VAR\" | tr -d ' ')\" ], then confirm with 'bash -n'."
 fix: "Wrap the piped command in a proper substitution: [ -n \"$(cmd | ...)\" ] (note the leading '$('). Run 'bash -n script.sh' or shellcheck to confirm the test parses."

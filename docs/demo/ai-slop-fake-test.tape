@@ -28,11 +28,13 @@ Set TypingSpeed 42ms
 # Stage the fixtures BEFORE sourcing highlighting / entering the demo dir, so
 # the files exist without typing a heredoc on screen.
 Hide
-Type "mkdir -p /tmp/demo-fixtures && cp fixtures/ai-slop-fake.test.js fixtures/ai-slop-real.test.js /tmp/demo-fixtures/"
+Type "unset KEUR_RULES_DIRS"
 Enter
-Type "export HOME=/tmp/demo-home XDG_CONFIG_HOME=/tmp/demo-home/.config XDG_CACHE_HOME=/tmp/demo-home/.cache"
+Type `F=/tmp/demo-ai-slop-fake-test-fixtures; rm -rf $F && mkdir -p $F && cp "$(git rev-parse --show-toplevel)"/docs/demo/fixtures/ai-slop-{fake,real}.test.js $F/`
 Enter
-Type "rm -rf /tmp/demo-home /tmp/demo && mkdir -p /tmp/demo-home/.config /tmp/demo && cd /tmp/demo"
+Type "export HOME=/tmp/demo-ai-slop-fake-test-home XDG_CONFIG_HOME=/tmp/demo-ai-slop-fake-test-home/.config XDG_CACHE_HOME=/tmp/demo-ai-slop-fake-test-home/.cache"
+Enter
+Type "rm -rf /tmp/demo-ai-slop-fake-test-home /tmp/demo-ai-slop-fake-test && mkdir -p /tmp/demo-ai-slop-fake-test-home/.config /tmp/demo-ai-slop-fake-test && cd /tmp/demo-ai-slop-fake-test"
 Enter
 Type "setopt interactive_comments"
 Enter
@@ -56,7 +58,7 @@ Sleep 1400ms
 Type "# Act 1: the 'test' — it runs green but verifies nothing"
 Enter
 Sleep 1s
-Type "cp /tmp/demo-fixtures/ai-slop-fake.test.js config.test.js"
+Type "cp /tmp/demo-ai-slop-fake-test-fixtures/ai-slop-fake.test.js config.test.js"
 Enter
 Type "cat config.test.js"
 Enter
@@ -77,7 +79,7 @@ Sleep 3500ms
 Type "# Act 3: assert the actual value, as keur advised"
 Enter
 Sleep 1200ms
-Type "cp /tmp/demo-fixtures/ai-slop-real.test.js config.test.js"
+Type "cp /tmp/demo-ai-slop-fake-test-fixtures/ai-slop-real.test.js config.test.js"
 Enter
 Type "cat config.test.js"
 Enter

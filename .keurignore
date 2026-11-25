@@ -35,7 +35,10 @@ VAULT-GDPR_NL
 # image bytes coincidentally contain the U+202x byte sequences. It is a false
 # positive on a binary asset, not a Trojan-Source char in reviewable text. The
 # rule stays active for real source; this suppresses the binary-asset hits only.
-SEC-BIDI-001
+# Scoped by path (a bare rule id would silence it in EVERY file): the demo GIFs,
+# and the rule's own file, which contains the characters as its test examples.
+.gif:SEC-BIDI-001
+rules/security/SEC-BIDI-001-trojan-source-control-chars.rule:SEC-BIDI-001
 
 # VAULT-GENERIC is a PERSONAL-vault rule from the global ~/.config/keur/rules/
 # layer. On docs/demo/pii-in-code.tape it fires on a DELIBERATE example PII value

@@ -18,6 +18,8 @@ Set TypingSpeed 45ms
 
 # --- Arrange (hidden): clean shell, disposable repo, no keur installed -------
 Hide
+Type "unset KEUR_RULES_DIRS"
+Enter
 Type "setopt interactive_comments"
 Enter
 Type "source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
@@ -26,7 +28,7 @@ Type "export CLICOLOR_FORCE=1 CLICOLOR=1"
 Enter
 Type "PROMPT='%F{green}❯%f '"
 Enter
-Type "rm -rf /tmp/demo && mkdir -p /tmp/demo && cd /tmp/demo"
+Type "rm -rf /tmp/demo-install-npx && mkdir -p /tmp/demo-install-npx && cd /tmp/demo-install-npx"
 Enter
 Type "git init -q && git config color.ui always"
 Enter
@@ -42,8 +44,9 @@ Sleep 1200ms
 Type "# Act: run keur with npx — no prior install"
 Enter
 Sleep 1s
-Type "npx keur check"
+Type "npx --yes keur check"
 Enter
+Wait@30s /❯\s*$/
 Sleep 4s
 
 # --- Assert: the checksum-verified binary ran, empty stage is a PASS --------

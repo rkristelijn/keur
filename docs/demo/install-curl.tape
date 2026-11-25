@@ -19,6 +19,8 @@ Set TypingSpeed 45ms
 
 # --- Arrange (hidden): clean shell, disposable dir, no keur yet -------------
 Hide
+Type "unset KEUR_RULES_DIRS"
+Enter
 Type "setopt interactive_comments"
 Enter
 Type "source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
@@ -27,11 +29,11 @@ Type "export CLICOLOR_FORCE=1 CLICOLOR=1"
 Enter
 Type "PROMPT='%F{green}❯%f '"
 Enter
-Type "rm -rf /tmp/demo && mkdir -p /tmp/demo && cd /tmp/demo"
+Type "rm -rf /tmp/demo-install-curl && mkdir -p /tmp/demo-install-curl && cd /tmp/demo-install-curl"
 Enter
-Type "export KEUR_BIN_DIR=/tmp/demo/bin"
+Type "export KEUR_BIN_DIR=/tmp/demo-install-curl/bin KEUR_VERSION=v0.2.0"
 Enter
-Type "export XDG_CONFIG_HOME=/tmp/demo/xdg"
+Type "export XDG_CONFIG_HOME=/tmp/demo-install-curl/xdg"
 Enter
 Type "clear"
 Enter
@@ -45,7 +47,7 @@ Sleep 1200ms
 Type "# Act: download install.sh — never pipe curl|sh unverified"
 Enter
 Sleep 1s
-Type "curl -fsSLO https://raw.githubusercontent.com/rkristelijn/keur/main/install.sh"
+Type "curl -fsSLO https://raw.githubusercontent.com/rkristelijn/keur/v0.2.0/install.sh"
 Enter
 Sleep 1500ms
 Type "sh install.sh"
@@ -56,6 +58,6 @@ Sleep 3500ms
 Type "# Assert: checksum verified BEFORE install — then keur runs"
 Enter
 Sleep 1s
-Type "/tmp/demo/bin/keur version"
+Type "/tmp/demo-install-curl/bin/keur version"
 Enter
 Sleep 2500ms

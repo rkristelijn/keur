@@ -7,8 +7,12 @@
 # ESLint/Prettier can't express. ~10 lines of .rule, same gate + explainer as
 # the built-ins.
 #
-# NOTE: the regex has no backslashes on purpose. A quoted heredoc keeps `\\b` literal,
-# so a typed `\\b` never matched and the demo silently showed no BLOCK.
+# The rule is copied from docs/demo/rules/ (one source). A typed copy of it
+# drifted once and silently never matched.
+#
+# The hidden setup pins a minimal .config/keur.toml ([policy] level = 1) so the
+# repo-hygiene rules of a bare demo repo (no LICENSE, SECURITY.md, ...) do not
+# decide the verdict: only the house rule does, BLOCK then PASS.
 #
 # Hermetic + PII-free: neutral /tmp HOME/XDG, keur from PATH. The custom rule is
 # copied into the demo's own .keur/rules (a path keur discovers by walking up
@@ -26,9 +30,13 @@ Set TypingSpeed 42ms
 
 # --- Arrange (hidden): neutral env, repo, and the custom rule in .keur/rules -
 Hide
-Type "export HOME=/tmp/demo-home XDG_CONFIG_HOME=/tmp/demo-home/.config XDG_CACHE_HOME=/tmp/demo-home/.cache"
+Type "unset KEUR_RULES_DIRS"
 Enter
-Type "rm -rf /tmp/demo-home /tmp/demo && mkdir -p /tmp/demo-home/.config /tmp/demo/.keur/rules && cd /tmp/demo"
+Type `R="$(git rev-parse --show-toplevel)"`
+Enter
+Type "export HOME=/tmp/demo-dutch-in-docs-home XDG_CONFIG_HOME=/tmp/demo-dutch-in-docs-home/.config XDG_CACHE_HOME=/tmp/demo-dutch-in-docs-home/.cache"
+Enter
+Type "rm -rf /tmp/demo-dutch-in-docs-home /tmp/demo-dutch-in-docs && mkdir -p /tmp/demo-dutch-in-docs-home/.config /tmp/demo-dutch-in-docs/.keur/rules && cd /tmp/demo-dutch-in-docs"
 Enter
 Type "setopt interactive_comments"
 Enter
@@ -40,35 +48,17 @@ Type "PROMPT='%F{green}❯%f '"
 Enter
 Type "git init -q && git config color.ui always"
 Enter
-Type "cat > .keur/rules/DEMO-NL-001.rule <<'EOF'"
+Type "mkdir -p .config && cat > .config/keur.toml <<'EOF'"
 Enter
-Type "id: DEMO-NL-001"
+Type "[policy]"
 Enter
-Type "title: Dutch-language text in documentation (English-only house rule)"
-Enter
-Type "category: quality"
-Enter
-Type "severity: warning"
-Enter
-Type "engine: pattern"
-Enter
-Type "action: block"
-Enter
-Type "confidence: 0.9"
-Enter
-Type "target:"
-Enter
-Type "  extensions: .md"
-Enter
-Type "patterns:"
-Enter
-Type "  - regex: (?i)(^|[^a-z])(het|een|niet|werkt|deze|zijn|voor|met|gebruik|volgende)([^a-z]|$)"
-Enter
-Type "    message: Dutch text in a doc — this repo's docs are English-only."
-Enter
-Type "fix: Write documentation in English."
+Type "level = 1"
 Enter
 Type "EOF"
+Enter
+Type "git add .config"
+Enter
+Type `cp "$R"/docs/demo/rules/DEMO-NL-001-dutch-in-docs.rule .keur/rules/`
 Enter
 Type "clear"
 Enter
@@ -91,9 +81,10 @@ Enter
 Type "EOF"
 Enter
 Sleep 500ms
-Type "keur scan README.md | grep DEMO-NL-001"
+Type "git add README.md && keur check"
 Enter
-Sleep 3000ms
+Wait@30s /❯\s*$/
+Sleep 2500ms
 
 # --- Act 2: ask keur what the rule is and how to fix it ---------------------
 Type "# Act 2: blocked. ask keur what this rule is and how to fix it"
@@ -103,7 +94,7 @@ Type "keur learn DEMO-NL-001"
 Enter
 Sleep 3200ms
 
-# --- Act 3: translate to English, scan again --------------------------------
+# --- Act 3: translate to English, run the gate again -----------------------
 Type "# Act 3: translate the prose to English, as keur advised"
 Enter
 Sleep 1200ms
@@ -116,11 +107,12 @@ Enter
 Type "EOF"
 Enter
 Sleep 500ms
-Type "keur scan README.md | grep -c DEMO-NL-001"
+Type "git add README.md && keur check"
 Enter
-Sleep 2500ms
+Wait@30s /❯\s*$/
+Sleep 2000ms
 
-# --- Assert: 0 — rule satisfied, the doc is English now ---------------------
-Type "# Assert: 0 — rule satisfied, no longer blocked"
+# --- Assert: PASS — rule satisfied, the commit can go through ---------------
+Type "# Assert: PASS — rule satisfied, no longer blocked"
 Enter
 Sleep 2800ms

@@ -63,7 +63,10 @@ EXTRA=()
 [[ -n "${KEUR_RULES_DIRS:-}" ]] && EXTRA+=("KEUR_RULES_DIRS=$KEUR_RULES_DIRS")
 [[ -n "${KEUR_SANDBOX_NOCOLOR:-}" ]] && EXTRA+=("NO_COLOR=1")
 
-exec env -i \
+# No `exec`: it would replace this shell, so the EXIT trap above could never run
+# and every call would leave its temp HOME behind. Run keur as a child instead
+# and pass its exit status through (the trap still fires on the way out).
+env -i \
     PATH="$SANDBOX_PATH" \
     HOME="$CLEAN" \
     XDG_CONFIG_HOME="$CLEAN/.config" \
