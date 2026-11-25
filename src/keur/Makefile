@@ -251,6 +251,11 @@ test: test-unit test-integration e2e ## Run all tests (unit + integration + e2e)
 test-unit: $(TEST_BIN) ## Run unit tests only (pure functions, fast)
 	@echo "--- unit ---"
 	$(TEST_BIN) --test-suite=unit
+	@# Guard: a test case outside every suite is never run by any tier.
+	@n=$$($(TEST_BIN) --test-suite-exclude=unit,integration,perf -c | sed -n 's/.*filters: *//p'); \
+	  if [ "$$n" != "0" ]; then \
+	    echo "error: $$n test case(s) outside the unit/integration/perf suites never run:"; \
+	    $(TEST_BIN) --test-suite-exclude=unit,integration,perf -ltc; exit 1; fi
 
 test-integration: $(TEST_BIN) ## Run integration tests (real rule engine + fixtures)
 	@echo "--- integration ---"

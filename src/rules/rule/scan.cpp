@@ -311,8 +311,10 @@ std::vector<RuleFinding> scan_impl(const std::vector<Rule>& rules,
     std::vector<const Rule*> applicable;
     for (auto* r : candidates) {
       bool excl = false;
+      // Anchor at the root so a "/x" entry also matches a root-level path.
+      const std::string anchored = "/" + rel;
       for (auto& e : r->target.exclude_paths)
-        if (rel.find(e) != std::string::npos) { excl = true; break; }
+        if (anchored.find(e) != std::string::npos) { excl = true; break; }
       if (!excl) applicable.push_back(r);
     }
     if (applicable.empty()) continue;

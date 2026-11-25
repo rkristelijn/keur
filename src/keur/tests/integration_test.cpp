@@ -1854,7 +1854,6 @@ SCENARIO("[feature:merge-scope] real git: no own contribution → empty scope, n
     CHECK(selected.empty());
 }
 
-} // TEST_SUITE("integration")
 
 // ── MUI v7 / v9 migration rules (UI-MIS-016..019, 023..025) ────────────────
 // Mirrors of eslint-plugin-mui rules (that repo's ADR-006). Table-driven
@@ -2039,3 +2038,33 @@ SCENARIO("[feature:rule-engine] KEUR-SEC-007 blocks a hardcoded credential, not 
     CHECK(has_rule(keur::rules_scan_files(rules, {dir + "/src/latest.js"}), "KEUR-SEC-007"));
     cleanup_dir(dir);
 }
+
+// A directory walk hands root-level files over with a bare relative path
+// ("test_auth.py"), so a "/test_"-style exclusion must also match at the root
+// (exclusions are matched against "/" + rel). And a value that is a runtime
+// reference (env var, CI secret, template) is not a committed credential.
+// @proves KEUR-SEC-007
+SCENARIO("[feature:rule-engine] KEUR-SEC-007 skips root-level tests and runtime references") {
+    auto rules = keur::rules_load(repo_root() + "/rules/secrets");
+    REQUIRE(!rules.empty());
+    const std::string value = std::string("wJalrXUtnFEMI") + "/K7MDENG/bPxRfiCY";
+
+    std::string root = create_temp_dir();
+    REQUIRE(!root.empty());
+    write_file(root + "/test_auth.py", "password = '" + value + "'\n");
+    CHECK(!has_rule(keur::rules_scan_dir(rules, root), "KEUR-SEC-007"));
+    write_file(root + "/latest_auth.py", "password = '" + value + "'\n");
+    CHECK(has_rule(keur::rules_scan_dir(rules, root), "KEUR-SEC-007"));
+    cleanup_dir(root);
+
+    for (const char* ref : {"\"${DB_PASSWORD_VALUE}\"", "\"$DB_PASSWORD_VALUE\"",
+                            "'{{ secrets.DB_PASSWORD }}'", "\"#{ENV['DB_PASSWORD']}\""})
+        CHECK_MESSAGE(!has_rule(scan_inline(rules, "config.yml", std::string("pass" "word: ") + ref + "\n"),
+                                "KEUR-SEC-007"), ref);
+    // A literal, and a hash that merely starts with '$', still match.
+    CHECK(has_rule(scan_inline(rules, "config.yml", "password: \"" + value + "\"\n"), "KEUR-SEC-007"));
+    const std::string hash = std::string("$2b$12$") + "abcdefghijklmnopqrstuv";  // split: no literal in source
+    CHECK(has_rule(scan_inline(rules, "config.yml", "password: \"" + hash + "\"\n"), "KEUR-SEC-007"));
+}
+
+} // TEST_SUITE("integration")
