@@ -72,5 +72,5 @@ env -i \
     XDG_CONFIG_HOME="$CLEAN/.config" \
     XDG_CACHE_HOME="$CLEAN/.cache" \
     KEUR_HOME="$REPO_ROOT" \
-    "${EXTRA[@]}" \
+    ${EXTRA[@]+"${EXTRA[@]}"} \
     "$KEUR_BIN" "${@:2}"
