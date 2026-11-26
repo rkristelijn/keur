@@ -6,6 +6,9 @@ on:
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
+      # docs/demo holds scripts the e2e suites run (sandbox.sh, check-pii.sh):
+      # those are code, so a change there must run CI.
+      - '!docs/demo/**'
       - 'LICENSE'
       - '.gitignore'
   pull_request:
@@ -13,6 +16,9 @@ on:
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
+      # docs/demo holds scripts the e2e suites run (sandbox.sh, check-pii.sh):
+      # those are code, so a change there must run CI.
+      - '!docs/demo/**'
       - 'LICENSE'
       - '.gitignore'
 
